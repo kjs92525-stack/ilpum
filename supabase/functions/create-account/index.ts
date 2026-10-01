@@ -37,10 +37,10 @@ Deno.serve(async (req: Request) => {
   const password = String(b.password ?? "");
   const store = String(b.store ?? "");
   const role = String(b.role ?? "");
-  const pay = b.pay === true;
+  const pay = b.pay === true && role !== "order";
   if (!/^[a-z0-9][a-z0-9._-]{2,19}$/.test(id)) return out(400, { error: "아이디는 영문 소문자·숫자·._- 로 3~20자예요" });
   if (password.length < 8 || password.length > 72) return out(400, { error: "비밀번호는 8자 이상이어야 해요" });
-  if (!["owner", "manager", "staff"].includes(role)) return out(400, { error: "역할이 올바르지 않아요" });
+  if (!["owner", "manager", "staff", "order"].includes(role)) return out(400, { error: "역할이 올바르지 않아요" });
   if (!/^[0-9a-f-]{36}$/.test(store)) return out(400, { error: "매장을 골라 주세요" });
   const { data: st } = await admin.from("stores").select("id,is_hq").eq("id", store).maybeSingle();
   if (!st) return out(400, { error: "없는 매장이에요" });

@@ -141,6 +141,7 @@ function labelStores(){ const sel=document.getElementById('storeSel'); if(!sel) 
   [...sel.options].forEach(op=>{ const n=cnt[op.value]||0; op.textContent=storeName(op.value)+(n?` · 발주 ${n}건`:''); }); }
 function render(){
   const at=document.getElementById('allTab'); if(at){ at.hidden=!isHqUser(); const n=ALLOPEN.length; at.textContent=n?`전체 현황 (${n})`:'전체 현황'; }
+  if(ST&&ST.role==='order'){ const it=document.querySelector('[data-tab="items"]'); if(it) it.hidden=true; if(TAB==='items') TAB='in'; }
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===TAB));
   const m=$('#main'); $('#bar').hidden=TAB!=='in';
   if(!READY){ return; }

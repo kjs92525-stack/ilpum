@@ -193,7 +193,7 @@ function buildMenu(){
 // 본사 계정: 모든 기능 / 가맹점 계정: 자기 매장의 근무표만 (예약·급여·발주 메뉴는 숨김)
 let ME={mode:'none',hq:false,store:null,token:'',email:''};
 // 급여 메뉴는 금액을 볼 수 있는 계정(본사=본점 / 점주 / 허용된 매니저)에게만 보여요
-const allowed=id=>!(ME.mode==='in'&&((id==='pay'&&!ME.canPay)||(id==='board'&&!ME.board)));
+const allowed=id=>ME.orderOnly?id==='ord':!(ME.mode==='in'&&((id==='pay'&&!ME.canPay)||(id==='board'&&!ME.board)));
 function readConf(){ try{ return JSON.parse(localStorage.getItem('ilpum-fr-conf'))||{}; }catch(e){ return {}; } }
 function readSes(){ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; }
 async function refreshSes(ses){
@@ -210,12 +210,12 @@ async function whoami(){
   try{ try{ rows=await ask(ses.access_token); }catch(e){ if(e.status!==401||!ses.refresh_token) throw e; ses=await refreshSes(ses); rows=await ask(ses.access_token); } }
   catch(e){ ME={mode:(e.status===401||e.message==='refresh')?'none':'in',hq:false,store:null,token:ses.access_token,email:'',err:e.message}; if(ME.mode==='in'){ ME.err=e.message; } return; }
   const mine=rows.filter(r=>r.role); const hq=mine.some(r=>r.role==='hq');
-  ME={mode:'in',hq,canPay:mine.some(r=>r.can_pay),board:mine.some(r=>['hq','owner','manager'].includes(r.role)),store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||'',names:Object.fromEntries(mine.map(r=>[r.id,r.name]))};
+  ME={mode:'in',orderOnly:mine.length>0&&mine.every(r=>r.role==='order'),hq,canPay:mine.some(r=>r.can_pay),board:mine.some(r=>['hq','owner','manager'].includes(r.role)),store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||'',names:Object.fromEntries(mine.map(r=>[r.id,r.name]))};
 }
 let gateFr=null;
 function showGate(){ gateFr=document.createElement('iframe'); gateFr.id='gate'; gateFr.title='로그인'; gateFr.src='ilpum-schedule.html?embed=1&view=cards';
   gateFr.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:99;background:#fff'; document.body.appendChild(gateFr); }
-function applyMe(){ $$('#menu [data-hqonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.hq)); $$('#menu [data-payonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.canPay)); $$('#menu [data-boardonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.board));
+function applyMe(){ if(ME.orderOnly){ $$('#menu .mi').forEach(b=>b.hidden=b.dataset.m!=='ord'); $$('#menu .subm').forEach(b=>b.hidden=true); } else $$('#menu .subm').forEach(b=>b.hidden=false); $$('#menu [data-hqonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.hq)); $$('#menu [data-payonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.canPay)); $$('#menu [data-boardonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.board));
   const a=$('#acct'); a.hidden=false; a.textContent=ME.mode==='in'?'로그아웃':'로그인'; a.title=ME.mode==='in'?(ME.email||'')+' 로그아웃':'로그인 화면으로';
   a.onclick=()=>{ if(ME.mode==='in'&&!confirm('로그아웃할까요?')) return;
     try{ const c=readConf(); c.openOnly=false; if(c.mode==='local') c.mode='remote'; if(ME.mode==='in') delete c.ses; localStorage.setItem('ilpum-fr-conf',JSON.stringify(c)); sessionStorage.removeItem('fr-ses'); }catch(e){}
@@ -235,7 +235,7 @@ function ensureFrame(key,view){
   $('#pages').appendChild(f); frames[key]=f; return f;
 }
 function go(id,opts){
-  opts=opts||{}; if(!ROUTES[id]||!allowed(id)||ROUTES[id].ext) id='dash'; const R=ROUTES[id]; cur=id;     // 발주 같은 외부 사이트는 새 창으로 열어요 (작은 창 안에서는 연결 정보가 안 읽혀 비어 보임)
+  opts=opts||{}; if(!ROUTES[id]||!allowed(id)||ROUTES[id].ext) id=ME.orderOnly?'ord':'dash'; const R=ROUTES[id]; cur=id;     // 발주 같은 외부 사이트는 새 창으로 열어요 (작은 창 안에서는 연결 정보가 안 읽혀 비어 보임)
   $('#ttl').textContent=R.t; document.title='일품집 · '+R.t;
   // 메뉴 표시
   $$('#menu [aria-current]').forEach(b=>b.removeAttribute('aria-current'));
@@ -324,7 +324,7 @@ function paintBadge(id,n,title){ const b=document.querySelector(`#menu [data-m="
   if(!n){ if(e) e.remove(); return; } if(!e){ e=document.createElement('span'); e.className='bdg'; b.appendChild(e); } e.textContent=n>99?'99+':n; e.title=title||''; }
 function paintOrderBadge(){ paintBadge('ord',orderOpen.length,'진행 중인 발주 '+orderOpen.length+'건'); }
 // 빨간 숫자: 진행 중 발주 / 새 공지(점주·직원) / 안 읽은 게시판 글(본사=점주가 쓴 글, 점주=본사 답글)
-async function refreshBadges(){
+async function refreshBadges(){ if(ME.orderOnly) return;
   if(ME.mode!=='in') return; let tk; try{ tk=await tokenNow(); }catch(e){ return; }
   const get=p=>sget(NEW,p,{token:tk}).catch(()=>null);
   const [od,nt,bd]=await Promise.all([
@@ -390,10 +390,10 @@ setInterval(()=>{ if(cur!=='dash'&&!document.hidden&&Date.now()-lastActive<IDLE_
 /* ================= 시작 ================= */
 buildMenu();
 (async function(){
-  await whoami(); if(ME.mode==='none'){ showGate(); return; } applyMe(); refreshOrders();
+  await whoami(); if(ME.mode==='none'){ showGate(); return; } applyMe(); if(!ME.orderOnly) refreshOrders();
   let open=true; try{ const v=localStorage.getItem('ilpum-nav'); if(v==='hidden') open=false; }catch(e){} if(mobile()) open=false;
   document.body.classList.toggle('nav-hidden',!open);
-  let start=location.hash.slice(1); if(!ROUTES[start]){ try{ start=localStorage.getItem('ilpum-page'); }catch(e){} } go(ROUTES[start]?start:'dash');
+  let start=location.hash.slice(1); if(!ROUTES[start]){ try{ start=localStorage.getItem('ilpum-page'); }catch(e){} } go(ME.orderOnly?'ord':(ROUTES[start]?start:'dash'));
 })();
 window.addEventListener('hashchange',()=>{ const h=location.hash.slice(1); if(ROUTES[h]&&h!==cur) go(h); });
 </script>
