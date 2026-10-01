@@ -286,12 +286,30 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-/* ================== Supabase 연결 (근무표와 같은 프로젝트) ================== */
-const SUPABASE_URL = 'https://fmzpmekypmjuydgxpnlu.supabase.co';
-const SUPABASE_KEY = '/*OLDKEY*/';
+/* ================== Supabase 연결 (새 서버 · 로그인 필요 · 매장별로 나뉨) ================== */
+const SUPABASE_URL = 'https://bdqcrbnbuoujozlpttbe.supabase.co';
+const SUPABASE_KEY = '/*NEWKEY*/';
 /* ========================================================================== */
-const REST = SUPABASE_URL ? SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/reservations_day' : '';
-const H = { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+const CONF_KEY='ilpum-fr-conf';
+let SID='', STORES=[], REST='';          // REST: 로그인·매장 확인이 끝나면 켜짐
+const RP=()=>`/rest/v1/res_days?store_id=eq.${SID}&`;
+const readConf=()=>{ try{ return JSON.parse(localStorage.getItem(CONF_KEY))||{}; }catch(e){ return {}; } };
+const readSes=()=>{ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; };
+const writeSes=j=>{ try{ const c=readConf(); if(c.ses){ c.ses=j; localStorage.setItem(CONF_KEY,JSON.stringify(c)); } else sessionStorage.setItem('fr-ses',JSON.stringify(j)); }catch(e){} };
+// 로그인 토큰: 다른 화면(근무표·통합 틀)과 같은 저장소를 쓰고, 갱신은 한 번에 한 화면만 함
+async function freshToken(force){
+  const run=async()=>{ const s=readSes(); if(!s) return null;
+    if(!force && (s.expires_at||0)*1000>Date.now()+60000) return s.access_token;
+    const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+    const j=await r.json().catch(()=>({})); if(!r.ok||!j.access_token) return null; writeSes(j); return j.access_token; };
+  return navigator.locks?navigator.locks.request('ilpum-refresh',run):run();
+}
+async function fx(path,opt,retry=true){
+  opt=opt||{}; const tok=await freshToken(false); if(!tok) throw Object.assign(new Error('로그인이 필요해요'),{auth:true});
+  const r=await fetch(SUPABASE_URL+path,{...opt,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json',...(opt.headers||{})},cache:'no-store'});
+  if(r.status===401&&retry){ const t2=await freshToken(true); if(t2) return fx(path,opt,false); }
+  return r;
+}
 const WIN = 120;
 let followNow=true;   // 현황판: 기준 시간 앞뒤 2시간
 
@@ -375,14 +393,14 @@ const todayStr=()=>ds(new Date());
 /* ---------- 상태 ---------- */
 const ui={ date:todayStr(), filter:'all', q:'', floor:'1', t:Math.max(600,Math.min(1320, Math.round(nowMin()/30)*30)), view:'list' };
 const days={};   // date → {items:[], rev}
-function dayDoc(d){ if(!days[d]){ let c=null; try{ c=JSON.parse(localStorage.getItem('ilpum-res-'+d)||'null'); }catch(e){} days[d]=c||{items:[],rev:0}; } return days[d]; }
+function dayDoc(d){ if(!days[d]){ let c=null; try{ c=JSON.parse(localStorage.getItem('ilpum-res-'+SID+'-'+d)||'null'); }catch(e){} days[d]=c||{items:[],rev:0}; } return days[d]; }
 function items(d){ return dayDoc(d).items.filter(x=>!x.deleted); }
 // 테이블 칸에 쓴 글자 중 테이블이 아닌 것(예: 네이버 취소, 전화취소)은 메모로 남김
 function tableNote(s){ return String(s||'').split(/\s+/).filter(g=>g && !parseTables(g).length && !/^(T|번)$/i.test(g)).join(' '); }
 const isCxl=x=>/취소/.test(x.tnote||'');
 function active(d){ return items(d).filter(x=>!isCxl(x)); }   // 현황판·중복 계산용 (취소 제외)
 function tableShow(x){ const ts=tablesText(x.tables); return [...ts, ...(x.tnote?[x.tnote]:[])].join(', '); }
-function cacheDay(d){ try{ localStorage.setItem('ilpum-res-'+d, JSON.stringify(days[d])); }catch(e){} }
+function cacheDay(d){ try{ localStorage.setItem('ilpum-res-'+SID+'-'+d, JSON.stringify(days[d])); }catch(e){} }
 
 /* ---------- 동기화: 날짜별 한 줄, 예약마다 수정 시각으로 합치기 ---------- */
 function mergeItems(a,b){
@@ -394,10 +412,10 @@ const same=(a,b)=>canon([...a].sort((x,y)=>x.id<y.id?-1:1))===canon([...b].sort(
 function setSync(t,k){ const el=document.getElementById('sync'); el.textContent=t; el.dataset.kind=k||''; }
 function withTimeout(p,ms){ return Promise.race([p,new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),ms))]); }
 async function fetchDay(d){
-  const r=await withTimeout(fetch(`${REST}?id=eq.${d}&select=data,rev`,{headers:H,cache:'no-store'}),10000);
+  const r=await withTimeout(fx(`${RP()}id=eq.${d}&select=data,rev`),10000);
   if(!r.ok) throw new Error('HTTP '+r.status); const rows=await r.json(); return rows[0]||null;
 }
-const pushing={}, dirty={};
+const pushing={}, dirty={}, fails={}, needRetry={};    // dirty: 저장 중에 또 고침 / needRetry: 저장 실패(천천히 다시 시도)
 async function pushDay(d){
   if(!REST) return;
   if(pushing[d]){ dirty[d]=true; return; }
@@ -409,24 +427,28 @@ async function pushDay(d){
       if(cur){ merged=mergeItems(cur.data.items||[], doc.items); base=cur.rev||0; }
       const rev=base+1; const body={data:{items:merged}, rev, updated_at:new Date().toISOString()};
       let r;
-      if(cur) r=await withTimeout(fetch(`${REST}?id=eq.${d}&rev=eq.${base}&select=rev`,{method:'PATCH',headers:{...H,Prefer:'return=representation'},body:JSON.stringify(body)}),10000);
-      else r=await withTimeout(fetch(`${REST}?select=rev`,{method:'POST',headers:{...H,Prefer:'return=representation'},body:JSON.stringify({id:d,...body})}),10000);
+      if(cur) r=await withTimeout(fx(`${RP()}id=eq.${d}&rev=eq.${base}&select=rev`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(body)}),10000);
+      else r=await withTimeout(fx(`/rest/v1/res_days?select=rev`,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({store_id:SID,id:d,...body})}),10000);
       if(r.status===409){ continue; }                 // 동시에 처음 만든 경우 → 다시
       if(!r.ok) throw new Error('HTTP '+r.status);
       const rows=await r.json(); if(!rows.length) continue;   // 그사이 다른 사람이 저장 → 합쳐서 다시
-      doc.items=merged; doc.rev=rev; cacheDay(d);
+      doc.items=merged; doc.rev=rev; cacheDay(d); fails[d]=0; needRetry[d]=false;
       const t=new Date(); setSync(`저장됨 ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`,'ok');
       if(d===ui.date) render();
       break;
     }
-  }catch(e){ setSync(`저장 실패(${e.message}) — 다시 시도 중`,'err'); dirty[d]=true; setTimeout(()=>pushDay(d),5000); }
+  }catch(e){ const n=fails[d]=(fails[d]||0)+1; needRetry[d]=true;     // 실패하면 점점 천천히 다시 시도 (서버를 계속 두드리지 않도록)
+    if(e.auth||/HTTP 40[13]/.test(e.message)) setSync('로그인이 필요해요 — 통합관리에서 다시 로그인한 뒤 새로고침하세요','err');
+    else if(n>=8) setSync(`저장 실패(${e.message}) — 여기를 눌러 다시 시도`,'err');
+    else { setSync(`저장 실패(${e.message}) — 잠시 뒤 다시 시도`,'err'); setTimeout(()=>pushDay(d),Math.min(300000,5000*2**(n-1))); } }
   pushing[d]=false;
   if(dirty[d]){ dirty[d]=false; pushDay(d); }
 }
 async function fetchRev(d){
-  const r=await withTimeout(fetch(`${REST}?id=eq.${d}&select=rev`,{headers:H,cache:'no-store'}),10000);
+  const r=await withTimeout(fx(`${RP()}id=eq.${d}&select=rev`),10000);
   if(!r.ok) throw new Error('HTTP '+r.status); const rows=await r.json(); return rows[0]? (rows[0].rev||0) : null;
 }
+let pullFails=0, pullNextAt=0;
 async function pullDay(d){
   if(!REST || pushing[d]) return;
   try{
@@ -444,7 +466,8 @@ async function pullDay(d){
       if(needPush) pushDay(d);
     } else if(!cur && doc.items.length){ pushDay(d); }
     if(!document.getElementById('sync').dataset.kind) setSync('연결됨','ok');
-  }catch(e){ setSync(e.message==='HTTP 404'? 'Supabase에 예약 테이블이 없어요 — reservations_setup.sql 실행 필요' : `연결 실패(${e.message})`,'err'); }
+    pullFails=0;
+  }catch(e){ pullFails++; pullNextAt=Date.now()+Math.min(300000,30000*2**pullFails); setSync(e.auth||/HTTP 40[13]/.test(e.message)? '로그인이 필요해요 — 통합관리에서 다시 로그인한 뒤 새로고침하세요' : `연결 실패(${e.message})`,'err'); }
 }
 function saveItem(d,item){ item.u=Date.now(); const doc=dayDoc(d); const i=doc.items.findIndex(x=>x.id===item.id); if(i>=0) doc.items[i]=item; else doc.items.push(item); cacheDay(d); render(); pushDay(d); }
 
@@ -970,7 +993,7 @@ async function loadAll(force){
   if(gLoading) return gLoading;
   if(!force && gAt && Date.now()-gAt<300000) return;   // 5분 안에는 다시 안 받음
   gLoading=(async()=>{ try{
-    const r=await withTimeout(fetch(`${REST}?select=id,data`,{headers:H,cache:'no-store'}),15000);
+    const r=await withTimeout(fx(`${RP()}select=id,data`),15000);
     if(r.ok){ const o={}; (await r.json()).forEach(row=>o[row.id]=row.data.items||[]); gServer=o; gAt=Date.now(); }
   }catch(e){} gLoading=null; })();
   return gLoading;
@@ -1030,7 +1053,7 @@ async function monthData(ym){
   const [y,m]=ym.split('-').map(Number); const first=`${ym}-01`, last=`${ym}-${pad(new Date(y,m,0).getDate())}`;
   const out={};
   Object.keys(days).forEach(d=>{ if(d>=first&&d<=last) out[d]=days[d].items; });
-  if(REST){ const r=await withTimeout(fetch(`${REST}?id=gte.${first}&id=lte.${last}&select=id,data`,{headers:H,cache:'no-store'}),10000);
+  if(REST){ const r=await withTimeout(fx(`${RP()}id=gte.${first}&id=lte.${last}&select=id,data`),10000);
     if(!r.ok) throw new Error('HTTP '+r.status); (await r.json()).forEach(row=>{ out[row.id]=mergeItems(out[row.id]||[], row.data.items||[]); }); }
   return out;
 }
@@ -1157,11 +1180,37 @@ let tt; function toast(m, actLabel, actFn){
 
 /* ---------- 시작 ---------- */
 // 전체 예약은 검색할 때만 받아옴 (Supabase 무료 사용량 아끼기)
-render();
-window.pullNow=()=>pullDay(ui.date);
 function onScreen(){ if(document.hidden) return false; try{ if(window.frameElement && window.frameElement.hidden) return false; }catch(e){} return true; }
-if(REST){ pullDay(ui.date); setInterval(()=>{ if(onScreen()) pullDay(ui.date); },15000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pullDay(ui.date); }); }
-else setSync('Supabase 미연결 — 이 기기에만 저장됨','err');
+function needLogin(msg){ setSync(msg,'err'); const m=document.getElementById('main'); if(m) m.insertAdjacentHTML('afterbegin',`<div class="card" style="margin:12px;padding:16px;grid-column:1/-1"><b>${msg}</b><div style="margin-top:6px;color:var(--sub,#666)">통합관리(index.html)에서 로그인하면 예약이 보여요.</div></div>`); }
+async function resolveStore(){
+  if(!readSes()){ needLogin('로그인이 필요해요'); return; }
+  try{
+    const r=await fx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{auth:r.status===401});
+    STORES=(await r.json()).filter(x=>x.role);
+    if(!STORES.length){ needLogin('연결된 매장이 없어요 — 본사에 계정 연결을 요청하세요'); return; }
+    const want=readConf().sid; const st=STORES.find(x=>x.id===want)||STORES.find(x=>x.is_hq)||STORES[0];
+    SID=st.id; REST='1'; showStore(st);
+  }catch(e){ if(e.auth) needLogin('로그인이 필요해요'); else setSync(`연결 실패(${e.message})`,'err'); }
+}
+function showStore(st){
+  const sync=document.getElementById('sync'); if(!sync) return;
+  const box=document.createElement('span'); box.id='storeBox'; box.style.cssText='font-weight:600;margin-right:8px';
+  if(STORES.length>1){ box.innerHTML=`<select id="storeSel" aria-label="매장" style="font:inherit;padding:4px 6px">${STORES.map(x=>`<option value="${x.id}" ${x.id===SID?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`; }
+  else box.textContent=st.name;
+  sync.parentNode.insertBefore(box,sync);
+  const sel=document.getElementById('storeSel'); if(sel) sel.onchange=()=>{ try{ const c=readConf(); c.sid=sel.value; localStorage.setItem(CONF_KEY,JSON.stringify(c)); }catch(e){} location.reload(); };
+  // 다른 화면(근무표)에서 매장을 바꾸면 여기도 따라감
+  window.addEventListener('storage',e=>{ if(e.key===CONF_KEY && readConf().sid && readConf().sid!==SID && STORES.some(x=>x.id===readConf().sid)) location.reload(); });
+}
+(async function boot(){
+  await resolveStore();
+  render();
+  window.pullNow=()=>{ if(REST) pullDay(ui.date); };
+  document.getElementById('sync').onclick=()=>{ if(document.getElementById('sync').dataset.kind!=='err') return; pullNextAt=0; Object.keys(needRetry).forEach(d=>{ if(needRetry[d]){ fails[d]=0; pushDay(d); } }); pullDay(ui.date); };
+  if(REST){ pullDay(ui.date);
+    setInterval(()=>{ if(onScreen() && Date.now()>=pullNextAt) pullDay(ui.date); },30000);     // 30초마다 번호만 확인 (화면에 보일 때만)
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden && Date.now()>=pullNextAt) pullDay(ui.date); }); }
+})();
 // 오늘 화면이면 1분마다 현황판 기준 시간을 지금으로 따라가기 (슬라이더를 직접 옮기면 멈춤)
 document.getElementById('boardPanel').addEventListener('pointerdown',e=>{ if(e.target.id==='tRange') followNow=false; });
 setInterval(()=>{ if(followNow && ui.date===todayStr()){ ui.t=Math.max(600,Math.min(1320,Math.round(nowMin()/10)*10)); if(!dlg.open) renderBoard(); } },60000);

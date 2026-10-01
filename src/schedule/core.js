@@ -62,7 +62,8 @@ const Conf=(()=>{ try{ return JSON.parse(localStorage.getItem(CONF_KEY))||{}; }c
 const ID_DOMAIN='ilpum.invalid';
 const toLoginEmail=v=>{ v=String(v||'').trim(); return v.includes('@')?v:v.toLowerCase()+'@'+ID_DOMAIN; };
 const showId=v=>String(v||'').replace('@'+ID_DOMAIN,'');
-function saveConf(){ try{ localStorage.setItem(CONF_KEY,JSON.stringify(Conf)); }catch(e){} }
+// 같은 주소의 다른 화면(예약·통합 틀)이 로그인 토큰을 갱신했으면 그걸 지우지 않음
+function saveConf(){ try{ if(Conf.ses){ const cur=JSON.parse(localStorage.getItem(CONF_KEY)||'null'); if(cur&&cur.ses&&(cur.ses.expires_at||0)>(Conf.ses.expires_at||0)) Conf.ses=cur.ses; } localStorage.setItem(CONF_KEY,JSON.stringify(Conf)); }catch(e){} }
 // ilpum-franchise 프로젝트 (anon 키는 공개용이며, 실제 접근은 로그인 + DB 권한 규칙으로 막힘)
 const DEF_SUPA={url:'https://bdqcrbnbuoujozlpttbe.supabase.co',key:'/*NEWKEY*/'};
 if(!Conf.url||!Conf.key){ Conf.url=DEF_SUPA.url; Conf.key=DEF_SUPA.key; }
@@ -108,9 +109,16 @@ const Remote={
     this.ses=j; this.keep=!!keep; this.persist(); return j.user;
   },
   async refresh(){
-    const r=await fetch(this.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:this.H(false),body:JSON.stringify({refresh_token:this.ses.refresh_token})});
-    const j=await r.json().catch(()=>({})); if(!r.ok){ this.forget(); throw Object.assign(new Error('다시 로그인해 주세요'),{auth:true}); }
-    this.ses=j; this.persist();
+    // 여러 화면이 동시에 갱신하면 서로의 토큰을 무효로 만들 수 있어서, 한 번에 한 화면만 갱신 (다른 화면이 방금 갱신했으면 그걸 씀)
+    const run=async()=>{
+      let latest=null; try{ const c=JSON.parse(localStorage.getItem(CONF_KEY)||'null'); latest=(c&&c.ses)||null; if(!latest){ const t=sessionStorage.getItem('fr-ses'); if(t) latest=JSON.parse(t); } }catch(e){}
+      if(latest && this.ses && latest.access_token!==this.ses.access_token && (latest.expires_at||0)*1000>Date.now()+60000){ this.ses=latest; return; }
+      const rt=(latest&&latest.refresh_token)||this.ses.refresh_token;
+      const r=await fetch(this.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:this.H(false),body:JSON.stringify({refresh_token:rt})});
+      const j=await r.json().catch(()=>({})); if(!r.ok){ this.forget(); throw Object.assign(new Error('다시 로그인해 주세요'),{auth:true}); }
+      this.ses=j; this.persist();
+    };
+    return navigator.locks?navigator.locks.request('ilpum-refresh',run):run();
   },
   async init(){ this.url=(Conf.url||'').replace(/\/$/,''); this.key=Conf.key||''; this.ses=Conf.ses||null; this.keep=!!this.ses;
     if(!this.ses){ try{ const s=sessionStorage.getItem('fr-ses'); if(s){ this.ses=JSON.parse(s); this.keep=false; } }catch(e){} }

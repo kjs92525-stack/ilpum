@@ -55,7 +55,7 @@ async function boot(){
   if(APP.be===Local) await Promise.all(Local.db.stores.map(s=>summaryFor(s.id,true)));
   if(role()==='staff') APP.view='me';
   renderShell(); render();
-  setInterval(poll,15000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) poll(); });
+  if(!pollStarted){ pollStarted=true; setInterval(poll,15000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) poll(); }); }
 }
 async function openStore(sid){
   APP.sid=sid; Conf.sid=sid; saveConf(); APP.st=APP.stores.find(s=>s.id===sid);
@@ -65,7 +65,7 @@ async function openStore(sid){
   catch(e){ APP.D=buildD({},APP.st.name); setSync('불러오기 실패','err'); toast(e.message); }
   if(!canEdit()&&!['me','cards','week'].includes(APP.view)) APP.view='me';
 }
-const pending=new Map(); let flushTimer=null, writing=false;
+const pending=new Map(); let flushTimer=null, writing=false, flushFails=0, pollFails=0, pollNextAt=0, pollStarted=false;
 function put(kind,id,data){
   const D=APP.D;
   if(kind==='cfg'){ if(id==='store') D.store=data; if(id==='positions') D.positions=data; }
@@ -86,18 +86,18 @@ async function flush(){
       catch(e){ if(/row-level|permission|policy|42501|403/i.test(String(e.message))){ denied++; continue; }   // 권한 없는 저장은 다시 시도하지 않음
         batch.slice(i).forEach(x=>{ const k=x.kind+'\u0001'+x.id; if(!pending.has(k)) pending.set(k,x); }); throw e; } }
     const t=new Date(); setSync(`${APP.be===Local?'이 기기에 저장':'저장됨'} ${pad(t.getHours())}:${pad(t.getMinutes())}`,'ok');
-    if(denied) toast(`권한이 없어 저장하지 못한 항목이 ${denied}개 있어요`); }
-  catch(e){ batch.forEach(x=>{ const k=x.kind+'\u0001'+x.id; if(!pending.has(k)) pending.set(k,x); }); setSync('저장 실패 — 다시 시도 중','err'); flushTimer=setTimeout(flush,4000); }
+    flushFails=0; if(denied) toast(`권한이 없어 저장하지 못한 항목이 ${denied}개 있어요`); }
+  catch(e){ batch.forEach(x=>{ const k=x.kind+'\u0001'+x.id; if(!pending.has(k)) pending.set(k,x); }); flushFails++; setSync('저장 실패 — 다시 시도 중','err'); flushTimer=setTimeout(flush,Math.min(300000,4000*2**Math.min(flushFails-1,7))); }   // 실패하면 점점 천천히 (서버를 계속 두드리지 않도록)
   writing=false;
 }
 async function poll(){
-  if(APP.be!==Remote||!APP.sid||document.hidden||pending.size||writing) return;
-  try{ const rows=await APP.be.since(APP.sid); if(!rows||!rows.length) return;
+  if(APP.be!==Remote||!APP.sid||document.hidden||pending.size||writing||Date.now()<pollNextAt) return;
+  try{ const rows=await APP.be.since(APP.sid); pollFails=0; if(!rows||!rows.length) return;
     const D=APP.D; rows.forEach(r=>{ const data=r.deleted?null:r.data;
       if(r.kind==='cfg'){ if(r.id==='store'&&data) D.store=Object.assign(defStore(),data); if(r.id==='positions'&&data) D.positions=data; return; }
       const g=D[{staff:'staff',rule:'rules',dc:'dc',spot:'spot',aw:'aw',sales:'sales',pay:'pay'}[r.kind]]; if(!g) return; if(data==null) delete g[r.id]; else g[r.id]=data; });
     render(); setSync('연결됨 · 방금 새로 받음','ok');
-  }catch(e){ setSync('연결 확인 실패','err'); }
+  }catch(e){ pollFails++; pollNextAt=Date.now()+Math.min(300000,15000*2**Math.min(pollFails,5)); setSync('연결 확인 실패','err'); }
 }
 let sumTimer=null;
 function schedSummary(){ clearTimeout(sumTimer); sumTimer=setTimeout(()=>summaryFor(APP.sid),2500); }

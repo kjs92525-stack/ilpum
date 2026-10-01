@@ -51,8 +51,7 @@ table{border-collapse:collapse;width:100%;font-size:14px} td,th{padding:6px 8px;
   <h2><span class="n" id="n3">3</span>옮기기</h2>
   <label class="ck"><input type="checkbox" id="oSch" checked><span>근무표 옮기기<small>직원, 패턴, 예외, 당일알바, 고정알바 주간 입력, 금액</small></span></label>
   <label class="ck"><input type="checkbox" id="oReplace" checked><span>본점 근무표를 예전 내용으로 통째로 바꾸기 (권장)<small>지금 새 서버에 있는 직원·예외(엑셀로 넣은 10월 임시 자료)를 지우고 예전 내용으로 바꿔요. 바꾸기 전에 지금 내용을 파일로 자동 저장해요.</small></span></label>
-  <label class="ck"><input type="checkbox" id="oRes" checked><span>예약 옮기기<small>같은 예약은 몇 번을 눌러도 중복되지 않아요</small></span></label>
-  <label class="ck"><input type="checkbox" id="oCx"><span>취소된 예약도 옮기기<small>메모에 ‘취소됨’이라고 표시돼요 (기본은 제외)</small></span></label>
+  <label class="ck"><input type="checkbox" id="oRes" checked><span>예약 옮기기<small>날짜별로 그대로 옮겨요 (취소·삭제·휴지통 포함). 같은 날짜는 몇 번을 눌러도 중복되지 않아요</small></span></label>
   <div class="row" style="margin-top:8px"><button class="pri" id="bGo" disabled>옮기기 시작</button><span id="goMsg" class="help" style="margin:0"></span></div>
   <div id="result" style="margin-top:12px"></div>
 </section>
@@ -104,11 +103,9 @@ function showSummary(){
     rows.push(['근무표 · 기간 설정 / 이 날만',`${(s.rules||[]).length}건 / ${Object.keys(s.dc||{}).length}건`]);
     rows.push(['근무표 · 고정알바 주간 입력',`${Object.keys(s.aw||{}).length}주`]);
     const dates=(s.ex||[]).map(e=>e.date).sort(); if(dates.length) rows.push(['근무표 · 예외 기간',`${dates[0]} ~ ${dates[dates.length-1]}`]); }
-  if(oldRes){ const c=MIG.convertReservations(oldRes,'x',{withCancelled:$('#oCx').checked}); const st=c.stat; const ds=oldRes.map(r=>r.id).sort();
-    rows.push(['예약 · 날짜',`${st.days}일 (${ds[0]} ~ ${ds[ds.length-1]})`]);
-    rows.push(['예약 · 옮길 예약',`${st.out}건 <span class="warn">(삭제됨 ${st.deleted}건${$('#oCx').checked?'':`, 취소 ${st.cancelled}건`} 제외)</span>`]);
-    const w=[]; if(st.noTime) w.push(`시간 없음 ${st.noTime}건 → 00:00으로 넣고 메모에 표시`); if(st.noName) w.push(`이름 없음 ${st.noName}건`); if(st.noSize) w.push(`인원 없음 ${st.noSize}건 → 1명`);
-    if(w.length) rows.push(['예약 · 확인',`<span class="warn">${w.join('<br>')}</span>`]); }
+  if(oldRes){ const ds=oldRes.map(r=>r.id).sort(); const n=oldRes.reduce((a,r)=>a+(((r.data||{}).items||[]).filter(x=>!x.deleted).length),0);
+    rows.push(['예약 · 날짜',`${oldRes.length}일 ${ds.length?`(${ds[0]} ~ ${ds[ds.length-1]})`:''}`]);
+    rows.push(['예약 · 예약 건수',`${n}건 (삭제된 것은 빼고 센 수 · 삭제된 것도 같이 옮겨져요)`]); }
   box.innerHTML=rows.length?`<table>${rows.map(r=>`<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</table>`:'';
 }
 $('#bRead').onclick=async()=>{
@@ -118,7 +115,7 @@ $('#bRead').onclick=async()=>{
     const sch=await jf(`${OLD.url}/rest/v1/schedule_state?id=eq.main&select=data,rev`,{headers:oH()},'예전 근무표 읽기');
     oldState=(sch&&sch[0]&&sch[0].data)||null; log(oldState?`근무표 읽음 (직원 ${(oldState.staff||[]).length}명)`:'예전 서버에 근무표가 없어요','g');
     log('예전 서버에서 예약을 읽는 중…');
-    try{ oldRes=await pagedGet(`${OLD.url}/rest/v1/reservations_day?select=id,data&order=id`,oH(),'예전 예약 읽기'); log(`예약 읽음 (${oldRes.length}일)`,'g'); }
+    try{ oldRes=await pagedGet(`${OLD.url}/rest/v1/reservations_day?select=id,data,rev&order=id`,oH(),'예전 예약 읽기'); log(`예약 읽음 (${oldRes.length}일)`,'g'); }
     catch(e){ oldRes=null; log(e.message,'w'); }
     download(`예전서버_백업_${today()}.json`,{schedule_state:oldState,reservations_day:oldRes,savedAt:new Date().toISOString()});
     log('예전 내용을 파일로도 저장했어요 (예전서버_백업_날짜.json) — 혹시 몰라 보관하세요','g');
@@ -133,7 +130,6 @@ $('#fBackup').onchange=async e=>{
     oldState=st; if(o.reservations_day) oldRes=o.reservations_day; log(`백업 파일에서 근무표를 읽었어요 (직원 ${st.staff.length}명)`,'g'); $('#n2').classList.add('ok'); showSummary(); refreshGo();
   }catch(err){ log(err.message,'e'); }
 };
-$('#oCx').onchange=showSummary;
 
 /* ---- 3. 옮기기 ---- */
 function refreshGo(){ const ok=winOpen&&!!store&&(oldState||oldRes); $('#bGo').disabled=!ok; $('#goMsg').textContent=ok?'':(!winOpen?'옮기기 창구가 닫혀 있어요':'먼저 2번에서 예전 내용을 읽으세요'); }
@@ -167,16 +163,16 @@ $('#bGo').onclick=async()=>{
     /* --- 예약 --- */
     if($('#oRes').checked&&oldRes){
       log('── 예약 옮기기 ──');
-      const c=MIG.convertReservations(oldRes,store.id,{withCancelled:$('#oCx').checked});
-      await send('sch_mig_put_reservations',c.rows,'예약 저장');
-      res.push(['예약',`${c.stat.out}건 (${c.stat.days}일치)`+(c.stat.noTime?` · 시간 없음 ${c.stat.noTime}건`:'')]);
+      const days=oldRes.filter(r=>r&&/^\d{4}-\d{2}-\d{2}$/.test(r.id)&&r.data&&typeof r.data==='object').map(r=>({id:r.id,data:r.data,rev:r.rev||1}));
+      for(let i=0;i<days.length;i+=20) await send('sch_mig_put_resdays',days.slice(i,i+20),'예약 저장');
+      res.push(['예약',`${days.length}일치`]);
       log('예약 옮기기 완료','g');
     }
     /* --- 확인 --- */
     log('── 새 서버에서 다시 세어 보기 ──');
-    const cn=(await rpc('sch_mig_counts',{},'개수 확인'))||{items:{},reservations:'?'}; const cnt=cn.items||{}; const total=cn.reservations;
-    res.push(['새 서버 현재',`근무표 직원 ${cnt.staff||0} · 예외 ${cnt.dc||0} · 당일알바 ${cnt.spot||0} · 금액 ${cnt.pay||0} / 예약 ${total||'?'}건`]);
-    log(`새 서버 확인: 직원 ${cnt.staff||0}, 예외 ${cnt.dc||0}, 당일알바 ${cnt.spot||0}, 예약 ${total||'?'}`,'g');
+    const cn=(await rpc('sch_mig_counts',{},'개수 확인'))||{items:{},res_days:'?'}; const cnt=cn.items||{}; const total=cn.res_days;
+    res.push(['새 서버 현재',`근무표 직원 ${cnt.staff||0} · 예외 ${cnt.dc||0} · 당일알바 ${cnt.spot||0} · 금액 ${cnt.pay||0} / 예약 ${total||'?'}일치`]);
+    log(`새 서버 확인: 직원 ${cnt.staff||0}, 예외 ${cnt.dc||0}, 당일알바 ${cnt.spot||0}, 예약 ${total||'?'}일치`,'g');
   }catch(e){ failed=true; log(e.message,'e'); res.push(['오류',`<span class="bad">${e.message}</span>`]); }
   $('#result').innerHTML=`<table>${res.map(r=>`<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</table>`+(failed?'<p class="warn">중간에 멈췄어요. 같은 버튼을 다시 누르면 이어서 해요 (중복되지 않아요).</p>':'<p class="ok"><b>끝났어요.</b> 이제 새 근무표 파일을 열어 확인하세요.</p>');
   $('#n3').classList.toggle('ok',!failed); go.disabled=false; go.textContent='다시 옮기기';
