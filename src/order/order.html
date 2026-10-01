@@ -62,12 +62,18 @@ label.f{display:block;margin:8px 0 2px;font-size:13px;font-weight:700;color:var(
 .toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);background:#222;color:#fff;border-radius:10px;padding:9px 16px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90vw}
 .toast.on{opacity:1}
 .note{color:var(--sub);font-size:12.5px}
+.stchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.stchip{border:1.5px solid var(--line);background:var(--panel);border-radius:12px;padding:8px 12px;cursor:pointer;font-weight:700;text-align:left}
+.stchip small{display:block;font-weight:500;color:var(--sub)}
+.stchip.has{border-color:var(--warn)}
+.stchip .n{display:inline-block;background:var(--warn);color:#fff;border-radius:999px;padding:0 8px;margin-left:6px;font-size:12.5px}
+.sname{display:inline-block;background:var(--accent);color:#fff;border-radius:6px;padding:1px 8px;font-size:12.5px;font-weight:800}
 </style>
 </head>
 <body>
 <header>
   <div class="row"><h1>발주</h1><span id="storeSlot"></span><span class="sp"></span><span id="sync">연결 중…</span><button class="btn sm" id="reload" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.5)">새로고침</button></div>
-  <div class="tabs" role="tablist"><button role="tab" data-tab="in" aria-selected="true">발주 입력</button><button role="tab" data-tab="items" aria-selected="false">품목 관리</button><button role="tab" data-tab="hist" aria-selected="false">발주 내역</button></div>
+  <div class="tabs" role="tablist"><button role="tab" data-tab="in" aria-selected="true">발주 입력</button><button role="tab" data-tab="items" aria-selected="false">품목 관리</button><button role="tab" data-tab="hist" aria-selected="false">발주 내역</button><button role="tab" data-tab="all" id="allTab" aria-selected="false" hidden>전체 현황</button></div>
 </header>
 <main id="main"></main>
 <div class="bar" id="bar" hidden><span class="sum" id="sum"></span><button class="btn" id="clear">비우기</button><button class="btn pri" id="send">발주 넣기</button></div>
@@ -112,7 +118,9 @@ const unitOf=stock=>{ const m=String(stock||'').match(/\d+\s*([^\d\s].*)$/); ret
 const linksOf=it=>{ let l=Array.isArray(it.links)?it.links.filter(x=>x&&safeUrl(x.u)):[]; if(!l.length&&safeUrl(it.buy_url)) l=[{n:'구매',u:it.buy_url}]; return l; };
 
 /* ---------- 자료 ---------- */
-let ITEMS=[], ORDERS=[], QTY={}, TAB='in', HFILTER='open', EXTRA=[];
+let ITEMS=[], ORDERS=[], ALLOPEN=[], QTY={}, TAB='in', HFILTER='open', EXTRA=[];
+const isHqUser=()=>STORES.some(x=>x.role==='hq');
+const storeName=sid=>(STORES.find(x=>x.id===sid)||{}).name||'';
 let loading=null;
 async function loadAll(){
   if(!READY) return; if(loading) return loading;
@@ -120,18 +128,23 @@ async function loadAll(){
     const [it,od]=await Promise.all([
       jx(`/rest/v1/wh_items?store_id=eq.${SID}&select=*&order=sort,id`),
       jx(`/rest/v1/wh_orders?store_id=eq.${SID}&select=*&order=created_at.desc&limit=100`)]);
-    ITEMS=it||[]; ORDERS=od||[]; const t=new Date(); setSync(`연결됨 ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`);
+    ITEMS=it||[]; ORDERS=od||[];
+    if(isHqUser()){ try{ ALLOPEN=await jx('/rest/v1/wh_orders?status=eq.open&select=*&order=created_at.desc&limit=200')||[]; }catch(e){ ALLOPEN=[]; } labelStores(); }
+    const t=new Date(); setSync(`연결됨 ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`);
   }catch(e){ setSync(e.auth||e.status===401?'로그인이 필요해요':'연결 실패: '+e.message,true); }
   loading=null; render(); })();
   return loading;
 }
 
 /* ---------- 화면 ---------- */
+function labelStores(){ const sel=document.getElementById('storeSel'); if(!sel) return; const cnt={}; ALLOPEN.forEach(o=>cnt[o.store_id]=(cnt[o.store_id]||0)+1);
+  [...sel.options].forEach(op=>{ const n=cnt[op.value]||0; op.textContent=storeName(op.value)+(n?` · 발주 ${n}건`:''); }); }
 function render(){
+  const at=document.getElementById('allTab'); if(at){ at.hidden=!isHqUser(); const n=ALLOPEN.length; at.textContent=n?`전체 현황 (${n})`:'전체 현황'; }
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===TAB));
   const m=$('#main'); $('#bar').hidden=TAB!=='in';
   if(!READY){ return; }
-  if(TAB==='in') m.innerHTML=vIn(); else if(TAB==='items') m.innerHTML=vItems(); else m.innerHTML=vHist();
+  if(TAB==='in') m.innerHTML=vIn(); else if(TAB==='items') m.innerHTML=vItems(); else if(TAB==='all'&&isHqUser()) m.innerHTML=vAll(); else m.innerHTML=vHist();
   if(TAB==='in') updateBar();
 }
 function groups(list){ const g={}; list.forEach(x=>{ (g[x.category||'기타']=g[x.category||'기타']||[]).push(x); }); return g; }
@@ -158,12 +171,21 @@ function vItems(){
    +(Object.keys(g).length?Object.keys(g).map(c=>`<div class="cat">${esc(c)}</div><div class="card">${g[c].map(x=>`<div class="it"><div><div class="nm">${esc(x.name)}</div><div class="st">남은 수량 ${esc(x.stock||'-')} ${linksOf(x).map(l=>`<a class="chip" href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.n||'구매')}</a>`).join('')}</div></div>
       ${ed?`<div><button class="btn sm" data-iedit="${esc(x.id)}">수정</button> <button class="btn sm bad" data-idel="${esc(x.id)}">삭제</button></div>`:''}</div>`).join('')}</div>`).join(''):'<div class="card empty">품목이 없어요</div>');
 }
+function ordCard(o,showStore){ const L=Array.isArray(o.lines)?o.lines:[]; const nd=L.filter(l=>l.done).length; const sid=o.store_id||SID;
+  return `<div class="card ord"><div class="h">${showStore?`<span class="sname">${esc(storeName(sid))}</span>`:''}<span class="code">${esc(o.code)}</span><span class="badge ${o.status}">${o.status==='done'?'완료':'진행 중'}</span><span class="when">${kst(o.created_at)} · ${nd}/${L.length}</span><span style="flex:1"></span>${canDelete()?`<button class="btn sm bad" data-odel="${esc(o.code)}" data-sid="${esc(sid)}">삭제</button>`:''}</div>
+    ${L.map((l,i)=>`<div class="ln ${l.done?'done':''}"><input type="checkbox" data-ck="${esc(o.code)}" data-sid="${esc(sid)}" data-i="${i}" ${l.done?'checked':''} aria-label="${esc(l.name)} 구매 완료"><div class="n"><b>${esc(l.name)}</b> × ${esc(l.qty)}${esc(l.unit||'')}</div><div>${(l.links||[]).filter(x=>safeUrl(x.u)).map(x=>`<a class="chip" href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.n||'구매')}</a>`).join('')}</div></div>`).join('')}</div>`; }
 function vHist(){
   const list=ORDERS.filter(o=>HFILTER==='all'||o.status===HFILTER);
   return `<div style="margin-bottom:10px"><div class="seg"><button data-hf="open" aria-pressed="${HFILTER==='open'}">진행 중</button><button data-hf="done" aria-pressed="${HFILTER==='done'}">완료</button><button data-hf="all" aria-pressed="${HFILTER==='all'}">전체</button></div></div>`
-   +(list.length?list.map(o=>{ const L=Array.isArray(o.lines)?o.lines:[]; const nd=L.filter(l=>l.done).length;
-     return `<div class="card ord"><div class="h"><span class="code">${esc(o.code)}</span><span class="badge ${o.status}">${o.status==='done'?'완료':'진행 중'}</span><span class="when">${kst(o.created_at)} · ${nd}/${L.length}</span><span style="flex:1"></span>${canDelete()?`<button class="btn sm bad" data-odel="${esc(o.code)}">삭제</button>`:''}</div>
-      ${L.map((l,i)=>`<div class="ln ${l.done?'done':''}"><input type="checkbox" data-ck="${esc(o.code)}" data-i="${i}" ${l.done?'checked':''} aria-label="${esc(l.name)} 구매 완료"><div class="n"><b>${esc(l.name)}</b> × ${esc(l.qty)}${esc(l.unit||'')}</div><div>${(l.links||[]).filter(x=>safeUrl(x.u)).map(x=>`<a class="chip" href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.n||'구매')}</a>`).join('')}</div></div>`).join('')}</div>`; }).join(''):'<div class="card empty">발주 내역이 없어요</div>');
+   +(list.length?list.map(o=>ordCard(o,false)).join(''):'<div class="card empty">발주 내역이 없어요</div>');
+}
+// 본사: 모든 매장에서 들어온 진행 중 발주를 한 번에 (매장 이름표 + 매장별 건수)
+function vAll(){
+  const by={}; ALLOPEN.forEach(o=>(by[o.store_id]=by[o.store_id]||[]).push(o));
+  const chips=STORES.map(st=>{ const n=(by[st.id]||[]).length; const last=n?kst(by[st.id][0].created_at):'';
+    return `<button class="stchip ${n?'has':''}" data-gostore="${esc(st.id)}">${esc(st.name)}${n?`<span class="n">${n}</span>`:''}<small>${n?`가장 최근 ${last}`:'들어온 발주 없음'}</small></button>`; }).join('');
+  return `<div class="note" style="margin-bottom:8px">모든 매장에서 들어온 <b>진행 중</b> 발주예요 (${ALLOPEN.length}건). 매장 칸을 누르면 그 매장의 발주 내역으로 가요.</div><div class="stchips">${chips}</div>`
+   +(ALLOPEN.length?ALLOPEN.map(o=>ordCard(o,true)).join(''):'<div class="card empty">진행 중인 발주가 없어요</div>');
 }
 
 /* ---------- 동작 ---------- */
@@ -173,6 +195,7 @@ document.addEventListener('click',async e=>{
   const t=e.target; const q=t.closest('[data-q]');
   if(q){ const id=q.dataset.q; QTY[id]=Math.max(0,(QTY[id]||0)+(+q.dataset.d)); const inp=document.querySelector(`[data-qi="${CSS.escape(id)}"]`); if(inp) inp.value=QTY[id]||''; updateBar(); return; }
   const h=t.closest('[data-hf]'); if(h){ HFILTER=h.dataset.hf; render(); return; }
+  const gs=t.closest('[data-gostore]'); if(gs){ try{ const c=readConf(); c.sid=gs.dataset.gostore; localStorage.setItem(CONF_KEY,JSON.stringify(c)); }catch(er){} TAB='hist'; HFILTER='open'; location.reload(); return; }
   const xd=t.closest('[data-xdel]'); if(xd){ EXTRA.splice(+xd.dataset.xdel,1); render(); return; }
   const act=t.closest('[data-act]')?.dataset.act;
   if(act==='xadd') return dlgExtra();
@@ -180,15 +203,18 @@ document.addEventListener('click',async e=>{
   if(act==='import') return importOld();
   const ie=t.closest('[data-iedit]'); if(ie) return dlgItem(ITEMS.find(x=>x.id===ie.dataset.iedit));
   const id=t.closest('[data-idel]'); if(id){ const it=ITEMS.find(x=>x.id===id.dataset.idel); if(it&&confirm(`‘${it.name}’ 품목을 지울까요?\n이미 넣은 발주 내역은 그대로 남아요.`)){ try{ await jx(`/rest/v1/wh_items?store_id=eq.${SID}&id=eq.${encodeURIComponent(it.id)}`,{method:'DELETE'}); ITEMS=ITEMS.filter(x=>x!==it); render(); toast('지웠어요'); }catch(er){ toast('지우지 못했어요: '+er.message); } } return; }
-  const od=t.closest('[data-odel]'); if(od){ if(!confirm(`발주 ${od.dataset.odel} 을(를) 지울까요?`)) return; try{ await jx(`/rest/v1/wh_orders?store_id=eq.${SID}&code=eq.${encodeURIComponent(od.dataset.odel)}`,{method:'DELETE'}); ORDERS=ORDERS.filter(o=>o.code!==od.dataset.odel); render(); }catch(er){ toast('지우지 못했어요: '+er.message); } return; }
+  const od=t.closest('[data-odel]'); if(od){ const sid=od.dataset.sid||SID; if(!confirm(`발주 ${od.dataset.odel} 을(를) 지울까요?`)) return; try{ await jx(`/rest/v1/wh_orders?store_id=eq.${sid}&code=eq.${encodeURIComponent(od.dataset.odel)}`,{method:'DELETE'}); const gone=o=>o.code===od.dataset.odel&&(o.store_id||SID)===sid; ORDERS=ORDERS.filter(o=>!gone(o)); ALLOPEN=ALLOPEN.filter(o=>!gone(o)); labelStores(); render(); }catch(er){ toast('지우지 못했어요: '+er.message); } return; }
   if(t.id==='clear'){ QTY={}; EXTRA=[]; render(); return; }
   if(t.id==='send') return sendOrder();
 });
 document.addEventListener('input',e=>{ const i=e.target.closest('[data-qi]'); if(i){ QTY[i.dataset.qi]=Math.max(0,parseInt(i.value,10)||0); updateBar(); } });
 document.addEventListener('change',async e=>{
-  const c=e.target.closest('[data-ck]'); if(!c) return; const o=ORDERS.find(x=>x.code===c.dataset.ck); if(!o) return;
+  const c=e.target.closest('[data-ck]'); if(!c) return; const sid=c.dataset.sid||SID; const code=c.dataset.ck;
+  const o=ORDERS.find(x=>x.code===code&&(x.store_id||SID)===sid)||ALLOPEN.find(x=>x.code===code&&x.store_id===sid); if(!o) return;
   const lines=JSON.parse(JSON.stringify(o.lines)); lines[+c.dataset.i].done=c.checked; const status=lines.every(l=>l.done)?'done':'open';
-  try{ await jx(`/rest/v1/wh_orders?store_id=eq.${SID}&code=eq.${encodeURIComponent(o.code)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({lines,status,updated_at:new Date().toISOString()})}); o.lines=lines; o.status=status; render(); }
+  try{ await jx(`/rest/v1/wh_orders?store_id=eq.${sid}&code=eq.${encodeURIComponent(code)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({lines,status,updated_at:new Date().toISOString()})});
+    [ORDERS.find(x=>x.code===code&&(x.store_id||SID)===sid),ALLOPEN.find(x=>x.code===code&&x.store_id===sid)].forEach(x=>{ if(x){ x.lines=lines; x.status=status; } });
+    if(status==='done') ALLOPEN=ALLOPEN.filter(x=>!(x.code===code&&x.store_id===sid)); labelStores(); render(); }
   catch(er){ c.checked=!c.checked; toast('저장하지 못했어요: '+er.message); } });
 
 async function sendOrder(){

@@ -32,6 +32,7 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .lbl{font-size:10.5px;letter-spacing:.14em;color:var(--nav-sub);font-weight:700;padding:6px 10px 8px}
 .mi{display:flex;align-items:center;gap:11px;width:100%;border:0;background:none;color:var(--nav-ink);padding:10px 11px;border-radius:10px;font-size:14.5px;font-weight:600;text-align:left;margin-bottom:2px}
 .mi:hover{background:var(--nav-h)}
+.mi .bdg{margin-left:auto;background:#E5533D;color:#fff;border-radius:999px;font-size:12px;font-weight:800;padding:0 8px;min-width:22px;text-align:center;line-height:20px}
 .mi[aria-current="page"]{background:#fff;color:#1A3B2C}
 .mi .car{margin-left:auto;transition:transform .15s;opacity:.7}
 .mi[aria-expanded="true"] .car{transform:rotate(90deg)}
@@ -205,7 +206,7 @@ async function whoami(){
   try{ try{ rows=await ask(ses.access_token); }catch(e){ if(e.status!==401||!ses.refresh_token) throw e; ses=await refreshSes(ses); rows=await ask(ses.access_token); } }
   catch(e){ ME={mode:(e.status===401||e.message==='refresh')?'none':'in',hq:false,store:null,token:ses.access_token,email:'',err:e.message}; if(ME.mode==='in'){ ME.err=e.message; } return; }
   const mine=rows.filter(r=>r.role); const hq=mine.some(r=>r.role==='hq');
-  ME={mode:'in',hq,canPay:mine.some(r=>r.can_pay),store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||''};
+  ME={mode:'in',hq,canPay:mine.some(r=>r.can_pay),store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||'',names:Object.fromEntries(mine.map(r=>[r.id,r.name]))};
 }
 let gateFr=null;
 function showGate(){ gateFr=document.createElement('iframe'); gateFr.id='gate'; gateFr.title='로그인'; gateFr.src='ilpum-schedule.html?embed=1&view=cards';
@@ -309,7 +310,24 @@ async function loadDash(manual){
         const D=buildD(items,st.name); out.staff={D,R:resolve(D,now),name:st.name};
       }catch(e){ out.staffErr=e.message; } })()
   ]);
-  dashData=out; renderDash(manual); 
+  dashData=out; renderDash(manual); refreshOrders();
+}
+// ---- 들어온 발주 알림: 진행 중인 발주를 매장별로 세어 왼쪽 메뉴에 빨간 숫자, 오늘 현황에 목록으로 보여줘요 (본사는 모든 매장, 점주는 자기 매장) ----
+let orderOpen=[];
+const ago=iso=>{ const m=Math.max(0,Math.round((Date.now()-new Date(iso))/60000)); return m<1?'방금':m<60?m+'분 전':m<1440?Math.floor(m/60)+'시간 전':Math.floor(m/1440)+'일 전'; };
+function paintOrderBadge(){ const b=document.querySelector('#menu [data-m="ord"]'); if(!b) return; let e=b.querySelector('.bdg'); const n=orderOpen.length;
+  if(!n){ if(e) e.remove(); return; } if(!e){ e=document.createElement('span'); e.className='bdg'; b.appendChild(e); } e.textContent=n>99?'99+':n; e.title='진행 중인 발주 '+n+'건'; }
+async function refreshOrders(){
+  if(ME.mode!=='in') return;
+  try{ const tk=await tokenNow(); orderOpen=await sget(NEW,'/rest/v1/wh_orders?status=eq.open&select=store_id,code,created_at&order=created_at.desc&limit=200',{token:tk}); }catch(e){ return; }
+  paintOrderBadge(); if(cur==='dash'&&dashData) renderDash();
+}
+function orderPanel(){
+  if(ME.mode!=='in') return '';
+  const by={}; orderOpen.forEach(o=>(by[o.store_id]=by[o.store_id]||[]).push(o)); const ids=Object.keys(by);
+  const rows=ids.map(id=>{ const L=by[id]; const oldest=L[L.length-1]; return `<div class="st" style="grid-template-columns:1fr auto"><div><b>${esc((ME.names||{})[id]||'매장')}</b><small>가장 오래된 발주 ${esc(ago(oldest.created_at))}</small></div><div class="tm" style="color:#E5533D">${L.length}건</div></div>`; }).join('');
+  return `<div class="panel"><div class="ph"><h2>들어온 발주</h2><span class="cnt">${orderOpen.length}</span><button class="more" data-jump="ord">발주 보기 ›</button></div>
+    ${ids.length?`<div class="staff">${rows}</div>`:'<div class="empty">진행 중인 발주가 없어요.</div>'}</div>`;
 }
 function renderDash(){
   const d=dashData; if(!d) return; const now=new Date(), el=$('#dash');
@@ -337,6 +355,7 @@ function renderDash(){
    </div>
     ${noRes?'':`<div class="panel"><div class="ph"><h2>오늘의 예약</h2><span class="cnt">${d.resErr?'-':all.length}</span><button class="more" data-jump="res">전체 보기 ›</button></div>
      ${d.resErr?`<div class="err">예약을 불러오지 못했어요 (${esc(d.resErr)})</div>`:all.length?`<div style="overflow-x:auto"><table><thead><tr><th>시간</th><th>고객 / 연락처</th><th>인원</th><th>테이블</th><th>요청사항</th><th>상태</th></tr></thead><tbody>${all.map(resRow).join('')}</tbody></table></div>`:'<div class="empty">오늘 예약이 없어요. 예약 관리에서 등록하세요.</div>'}</div>`}
+   ${orderPanel()}
    <div class="panel"><div class="ph"><h2>오늘 출근 직원</h2><span class="cnt">${d.staffErr?'-':L.length}</span><button class="more" data-jump="day">전체 보기 ›</button></div>
      ${d.staffErr?`<div class="err">근무표를 불러오지 못했어요 (${esc(d.staffErr)})</div>`:L.length?`<div class="staff">${sorted.map(x=>{ const [a,b]=spanOf(d.staff.D.store,x.sh); const t=m=>pad(Math.floor(m/60))+':'+pad(m%60); const lb=shLbl(x.sh,d.staff.D.store);
        return `<div class="st"><div class="av">${esc((x.name||'?')[0])}</div><div><b>${esc(x.name)}</b><small>${esc(x.pos)}${x.type==='spot'?' · 단기':x.type==='weekly'?' · 매주 변동':''}</small></div><div class="tm">${t(a)}<small>~ ${t(b)}${lb?' · '+esc(lb):''}</small></div></div>`; }).join('')}</div>`:'<div class="empty">오늘 출근자가 없어요.</div>'}
@@ -351,11 +370,12 @@ const IDLE_MS=10*60*1000; let lastActive=Date.now();       // 10분 동안 아�
 ['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{ const was=Date.now()-lastActive; lastActive=Date.now(); if(was>IDLE_MS&&cur==='dash') loadDash(); },{passive:true}));
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ lastActive=Date.now(); if(cur==='dash') loadDash(); } });
 setInterval(()=>{ if(cur==='dash'&&!document.hidden&&Date.now()-lastActive<IDLE_MS) loadDash(); },60000);
+setInterval(()=>{ if(cur!=='dash'&&!document.hidden&&Date.now()-lastActive<IDLE_MS) refreshOrders(); },90000);      // 다른 화면을 보고 있어도 발주가 들어오면 메뉴에 숫자가 떠요
 
 /* ================= 시작 ================= */
 buildMenu();
 (async function(){
-  await whoami(); if(ME.mode==='none'){ showGate(); return; } applyMe();
+  await whoami(); if(ME.mode==='none'){ showGate(); return; } applyMe(); refreshOrders();
   let open=true; try{ const v=localStorage.getItem('ilpum-nav'); if(v==='hidden') open=false; }catch(e){} if(mobile()) open=false;
   document.body.classList.toggle('nav-hidden',!open);
   let start=location.hash.slice(1); if(!ROUTES[start]){ try{ start=localStorage.getItem('ilpum-page'); }catch(e){} } go(ROUTES[start]?start:'dash');
