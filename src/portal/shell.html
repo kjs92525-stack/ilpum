@@ -230,7 +230,7 @@ function ensureFrame(key,view){
   $('#pages').appendChild(f); frames[key]=f; return f;
 }
 function go(id,opts){
-  opts=opts||{}; if(!ROUTES[id]||!allowed(id)) id='dash'; const R=ROUTES[id]; cur=id;
+  opts=opts||{}; if(!ROUTES[id]||!allowed(id)||ROUTES[id].ext) id='dash'; const R=ROUTES[id]; cur=id;     // 발주 같은 외부 사이트는 새 창으로 열어요 (작은 창 안에서는 연결 정보가 안 읽혀 비어 보임)
   $('#ttl').textContent=R.t; document.title='일품집 · '+R.t;
   // 메뉴 표시
   $$('#menu [aria-current]').forEach(b=>b.removeAttribute('aria-current'));
@@ -269,7 +269,7 @@ $('#tog').onclick=()=>setNav(!navOpen()); $('#hideBtn').onclick=()=>setNav(false
 document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='b'){ e.preventDefault(); setNav(!navOpen()); } if(e.key==='Escape'&&mobile()&&navOpen()) setNav(false); });
 $('#menu').addEventListener('click',e=>{
   const g=e.target.closest('[data-g]'); if(g){ const sub=MENU.find(m=>m.id===g.dataset.g).sub; go(sub[0][0]); return; }
-  const b=e.target.closest('[data-go]'); if(b) go(b.dataset.go);
+  const b=e.target.closest('[data-go]'); if(b){ const R=ROUTES[b.dataset.go]; if(R&&R.ext){ if(allowed(b.dataset.go)) window.open(FILES[R.frame],'_blank','noopener'); return; } go(b.dataset.go); }
 });
 $('#reload').onclick=()=>{ if(cur==='dash') return loadDash(true); const R=ROUTES[cur]; const f=frames[R.frame]; if(!f) return; try{ if(R.ext) f.src=f.src; else f.contentWindow.location.reload(); }catch(e){ f.src=f.src; } };
 
