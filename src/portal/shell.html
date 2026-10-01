@@ -280,20 +280,32 @@ const isCxl=x=>/취소/.test(x.tnote||'');
 const hhmm=t=>{ const m=String(t||'').match(/^(\d{1,2}):?(\d{2})$/); return m?pad(+m[1])+':'+m[2]:''; };
 const toM=t=>{ const m=hhmm(t); return m?(+m.slice(0,2))*60+(+m.slice(3)):null; };
 let dashData=null, soonAt=null;
+// 전송량 아끼기: 자동 새로고침 때는 예약은 '번호(rev)'만 먼저 확인하고, 근무표는 30분에 한 번만 다시 받아요 (새로고침 버튼은 바로 다시 받음)
+let dashRes=null, dashItems=null;
+async function tokenNow(){
+  const s=readSes(); if(!s) return ''; if((s.expires_at||0)*1000>Date.now()+60000) return s.access_token;
+  const run=async()=>{ const s2=readSes(); if(s2&&(s2.expires_at||0)*1000>Date.now()+60000) return s2; return refreshSes(s2||s); };
+  try{ const j=await (navigator.locks?navigator.locks.request('ilpum-refresh',run):run()); return j.access_token; }catch(e){ return s.access_token; }
+}
 async function loadDash(manual){
   const el=$('#dash'); const now=new Date(); const key=ds(now);
   if(!dashData) el.innerHTML='<div class="empty">불러오는 중…</div>';
   const out={res:null,resErr:null,staff:null,staffErr:null};
+  const tk=ME.mode==='in'?await tokenNow():'';
   await Promise.all([
     (async()=>{ try{
         if(ME.mode!=='in') throw new Error('로그인하면 예약이 보여요'); if(!ME.store) throw new Error('연결된 매장이 없어요');
-        const rows=await sget(NEW,`/rest/v1/res_days?store_id=eq.${ME.store.id}&id=eq.${key}&select=data`,{token:ME.token}); out.res=((rows[0]&&rows[0].data&&rows[0].data.items)||[]).filter(x=>!x.deleted); }catch(e){ out.resErr=e.message; } })(),
+        const base=`/rest/v1/res_days?store_id=eq.${ME.store.id}&id=eq.${key}`;
+        if(!manual&&dashRes&&dashRes.key===key&&dashRes.sid===ME.store.id){ const r0=await sget(NEW,base+'&select=rev',{token:tk}); if(r0[0]&&r0[0].rev===dashRes.rev||!r0[0]&&dashRes.rev===0){ out.res=dashRes.items; return; } }
+        const rows=await sget(NEW,base+'&select=data,rev',{token:tk}); const items=((rows[0]&&rows[0].data&&rows[0].data.items)||[]).filter(x=>!x.deleted);
+        dashRes={key,sid:ME.store.id,rev:rows[0]?rows[0].rev:0,items}; out.res=items; }catch(e){ out.resErr=e.message; } })(),
     (async()=>{ try{
-        let st, tk=''; if(ME.mode==='in'){ st=ME.store; tk=ME.token; if(!st) throw new Error(ME.err||'연결된 매장이 없어요'); }
+        let st; if(ME.mode==='in'){ st=ME.store; if(!st) throw new Error(ME.err||'연결된 매장이 없어요'); }
         else{ const os=await sget(NEW,'/rest/v1/rpc/sch_open_store',{method:'POST',body:'{}'}); st=os&&os[0]; }
         if(!st) throw new Error('매장을 찾지 못했어요');
-        const rows=await sget(NEW,`/rest/v1/sch_items?store_id=eq.${st.id}&deleted=eq.false&select=kind,id,data`,{token:tk});
-        const items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data);
+        let items;
+        if(!manual&&dashItems&&dashItems.sid===st.id&&Date.now()-dashItems.at<1800000) items=dashItems.items;
+        else{ const rows=await sget(NEW,`/rest/v1/sch_items?store_id=eq.${st.id}&deleted=eq.false&select=kind,id,data`,{token:tk}); items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data); dashItems={sid:st.id,at:Date.now(),items}; }
         const D=buildD(items,st.name); out.staff={D,R:resolve(D,now),name:st.name};
       }catch(e){ out.staffErr=e.message; } })()
   ]);
@@ -335,7 +347,10 @@ function renderDash(){
 }
 document.addEventListener('click',e=>{ const j=e.target.closest('[data-jump]'); if(j) go(j.dataset.jump); if(e.target.id==='dRef') loadDash(true); });
 document.addEventListener('change',e=>{ if(e.target.id==='soonSel'){ soonAt=+e.target.value; renderDash(); } });
-setInterval(()=>{ if(cur==='dash'&&!document.hidden) loadDash(); },60000);
+const IDLE_MS=10*60*1000; let lastActive=Date.now();       // 10분 동안 아무도 안 만졌으면 자동 새로고침을 멈춰요 (켜 둔 채 방치된 기기가 서버를 계속 두드리지 않도록)
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{ const was=Date.now()-lastActive; lastActive=Date.now(); if(was>IDLE_MS&&cur==='dash') loadDash(); },{passive:true}));
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ lastActive=Date.now(); if(cur==='dash') loadDash(); } });
+setInterval(()=>{ if(cur==='dash'&&!document.hidden&&Date.now()-lastActive<IDLE_MS) loadDash(); },60000);
 
 /* ================= 시작 ================= */
 buildMenu();

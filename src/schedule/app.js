@@ -55,7 +55,9 @@ async function boot(){
   if(APP.be===Local) await Promise.all(Local.db.stores.map(s=>summaryFor(s.id,true)));
   if(role()==='staff') APP.view='me';
   renderShell(); render();
-  if(!pollStarted){ pollStarted=true; setInterval(poll,15000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) poll(); }); }
+  if(!pollStarted){ pollStarted=true; setInterval(poll,60000);       // 1분마다 바뀐 것만 확인 (전송량 절약)
+    ['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{ const was=Date.now()-lastActive; lastActive=Date.now(); if(was>IDLE_MS) poll(); },{passive:true}));
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ lastActive=Date.now(); poll(); } }); }
 }
 async function openStore(sid){
   APP.sid=sid; Conf.sid=sid; saveConf(); APP.st=APP.stores.find(s=>s.id===sid);
@@ -66,6 +68,7 @@ async function openStore(sid){
   if(!canEdit()&&!['me','cards','week'].includes(APP.view)) APP.view='me';
 }
 const pending=new Map(); let flushTimer=null, writing=false, flushFails=0, pollFails=0, pollNextAt=0, pollStarted=false;
+const IDLE_MS=10*60*1000; let lastActive=Date.now();
 function put(kind,id,data){
   const D=APP.D;
   if(kind==='cfg'){ if(id==='store') D.store=data; if(id==='positions') D.positions=data; }
@@ -92,6 +95,8 @@ async function flush(){
 }
 async function poll(){
   if(APP.be!==Remote||!APP.sid||document.hidden||pending.size||writing||Date.now()<pollNextAt) return;
+  try{ if(window.frameElement&&window.frameElement.hidden) return; }catch(e){}      // 통합 틀에서 가려진 창은 쉼
+  if(Date.now()-lastActive>IDLE_MS) return;                                           // 10분 동안 아무도 안 만졌으면 쉼
   try{ const rows=await APP.be.since(APP.sid); pollFails=0; if(!rows||!rows.length) return;
     const D=APP.D; rows.forEach(r=>{ const data=r.deleted?null:r.data;
       if(r.kind==='cfg'){ if(r.id==='store'&&data) D.store=Object.assign(defStore(),data); if(r.id==='positions'&&data) D.positions=data; return; }
