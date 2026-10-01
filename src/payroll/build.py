@@ -1,5 +1,5 @@
 """급여 계산기 빌드: 근무표 계산 엔진(core.js)을 그대로 끼워 넣고 공개 키를 채움
-   실행: python3 src/payroll/build.py   ->  dist/일품집_급여.html"""
+   실행: python3 src/payroll/build.py   ->  dist/pay.html"""
 import os,json
 here=os.path.dirname(os.path.abspath(__file__)); root=os.path.join(here,'..','..')
 core=open(os.path.join(here,'..','schedule','core.js'),encoding='utf-8').read()
@@ -9,4 +9,4 @@ k=json.load(open(os.path.join(root,'keys.json')))
 t=open(os.path.join(here,'pay.html'),encoding='utf-8').read()
 out=t.replace('/*ENGINE*/',engine).replace('/*NEWKEY*/',k['new'])
 os.makedirs(os.path.join(root,'dist'),exist_ok=True)
-open(os.path.join(root,'dist','일품집_급여.html'),'w',encoding='utf-8').write(out); print('일품집_급여.html',len(out),'bytes')
+open(os.path.join(root,'dist','pay.html'),'w',encoding='utf-8').write(out); print('pay.html',len(out),'bytes')

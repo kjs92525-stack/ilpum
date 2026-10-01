@@ -44,7 +44,7 @@ async def open_page(b):
   ctx=await b.new_context(viewport={'width':1300,'height':900}); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
   await pg.route('**/*',handler); REQ.clear()
   await pg.add_init_script(FIX); await pg.add_init_script(f"try{{ localStorage.setItem('ilpum-fr-conf',{json.dumps(json.dumps(S))}); }}catch(e){{}}")
-  await pg.goto('http://localhost:8765/'+urllib.parse.quote('일품집_급여.html')); await pg.wait_for_timeout(2000); return ctx,pg,errs
+  await pg.goto('http://localhost:8765/pay.html'); await pg.wait_for_timeout(2000); return ctx,pg,errs
 async def unlock(pg,pin='abcd1234'):
   if PIN['v'] is None:
     ins=pg.locator('.pinin'); await ins.nth(0).fill(pin); await ins.nth(1).fill(pin)

@@ -18,7 +18,7 @@
 | 통합관리 틀(왼쪽 메뉴, 오늘 현황) | `index.html` | 예약=**예전** 서버, 출근=**새** 서버 (읽기만) | 완성, 실서버 미확인 |
 | 예약 관리 | `reserve.html` | **새** 서버 `res_days` (매장별, 로그인 필요) | 화면은 새 서버용으로 바꿈. **자료 이전은 아직**(이전 도구 실행 필요) |
 | 근무 스케줄 (+직원·매장·설정 화면) | `ilpum-schedule.html` | **새** 서버 `sch_*` | 완성, 실서버 미확인 |
-| 급여 관리 | `일품집_급여.html` | **새** 서버 `sch_items`(읽기만, 금액 권한 필요) · 계산 기록은 이 기기 localStorage | 2026-10-01 새 서버로 연결(`src/payroll/pay.html`) |
+| 급여 관리 | `pay.html` | **새** 서버 `sch_items`(읽기만, 금액 권한 필요) · 계산 기록은 이 기기 localStorage | 2026-10-01 새 서버로 연결(`src/payroll/pay.html`) |
 | 일회성 이전 도구 | `ilpum-migrate.html` | 예전 서버 → 새 서버 | 완성, **아직 실행 안 함** |
 | 발주 관리 | `order.html` | **새** 서버 `wh_items`·`wh_orders` (매장별) | 화면 새로 만듦(추정 기반). 자료는 "가져오기" 버튼으로 이전 |
 
@@ -146,7 +146,7 @@ tools/import-oct 엑셀(예전 근무표 10월 내보내기)을 새 서버 형�
 
 ## 7. 배포
 
-- 정적 호스팅(Netlify 등)에 **`dist/` 안의 파일을 한 폴더에** 올림: `index.html`, `reserve.html`, `ilpum-schedule.html`, `일품집_급여.html`(+ 일회성 `ilpum-migrate.html`).
+- 정적 호스팅(Netlify 등)에 **`dist/` 안의 파일을 한 폴더에** 올림: `index.html`, `reserve.html`, `ilpum-schedule.html`, `order.html`, `pay.html`(+ 일회성 `ilpum-migrate.html`). 파일 이름은 한글 없이 영문으로(배포 도구가 한글 이름에서 실패하는 일을 피함).
 - 같은 주소 아래여야 iframe/postMessage/localStorage 공유(자동 로그인)가 동작. 파일 이름을 바꾸면 `src/portal/shell.html` 의 `FILES` 만 고치면 됨.
 - 사용자가 지금 운영하는 사이트(예전 세트: `index.html` 탭 + `reserve.html` + `schedule.html`)를 덮어쓰면 예전 화면이 새 틀로 바뀜. 예전 것을 유지하고 싶으면 별도 경로에 올릴 것.
 - 사용자가 써 온 Netlify 사이트 이름/주소는 **확인하지 못함.** 배포 전에 물어볼 것.
