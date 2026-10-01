@@ -65,8 +65,7 @@ async def main():
     for id,label in [('res','예약 관리'),('pay','급여 관리')]:
       await pg.click(f'#menu [data-m="{id}"]'); await pg.wait_for_timeout(1200)
       print(label, '→ 창:', await pg.evaluate(f"(()=>{{const f=[...document.querySelectorAll('iframe')].find(x=>!x.hidden); return decodeURIComponent(f.getAttribute('src'))}})()"), '| 제목:', await pg.inner_text('#ttl'))
-    await pg.click('#menu [data-g="ord_g"]'); await pg.wait_for_timeout(400); print('발주 관리 → 창:', await pg.evaluate("[...document.querySelectorAll('iframe')].find(x=>!x.hidden).getAttribute('src')"))
-    await pg.click('#sub-ord_g [data-go="ord2"]'); await pg.wait_for_timeout(300); print('발주량 계산기 → 창:', await pg.evaluate("[...document.querySelectorAll('iframe')].find(x=>!x.hidden).getAttribute('src')"))
+    await pg.click('#menu [data-go="ord"]'); await pg.wait_for_timeout(400); print('발주 관리 → 창:', await pg.evaluate("[...document.querySelectorAll('iframe')].find(x=>!x.hidden).getAttribute('src')"))
     # 해시 주소로 바로 열기
     await pg.goto('http://localhost:8765/index.html#rules'); await pg.wait_for_timeout(2500); print('#rules 주소로 열기 → 제목:', await pg.inner_text('#ttl'), '| 안쪽 화면:', await pg.evaluate("document.querySelector('iframe[title=sch]').contentWindow.eval('APP.view')"))
     print('errs',errs[:3]); await b.close()

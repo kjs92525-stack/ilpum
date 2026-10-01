@@ -140,7 +140,7 @@ select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var
 
 /* ================= 설정 (파일 이름이 다르면 여기만 고치세요) ================= */
 const FILES={ res:'reserve.html', sch:'ilpum-schedule.html', pay:'일품집_급여.html',
-              ord:'https://ilpum-order.netlify.app', ord2:'https://ilpum.netlify.app' };
+              ord:'https://ilpum-order.netlify.app' };
 const NEW={url:'https://bdqcrbnbuoujozlpttbe.supabase.co',key:'/*NEWKEY*/'};   // 근무표 · 예약 (둘 다 새 서버, 매장별로 나뉨)
 
 /* ================= 메뉴 ================= */
@@ -163,7 +163,7 @@ const ROUTES={
   cards:{t:'근무 스케줄',frame:'sch',view:'cards'}, week:{t:'근무 스케줄 · 주간표',frame:'sch',view:'week'}, day:{t:'근무 스케줄 · 하루',frame:'sch',view:'day'},
   rules:{t:'근무 스케줄 · 기간 설정',frame:'sch',view:'rules'}, me:{t:'근무 스케줄 · 내 스케줄',frame:'sch',view:'me'},
   pay:{t:'급여 관리',frame:'pay'}, hq:{t:'매장 관리',frame:'sch',view:'hq'}, set:{t:'설정',frame:'sch',view:'set'},
-  ord:{t:'발주 관리 · 창고 발주',frame:'ord',ext:true}, ord2:{t:'발주 관리 · 발주량 계산기',frame:'ord2',ext:true}
+  ord:{t:'발주 관리',frame:'ord',ext:true}
 };
 // 왼쪽 메뉴 (테이블 현황은 예약 관리 안에 있어서 넣지 않았어요)
 const MENU=[
@@ -174,9 +174,9 @@ const MENU=[
   {id:'pay',label:'급여 관리',icon:'card',hqOnly:true},
   {id:'hq',label:'매장 관리',icon:'home',needHq:true},
   {id:'set',label:'설정',icon:'gear',needEdit:true},
-  {id:'ord_g',label:'발주 관리',icon:'cart',hqOnly:true,sub:[['ord','창고 발주'],['ord2','발주량 계산기']]}
+  {id:'ord',label:'발주 관리',icon:'cart',hqOnly:true}
 ];
-const GROUP_OF={cards:'sch',week:'sch',day:'sch',rules:'sch',me:'sch',ord:'ord_g',ord2:'ord_g'};
+const GROUP_OF={cards:'sch',week:'sch',day:'sch',rules:'sch',me:'sch'};
 function buildMenu(){
   $('#menu').innerHTML=MENU.map(m=>m.sub
     ?`<button class="mi" data-g="${m.id}" ${m.hqOnly?'data-hqonly="1"':''} aria-expanded="false">${ic(m.icon)}<span>${m.label}</span><span class="car">${ic('car')}</span></button><div class="subm" id="sub-${m.id}">${m.sub.map(s=>`<button class="si" data-go="${s[0]}">${s[1]}</button>`).join('')}</div>`
@@ -187,7 +187,7 @@ function buildMenu(){
 // 근무표 화면과 같은 저장소(localStorage)에 로그인 정보가 있어요. 로그인이 없으면 로그인 화면부터 보여요.
 // 본사 계정: 모든 기능 / 가맹점 계정: 자기 매장의 근무표만 (예약·급여·발주 메뉴는 숨김)
 let ME={mode:'none',hq:false,store:null,token:'',email:''};
-const HQ_ONLY=['pay','ord','ord2'];      // 급여는 아직 예전 서버, 발주는 외부 사이트라 가맹점에는 숨김
+const HQ_ONLY=['pay','ord'];      // 급여는 아직 예전 서버, 발주는 외부 사이트라 가맹점에는 숨김
 const allowed=id=>!(ME.mode==='in'&&!ME.hq&&HQ_ONLY.includes(id));
 function readConf(){ try{ return JSON.parse(localStorage.getItem('ilpum-fr-conf'))||{}; }catch(e){ return {}; } }
 function readSes(){ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; }
