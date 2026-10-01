@@ -55,7 +55,7 @@ async function boot(){
   if(APP.be===Local) await Promise.all(Local.db.stores.map(s=>summaryFor(s.id,true)));
   if(role()==='staff') APP.view='me';
   renderShell(); render();
-  if(!pollStarted){ pollStarted=true; setInterval(poll,60000);       // 1분마다 바뀐 것만 확인 (전송량 절약)
+  if(!pollStarted){ pollStarted=true; setInterval(()=>{ if(rtOk&&Date.now()-lastPollAt<300000) return; poll(); },60000);       // 실시간이면 5분마다 안전 확인, 아니면 1분마다 바뀐 것만 확인 (전송량 절약)
     ['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{ const was=Date.now()-lastActive; lastActive=Date.now(); if(was>IDLE_MS) poll(); },{passive:true}));
     document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ lastActive=Date.now(); poll(); } }); }
 }
@@ -65,6 +65,7 @@ async function openStore(sid){
   if(APP.be===Remote&&APP.st.role==='hq'){ try{ const o=await Remote.openInfo(); if(o&&o.id===APP.st.id) APP.st.hasPin=!!o.has_pin; }catch(e){} }
   try{ const it=await APP.be.items(sid); APP.D=buildD(it,APP.st.name); setSync(APP.be===Local?'이 기기에 저장 (체험)':'연결됨','ok'); }
   catch(e){ APP.D=buildD({},APP.st.name); setSync('불러오기 실패','err'); toast(e.message); }
+  rtStart(sid);                                             // 이 매장의 변경을 실시간으로 받음
   if(!canEdit()&&!['me','cards','week'].includes(APP.view)) APP.view='me';
 }
 const pending=new Map(); let flushTimer=null, writing=false, flushFails=0, pollFails=0, pollNextAt=0, pollStarted=false;
@@ -89,15 +90,41 @@ async function flush(){
       catch(e){ if(/row-level|permission|policy|42501|403/i.test(String(e.message))){ denied++; continue; }   // 권한 없는 저장은 다시 시도하지 않음
         batch.slice(i).forEach(x=>{ const k=x.kind+'\u0001'+x.id; if(!pending.has(k)) pending.set(k,x); }); throw e; } }
     const t=new Date(); setSync(`${APP.be===Local?'이 기기에 저장':'저장됨'} ${pad(t.getHours())}:${pad(t.getMinutes())}`,'ok');
-    flushFails=0; if(denied) toast(`권한이 없어 저장하지 못한 항목이 ${denied}개 있어요`); }
+    flushFails=0; if(rtDirty){ rtDirty=false; setTimeout(()=>pollSoon(300),50); } if(denied) toast(`권한이 없어 저장하지 못한 항목이 ${denied}개 있어요`); }
   catch(e){ batch.forEach(x=>{ const k=x.kind+'\u0001'+x.id; if(!pending.has(k)) pending.set(k,x); }); flushFails++; setSync('저장 실패 — 다시 시도 중','err'); flushTimer=setTimeout(flush,Math.min(300000,4000*2**Math.min(flushFails-1,7))); }   // 실패하면 점점 천천히 (서버를 계속 두드리지 않도록)
   writing=false;
 }
-async function poll(){
+/* ---------- 실시간 알림: 다른 기기에서 근무표가 바뀌면 바로 반영 (Supabase Realtime) ---------- */
+// 연결되어 있으면 서버가 "바뀌었어요" 하고 알려 줘서 계속 물어볼 필요가 없어요. 연결이 안 되면 예전처럼 60초마다 확인해요. (로그인 없이 보기는 실시간 없이 60초 확인)
+let rtWs=null, rtOk=false, rtRef=0, rtBeat=null, rtTokT=null, rtWait=1000, rtSid='', rtTimer=null, rtDirty=false, lastPollAt=0;
+function rtSet(v){ rtOk=!!v; const el=$('#sync'); if(el&&APP.sync&&APP.sync[1]==='ok'&&/^연결됨/.test(APP.sync[0])) setSync(rtOk?'연결됨 · 실시간':'연결됨','ok'); }
+async function rtToken(){ const s=Remote.ses; if(s&&(s.expires_at||0)*1000>Date.now()+60000) return s.access_token; try{ await Remote.refresh(); }catch(e){} return Remote.ses&&Remote.ses.access_token; }
+function rtStop(){ const w=rtWs; rtWs=null; clearInterval(rtBeat); clearInterval(rtTokT); clearTimeout(rtTimer); rtSet(false); if(w){ w.onclose=null; try{ w.close(); }catch(e){} } }
+function rtStart(sid){
+  rtStop(); rtSid=sid; if(APP.be!==Remote||!Remote.ses||!sid||!('WebSocket' in window)) return;
+  let ws; try{ ws=new WebSocket(Remote.url.replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+encodeURIComponent(Remote.key)+'&vsn=1.0.0'); }catch(e){ return; }
+  rtWs=ws; const topic='realtime:sch_'+sid;
+  const send=(event,payload,t)=>{ try{ if(ws.readyState===1) ws.send(JSON.stringify({topic:t||topic,event,payload,ref:String(++rtRef)})); }catch(e){} };
+  ws.onopen=async()=>{
+    const tok=await rtToken(); if(!tok||rtWs!==ws){ try{ ws.close(); }catch(e){} return; }
+    send('phx_join',{config:{broadcast:{ack:false,self:false},presence:{key:''},postgres_changes:[{event:'*',schema:'public',table:'sch_items',filter:'store_id=eq.'+sid}],private:false},access_token:tok});
+    rtBeat=setInterval(()=>send('heartbeat',{},'phoenix'),25000);
+    rtTokT=setInterval(async()=>{ const t=await rtToken(); if(t) send('access_token',{access_token:t}); },40*60*1000); };
+  ws.onmessage=e=>{
+    let m; try{ m=JSON.parse(e.data); }catch(x){ return; }
+    if(m.event==='phx_reply'&&m.topic===topic){ rtSet(m.payload&&m.payload.status==='ok'); if(rtOk){ rtWait=1000; pollSoon(100); } return; }     // 연결되면 한 번 맞춰 봄
+    if(m.event==='postgres_changes'){ pollSoon(400); return; }
+    if(m.event==='phx_error'||m.event==='phx_close'||(m.event==='system'&&m.payload&&m.payload.status==='error')) rtSet(false); };
+  ws.onclose=()=>{ rtSet(false); if(rtWs===ws){ rtWs=null; clearInterval(rtBeat); clearInterval(rtTokT); rtTimer=setTimeout(()=>rtStart(rtSid),rtWait); rtWait=Math.min(rtWait*2,300000); } };
+  ws.onerror=()=>{ try{ ws.close(); }catch(e){} };
+}
+let pollTimer=null;
+function pollSoon(ms){ if(pending.size||writing){ rtDirty=true; return; } clearTimeout(pollTimer); pollTimer=setTimeout(()=>poll(true),ms); }     // 연달아 오는 알림은 한 번에 처리
+async function poll(force){
   if(APP.be!==Remote||!APP.sid||document.hidden||pending.size||writing||Date.now()<pollNextAt) return;
   try{ if(window.frameElement&&window.frameElement.hidden) return; }catch(e){}      // 통합 틀에서 가려진 창은 쉼
-  if(Date.now()-lastActive>IDLE_MS) return;                                           // 10분 동안 아무도 안 만졌으면 쉼
-  try{ const rows=await APP.be.since(APP.sid); pollFails=0; if(!rows||!rows.length) return;
+  if(!force&&!rtOk&&Date.now()-lastActive>IDLE_MS) return;                            // 실시간이 안 될 때만: 10분 동안 아무도 안 만졌으면 쉼
+  try{ lastPollAt=Date.now(); const rows=await APP.be.since(APP.sid); pollFails=0; if(!rows||!rows.length) return;
     const D=APP.D; rows.forEach(r=>{ const data=r.deleted?null:r.data;
       if(r.kind==='cfg'){ if(r.id==='store'&&data) D.store=Object.assign(defStore(),data); if(r.id==='positions'&&data) D.positions=data; return; }
       const g=D[{staff:'staff',rule:'rules',dc:'dc',spot:'spot',aw:'aw',sales:'sales',pay:'pay'}[r.kind]]; if(!g) return; if(data==null) delete g[r.id]; else g[r.id]=data; });
