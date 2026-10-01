@@ -6,3 +6,4 @@ keys.json
 dist/
 legacy/
 out/
+/*.png
