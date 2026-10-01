@@ -168,20 +168,49 @@ const ROUTES={
 // 왼쪽 메뉴 (테이블 현황은 예약 관리 안에 있어서 넣지 않았어요)
 const MENU=[
   {id:'dash',label:'오늘 현황',icon:'grid'},
-  {id:'res',label:'예약 관리',icon:'cal'},
+  {id:'res',label:'예약 관리',icon:'cal',hqOnly:true},
   {id:'staff',label:'직원 관리',icon:'user',needEdit:true},
   {id:'sch',label:'근무 스케줄',icon:'clock',sub:[['cards','스케줄'],['week','주간표'],['day','하루'],['rules','기간 설정'],['me','내 스케줄']]},
-  {id:'pay',label:'급여 관리',icon:'card'},
+  {id:'pay',label:'급여 관리',icon:'card',hqOnly:true},
   {id:'hq',label:'매장 관리',icon:'home',needHq:true},
   {id:'set',label:'설정',icon:'gear',needEdit:true},
-  {id:'ord_g',label:'발주 관리',icon:'cart',sub:[['ord','창고 발주'],['ord2','발주량 계산기']]}
+  {id:'ord_g',label:'발주 관리',icon:'cart',hqOnly:true,sub:[['ord','창고 발주'],['ord2','발주량 계산기']]}
 ];
 const GROUP_OF={cards:'sch',week:'sch',day:'sch',rules:'sch',me:'sch',ord:'ord_g',ord2:'ord_g'};
 function buildMenu(){
   $('#menu').innerHTML=MENU.map(m=>m.sub
-    ?`<button class="mi" data-g="${m.id}" aria-expanded="false">${ic(m.icon)}<span>${m.label}</span><span class="car">${ic('car')}</span></button><div class="subm" id="sub-${m.id}">${m.sub.map(s=>`<button class="si" data-go="${s[0]}">${s[1]}</button>`).join('')}</div>`
-    :`<button class="mi" data-go="${m.id}" data-m="${m.id}" ${m.needEdit?'data-edit="1"':''} ${m.needHq?'data-hq="1"':''}>${ic(m.icon)}<span>${m.label}</span></button>`).join('');
+    ?`<button class="mi" data-g="${m.id}" ${m.hqOnly?'data-hqonly="1"':''} aria-expanded="false">${ic(m.icon)}<span>${m.label}</span><span class="car">${ic('car')}</span></button><div class="subm" id="sub-${m.id}">${m.sub.map(s=>`<button class="si" data-go="${s[0]}">${s[1]}</button>`).join('')}</div>`
+    :`<button class="mi" data-go="${m.id}" data-m="${m.id}" ${m.hqOnly?'data-hqonly="1"':''} ${m.needEdit?'data-edit="1"':''} ${m.needHq?'data-hq="1"':''}>${ic(m.icon)}<span>${m.label}</span></button>`).join('');
 }
+
+/* ================= 로그인 확인 · 내 매장 ================= */
+// 근무표 화면과 같은 저장소(localStorage)에 로그인 정보가 있어요. 로그인이 없으면 로그인 화면부터 보여요.
+// 본사 계정: 모든 기능 / 가맹점 계정: 자기 매장의 근무표만 (예약·급여·발주 메뉴는 숨김)
+let ME={mode:'none',hq:false,store:null,token:'',email:''};
+const HQ_ONLY=['res','pay','ord','ord2'];
+const allowed=id=>!(ME.mode==='in'&&!ME.hq&&HQ_ONLY.includes(id));
+function readConf(){ try{ return JSON.parse(localStorage.getItem('ilpum-fr-conf'))||{}; }catch(e){ return {}; } }
+function readSes(){ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; }
+async function refreshSes(ses){
+  const r=await fetch(NEW.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:NEW.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:ses.refresh_token})});
+  const j=await r.json().catch(()=>({})); if(!r.ok||!j.access_token) throw new Error('refresh');
+  try{ const c=readConf(); if(c.ses){ c.ses=j; localStorage.setItem('ilpum-fr-conf',JSON.stringify(c)); } else sessionStorage.setItem('fr-ses',JSON.stringify(j)); }catch(e){}
+  return j;
+}
+async function whoami(){
+  const c=readConf(); let ses=readSes();
+  if(!ses||!ses.access_token){ ME={mode:(c.openOnly||c.mode==='local')?'open':'none',hq:true,store:null,token:'',email:''}; return; }
+  const ask=t=>sget(NEW,'/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}',token:t});
+  let rows;
+  try{ try{ rows=await ask(ses.access_token); }catch(e){ if(e.status!==401||!ses.refresh_token) throw e; ses=await refreshSes(ses); rows=await ask(ses.access_token); } }
+  catch(e){ ME={mode:(e.status===401||e.message==='refresh')?'none':'in',hq:false,store:null,token:ses.access_token,email:'',err:e.message}; if(ME.mode==='in'){ ME.err=e.message; } return; }
+  const mine=rows.filter(r=>r.role); const hq=mine.some(r=>r.role==='hq');
+  ME={mode:'in',hq,store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||''};
+}
+let gateFr=null;
+function showGate(){ gateFr=document.createElement('iframe'); gateFr.id='gate'; gateFr.title='로그인'; gateFr.src='ilpum-schedule.html?embed=1&view=cards';
+  gateFr.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:99;background:#fff'; document.body.appendChild(gateFr); }
+function applyMe(){ $$('#menu [data-hqonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.hq)); }
 
 /* ================= 화면 전환 ================= */
 const frames={};                 // 이미 띄운 창들 (다시 열어도 입력하던 내용이 그대로 남아요)
@@ -197,7 +226,7 @@ function ensureFrame(key,view){
   $('#pages').appendChild(f); frames[key]=f; return f;
 }
 function go(id,opts){
-  opts=opts||{}; if(!ROUTES[id]) id='dash'; const R=ROUTES[id]; cur=id;
+  opts=opts||{}; if(!ROUTES[id]||!allowed(id)) id='dash'; const R=ROUTES[id]; cur=id;
   $('#ttl').textContent=R.t; document.title='일품집 · '+R.t;
   // 메뉴 표시
   $$('#menu [aria-current]').forEach(b=>b.removeAttribute('aria-current'));
@@ -218,7 +247,9 @@ function go(id,opts){
 }
 // 근무표 안에서 화면이 바뀌면(예: 카드→주간표) 왼쪽 메뉴 표시도 맞춤
 window.addEventListener('message',e=>{
-  const m=e.data; if(!m||!m.type||!frames.sch||e.source!==frames.sch.contentWindow) return;
+  const m=e.data; if(!m||!m.type) return;
+  if(gateFr&&e.source===gateFr.contentWindow){ if(m.type==='fr-state') location.reload(); return; }
+  if(!frames.sch||e.source!==frames.sch.contentWindow) return;
   if(m.type==='fr-state'){
     info={hq:!!m.hq,edit:!!m.edit,seen:true}; applyInfo();
     if(['cards','week','day','rules','me','staff','hq','set'].includes(m.view)&&ROUTES[cur]&&ROUTES[cur].frame==='sch'&&cur!==m.view){ go(m.view,{fromFrame:true}); }
@@ -239,7 +270,7 @@ $('#menu').addEventListener('click',e=>{
 $('#reload').onclick=()=>{ if(cur==='dash') return loadDash(true); const R=ROUTES[cur]; const f=frames[R.frame]; if(!f) return; try{ if(R.ext) f.src=f.src; else f.contentWindow.location.reload(); }catch(e){ f.src=f.src; } };
 
 /* ================= 오늘 현황 ================= */
-async function sget(srv,path,opt){ const r=await fetch(srv.url+path,{headers:{apikey:srv.key,Authorization:'Bearer '+srv.key,'Content-Type':'application/json'},...(opt||{})}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+async function sget(srv,path,opt){ const {token,...o}=opt||{}; const r=await fetch(srv.url+path,{headers:{apikey:srv.key,Authorization:'Bearer '+(token||srv.key),'Content-Type':'application/json'},...o}); if(!r.ok){ const e=new Error('HTTP '+r.status); e.status=r.status; throw e; } return r.json(); }
 const peopleOf=s=>String(s||'').split(/[+,]/).reduce((a,x)=>a+(parseInt(x,10)||0),0);
 const isCxl=x=>/취소/.test(x.tnote||'');
 const hhmm=t=>{ const m=String(t||'').match(/^(\d{1,2}):?(\d{2})$/); return m?pad(+m[1])+':'+m[2]:''; };
@@ -249,11 +280,14 @@ async function loadDash(manual){
   const el=$('#dash'); const now=new Date(); const key=ds(now);
   if(!dashData) el.innerHTML='<div class="empty">불러오는 중…</div>';
   const out={res:null,resErr:null,staff:null,staffErr:null};
+  const noRes=ME.mode==='in'&&!ME.hq;
   await Promise.all([
-    (async()=>{ try{ const rows=await sget(OLD,`/rest/v1/reservations_day?id=eq.${key}&select=data`); out.res=((rows[0]&&rows[0].data&&rows[0].data.items)||[]).filter(x=>!x.deleted); }catch(e){ out.resErr=e.message; } })(),
+    (async()=>{ if(noRes) return; try{ const rows=await sget(OLD,`/rest/v1/reservations_day?id=eq.${key}&select=data`); out.res=((rows[0]&&rows[0].data&&rows[0].data.items)||[]).filter(x=>!x.deleted); }catch(e){ out.resErr=e.message; } })(),
     (async()=>{ try{
-        const os=await sget(NEW,'/rest/v1/rpc/sch_open_store',{method:'POST',body:'{}'}); const st=os&&os[0]; if(!st) throw new Error('본점을 찾지 못했어요');
-        const rows=await sget(NEW,`/rest/v1/sch_items?store_id=eq.${st.id}&deleted=eq.false&select=kind,id,data`);
+        let st, tk=''; if(ME.mode==='in'){ st=ME.store; tk=ME.token; if(!st) throw new Error(ME.err||'연결된 매장이 없어요'); }
+        else{ const os=await sget(NEW,'/rest/v1/rpc/sch_open_store',{method:'POST',body:'{}'}); st=os&&os[0]; }
+        if(!st) throw new Error('매장을 찾지 못했어요');
+        const rows=await sget(NEW,`/rest/v1/sch_items?store_id=eq.${st.id}&deleted=eq.false&select=kind,id,data`,{token:tk});
         const items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data);
         const D=buildD(items,st.name); out.staff={D,R:resolve(D,now),name:st.name};
       }catch(e){ out.staffErr=e.message; } })()
@@ -266,6 +300,7 @@ function renderDash(){
   const all=(d.res||[]).slice().sort((a,b)=>(toM(a.time)??9999)-(toM(b.time)??9999));
   const teams=live.length, ppl=live.reduce((a,x)=>a+peopleOf(x.pp),0);
   const L=d.staff?d.staff.R.list:[], offs=d.staff?d.staff.R.offs.filter(o=>!o.missing).length:0, pm=L.filter(x=>x.sh&&x.sh.k==='pm').length;
+  const noRes=ME.mode==='in'&&!ME.hq;
   const pos=d.staff?d.staff.D.positions.map(p=>p.name):[]; const sorted=L.slice().sort((a,b)=>pos.indexOf(a.pos)-pos.indexOf(b.pos));
   const pct=(n,max)=>Math.min(100,Math.round(n/Math.max(1,max)*100));
   const kpi=(k,v,u,p)=>`<div class="kpi"><div class="k">${k}</div><div class="v">${v}<small>${u}</small></div><div class="bar2"><i style="width:${p}%"></i></div></div>`;
@@ -278,20 +313,20 @@ function renderDash(){
   const resRow=x=>`<tr><td class="n">${esc(hhmm(x.time)||'-')}</td><td><b>${esc(x.name||'')}</b><small>${esc(x.phone||'')}</small></td><td class="n">${peopleOf(x.pp)||'-'}명</td><td>${esc((x.tables||[]).join(', ')||'-')}</td><td>${esc(x.req||'')}${x.tnote&&!isCxl(x)?`<small>${esc(x.tnote)}</small>`:''}</td><td>${stLabel(x)}</td></tr>`;
   el.innerHTML=`
    <div class="dh"><div><h1>오늘 현황</h1><p>오늘(${now.getMonth()+1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일)의 예약과 근무 현황이에요.</p></div><span class="sp" style="flex:1"></span>
-     <button class="btn" id="dRef">새로고침</button><button class="btn pri" data-jump="res">+ 예약 등록</button></div>
+     <button class="btn" id="dRef">새로고침</button>${noRes?'':'<button class="btn pri" data-jump="res">+ 예약 등록</button>'}</div>
    <div class="kpis">
-     ${kpi('오늘 예약',d.resErr?'-':teams,'팀',pct(teams,20))}${kpi('예약 인원',d.resErr?'-':ppl,'명',pct(ppl,80))}
+     ${noRes?'':`${kpi('오늘 예약',d.resErr?'-':teams,'팀',pct(teams,20))}${kpi('예약 인원',d.resErr?'-':ppl,'명',pct(ppl,80))}`}
      ${kpi('오늘 출근',d.staffErr?'-':L.length,'명',pct(L.length,30))}${kpi('오후 출근',d.staffErr?'-':pm,'명',pct(pm,10))}${kpi('오늘 휴무',d.staffErr?'-':offs,'명',pct(offs,10))}
    </div>
-   <div class="panel"><div class="ph"><h2>오늘의 예약</h2><span class="cnt">${d.resErr?'-':all.length}</span><button class="more" data-jump="res">전체 보기 ›</button></div>
-     ${d.resErr?`<div class="err">예약을 불러오지 못했어요 (${esc(d.resErr)})</div>`:all.length?`<div style="overflow-x:auto"><table><thead><tr><th>시간</th><th>고객 / 연락처</th><th>인원</th><th>테이블</th><th>요청사항</th><th>상태</th></tr></thead><tbody>${all.map(resRow).join('')}</tbody></table></div>`:'<div class="empty">오늘 예약이 없어요. 예약 관리에서 등록하세요.</div>'}</div>
+    ${noRes?'':`<div class="panel"><div class="ph"><h2>오늘의 예약</h2><span class="cnt">${d.resErr?'-':all.length}</span><button class="more" data-jump="res">전체 보기 ›</button></div>
+     ${d.resErr?`<div class="err">예약을 불러오지 못했어요 (${esc(d.resErr)})</div>`:all.length?`<div style="overflow-x:auto"><table><thead><tr><th>시간</th><th>고객 / 연락처</th><th>인원</th><th>테이블</th><th>요청사항</th><th>상태</th></tr></thead><tbody>${all.map(resRow).join('')}</tbody></table></div>`:'<div class="empty">오늘 예약이 없어요. 예약 관리에서 등록하세요.</div>'}</div>`}
    <div class="panel"><div class="ph"><h2>오늘 출근 직원</h2><span class="cnt">${d.staffErr?'-':L.length}</span><button class="more" data-jump="day">전체 보기 ›</button></div>
      ${d.staffErr?`<div class="err">근무표를 불러오지 못했어요 (${esc(d.staffErr)})</div>`:L.length?`<div class="staff">${sorted.map(x=>{ const [a,b]=spanOf(d.staff.D.store,x.sh); const t=m=>pad(Math.floor(m/60))+':'+pad(m%60); const lb=shLbl(x.sh,d.staff.D.store);
        return `<div class="st"><div class="av">${esc((x.name||'?')[0])}</div><div><b>${esc(x.name)}</b><small>${esc(x.pos)}${x.type==='spot'?' · 단기':x.type==='weekly'?' · 매주 변동':''}</small></div><div class="tm">${t(a)}<small>~ ${t(b)}${lb?' · '+esc(lb):''}</small></div></div>`; }).join('')}</div>`:'<div class="empty">오늘 출근자가 없어요.</div>'}
      <div class="note">근무 시간·휴무는 날짜별로 바꿀 수 있어요 (근무 스케줄)</div></div>
-   <div class="panel"><div class="ph"><h2>곧 들어올 예약</h2><span class="sp" style="flex:1"></span><select id="soonSel">${opts.map(m=>`<option value="${m}" ${m===soonAt?'selected':''}>${fmtT(m)}</option>`).join('')}</select></div>
-     ${d.resErr?'':soon.length?`<div style="overflow-x:auto"><table><thead><tr><th>시간</th><th>고객 / 연락처</th><th>인원</th><th>테이블</th><th>요청사항</th><th>상태</th></tr></thead><tbody>${soon.map(resRow).join('')}</tbody></table></div>`:`<div class="empty">선택 시간부터 150분 이내 예정된 예약이 없어요.</div>`}</div>
-   <p style="color:var(--sub);font-size:12px;margin:0">전체 매장 기준이 아니라 본점 기준이에요 · ${ds(now)} · ${pad(now.getHours())}:${pad(now.getMinutes())} 기준</p>`;
+    ${noRes?'':`<div class="panel"><div class="ph"><h2>곧 들어올 예약</h2><span class="sp" style="flex:1"></span><select id="soonSel">${opts.map(m=>`<option value="${m}" ${m===soonAt?'selected':''}>${fmtT(m)}</option>`).join('')}</select></div>
+     ${d.resErr?'':soon.length?`<div style="overflow-x:auto"><table><thead><tr><th>시간</th><th>고객 / 연락처</th><th>인원</th><th>테이블</th><th>요청사항</th><th>상태</th></tr></thead><tbody>${soon.map(resRow).join('')}</tbody></table></div>`:`<div class="empty">선택 시간부터 150분 이내 예정된 예약이 없어요.</div>`}</div>`}
+   <p style="color:var(--sub);font-size:12px;margin:0">${esc(d.staff&&d.staff.name||'')} 기준이에요 · ${ds(now)} · ${pad(now.getHours())}:${pad(now.getMinutes())} 기준</p>`;
 }
 document.addEventListener('click',e=>{ const j=e.target.closest('[data-jump]'); if(j) go(j.dataset.jump); if(e.target.id==='dRef') loadDash(true); });
 document.addEventListener('change',e=>{ if(e.target.id==='soonSel'){ soonAt=+e.target.value; renderDash(); } });
@@ -299,7 +334,8 @@ setInterval(()=>{ if(cur==='dash'&&!document.hidden) loadDash(); },60000);
 
 /* ================= 시작 ================= */
 buildMenu();
-(function(){
+(async function(){
+  await whoami(); if(ME.mode==='none'){ showGate(); return; } applyMe();
   let open=true; try{ const v=localStorage.getItem('ilpum-nav'); if(v==='hidden') open=false; }catch(e){} if(mobile()) open=false;
   document.body.classList.toggle('nav-hidden',!open);
   let start=location.hash.slice(1); if(!ROUTES[start]){ try{ start=localStorage.getItem('ilpum-page'); }catch(e){} } go(ROUTES[start]?start:'dash');
