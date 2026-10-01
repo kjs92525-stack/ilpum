@@ -34,6 +34,10 @@ $('#go').onclick=async()=>{
   const lines=[];
   try{
     const who=await login(); lines.push(who?('로그인: '+who):'로그인 없이(anon) 확인');
+    // 키 자체가 받아들여지는지 먼저 확인 (없을 법한 표 이름 + 로그인 설정 주소)
+    const z=await api('/rest/v1/zzz_없는표_zzz?select=*&limit=1'); const au=await fetch(URL_+'/auth/v1/settings',{headers:{apikey:KEY}});
+    lines.push('키 점검: 없는 표 → HTTP '+z.status+' / 로그인 설정 → HTTP '+au.status);
+    if(z.status===401||z.status===403){ let m=''; try{ m=(await z.text()).slice(0,200); }catch(e){} lines.push('★ 서버가 이 키를 거부해요(표와 상관없이). 서버 답: '+m+'\n   → 키가 바뀌었거나 꺼졌거나, 프로젝트가 멈춰 있을 수 있어요. 아래 표 결과는 믿지 마세요.'); }
     let tables=[];
     const sp=await api('/rest/v1/'); if(sp.ok){ const j=await sp.json().catch(()=>null); if(j&&j.definitions) tables=Object.keys(j.definitions); else if(j&&j.paths) tables=Object.keys(j.paths).filter(p=>p!=='/'&&!p.startsWith('/rpc/')).map(p=>p.slice(1)); }
     else lines.push('표 목록은 서버가 안 알려 줘요(HTTP '+sp.status+') → 이름을 하나씩 열어 볼게요');
