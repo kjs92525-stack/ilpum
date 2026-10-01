@@ -165,6 +165,15 @@ body.resizing iframe{pointer-events:none}
 .empty strong{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
 
 /* ----- 현황판 ----- */
+.freecanvas{position:relative;width:100%;aspect-ratio:1000/600;min-height:240px;grid-column:1/-1}
+.fpos{position:absolute}
+.fpos .cell{width:100%;height:100%;min-height:0;box-sizing:border-box;overflow:hidden;padding:2px;font-size:clamp(9px,1.05vw,14px)}
+.fpos .cell .no{font-size:1.25em}
+.fpos.round .cell{border-radius:50%}
+.fpos.rect .cell,.fpos.square .cell{border-radius:10px}
+.freecanvas.fedit{background:repeating-linear-gradient(0deg,transparent 0 39px,var(--line) 39px 40px),repeating-linear-gradient(90deg,transparent 0 39px,var(--line) 39px 40px);border:1.5px dashed var(--line);border-radius:12px;touch-action:none}
+.freecanvas.fedit .fpos{cursor:grab;touch-action:none;user-select:none}
+.fselbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px;font-size:13px;min-height:30px}
 .cell.ed{cursor:pointer;position:relative;outline:2px dashed var(--accent);outline-offset:-2px}
 .cell.ed.sel{outline:3px solid var(--ok);background:var(--soft)}
 .cell.ed-blank{border-style:dashed;background:none;color:var(--sub);min-height:clamp(40px,6vh,70px)}
@@ -335,7 +344,10 @@ let FLOORS = [
       {title:'46 — 53번', cols:[[49,48,47,46],[53,52,51,50]]},
       {title:'룸', cols:[[R(1,1),R(1,2),R(2,1),R(2,2),R(3,1),R(3,2)],[R(4,1),R(4,2),R(4,3),R(4,4)]]} ] }
 ];
-const tablesOf=F=>{ const out=[]; F.forEach(f=>{ f.groups.forEach(g=>g.cols.flat().forEach(t=>t!=null&&out.push(String(t)))); if(f.bar) f.bar.row.forEach(t=>out.push(String(t))); }); return out; };
+// 층 하나의 테이블 번호들: 칸 배치(groups/bar) 또는 자유 배치(mode:'free', tables:[{id,x,y,w,h,shape}]; 좌표는 가로 1000×세로 600 기준)
+const floorTables=fl=>fl.mode==='free'? (fl.tables||[]).map(t=>String(t.id)) : [...fl.groups.flatMap(g=>g.cols.flat()),...(fl.bar?fl.bar.row:[])].filter(t=>t!=null).map(String);
+const floorHas=(fl,t)=>floorTables(fl).includes(String(t));
+const tablesOf=F=>{ const out=[]; F.forEach(f=>floorTables(f).forEach(t=>out.push(t))); return out; };
 let ALL_TABLES = tablesOf(FLOORS);
 const DEFAULT_FLOORS = JSON.parse(JSON.stringify(FLOORS));
 const tLabel = t=> /^R/.test(t)? '룸'+t.slice(1) : t;
@@ -663,8 +675,8 @@ function renderBoard(){
   const f=FLOORS.find(x=>x.key===ui.floor);
   const cnt={use:0,res:0,soon:0}; const seen=new Set();
   Object.values(map).forEach(a=>a.forEach(x=>{ if(!seen.has(x.it.id)){ seen.add(x.it.id); cnt[x.st]++; } }));
-  const groups=f.groups.map(g=>`<div class="grp"><h3>${g.title}</h3><div class="cols">${g.cols.map(c=>`<div class="col">${c.map(t=>cellHtml(t,map)).join('')}</div>`).join('')}</div></div>`).join('');
-  const bar=f.bar? `<div class="grp bar29"><h3>${f.bar.title}</h3><div class="barrow">${f.bar.row.map(t=>cellHtml(t,map)).join('')}</div></div>`:'';
+  const groups=f.mode==='free'? freeFloorHtml(f,map,false) : f.groups.map(g=>`<div class="grp"><h3>${g.title}</h3><div class="cols">${g.cols.map(c=>`<div class="col">${c.map(t=>cellHtml(t,map)).join('')}</div>`).join('')}</div></div>`).join('');
+  const bar=f.mode!=='free'&&f.bar? `<div class="grp bar29"><h3>${f.bar.title}</h3><div class="barrow">${f.bar.row.map(t=>cellHtml(t,map)).join('')}</div></div>`:'';
   const isToday=ui.date===todayStr();
   const dupT=Object.keys(CONF.table);
   const dupBar = dupT.length? `<div class="dupbar" data-dupfirst="1" title="누르면 현황판이 중복 시간으로 이동"><span class="dh">⚠ 중복 예약 ${dupT.length}곳 <small>· 눌러서 이동</small></span>${dupT.map(t=>`<button class="dchip" data-dupgo="${t}" title="현황판을 이 중복 시간으로"><b>${esc(tLabel(t))}</b> ${[...CONF.table[t].values()].sort((a,b)=>toMin(a.time)-toMin(b.time)).map(x=>esc(x.name)+' <small>'+esc(x.time)+'</small>').join(' · ')}</button>`).join('')}</div>` : '';
@@ -689,7 +701,7 @@ function renderBoard(){
 let layoutEdit=null, layoutSel='';           // layoutEdit: 수정 중인 임시본 {floors} / layoutSel: 옮기려고 고른 자리
 const canEditLayout=()=>{ const st=STORES.find(x=>x.id===SID); return !!st && ['hq','owner','manager'].includes(st.role); };
 const cloneL=o=>JSON.parse(JSON.stringify(o));
-function validLayout(F){ return Array.isArray(F)&&F.length>0&&F.every(f=>f&&typeof f.key==='string'&&typeof f.name==='string'&&Array.isArray(f.groups)&&f.groups.every(g=>g&&typeof g.title==='string'&&Array.isArray(g.cols)&&g.cols.every(c=>Array.isArray(c)))&&(!f.bar||(Array.isArray(f.bar.row)))); }
+function validLayout(F){ return Array.isArray(F)&&F.length>0&&F.every(f=>f&&typeof f.key==='string'&&typeof f.name==='string'&&(f.mode==='free'? (Array.isArray(f.tables)&&f.tables.every(t=>t&&t.id!=null&&isFinite(t.x)&&isFinite(t.y)&&t.w>0&&t.h>0)) : (Array.isArray(f.groups)&&f.groups.every(g=>g&&typeof g.title==='string'&&Array.isArray(g.cols)&&g.cols.every(c=>Array.isArray(c)))&&(!f.bar||(Array.isArray(f.bar.row)))))); }
 function layoutError(F){
   const all=tablesOf(F); if(!all.length) return '테이블이 하나도 없어요';
   const bad=all.find(t=>!(/^\d{1,2}$/.test(t)&&+t>=1)&&!/^R[1-4]-[1-4]$/.test(t)); if(bad) return `‘${bad}’ 는 쓸 수 없는 번호예요`;
@@ -714,14 +726,50 @@ function editCell(t,p){
 }
 function renderBoardEdit(){
   const F=layoutEdit.floors; if(!F.some(x=>x.key===ui.floor)) ui.floor=F[0].key; const fi=F.findIndex(x=>x.key===ui.floor); const f=F[fi];
-  const groups=f.groups.map((g,gi)=>`<div class="grp"><h3>${esc(g.title)}<button class="lbtn" data-led="gren" data-p="${fi},${gi}">이름 바꾸기</button><button class="lbtn bad" data-led="gdel" data-p="${fi},${gi}">구역 지우기</button></h3><div class="cols">${g.cols.map((c,ci)=>`<div class="col">${c.map((t,ti)=>editCell(t,`${fi},${gi},${ci},${ti}`)).join('')}<button class="cell addc" data-led="tadd" data-p="${fi},${gi},${ci}" data-dp-end="${fi},${gi},${ci}" title="여기에 테이블 추가 (고른 테이블이 있으면 여기로 옮겨요)">+</button></div>`).join('')}</div></div>`).join('');
-  const bar=f.bar?`<div class="grp bar29"><h3>${esc(f.bar.title)}</h3><div class="barrow">${f.bar.row.map((t,ti)=>editCell(t,`${fi},b,${ti}`)).join('')}<button class="cell addc" data-led="tadd" data-p="${fi},b,0" data-dp-end="${fi},b,0">+</button></div></div>`:'';
-  document.getElementById('boardPanel').innerHTML=`<div class="ledbar"><b>배치 수정 중</b><span>저장을 눌러야 실제 현황판에 반영돼요. ① 테이블을 누르고 ② 바꿀 자리를 누르면 서로 자리가 바뀌어요 (<b>+</b> 를 누르면 그 줄 끝으로 옮겨요)</span></div>
+  const groups=f.mode==='free'? freeFloorHtml(f,{},true) : f.groups.map((g,gi)=>`<div class="grp"><h3>${esc(g.title)}<button class="lbtn" data-led="gren" data-p="${fi},${gi}">이름 바꾸기</button><button class="lbtn bad" data-led="gdel" data-p="${fi},${gi}">구역 지우기</button></h3><div class="cols">${g.cols.map((c,ci)=>`<div class="col">${c.map((t,ti)=>editCell(t,`${fi},${gi},${ci},${ti}`)).join('')}<button class="cell addc" data-led="tadd" data-p="${fi},${gi},${ci}" data-dp-end="${fi},${gi},${ci}" title="여기에 테이블 추가 (고른 테이블이 있으면 여기로 옮겨요)">+</button></div>`).join('')}</div></div>`).join('');
+  const bar=f.mode!=='free'&&f.bar?`<div class="grp bar29"><h3>${esc(f.bar.title)}</h3><div class="barrow">${f.bar.row.map((t,ti)=>editCell(t,`${fi},b,${ti}`)).join('')}<button class="cell addc" data-led="tadd" data-p="${fi},b,0" data-dp-end="${fi},b,0">+</button></div></div>`:'';
+  document.getElementById('boardPanel').innerHTML=`<div class="ledbar"><b>배치 수정 중</b><span>${f.mode==='free'?'저장을 눌러야 실제 현황판에 반영돼요. 테이블을 <b>끌어서</b> 마음대로 옮기고, 누르면 모양·크기를 바꿀 수 있어요':'저장을 눌러야 실제 현황판에 반영돼요. ① 테이블을 누르고 ② 바꿀 자리를 누르면 서로 자리가 바뀌어요 (<b>+</b> 를 누르면 그 줄 끝으로 옮겨요)'}</span></div>
     <div class="btop"><h2>배치 수정</h2><div class="ftabs" style="display:flex;gap:6px">${F.map(x=>`<button data-floor="${x.key}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div><span class="spacer"></span>
-      <button class="lbtn" data-led="gadd">+ 구역</button><button class="lbtn" data-led="fadd">+ 층</button><button class="lbtn" data-led="fren">층 이름</button><button class="lbtn bad" data-led="fdel">층 지우기</button>
+      ${f.mode==='free'?`<button class="lbtn" data-led="ftadd">+ 테이블</button><button class="lbtn" data-led="fcircle">원형으로 배치</button><button class="lbtn" data-led="togrid">칸 배치로 되돌리기</button>`:`<button class="lbtn" data-led="gadd">+ 구역</button><button class="lbtn" data-led="tofree">자유 배치로 바꾸기</button>`}<button class="lbtn" data-led="fadd">+ 층(칸)</button><button class="lbtn" data-led="ffadd">+ 층(자유)</button><button class="lbtn" data-led="fren">층 이름</button><button class="lbtn bad" data-led="fdel">층 지우기</button>
       <button class="lbtn" data-led="reset">처음 배치로</button><button class="btn sm" data-led="cancel">취소</button><button class="btn sm pri" data-led="save">저장</button></div>
+    ${f.mode==='free'?freeSelBar(f):''}
     <div class="floor">${groups}</div>${bar}`;
 }
+/* ---------- 자유 배치 (원형·마음대로): 테이블마다 위치·모양·크기를 따로 저장. 좌표는 가로 1000×세로 600 기준 ---------- */
+const FW=1000, FH=600, snapN=v=>Math.round(v/10)*10, clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
+const editFloor=()=>layoutEdit&&layoutEdit.floors.find(x=>x.key===ui.floor);
+function freeFloorHtml(f,map,edit){
+  const T=f.tables||[];
+  return `<div class="freecanvas${edit?' fedit':''}" id="fcanvas">${T.map(t=>{ const id=String(t.id); const sel=edit&&layoutSel===id?' sel':''; const sh=t.shape||'round';
+    const inner=edit?`<div class="cell empty ed${sel}"><span class="no">${esc(tLabel(id))}</span></div>`:cellHtml(id,map);
+    return `<div class="fpos ${sh}" data-ft="${esc(id)}" style="left:${t.x/10}%;top:${t.y/6}%;width:${t.w/10}%;height:${t.h/6}%">${inner}</div>`; }).join('')}</div>`;
+}
+function freeSelBar(f){
+  const t=(f.tables||[]).find(x=>String(x.id)===layoutSel);
+  if(!t) return `<div class="fselbar"><span class="note">테이블을 눌러 고르면 번호·모양·크기를 바꿀 수 있어요</span></div>`;
+  return `<div class="fselbar"><b>${esc(tLabel(String(t.id)))}번</b><button class="lbtn" data-led="frenum">번호</button><button class="lbtn" data-led="fshape" data-v="round">원</button><button class="lbtn" data-led="fshape" data-v="square">네모</button><button class="lbtn" data-led="fshape" data-v="rect">직사각</button><button class="lbtn" data-led="fsize" data-v="-1">작게</button><button class="lbtn" data-led="fsize" data-v="1">크게</button><button class="lbtn bad" data-led="fdelt">지우기</button></div>`;
+}
+function freeSpot(f,w,h){ const T=f.tables||[]; for(let y=30;y<=FH-h;y+=20) for(let x=30;x<=FW-w;x+=20){ if(!T.some(t=>x<t.x+t.w+6&&x+w+6>t.x&&y<t.y+t.h+6&&y+h+6>t.y)) return {x,y}; } return {x:30,y:30}; }
+// 지금 칸 배치의 테이블들을 자유 배치로: 줄 맞춰 늘어놓고 그다음 마음대로 옮기게
+function toFree(f){
+  const ids=floorTables(f); const n=Math.max(1,ids.length); const cols=Math.min(12,Math.max(4,Math.ceil(Math.sqrt(n*1.7)))); const rows=Math.ceil(n/cols);
+  const w=Math.min(110,Math.floor(940/cols)-10), h=Math.min(90,Math.floor(520/rows)-10);
+  f.mode='free'; f.tables=ids.map((id,i)=>({id,x:30+(i%cols)*(w+10),y:30+Math.floor(i/cols)*(h+10),w,h,shape:'square'})); delete f.groups; delete f.bar;
+}
+function toGrid(f){
+  const ids=f.tables.map(t=>String(t.id)).sort((a,b)=>(parseFloat(a)||0)-(parseFloat(b)||0));
+  f.groups=[{title:'테이블',cols:[ids.filter((_,i)=>i%2===0),ids.filter((_,i)=>i%2===1)]}]; delete f.mode; delete f.tables;
+}
+document.getElementById('boardPanel').addEventListener('pointerdown',e=>{
+  if(!layoutEdit) return; const el=e.target.closest('.fedit .fpos'); if(!el) return; const f=editFloor(); if(!f||f.mode!=='free') return;
+  const t=f.tables.find(x=>String(x.id)===el.dataset.ft); if(!t) return; e.preventDefault();
+  const cv=document.getElementById('fcanvas'); const r=cv.getBoundingClientRect(); const sx=e.clientX, sy=e.clientY, ox=t.x, oy=t.y; let moved=false;
+  try{ el.setPointerCapture(e.pointerId); }catch(er){}
+  const mv=ev=>{ if(!moved&&Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)<5) return; moved=true;
+    t.x=clampN(snapN(ox+(ev.clientX-sx)/r.width*FW),0,FW-t.w); t.y=clampN(snapN(oy+(ev.clientY-sy)/r.height*FH),0,FH-t.h); el.style.left=t.x/10+'%'; el.style.top=t.y/6+'%'; };
+  const up=()=>{ el.removeEventListener('pointermove',mv); el.removeEventListener('pointerup',up); el.removeEventListener('pointercancel',up); layoutSel=String(t.id); renderBoard(); };
+  el.addEventListener('pointermove',mv); el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
+});
 document.getElementById('boardPanel').addEventListener('click',async e=>{
   const b=e.target.closest('[data-led],[data-dp],[data-dp-end]'); if(!b) return;
   const act=b.dataset.led; if(!act && !layoutEdit) return;
@@ -729,6 +777,22 @@ document.getElementById('boardPanel').addEventListener('click',async e=>{
   if(!layoutEdit) return;
   e.stopPropagation(); const F=layoutEdit.floors; const f=F.find(x=>x.key===ui.floor); const p=b.dataset.p;
   const redraw=()=>renderBoard();
+  if(act==='tofree'){ if(!confirm('이 층을 자유 배치로 바꿀까요?\n테이블들이 줄 맞춰 놓이고, 그다음 끌어서 마음대로 옮길 수 있어요.\n(저장을 눌러야 반영돼요)')) return; toFree(f); layoutSel=''; return redraw(); }
+  if(act==='togrid'){ if(!confirm('칸 배치로 되돌릴까요?\n위치·모양 정보는 사라지고 번호순으로 두 줄에 놓여요.')) return; toGrid(f); layoutSel=''; return redraw(); }
+  if(act==='ffadd'){ const v=(prompt('새 층 이름 (자유 배치, 예: 홀)')||'').trim(); if(v){ const key=String(Math.max(0,...F.map(x=>+x.key||0))+1); F.push({key,name:v,mode:'free',tables:[]}); ui.floor=key; layoutSel=''; redraw(); } return; }
+  if(f&&f.mode==='free'){
+    const sel=(f.tables||[]).find(x=>String(x.id)===layoutSel);
+    if(act==='ftadd'){ const v=(prompt('추가할 테이블 번호 (1~99)')||'').trim(); if(!v) return; if(!/^\d{1,2}$/.test(v)||+v<1) return toast('1~99 사이 숫자로 넣어 주세요'); if(tablesOf(F).includes(String(+v))) return toast(`${+v}번은 이미 있어요`);
+      const sp=freeSpot(f,100,90); f.tables.push({id:String(+v),x:sp.x,y:sp.y,w:100,h:90,shape:'round'}); layoutSel=String(+v); return redraw(); }
+    if(act==='fcircle'){ const n=parseInt(prompt('몇 개를 원형으로 놓을까요? (2~30)','8'),10); if(!(n>=2&&n<=30)) return toast('2~30 사이로 넣어 주세요'); const st=parseInt(prompt('시작 번호 (이 번호부터 차례로)','1'),10); if(!(st>=1&&st+n-1<=99)) return toast('번호는 1~99 안에서 정해 주세요');
+      const used=new Set(tablesOf(F)); const ids=Array.from({length:n},(_,i)=>String(st+i)); const dup=ids.find(x=>used.has(x)); if(dup) return toast(`${dup}번이 이미 있어요. 다른 시작 번호를 쓰거나 먼저 지워 주세요`);
+      const rx=380, ry=200, size=clampN(Math.floor(2*Math.PI*Math.sqrt((rx*rx+ry*ry)/2)/n*0.8),50,120);
+      ids.forEach((id,i)=>{ const a=-Math.PI/2+2*Math.PI*i/n; f.tables.push({id,x:Math.round(FW/2+rx*Math.cos(a)-size/2),y:Math.round(FH/2+ry*Math.sin(a)-size/2),w:size,h:size,shape:'round'}); }); layoutSel=''; return redraw(); }
+    if(sel&&act==='fshape'){ const v=b.dataset.v; if(v==='rect'){ sel.w=Math.min(260,Math.round(sel.h*1.6)); } else { const m=Math.round((sel.w+sel.h)/2); sel.w=sel.h=m; } sel.shape=v; sel.x=clampN(sel.x,0,FW-sel.w); sel.y=clampN(sel.y,0,FH-sel.h); return redraw(); }
+    if(sel&&act==='fsize'){ const k=+b.dataset.v>0?1.15:0.87; sel.w=clampN(Math.round(sel.w*k),40,300); sel.h=clampN(Math.round(sel.h*k),40,300); sel.x=clampN(sel.x,0,FW-sel.w); sel.y=clampN(sel.y,0,FH-sel.h); return redraw(); }
+    if(sel&&act==='frenum'){ const v=(prompt('새 번호 (1~99)',sel.id)||'').trim(); if(!v||v===String(sel.id)) return; if(!/^\d{1,2}$/.test(v)||+v<1) return toast('1~99 사이 숫자로 넣어 주세요'); if(tablesOf(F).includes(String(+v))) return toast(`${+v}번은 이미 있어요`); sel.id=String(+v); layoutSel=sel.id; return redraw(); }
+    if(sel&&act==='fdelt'){ f.tables.splice(f.tables.indexOf(sel),1); layoutSel=''; return redraw(); }
+  }
   if(act==='tdel'){ const {arr,idx}=slotOf(F,p); arr.splice(idx,1); layoutSel=''; return redraw(); }
   if(act==='tadd'){
     if(layoutSel){ const src=slotOf(F,layoutSel); const v=src.arr[src.idx]; const dst=colOf(F,b.dataset.dpEnd||p); src.arr.splice(src.idx,1); dst.push(v); layoutSel=''; return redraw(); }
@@ -774,7 +838,7 @@ function tPrev(tables,tnote){
 function goDup(t){
   const xs=[...(CONF.table[t]||new Map()).values()]; if(!xs.length) return;
   const first=Math.min(...xs.map(x=>toMin(x.time))); followNow=false; ui.t=Math.max(600,Math.min(1320,first));
-  const f=FLOORS.find(fl=>[...fl.groups.flatMap(g=>g.cols.flat()),...(fl.bar?fl.bar.row:[])].map(String).includes(t)); if(f) ui.floor=f.key;
+  const f=FLOORS.find(fl=>floorHas(fl,t)); if(f) ui.floor=f.key;
   renderBoard();
   setTimeout(()=>document.querySelectorAll(`.cell[data-cell="${t}"]`).forEach(c=>{ c.classList.add('flash'); c.scrollIntoView({block:'nearest'}); }),30);
   toast(`${tLabel(t)} 중복 — ${fromMin(ui.t)}로 옮겼어요. 칸을 누르면 두 예약을 비교할 수 있어요`);
@@ -782,7 +846,7 @@ function goDup(t){
 function goTight(t){
   const xs=[...(TIGHT.table[t]||new Map()).values()]; if(!xs.length) return;
   const first=Math.min(...xs.map(x=>toMin(x.time))); followNow=false; ui.t=Math.max(600,Math.min(1320,first));
-  const f=FLOORS.find(fl=>[...fl.groups.flatMap(g=>g.cols.flat()),...(fl.bar?fl.bar.row:[])].map(String).includes(t)); if(f) ui.floor=f.key;
+  const f=FLOORS.find(fl=>floorHas(fl,t)); if(f) ui.floor=f.key;
   renderBoard();
   setTimeout(()=>document.querySelectorAll(`.cell[data-cell="${t}"]`).forEach(c=>{ c.classList.add('flash'); c.scrollIntoView({block:'nearest'}); }),30);
   toast(`${tLabel(t)} 임박 — 2시간 간격으로 다음 팀이 있어요. ${fromMin(ui.t)}로 옮겼어요`);
@@ -889,7 +953,7 @@ function syncBoardFromInput(timeStr, tablesStr){
     const t=normTime(timeStr); let moved=false;
     if(t && (digits.length>=3 || /[:시]/.test(timeStr))){ const m=Math.max(600,Math.min(1320,Math.round(toMin(t)/30)*30)); if(m!==ui.t){ ui.t=m; followNow=false; moved=true; } }
     const ts=parseTables(tablesStr);
-    if(ts.length){ const f=FLOORS.find(fl=>[...fl.groups.flatMap(g=>g.cols.flat()),...(fl.bar?fl.bar.row:[])].map(String).includes(ts[0])); if(f&&f.key!==ui.floor){ ui.floor=f.key; moved=true; } }
+    if(ts.length){ const f=FLOORS.find(fl=>floorHas(fl,ts[0])); if(f&&f.key!==ui.floor){ ui.floor=f.key; moved=true; } }
     if(moved) renderBoard();
     document.querySelectorAll('.cell.hit').forEach(c=>c.classList.remove('hit'));
     ts.forEach(x=>document.querySelector(`.cell[data-cell="${x}"]`)?.classList.add('hit'));
@@ -916,7 +980,7 @@ document.getElementById('listPanel').addEventListener('click',e=>{
   if(b.dataset.act==='qadd'){ quickAdd(); return; }
   if(b.dataset.goto!==undefined){ const m=toMin(b.dataset.goto); if(m==null) return;
     followNow=false; ui.t=Math.max(600,Math.min(1320,m));
-    const t=b.dataset.gt; if(t){ const f=FLOORS.find(fl=>[...fl.groups.flatMap(g=>g.cols.flat()),...(fl.bar?fl.bar.row:[])].map(String).includes(t)); if(f) ui.floor=f.key; }
+    const t=b.dataset.gt; if(t){ const f=FLOORS.find(fl=>floorHas(fl,t)); if(f) ui.floor=f.key; }
     renderBoard();
     if(t) setTimeout(()=>document.querySelectorAll(`.cell[data-cell="${t}"]`).forEach(c=>c.classList.add('flash')),30);
     toast(`현황판을 ${fromMin(ui.t)} 기준으로 옮겼어요`); return; }
@@ -1118,7 +1182,7 @@ document.getElementById('gres').addEventListener('click',async e=>{
   ui.date=d; ui.filter='all'; ui.q='';
   if(x){ const doc=dayDoc(d); if(!doc.items.find(y=>y.id===id)){ doc.items=mergeItems(doc.items,[x]); }
     const m=toMin(x.time); if(m!=null){ ui.t=Math.max(600,Math.min(1320,m)); followNow=false; }
-    const t=(x.tables||[])[0]; if(t){ const f=FLOORS.find(fl=>[...fl.groups.flatMap(g=>g.cols.flat()),...(fl.bar?fl.bar.row:[])].map(String).includes(t)); if(f) ui.floor=f.key; } }
+    const t=(x.tables||[])[0]; if(t){ const f=FLOORS.find(fl=>floorHas(fl,t)); if(f) ui.floor=f.key; } }
   loadDate();
   setTimeout(()=>{ const row=document.querySelector(`.res [data-edit="${id}"]`)?.closest('.res'); if(row){ row.scrollIntoView({block:'center'}); row.classList.add('flash'); }
     (x&&x.tables||[]).forEach(t=>document.querySelector(`.cell[data-cell="${t}"]`)?.classList.add('flash')); },80);
