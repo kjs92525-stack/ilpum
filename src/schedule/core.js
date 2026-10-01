@@ -75,8 +75,8 @@ const Local={
   async init(){ this.load(); return {uid:'demo', email:'체험 모드'}; },
   async stores(){ const r=this.db.demoRole||'hq';
     return this.db.stores.map(s=>{ const hqOwned=s.id===this.db.stores[0].id;
-      const role = r==='hq'? (hqOwned?'hq':null) : r;          // 본사는 가맹점 직원 정보에 접근하지 않음(집계만)
-      return {id:s.id,name:s.name,role,pay: role==='hq'||role==='owner'||(role==='manager'&&!!this.db.managerPay), staffId:(this.db.demoMe||{})[s.id]||null}; }); },
+      const role = r;                                           // 본사는 모든 매장을 관리 (실서버와 같은 규칙)
+      return {id:s.id,name:s.name,role,pay: (role==='hq'&&hqOwned)||role==='owner'||(role==='manager'&&!!this.db.managerPay), staffId:(this.db.demoMe||{})[s.id]||null}; }); },
   async items(sid){ const it=this.db.items[sid]||{}; const out={}; Object.keys(it).forEach(k=>out[k]=JSON.parse(JSON.stringify(it[k]))); return out; },
   async put(sid,kind,id,data){ const it=this.db.items[sid]=this.db.items[sid]||{}; const g=it[kind]=it[kind]||{};
     if(data==null) delete g[id]; else g[id]=JSON.parse(JSON.stringify(data)); this.persist(); },
@@ -84,7 +84,8 @@ const Local={
   async summaries(){ return JSON.parse(JSON.stringify(this.db.sum||{})); },
   async putSummary(sid,week,data){ this.db.sum=this.db.sum||{}; (this.db.sum[sid]=this.db.sum[sid]||{})[week]=data; this.persist(); },
   async createStore(id,name){ if(this.db.stores.some(s=>s.id===id)) throw new Error('이미 있는 매장 코드예요'); this.db.stores.push({id,name}); this.db.items[id]={}; this.persist(); },
-  async addMember(){ throw new Error('체험 모드에서는 계정을 연결할 수 없어요. Supabase에 연결한 뒤 사용하세요'); }
+  async addMember(){ throw new Error('체험 모드에서는 계정을 연결할 수 없어요. Supabase에 연결한 뒤 사용하세요'); },
+  async createAccount(){ throw new Error('체험 모드에서는 계정을 만들 수 없어요. Supabase에 연결한 뒤 사용하세요'); }
 };
 
 const PINMSG={bad_pin:'편집 비밀번호가 달라요',locked:'여러 번 틀려서 15분 동안 잠겼어요',denied:'권한이 없어요',short:'비밀번호는 6자 이상으로 정해주세요',bad_rows:'저장할 수 없는 항목이 있어요',nopin:''};
@@ -94,7 +95,7 @@ const Remote={
   async fetchJ(path,opt={},retry=true){
     const r=await fetch(this.url+path,{...opt,headers:{...this.H(),...(opt.headers||{})},cache:'no-store'});
     if(r.status===401&&retry&&this.ses&&this.ses.refresh_token){ await this.refresh(); return this.fetchJ(path,opt,false); }
-    if(!r.ok){ let m='HTTP '+r.status; try{ const j=await r.json(); m=j.message||j.msg||j.error_description||m; }catch(e){} throw new Error(m); }
+    if(!r.ok){ let m='HTTP '+r.status; try{ const j=await r.json(); m=j.message||j.msg||j.error_description||(typeof j.error==='string'&&j.error)||m; }catch(e){} throw new Error(m); }
     const t=await r.text(); return t?JSON.parse(t):null;
   },
   // 자동 로그인: 비밀번호는 저장하지 않고, 서버가 준 '로그인 유지 토큰'만 이 기기에 저장 (만료되면 알아서 갱신)
@@ -146,7 +147,9 @@ const Remote={
     if(!this.ses){ const r=await this.rpcText('sch_put_summary',{p_store:sid,p_pin:this.pin||'',p_week:week,p_data:data}); if(r!=='ok') throw Object.assign(new Error(PINMSG[r]||r),{code:r}); return; }
     await this.fetchJ('/rest/v1/sch_summaries?on_conflict=store_id,week',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({store_id:sid,week,data})}); },
   async createStore(id,name){ await this.fetchJ('/rest/v1/rpc/sch_create_store',{method:'POST',body:JSON.stringify({p_name:name})}); },
-  async addMember(email,sid,role,pay){ await this.fetchJ('/rest/v1/rpc/sch_add_member',{method:'POST',body:JSON.stringify({p_email:email,p_store:sid,p_role:role,p_pay:!!pay})}); }
+  async addMember(email,sid,role,pay){ await this.fetchJ('/rest/v1/rpc/sch_add_member',{method:'POST',body:JSON.stringify({p_email:email,p_store:sid,p_role:role,p_pay:!!pay})}); },
+  // 계정 만들기: 본사만 (서버 함수가 본사인지 확인하고 만들어요)
+  async createAccount(o){ return this.fetchJ('/functions/v1/create-account',{method:'POST',body:JSON.stringify(o)}); }
 };
 
 /* ================= 매장 데이터 ================= */

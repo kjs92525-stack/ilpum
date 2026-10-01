@@ -240,7 +240,7 @@ function dSales(key){ const v=(APP.D.sales[key]||{}).v||'';
 function dStores(){ const mine=APP.stores.filter(s=>s.role);
   openDrawer('매장 바꾸기','',`<div class="rl">${mine.map(s=>`<button class="ri" style="text-align:left;${s.id===APP.sid?'border-color:var(--amber)':''}" data-a="gostore" data-id="${s.id}"><div><div class="wn">${esc(s.name)}</div><div class="wh">${roleName(s.role)}</div></div><span>${s.id===APP.sid?'✓':'›'}</span></button>`).join('')}</div>`,''); }
 function dStoreNew(){ openDrawer('매장 추가','본사만 할 수 있어요',`<label class="f">매장 이름<input type="text" id="snName" placeholder="예: 수성점"></label>
-  <p class="hint">매장을 만든 뒤 Supabase → Authentication에서 점주 계정을 만들고, 설정 → 계정 연결에서 이 매장의 점주로 연결하세요. 본사 계정은 가맹점 근무표에 들어가지 않고 요약만 봐요.</p>`,`<button class="btn pri grow" data-a="storecreate">만들기</button>`); }
+  <p class="hint">매장을 만든 뒤 설정 → 계정 만들기에서 이 매장의 점주 계정을 만드세요.</p>`,`<button class="btn pri grow" data-a="storecreate">만들기</button>`); }
 
 /* ================= 기존 근무표 가져오기 ================= */
 const OLD_URL='https://fmzpmekypmjuydgxpnlu.supabase.co', OLD_KEY='/*OLDKEY*/';
@@ -354,7 +354,10 @@ document.addEventListener('click',async e=>{
     case 'gologin': Conf.openOnly=false; saveConf(); location.reload(); break;
     case 'demorole': Local.db.demoRole=d.v; if(d.v==='staff'){ Local.db.demoMe={bonjum:Object.keys(Local.db.items.bonjum.staff)[0]}; } Local.persist(); location.reload(); break;
     case 'resetdemo': if(confirm('체험 데이터를 처음 상태로 되돌릴까요?')){ localStorage.removeItem(LOCAL_KEY); location.reload(); } break;
-    case 'addmember': { try{ await APP.be.addMember(toLoginEmail($('#amEmail').value),$('#amStore').value,$('#amRole').value,$('#amPay').checked); toast('연결했어요. 그 계정으로 로그인하면 매장이 보여요'); }catch(err){ toast(err.message); } break; }
+    case 'mkaccount': { const id=$('#mkId').value.trim().toLowerCase(), pw=$('#mkPw').value; if(!id||!pw) return toast('아이디와 비밀번호를 넣으세요'); if(pw.length<8) return toast('비밀번호는 8자 이상이에요');
+      const btn=e.target.closest('button'); btn.disabled=true;
+      try{ await APP.be.createAccount({id,password:pw,store:$('#mkStore').value,role:$('#mkRole').value,pay:$('#mkPay').checked}); $('#mkId').value=''; $('#mkPw').value=''; toast(`‘${id}’ 계정을 만들었어요. 아이디와 비밀번호를 알려 주세요`); }catch(err){ toast(err.message); }
+      btn.disabled=false; break; }
     case 'importold': { if(!confirm('기존 근무표(본점 서버)의 데이터를 이 매장으로 가져올까요? 같은 사람·설정은 덮어써요.')) return;
       try{ toast('가져오는 중…'); const r=await fetch(`${OLD_URL}/rest/v1/schedule_state?id=eq.main&select=data`,{headers:{apikey:OLD_KEY,Authorization:'Bearer '+OLD_KEY}}); const rows=await r.json(); const n=importOld(rows[0]&&rows[0].data); render(); toast(`직원 ${n}명과 설정을 가져왔어요`); }catch(err){ toast('가져오기 실패: '+err.message); } break; }
     case 'backup': { const blob=new Blob([JSON.stringify({store:APP.sid,exportedAt:new Date().toISOString(),data:APP.D},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`근무표_${APP.D.store.name}_${todayStr}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); break; }

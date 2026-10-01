@@ -315,7 +315,7 @@ function vMe(){
     <button class="btn pri" data-a="img" data-t="me" data-k="${sid}" style="width:100%;margin-top:8px">카톡으로 보낼 사진</button></div>`;
 }
 
-/* ================= 본사 현황 (집계만) ================= */
+/* ================= 본사 현황 ================= */
 async function loadSum(){ try{ APP.sum=await APP.be.summaries(); }catch(e){ APP.sum={}; toast('본사 현황을 못 불러왔어요: '+e.message); } if(APP.view==='hq') render(); }
 function vHQ(){
   const S=APP.sum; const wk=ds(weekStart(new Date())), nk=ds(addDays(weekStart(new Date()),7));
@@ -326,9 +326,9 @@ function vHQ(){
       <div><small>인건비율</small><b>${a&&a.ratio!=null?a.ratio+'%':'—'}</b></div><div><small>다음 주 근무시간</small><b>${b?b.hours.toLocaleString('ko-KR')+'h':'-'}</b></div></div>
       <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:12px">${a&&a.at?'갱신 '+new Date(a.at).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'아직 근무표 입력 전'}</span>
       ${mine?`<button class="btn sm" data-a="gostore" data-id="${s.id}">열기</button>`:''}</div></div>`; };
-  return `<div class="vh"><div><h1>본사 현황</h1><div class="sub">이번 주 매장별 요약 · 가맹점은 <b>집계만</b> 보여요 (직원 이름·시급·출퇴근은 본사에 안 보임)</div></div><span class="sp"></span><button class="btn" data-a="sumreload">새로고침</button><button class="btn pri" data-a="storenew">+ 매장 추가</button></div>
+  return `<div class="vh"><div><h1>본사 현황</h1><div class="sub">이번 주 매장별 요약 · <b>열기</b>를 누르면 그 매장의 스케줄을 보고 고칠 수 있어요</div></div><span class="sp"></span><button class="btn" data-a="sumreload">새로고침</button><button class="btn pri" data-a="storenew">+ 매장 추가</button></div>
     ${S?`<div class="stores">${stores.map(card).join('')}</div>`:'<div class="card empty">불러오는 중…</div>'}
-    <div class="card" style="margin-top:14px"><h2>왜 집계만 보이나요?</h2><p class="help" style="margin:0">가맹점 직원의 근무시간·급여를 본사가 직접 보거나 지시하면, 파리바게뜨 사건처럼 본사가 사용자로 판단될 위험이 있어요. 그래서 가맹점 근무표는 그 매장 점주·매니저만 열고, 본사에는 근무시간·인건비율 같은 숫자만 올라와요.</p></div>`;
+    <div class="card" style="margin-top:14px"><h2>본사 권한</h2><p class="help" style="margin:0">본사 계정은 모든 매장의 스케줄을 볼 수 있고 고칠 수 있어요. 가맹점 급여 금액은 점주(허용한 매니저)만 보여요. 가맹점은 자기 매장만 보여요.</p></div>`;
 }
 
 /* ================= 설정 ================= */
@@ -360,11 +360,13 @@ function vSet(){
       <div class="row" style="margin-top:14px"><span class="muted" style="font-size:13px">체험용 역할 바꿔보기:</span><div class="seg">${['hq','owner','manager','staff'].map(x=>`<button data-a="demorole" data-v="${x}" aria-pressed="${(Local.db.demoRole||'hq')===x}">${roleName(x).split(' ')[0]}</button>`).join('')}</div></div>`
     :APP.open?`<p class="help">로그인하지 않고 <b>본점 근무표</b>만 열고 있어요. 금액(급여)과 가맹점 자료는 로그인해야 보여요.</p><div class="row"><button class="btn pri" data-a="gologin">로그인</button><button class="btn" data-a="disconnect">체험 모드로 돌아가기</button></div>`
     :`<p class="help">로그인: <b>${esc(showId(APP.user&&APP.user.email||''))}</b> · 이 기기에서는 다시 묻지 않고 자동으로 들어와요.${Remote.keep?'':' (자동 로그인을 끄고 들어와서, 브라우저를 닫으면 다시 로그인해야 해요)'}</p><div class="row"><button class="btn" data-a="logout">로그아웃</button><button class="btn" data-a="disconnect">체험 모드로 돌아가기</button></div>`}</div>
-  ${(r==='hq'||r==='owner')&&APP.be===Remote?`<div class="card"><h2>계정 연결</h2><p class="help">Supabase → Authentication에서 계정을 먼저 만든 뒤, 여기서 매장과 역할을 연결하세요. 아이디로 로그인하게 하려면 계정 이메일을 <b>아이디@ilpum.invalid</b> 형태로 만드세요 (예: suseong@ilpum.invalid → 아이디 suseong).</p>
-    <div class="row" style="align-items:flex-end"><label class="f">아이디<input type="text" id="amEmail" style="width:200px" placeholder="예: suseong" autocapitalize="none"></label>
-    <label class="f">매장<select id="amStore">${(isHQ()?APP.stores:APP.stores.filter(s=>s.role==='owner')).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label>
-    <label class="f">역할<select id="amRole">${isHQ()?'<option value="owner">점주</option>':''}<option value="manager">매니저</option><option value="staff">직원</option></select></label>
-    <label class="ck" style="margin-bottom:8px"><input type="checkbox" id="amPay"> 급여 보기</label><button class="btn pri" data-a="addmember">연결</button></div></div>`:''}
+  ${r==='hq'&&APP.be===Remote?`<div class="card"><h2>계정 만들기 (본사만)</h2><p class="help">가맹점·매니저·직원 계정은 본사에서만 만들 수 있어요. 아이디와 비밀번호를 정해 알려 주세요. 비밀번호는 8자 이상이고, 만든 뒤에는 본사도 다시 볼 수 없어요.</p>
+    <form id="mkForm" autocomplete="off"><div class="row" style="align-items:flex-end">
+    <label class="f">아이디<input type="text" id="mkId" style="width:150px" placeholder="예: suseong" autocapitalize="none" autocomplete="off"></label>
+    <label class="f">비밀번호<input type="password" id="mkPw" style="width:150px" placeholder="8자 이상" autocomplete="new-password"></label>
+    <label class="f">매장<select id="mkStore">${APP.stores.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label>
+    <label class="f">역할<select id="mkRole"><option value="owner">점주</option><option value="manager">매니저</option><option value="staff">직원</option></select></label>
+    <label class="ck" style="margin-bottom:8px"><input type="checkbox" id="mkPay"> 급여 보기</label><button type="button" class="btn pri" data-a="mkaccount">계정 만들기</button></div></form></div>`:''}
     ${ed?`<div class="card"><h2>데이터</h2><p class="help">지금 쓰는 근무표(schedule.html) 데이터를 이 매장으로 옮길 수 있어요. 직원·요일 패턴·기간 설정·이 날만·고정알바 주간 입력·금액까지 옮겨져요.</p>
     <div class="row"><button class="btn pri" data-a="importold">기존 근무표 서버에서 가져오기</button><label class="btn" style="cursor:pointer">기존 백업 파일(.json)로 가져오기<input type="file" id="impFile" accept=".json" hidden></label>
     <button class="btn" data-a="backup">이 매장 백업 받기</button>${APP.be===Local?'<button class="btn bad" data-a="resetdemo">체험 데이터 초기화</button>':''}</div></div>`:''}`;
