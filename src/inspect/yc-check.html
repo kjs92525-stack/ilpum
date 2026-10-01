@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>유천점 자료 확인 (읽기만)</title>
+<style>
+body{font:15px/1.5 system-ui,sans-serif;margin:0;background:#f4f6f4;color:#17301f}
+main{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:19px;margin:6px 0 10px} .card{background:#fff;border:1px solid #dfe5df;border-radius:12px;padding:14px;margin-bottom:12px}
+input{font:inherit;padding:9px;border:1px solid #c9d2c9;border-radius:8px;width:100%;box-sizing:border-box;margin:4px 0 8px}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:11px 16px;background:#1f5a34;color:#fff;cursor:pointer;width:100%}
+button.sub{background:#fff;color:#1f5a34;border:1.5px solid #1f5a34;margin-top:8px}
+pre{white-space:pre-wrap;word-break:break-all;background:#f0f3f0;border-radius:8px;padding:10px;font-size:12.5px;max-height:420px;overflow:auto}
+.note{color:#5c6e60;font-size:13px}.bad{color:#b3261e;font-weight:700}
+</style></head><body><main>
+<h1>유천점 자료 확인 <span class="note">(읽기만 해요 · 아무것도 바꾸지 않아요)</span></h1>
+<div class="card"><p class="note">유천점 Supabase에 어떤 표와 자료가 있는지 개수만 확인해요. 고객 이름·전화 같은 내용은 화면에 크게 안 보여 주고, 표마다 첫 1줄의 <b>칸 이름</b>만 보여 줘요.</p>
+<p class="note">유천점 사이트에 로그인이 있으면 아래에 그 아이디·비밀번호를 넣어 주세요(없으면 비워 두세요). 이 페이지는 비밀번호를 저장하지 않아요.</p>
+<label>이메일(로그인 아이디) <input id="em" type="text" autocapitalize="none" autocomplete="off"></label>
+<label>비밀번호 <input id="pw" type="password" autocomplete="off"></label>
+<button id="go">자료 확인하기</button></div>
+<div class="card" id="out" hidden><div id="msg"></div><pre id="res"></pre><button class="sub" id="cp">결과 복사하기</button></div>
+<script>
+const URL_='https://vijisdwfbhggnmshlmcl.supabase.co', KEY='/*YCKEY*/';
+const $=s=>document.querySelector(s);
+let tok=KEY;
+async function api(path,opt){ const r=await fetch(URL_+path,{...opt,headers:{apikey:KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json',...((opt&&opt.headers)||{})}}); return r; }
+async function login(){
+  const email=$('#em').value.trim(), password=$('#pw').value; if(!email||!password) return null;
+  const r=await fetch(URL_+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+  const j=await r.json().catch(()=>({})); if(!r.ok||!j.access_token) throw new Error('로그인 실패: '+(j.error_description||j.msg||r.status)); tok=j.access_token; return email;
+}
+$('#go').onclick=async()=>{
+  const out=$('#out'), res=$('#res'), msg=$('#msg'); out.hidden=false; res.textContent=''; msg.innerHTML='확인 중…'; $('#go').disabled=true;
+  const lines=[];
+  try{
+    const who=await login(); lines.push(who?('로그인: '+who):'로그인 없이(anon) 확인');
+    const sp=await api('/rest/v1/'); let tables=[];
+    if(sp.ok){ const j=await sp.json().catch(()=>null); if(j&&j.definitions){ tables=Object.keys(j.definitions); } else if(j&&j.paths){ tables=Object.keys(j.paths).filter(p=>p!=='/'&&!p.startsWith('/rpc/')).map(p=>p.slice(1)); } }
+    else lines.push('표 목록 읽기 실패 HTTP '+sp.status+' (표 이름을 직접 알려 주셔야 할 수 있어요)');
+    if(!tables.length) lines.push('표 목록을 못 받았어요. 직접 이름을 입력해야 해요.');
+    for(const t of tables){
+      const r=await api('/rest/v1/'+encodeURIComponent(t)+'?select=*&limit=1000',{headers:{Prefer:'count=exact'}});
+      let cnt='?', cols='';
+      if(r.ok){ const rows=await r.json().catch(()=>[]); const cr=(r.headers.get('content-range')||'').split('/')[1]; cnt=(cr&&cr!=='*')?cr:(rows.length>=1000?'1000개 이상':String(rows.length)); cols=rows[0]?Object.keys(rows[0]).join(', '):'(자료 없음 또는 읽기 막힘)'; }
+      lines.push(`■ ${t}: ${r.ok?('개수 '+cnt):'HTTP '+r.status}\n   칸: ${cols}`);
+    }
+    msg.innerHTML='<b>끝났어요.</b> 아래를 복사해서 채팅에 붙여 주세요.';
+  }catch(e){ msg.innerHTML='<span class="bad">'+e.message+'</span>'; lines.push('오류: '+e.message); }
+  res.textContent=lines.join('\n'); $('#go').disabled=false;
+};
+$('#cp').onclick=async()=>{ try{ await navigator.clipboard.writeText($('#res').textContent); $('#cp').textContent='복사했어요'; }catch(e){ const r=document.createRange(); r.selectNodeContents($('#res')); getSelection().removeAllRanges(); getSelection().addRange(r); $('#cp').textContent='글자를 길게 눌러 복사하세요'; } };
+</script></main></body></html>
