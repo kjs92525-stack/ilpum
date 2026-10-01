@@ -10,7 +10,7 @@ python3 - <<'PY'
 # 키만 채워서 그대로 복사하는 화면들 (예약·발주)
 import json
 k=json.load(open('keys.json'))
-for src,dst in [('src/reserve/reserve.html','dist/reserve.html'),('src/order/order.html','dist/order.html')]:
+for src,dst in [('src/reserve/reserve.html','dist/reserve.html'),('src/order/order.html','dist/order.html'),('src/notice/notice.html','dist/notice.html'),('src/board/board.html','dist/board.html')]:
     s=open(src,encoding='utf-8').read()
     s=s.replace('/*OLDKEY*/',k.get('old','')).replace('/*NEWKEY*/',k['new']).replace('/*ORDKEY*/',k.get('ord','/*ORDKEY*/'))
     open(dst,'w',encoding='utf-8').write(s)

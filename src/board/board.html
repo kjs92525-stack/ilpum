@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<title>일품집 · 게시판</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#f6f6f4;--panel:#fff;--ink:#1c2420;--sub:#68736d;--line:#e2e5e1;--accent:#14524a;--accent-ink:#fff;--warn:#c0392b;--ok:#2e7d4f;--soft:#eef2ef;--gold:#b88a2a}
+@media (prefers-color-scheme:dark){:root{--bg:#121816;--panel:#1b2420;--ink:#e8ede9;--sub:#9aa7a0;--line:#2c3732;--accent:#2f8f82;--soft:#222d28;--warn:#ff7a6b;--ok:#6fcf97}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+header{background:var(--accent);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:18px}.sp{flex:1}
+#sync{font-size:12px;opacity:.85}
+main{max-width:860px;margin:0 auto;padding:12px 12px 90px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 12px;cursor:pointer;font-weight:600}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.bad{color:var(--warn)}.btn.sm{padding:3px 9px;font-size:13px}.btn:disabled{opacity:.5;cursor:default}
+.empty{color:var(--sub);text-align:center;padding:28px 8px}
+.note{color:var(--sub);font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;border-radius:10px;padding:9px 16px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90vw}
+.toast.on{opacity:1}
+dialog{border:0;border-radius:14px;padding:16px;max-width:520px;width:94vw;background:var(--panel);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+label.f{display:block;margin:8px 0 2px;font-size:13px;font-weight:700;color:var(--sub)}
+dialog input[type=text],dialog textarea,.compose textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;background:var(--panel)}
+textarea{resize:vertical;min-height:90px}
+</style>
+
+<style>
+.privacy{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:13px;color:var(--sub)}
+.thread{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.msg{max-width:84%;padding:9px 12px;border-radius:14px;white-space:pre-wrap;word-break:break-word}
+.msg small{display:block;font-size:11.5px;opacity:.75;margin-top:4px}
+.msg.me{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.msg.other{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg .who{font-size:12px;font-weight:800;margin-bottom:2px;opacity:.85}
+.compose{position:sticky;bottom:0;background:var(--bg);padding:8px 0}
+.compose textarea{min-height:70px}
+.stlist{display:grid;gap:8px}
+.stbtn{display:flex;gap:10px;align-items:center;text-align:left;border:1.5px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 12px;cursor:pointer;width:100%}
+.stbtn.has{border-color:#E5533D}
+.stbtn .nm{font-weight:800}
+.stbtn .pv{color:var(--sub);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stbtn .n{background:#E5533D;color:#fff;border-radius:999px;padding:0 8px;font-size:12.5px;font-weight:800}
+.stbtn .tm{margin-left:auto;color:var(--sub);font-size:12px;white-space:nowrap}
+</style>
+</head>
+<body>
+<header><button class="btn sm" id="back" hidden style="background:transparent;color:#fff;border-color:rgba(255,255,255,.5)">← 목록</button><h1 id="ttl">게시판</h1><span class="sp"></span><span id="sync">연결 중…</span><button class="btn sm" id="reload" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.5)">새로고침</button></header>
+<main id="main"></main>
+<div class="toast" id="toast" role="status"></div>
+<script>
+/* ================== Supabase 연결 (새 서버 · 로그인 필요) ================== */
+const SUPABASE_URL = 'https://bdqcrbnbuoujozlpttbe.supabase.co';
+const SUPABASE_KEY = '/*NEWKEY*/';
+const CONF_KEY='ilpum-fr-conf';
+const readConf=()=>{ try{ return JSON.parse(localStorage.getItem(CONF_KEY))||{}; }catch(e){ return {}; } };
+const readSes=()=>{ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; };
+const writeSes=j=>{ try{ const c=readConf(); if(c.ses){ c.ses=j; localStorage.setItem(CONF_KEY,JSON.stringify(c)); } else sessionStorage.setItem('fr-ses',JSON.stringify(j)); }catch(e){} };
+async function freshToken(force){
+  const run=async()=>{ const s=readSes(); if(!s) return null;
+    if(!force && (s.expires_at||0)*1000>Date.now()+60000) return s.access_token;
+    const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+    const j=await r.json().catch(()=>({})); if(!r.ok||!j.access_token) return null; writeSes(j); return j.access_token; };
+  return navigator.locks?navigator.locks.request('ilpum-refresh',run):run();
+}
+async function fx(path,opt,retry=true){
+  opt=opt||{}; const tok=await freshToken(false); if(!tok) throw Object.assign(new Error('로그인이 필요해요'),{auth:true});
+  const r=await fetch(SUPABASE_URL+path,{...opt,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json',...(opt.headers||{})},cache:'no-store'});
+  if(r.status===401&&retry){ const t2=await freshToken(true); if(t2) return fx(path,opt,false); }
+  return r;
+}
+async function jx(path,opt){ const r=await fx(path,opt); if(!r.ok){ let m='HTTP '+r.status; try{ const j=await r.json(); m=j.message||m; }catch(e){} throw Object.assign(new Error(m),{status:r.status}); } const t=await r.text(); return t?JSON.parse(t):null; }
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tt; function toast(m){ const el=$('#toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),2600); }
+const kst=iso=>{ const d=new Date(iso); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+const tellParent=()=>{ try{ window.parent.postMessage({type:'fr-refresh'},'*'); }catch(e){} };
+function needLogin(msg){ $('#sync').textContent=msg; $('#main').innerHTML=`<div class="card"><b>${esc(msg)}</b><div class="note" style="margin-top:6px">통합관리(index.html)에서 로그인하면 보여요.</div></div>`; }
+let STORES=[], MY=[];
+async function loadStores(){
+  if(!readSes()){ needLogin('로그인이 필요해요'); return false; }
+  try{ const r=await jx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); STORES=r; MY=r.filter(x=>x.role);
+    if(!MY.length){ needLogin('연결된 매장이 없어요 — 본사에 계정 연결을 요청하세요'); return false; } return true;
+  }catch(e){ needLogin(e.auth||e.status===401?'로그인이 필요해요':'연결 실패: '+e.message); return false; }
+}
+const isHqUser=()=>MY.some(x=>x.role==='hq');
+const storeName=id=>(STORES.find(x=>x.id===id)||{}).name||'';
+
+// 게시판 = 점주와 본사의 1:1 상담. 점주가 쓴 글은 본사와 그 매장 사람만 볼 수 있고, 다른 점주는 볼 수 없어요 (서버 규칙으로 막혀 있어요).
+let SID='', MSGS=[], SUMMARY=[], VIEW='thread';
+const hq=()=>isHqUser();
+const canWrite=()=>MY.some(x=>['hq','owner','manager'].includes(x.role));
+async function markRead(sid){ try{ await jx('/rest/v1/rpc/board_mark_read',{method:'POST',body:JSON.stringify({p_store:sid})}); tellParent(); }catch(e){} }
+async function loadThread(){
+  const rows=await jx(`/rest/v1/board_msgs?store_id=eq.${SID}&select=*&order=created_at.asc&limit=300`); MSGS=rows||[];
+}
+async function loadSummary(){
+  const rows=await jx('/rest/v1/board_msgs?select=store_id,from_hq,hq_read,body,created_at&order=created_at.desc&limit=500')||[];
+  const by={}; rows.forEach(m=>{ const s=by[m.store_id]=by[m.store_id]||{id:m.store_id,unread:0,last:m}; if(!m.from_hq&&!m.hq_read) s.unread++; });
+  SUMMARY=Object.values(by);
+}
+async function load(){
+  try{
+    $('#sync').textContent='불러오는 중…';
+    if(hq()&&!SID){ await loadSummary(); VIEW='list'; }
+    else { if(!SID){ const own=MY.find(x=>['owner','manager'].includes(x.role)); if(!own){ $('#main').innerHTML='<div class="card empty">이 계정은 게시판을 쓸 수 없어요</div>'; $('#sync').textContent=''; return; } SID=own.id; } await loadThread(); VIEW='thread'; markRead(SID); }
+    $('#sync').textContent=''; render();
+  }catch(e){ $('#sync').textContent='연결 실패: '+e.message; }
+}
+function bubble(m){
+  const mine=hq()?m.from_hq:!m.from_hq;
+  const who=m.from_hq?'본사':(hq()?storeName(m.store_id):'우리 매장');
+  return `<div class="msg ${mine?'me':'other'}"><div class="who">${esc(who)}</div>${esc(m.body)}<small>${kst(m.created_at)}</small></div>`;
+}
+function render(){
+  const back=$('#back'); back.hidden=!(hq()&&SID); $('#ttl').textContent=hq()&&SID?storeName(SID):'게시판';
+  if(VIEW==='list'){
+    const stores=STORES.filter(s=>!s.is_hq);
+    const rows=stores.map(s=>{ const x=SUMMARY.find(y=>y.id===s.id); return {s,x}; }).sort((a,b)=>((b.x?b.x.unread:0)-(a.x?a.x.unread:0))||((b.x?b.x.last.created_at:'')>(a.x?a.x.last.created_at:'')?1:-1));
+    $('#main').innerHTML=`<div class="privacy">점주가 쓴 글은 <b>본사만</b> 볼 수 있어요. 점주끼리는 서로 글이 안 보여요.</div><div class="stlist">`
+      +(rows.length?rows.map(({s,x})=>`<button class="stbtn ${x&&x.unread?'has':''}" data-st="${esc(s.id)}"><div style="min-width:0;flex:1"><div class="nm">${esc(s.name)} ${x&&x.unread?`<span class="n">${x.unread}</span>`:''}</div><div class="pv">${x?esc((x.last.from_hq?'본사: ':'')+x.last.body):'아직 글이 없어요'}</div></div><div class="tm">${x?kst(x.last.created_at):''}</div></button>`).join(''):'<div class="card empty">가맹점이 없어요</div>')
+      +'</div>';
+    return;
+  }
+  const info=hq()?'':'<div class="privacy">여기 쓴 글은 <b>본사만</b> 볼 수 있어요. 다른 점주는 볼 수 없어요. 궁금한 것, 건의, 문제를 편하게 남겨 주세요.</div>';
+  $('#main').innerHTML=info+`<div class="thread">${MSGS.length?MSGS.map(bubble).join(''):'<div class="card empty">아직 글이 없어요. 아래에 첫 글을 남겨 보세요.</div>'}</div>
+    ${canWrite()?`<div class="compose"><textarea id="body" maxlength="2000" placeholder="${hq()?'답글을 쓰세요':'본사에 남길 글을 쓰세요'} (Ctrl+Enter 로 보내기)"></textarea><div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn pri" id="send">보내기</button></div></div>`:''}`;
+  window.scrollTo(0,document.body.scrollHeight);
+}
+async function send(){
+  const ta=$('#body'); const body=ta.value.trim(); if(!body) return; const btn=$('#send'); btn.disabled=true;
+  try{ await jx('/rest/v1/board_msgs',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({store_id:SID,body,from_hq:hq()})}); await loadThread(); render(); toast('보냈어요'); }
+  catch(e){ toast('보내지 못했어요: '+e.message); btn.disabled=false; }
+}
+document.addEventListener('click',async e=>{
+  const st=e.target.closest('[data-st]'); if(st){ SID=st.dataset.st; $('#sync').textContent='불러오는 중…'; try{ await loadThread(); VIEW='thread'; await markRead(SID); }catch(er){ toast(er.message); } $('#sync').textContent=''; render(); return; }
+  if(e.target.id==='send') return send();
+});
+document.addEventListener('keydown',e=>{ if(e.target.id==='body'&&e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); send(); } });
+$('#back').onclick=()=>{ SID=''; load(); };
+$('#reload').onclick=()=>{ if(hq()&&SID){ loadThread().then(render); } else load(); };
+window.pullNow=()=>{ if(MY.length&&!document.hidden){ if(hq()&&SID) loadThread().then(render).then(()=>markRead(SID)); else load(); } };
+(async function boot(){ if(await loadStores()) load(); })();
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<title>일품집 · 공지사항</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#f6f6f4;--panel:#fff;--ink:#1c2420;--sub:#68736d;--line:#e2e5e1;--accent:#14524a;--accent-ink:#fff;--warn:#c0392b;--ok:#2e7d4f;--soft:#eef2ef;--gold:#b88a2a}
+@media (prefers-color-scheme:dark){:root{--bg:#121816;--panel:#1b2420;--ink:#e8ede9;--sub:#9aa7a0;--line:#2c3732;--accent:#2f8f82;--soft:#222d28;--warn:#ff7a6b;--ok:#6fcf97}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+header{background:var(--accent);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:18px}.sp{flex:1}
+#sync{font-size:12px;opacity:.85}
+main{max-width:860px;margin:0 auto;padding:12px 12px 90px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 12px;cursor:pointer;font-weight:600}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.bad{color:var(--warn)}.btn.sm{padding:3px 9px;font-size:13px}.btn:disabled{opacity:.5;cursor:default}
+.empty{color:var(--sub);text-align:center;padding:28px 8px}
+.note{color:var(--sub);font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;border-radius:10px;padding:9px 16px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90vw}
+.toast.on{opacity:1}
+dialog{border:0;border-radius:14px;padding:16px;max-width:520px;width:94vw;background:var(--panel);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+label.f{display:block;margin:8px 0 2px;font-size:13px;font-weight:700;color:var(--sub)}
+dialog input[type=text],dialog textarea,.compose textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;background:var(--panel)}
+textarea{resize:vertical;min-height:90px}
+</style>
+
+<style>
+.nt h3{margin:0 0 4px;font-size:16px}
+.nt .meta{color:var(--sub);font-size:12.5px;margin-bottom:8px}
+.nt .body{white-space:pre-wrap;word-break:break-word}
+.nt.pin{border-color:var(--gold)}
+.pinb{display:inline-block;background:var(--gold);color:#fff;border-radius:6px;padding:0 7px;font-size:12px;font-weight:800;margin-right:6px}
+.newb{display:inline-block;background:#E5533D;color:#fff;border-radius:6px;padding:0 7px;font-size:12px;font-weight:800;margin-right:6px}
+.nt .acts{margin-top:10px;display:flex;gap:6px}
+</style>
+</head>
+<body>
+<header><h1>공지사항</h1><span class="sp"></span><span id="sync">연결 중…</span><button class="btn sm" id="reload" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.5)">새로고침</button></header>
+<main id="main"></main>
+<dialog id="dlg"><div id="dlgBody"></div></dialog>
+<div class="toast" id="toast" role="status"></div>
+<script>
+/* ================== Supabase 연결 (새 서버 · 로그인 필요) ================== */
+const SUPABASE_URL = 'https://bdqcrbnbuoujozlpttbe.supabase.co';
+const SUPABASE_KEY = '/*NEWKEY*/';
+const CONF_KEY='ilpum-fr-conf';
+const readConf=()=>{ try{ return JSON.parse(localStorage.getItem(CONF_KEY))||{}; }catch(e){ return {}; } };
+const readSes=()=>{ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; };
+const writeSes=j=>{ try{ const c=readConf(); if(c.ses){ c.ses=j; localStorage.setItem(CONF_KEY,JSON.stringify(c)); } else sessionStorage.setItem('fr-ses',JSON.stringify(j)); }catch(e){} };
+async function freshToken(force){
+  const run=async()=>{ const s=readSes(); if(!s) return null;
+    if(!force && (s.expires_at||0)*1000>Date.now()+60000) return s.access_token;
+    const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+    const j=await r.json().catch(()=>({})); if(!r.ok||!j.access_token) return null; writeSes(j); return j.access_token; };
+  return navigator.locks?navigator.locks.request('ilpum-refresh',run):run();
+}
+async function fx(path,opt,retry=true){
+  opt=opt||{}; const tok=await freshToken(false); if(!tok) throw Object.assign(new Error('로그인이 필요해요'),{auth:true});
+  const r=await fetch(SUPABASE_URL+path,{...opt,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json',...(opt.headers||{})},cache:'no-store'});
+  if(r.status===401&&retry){ const t2=await freshToken(true); if(t2) return fx(path,opt,false); }
+  return r;
+}
+async function jx(path,opt){ const r=await fx(path,opt); if(!r.ok){ let m='HTTP '+r.status; try{ const j=await r.json(); m=j.message||m; }catch(e){} throw Object.assign(new Error(m),{status:r.status}); } const t=await r.text(); return t?JSON.parse(t):null; }
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tt; function toast(m){ const el=$('#toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),2600); }
+const kst=iso=>{ const d=new Date(iso); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+const tellParent=()=>{ try{ window.parent.postMessage({type:'fr-refresh'},'*'); }catch(e){} };
+function needLogin(msg){ $('#sync').textContent=msg; $('#main').innerHTML=`<div class="card"><b>${esc(msg)}</b><div class="note" style="margin-top:6px">통합관리(index.html)에서 로그인하면 보여요.</div></div>`; }
+let STORES=[], MY=[];
+async function loadStores(){
+  if(!readSes()){ needLogin('로그인이 필요해요'); return false; }
+  try{ const r=await jx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); STORES=r; MY=r.filter(x=>x.role);
+    if(!MY.length){ needLogin('연결된 매장이 없어요 — 본사에 계정 연결을 요청하세요'); return false; } return true;
+  }catch(e){ needLogin(e.auth||e.status===401?'로그인이 필요해요':'연결 실패: '+e.message); return false; }
+}
+const isHqUser=()=>MY.some(x=>x.role==='hq');
+const storeName=id=>(STORES.find(x=>x.id===id)||{}).name||'';
+
+const SEEN_KEY='ilpum-notice-seen';
+let NOTICES=[], SEEN='';
+async function load(){
+  try{
+    $('#sync').textContent='불러오는 중…';
+    NOTICES=(await jx('/rest/v1/board_notices?select=*&order=created_at.desc&limit=100'))||[];
+    NOTICES.sort((a,b)=>((b.pinned?1:0)-(a.pinned?1:0))||(a.created_at<b.created_at?1:-1));
+    try{ SEEN=localStorage.getItem(SEEN_KEY)||''; }catch(e){}
+    render();
+    const newest=NOTICES.reduce((m,n)=>n.created_at>m?n.created_at:m,'');
+    if(newest){ try{ localStorage.setItem(SEEN_KEY,newest); }catch(e){} tellParent(); }
+    $('#sync').textContent='';
+  }catch(e){ $('#sync').textContent='연결 실패: '+e.message; }
+}
+function render(){
+  const hq=isHqUser();
+  $('#main').innerHTML=(hq?'<div style="margin-bottom:10px"><button class="btn pri" data-act="new">+ 공지 쓰기</button> <span class="note">쓰면 모든 매장이 볼 수 있어요</span></div>':'')
+   +(NOTICES.length?NOTICES.map(n=>`<div class="card nt ${n.pinned?'pin':''}">
+      <h3>${n.pinned?'<span class="pinb">고정</span>':''}${!hq&&(!SEEN||n.created_at>SEEN)?'<span class="newb">새 글</span>':''}${esc(n.title)}</h3>
+      <div class="meta">${kst(n.created_at)}</div><div class="body">${esc(n.body)}</div>
+      ${hq?`<div class="acts"><button class="btn sm" data-edit="${esc(n.id)}">수정</button><button class="btn sm" data-pin="${esc(n.id)}">${n.pinned?'고정 풀기':'위에 고정'}</button><button class="btn sm bad" data-del="${esc(n.id)}">삭제</button></div>`:''}</div>`).join(''):'<div class="card empty">아직 공지가 없어요</div>');
+}
+function dlg(n){
+  $('#dlgBody').innerHTML=`<h3 style="margin:0 0 8px">${n?'공지 수정':'공지 쓰기'}</h3><label class="f">제목</label><input type="text" id="nTitle" maxlength="100" value="${esc(n?n.title:'')}">
+    <label class="f">내용</label><textarea id="nBody" maxlength="5000" style="min-height:160px">${esc(n?n.body:'')}</textarea>
+    <label class="f"><input type="checkbox" id="nPin" ${n&&n.pinned?'checked':''}> 맨 위에 고정</label>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="dCancel">취소</button><button class="btn pri" id="dOk">저장</button></div>`;
+  const d=$('#dlg'); if(!d.open) d.showModal(); $('#dCancel').onclick=()=>d.close();
+  $('#dOk').onclick=async()=>{ const title=$('#nTitle').value.trim(), body=$('#nBody').value; if(!title) return toast('제목을 넣어 주세요');
+    try{
+      const row=JSON.stringify({title,body,pinned:$('#nPin').checked});
+      if(n) await jx('/rest/v1/board_notices?id=eq.'+encodeURIComponent(n.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:row});
+      else await jx('/rest/v1/board_notices',{method:'POST',headers:{Prefer:'return=minimal'},body:row});
+      d.close(); await load(); toast('저장했어요');
+    }catch(e){ toast('저장하지 못했어요: '+e.message); } };
+}
+document.addEventListener('click',async e=>{
+  const t=e.target; if(t.closest('[data-act="new"]')) return dlg(null);
+  const ed=t.closest('[data-edit]'); if(ed) return dlg(NOTICES.find(x=>x.id===ed.dataset.edit));
+  const pn=t.closest('[data-pin]'); if(pn){ const n=NOTICES.find(x=>x.id===pn.dataset.pin); try{ await jx('/rest/v1/board_notices?id=eq.'+encodeURIComponent(n.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({pinned:!n.pinned})}); await load(); }catch(er){ toast(er.message); } return; }
+  const dl=t.closest('[data-del]'); if(dl){ if(!confirm('이 공지를 지울까요?')) return; try{ await jx('/rest/v1/board_notices?id=eq.'+encodeURIComponent(dl.dataset.del),{method:'DELETE'}); await load(); toast('지웠어요'); }catch(er){ toast(er.message); } }
+});
+$('#reload').onclick=()=>load();
+window.pullNow=()=>{ if(MY.length&&!document.hidden) load(); };
+(async function boot(){ if(await loadStores()) load(); })();
+</script>
+</body>
+</html>
