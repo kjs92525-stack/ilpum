@@ -127,6 +127,7 @@ select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var
     <button class="ib" id="tog" aria-label="메뉴 숨기기 / 보이기" title="메뉴 숨기기 / 보이기"><svg class="i" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <div class="crumb"><small>일품집 통합관리</small><b id="ttl">오늘 현황</b></div>
     <span class="sp"></span>
+    <button class="lk" id="acct" hidden></button>
     <button class="lk" id="reload" title="새로고침"><svg class="i" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>새로고침</span></button>
     <a class="lk" id="solo" target="_blank" rel="noopener" title="이 화면만 새 창으로"><svg class="i" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>새 창</span></a>
   </header>
@@ -209,7 +210,11 @@ async function whoami(){
 let gateFr=null;
 function showGate(){ gateFr=document.createElement('iframe'); gateFr.id='gate'; gateFr.title='로그인'; gateFr.src='ilpum-schedule.html?embed=1&view=cards';
   gateFr.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:99;background:#fff'; document.body.appendChild(gateFr); }
-function applyMe(){ $$('#menu [data-hqonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.hq)); }
+function applyMe(){ $$('#menu [data-hqonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.hq));
+  const a=$('#acct'); a.hidden=false; a.textContent=ME.mode==='in'?'로그아웃':'로그인'; a.title=ME.mode==='in'?(ME.email||'')+' 로그아웃':'로그인 화면으로';
+  a.onclick=()=>{ if(ME.mode==='in'&&!confirm('로그아웃할까요?')) return;
+    try{ const c=readConf(); c.openOnly=false; if(c.mode==='local') c.mode='remote'; if(ME.mode==='in') delete c.ses; localStorage.setItem('ilpum-fr-conf',JSON.stringify(c)); sessionStorage.removeItem('fr-ses'); }catch(e){}
+    location.reload(); }; }
 
 /* ================= 화면 전환 ================= */
 const frames={};                 // 이미 띄운 창들 (다시 열어도 입력하던 내용이 그대로 남아요)
