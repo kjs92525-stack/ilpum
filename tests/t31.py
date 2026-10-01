@@ -1,6 +1,13 @@
 # 공지사항 사진·동영상 (가짜 서버): 올리기(사진 자동 축소)·보기(서명 주소)·빼기/삭제 시 파일 정리·점주는 올리기 버튼 없음
 # 실행 전: cd dist && python3 -m http.server 8765
-import asyncio, json, time, re
+import asyncio, json, time, re, os, zlib, struct, tempfile
+# 시험용 파일(큰 사진 3000×2000 · 가짜 동영상)을 직접 만듦
+FX=tempfile.mkdtemp(); BIG=os.path.join(FX,'big.png'); VID=os.path.join(FX,'v.mp4')
+def _png(path,w,h):
+  raw=b''.join(b'\0'+os.urandom(w*3) for _ in range(h))
+  ch=lambda t,d: struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff)
+  open(path,'wb').write(b'\x89PNG\r\n\x1a\n'+ch(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+ch(b'IDAT',zlib.compress(raw,1))+ch(b'IEND',b''))
+_png(BIG,3000,2000); open(VID,'wb').write(b'\0\0\0\x18ftypmp42'+os.urandom(200000))
 from playwright.async_api import async_playwright
 NEW='bdqcrbnbuoujozlpttbe.supabase.co'; BON='0134d989-757a-4b60-9cb3-93245de2cac8'
 NOTICES=[{"id":"n1","title":"사진 공지","body":"본문","pinned":False,"created_at":"2026-09-30T01:00:00+00:00","media":[{"path":"2026-09/a.jpg","type":"image","name":"a.jpg"},{"path":"2026-09/b.mp4","type":"video","name":"b.mp4"}]}]
@@ -38,11 +45,11 @@ async def main():
     chk('기존 공지의 사진·동영상 주소가 채워짐', await pg.evaluate("[...document.querySelectorAll('[data-mp]')].every(e=>e.src.includes('/storage/v1/object/sign/notice-media/'))") and len(SIGN)==2)
     chk('동영상은 눌러야 받음(preload none)', await pg.evaluate("document.querySelector('video').preload")=='none')
     await pg.click('[data-act="new"]'); await pg.fill('#nTitle','새 공지')
-    await pg.set_input_files('#nFiles',['/tmp/big.png','/tmp/v.mp4']); await pg.wait_for_timeout(300)
+    await pg.set_input_files('#nFiles',[BIG,VID]); await pg.wait_for_timeout(300)
     chk('고른 파일 2개 표시', await pg.locator('#nMg .mi2').count()==2)
     await pg.click('#dOk'); await pg.wait_for_timeout(2500)
     chk('올린 파일 2개 (사진은 jpeg 로 줄임, 동영상 그대로)', len(UP)==2 and UP[0][1]=='image/jpeg' and UP[0][0].endswith('.jpg') and UP[1][1]=='video/mp4')
-    import os; chk('사진이 원본보다 작음', UP[0][2]<os.path.getsize('/tmp/big.png'))
+    chk('사진이 원본보다 작음', UP[0][2]<os.path.getsize(BIG))
     chk('공지에 media 2개 저장', WR and WR[-1][0]=='post' and len(WR[-1][1]['media'])==2 and {x['type'] for x in WR[-1][1]['media']}=={'image','video'})
     # 수정: 기존 사진 1개 빼기 → 저장 후 저장소 파일 지움
     await pg.click('[data-edit="n1"]'); await pg.wait_for_timeout(500)

@@ -149,6 +149,7 @@ tools/import-oct 엑셀(예전 근무표 10월 내보내기)을 새 서버 형�
 `tests/` 의 Playwright(Python) 스크립트. **Supabase를 가짜 서버로 흉내**(`page.route`)내서 화면 동작을 확인하는 방식이라 "로직"은 검증되지만 **실서버와의 연동은 검증하지 못함.**
 - 하드코딩된 것: `/home/claude/...` 경로, `chromium` 실행 파일 경로(`/opt/pw-browsers/...`), 가짜 날짜. → 새 환경에서는 경로를 고치고 `p.chromium.launch()` 기본값을 쓰면 됨(`playwright install chromium`).
 - 주요 테스트: `t9/t10`(카드 화면·끌어서 복사·포지션 관리, 체험 모드), `t14`(로그인 없이 열기), `t16`(자동 로그인 전 과정 + 아이디 변환), `t_shell`·`t_mob`(통합 틀, **`file://` 이 아니라 `http://` 로 띄워야 iframe 내부 접근 가능**), `t_mig2`(이전 도구), `test_conv.js`(변환기를 엑셀 10월 스케줄 279칸과 대조), `tools/import-oct/verify.js`.
+- **2026-10-01 클라우드 세션 확인:** `cd dist && python3 -m http.server 8765` 띄운 뒤 `t17`–`t32`·`t_mob` 전부 통과(`pip install playwright`, 브라우저는 `/opt/pw-browsers` 에 있음). `t31` 은 시험용 사진·동영상을 스스로 만들고, `t_mob` 은 가짜 본사 로그인으로 바꿈(로그인 없이 보기가 없어져서). `/home/claude` 경로가 박힌 예전 테스트(`t1`–`t16`, `t_shell`, `t_mig2`)는 아직 안 고침.
 - DB 권한 검증 패턴: `do $$ … set local role authenticated/anon; select set_config('request.jwt.claims', …); … raise exception E'결과…' $$;` — 마지막에 예외를 던져 **전체가 취소**되므로 실데이터에 흔적이 안 남음. 권한을 바꾸면 이 방식으로 역할별(본사/점주/매니저/직원/익명) 검증을 다시 할 것. (이 패턴으로 점주가 다른 매장에 계정을 연결할 수 있던 구멍을 한 번 찾아 고쳤음.)
 
 ## 7. 배포
