@@ -537,11 +537,9 @@ function dailyPayoutRows(dateStr){
   Object.keys(mon.people).forEach(n=>{
     const p=mon.people[n]; const d=p.days[dateStr]; if(!d||d.removed) return;
     const k=dayCalc(n,d);
-    if(d.alba || k.flat || d.cash){
-      out.push({name:n, hours:k.hours, amount:k.amount||0, tag:k.memoDay?'메모 일급':(d.cash&&!d.alba?'근무표 현금':'')});
-    } else if(k.bonus>0){
-      // 정상 출근인데 그 날 메모·추가금이 있으면, 그 추가금만 따로 지급 대상으로 넣음(월급은 그대로 월 정산)
-      out.push({name:n, hours:0, amount:k.bonus, tag:'추가금'});
+    // 메모에 일당(숫자만, 예: 6.5)이 적힌 사람, 또는 근무표에서 그날 현금으로 정한 사람만 나와요. 메모에 일당이 없으면(당일알바 포함) 월급·주급 계산에만 들어가요.
+    if(k.memoDay || d.cash){
+      out.push({name:n, hours:k.hours, amount:k.amount||0, tag:k.memoDay?'메모 일급':'근무표 현금'});
     }
   });
   out.forEach(r=>{ const c=cashRec(dateStr,r.name); r.paid=!!c.paid; r.memo=c.memo||''; r.acctSaved=pay.accts[r.name]||''; r.acct=pay.showAcct? r.acctSaved : ''; });
@@ -568,7 +566,7 @@ function dailyView(dateStr){
       <button class="btn" id="dailyCopy">텍스트 복사</button>
       <button class="btn primary" id="dailySave">이미지로 저장</button>
     </div>
-    <p class="help" style="margin:10px 0 0">그날 <b>당일알바</b>로 표시됐거나, 근무표에서 <b>그날 현금</b>으로 정했거나, 근무표·메모에 <b>숫자만</b> 적힌 사람이 나와요. 정규 출근자는 안 나와요.</p>
+    <p class="help" style="margin:10px 0 0">근무표 <b>메모에 일당(숫자만, 예: 6.5)</b>이 적힌 사람, 또는 근무표에서 <b>그날 현금</b>으로 정한 사람만 나와요. 메모에 일당이 없는 사람은 여기 안 나오고, 월급·주급 계산에만 들어가요.</p>
   </div>
   <div class="daily-card">
     <div class="daily-head"><div class="dt">${dd.getMonth()+1}월 ${dd.getDate()}일 (${DOW[dd.getDay()]}) 일당 지급</div><div class="sub">${rows.length}명 · 지급완료 ${rows.filter(r=>r.paid).length}명${rows.length?` · 미지급 ${won(tot-paidSum)}`:''}</div></div>
@@ -721,6 +719,7 @@ function settingsCard(){
       <button class="btn primary" data-act="exportHtml">급여 명세 HTML로 저장</button>
       <button class="btn" data-act="exportXlsx">급여표 엑셀로 받기</button>
       <button class="btn" data-act="print">인쇄</button>
+      <button class="btn" data-act="pinChange">급여 비밀번호 바꾸기</button>
       <button class="btn" data-act="backup">급여 데이터 백업</button>
       <label class="btn" style="cursor:pointer">백업 복원<input type="file" id="restoreIn" accept=".json,.html" hidden></label>
       ${pay.cur?`<button class="btn danger" data-act="delMonth">이 달 지우기</button>`:''}
@@ -882,6 +881,7 @@ app.addEventListener('click',e=>{
       applyWork(ym, workFromJson(pay.schedule,ym), '근무표 백업에서 계산'); toast(`${ym.replace('-','년 ')}월을 불러왔어요`); break; }
     case 'pset': { periodInit(); const v=d.v; if(v==='this'){ view.pf=mondayOf(ds(new Date())); view.pt=addD(view.pf,6); } else if(v==='prev'||v==='next'){ const n=v==='prev'?-7:7; const wk=view.pf===mondayOf(view.pf)&&view.pt===addD(view.pf,6); if(wk){ view.pf=addD(view.pf,n); view.pt=addD(view.pf,6); } else { const len=Math.round((new Date(view.pt)-new Date(view.pf))/86400000)+1; view.pf=addD(view.pf,n>0?len:-len); view.pt=addD(view.pf,len-1); } } else if(v==='month'){ const t=ds(new Date()); view.pf=t.slice(0,8)+'01'; view.pt=ds(new Date(+t.slice(0,4),+t.slice(5,7),0)); }
       render(); ensurePeriod(); break; }
+    case 'pinChange': pinChangeDialog(); break;
     case 'pcopy': copyText(periodText(),'기간 계산을 복사했어요'); break;
     case 'syncNow': { const ym=pay.cur || ds(new Date()).slice(0,7); syncSchedule(ym); break; }
     case 'syncYm': { const ym=document.getElementById('ymPick').value; if(!ym) return; syncSchedule(ym); break; }
@@ -1060,6 +1060,49 @@ function askConfirm(title,sub,yes,fn){
 }
 
 let tt; function toast(m){ const el=document.getElementById('toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),2600); }
+
+/* ---------- 급여 비밀번호 (계정마다 자기가 정한 비밀번호 · 서버에 암호화해서 저장) ----------
+   이 화면을 여는 사람이 맞는지 한 번 더 확인하는 잠금이에요. 열기 전에는 근무표·금액을 받아오지도, 보여주지도 않아요.
+   통합관리에서 이 메뉴를 다시 열 때마다, 그리고 10분 동안 아무도 안 만지면 다시 잠겨요. */
+let LOCKED=true, idleT=null;
+const rpcText=async(fn,body)=>{ const r=await jx('/rest/v1/rpc/'+fn,{method:'POST',body:JSON.stringify(body||{})}); return r; };
+function pinBox(){ let b=document.getElementById('lockBox'); if(!b){ b=document.createElement('div'); b.id='lockBox'; b.style.cssText='position:fixed;inset:0;background:var(--bg,#f4f5f3);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(b); } return b; }
+function pinClose(){ const b=document.getElementById('lockBox'); if(b) b.remove(); }
+function pinForm(title,sub,fields,btn,onSubmit,extra){
+  const b=pinBox();
+  b.innerHTML=`<form class="card" id="pinForm" autocomplete="off" style="max-width:360px;width:100%;padding:22px"><h2 style="margin:0 0 4px">${esc(title)}</h2><p class="help" style="margin:0 0 12px">${esc(sub)}</p>
+    ${fields.map((f,i)=>`<label style="display:block;margin-bottom:10px">${esc(f)}<input type="password" class="pinin" data-i="${i}" autocomplete="${i===0&&fields.length===1?'current-password':'new-password'}" style="width:100%;padding:10px;font-size:16px;margin-top:4px"></label>`).join('')}
+    <div id="pinMsg" style="color:var(--warn);min-height:20px;font-size:13.5px;margin-bottom:8px"></div>
+    <div class="row"><button class="btn primary" type="submit" style="flex:1">${esc(btn)}</button>${extra||''}</div></form>`;
+  const f=b.querySelector('#pinForm'); const msg=t=>{ b.querySelector('#pinMsg').textContent=t; };
+  f.onsubmit=async e=>{ e.preventDefault(); const v=[...f.querySelectorAll('.pinin')].map(x=>x.value); const bt=f.querySelector('button[type=submit]'); bt.disabled=true;
+    try{ await onSubmit(v,msg); }catch(er){ msg(er.auth?'로그인이 필요해요':'서버에 연결하지 못했어요: '+(er.message||er)); } bt.disabled=false; };
+  setTimeout(()=>{ const x=f.querySelector('.pinin'); if(x) x.focus(); },30);
+}
+async function lockScreen(){
+  LOCKED=true; clearTimeout(idleT); SCHED=null;
+  const app=document.getElementById('app'); if(app) app.innerHTML='';
+  let stt; try{ stt=await rpcText('pay_pin_status'); }catch(e){ pinForm('급여 계산기','서버에 연결하지 못했어요. 로그인과 인터넷을 확인해 주세요.',[],'다시 시도',()=>lockScreen()); return; }
+  if(!stt.has){
+    pinForm('급여 비밀번호 만들기','이 계정만 아는 비밀번호를 정해 주세요 (4자 이상). 급여 계산기를 열 때마다 물어봐요.',['새 비밀번호','한 번 더'],'만들고 열기',async(v,msg)=>{
+      if(v[0].length<4) return msg('4자 이상으로 정해 주세요'); if(v[0]!==v[1]) return msg('두 칸이 달라요');
+      const r=await rpcText('pay_pin_set',{p_new:v[0]}); if(r==='ok') return unlock(); msg(r==='short'?'4자 이상으로 정해 주세요':'비밀번호를 만들지 못했어요 ('+r+')'); }); return; }
+  pinForm('급여 계산기',stt.locked>0?`비밀번호를 여러 번 틀려서 잠겼어요. ${Math.ceil(stt.locked/60)}분 뒤에 다시 해 주세요.`:'급여 비밀번호를 넣어 주세요.',['비밀번호'],'열기',async(v,msg)=>{
+    const r=await rpcText('pay_pin_check',{p_pin:v[0]}); if(r==='ok') return unlock();
+    if(r==='locked') return msg('5번 틀려서 10분 동안 잠겼어요'); msg('비밀번호가 달라요'); });
+}
+function unlock(){ LOCKED=false; pinClose(); armIdle(); startApp(); }
+function armIdle(){ clearTimeout(idleT); idleT=setTimeout(()=>{ if(!LOCKED) lockScreen(); },10*60*1000); }
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{ if(!LOCKED) armIdle(); },{passive:true}));
+window.pullNow=()=>{ if(READY&&!LOCKED) lockScreen(); };       // 통합관리에서 이 메뉴를 다시 열면 비밀번호를 다시 물어봄
+function pinChangeDialog(){
+  pinForm('급여 비밀번호 바꾸기','지금 비밀번호와 새 비밀번호를 넣어 주세요 (4자 이상).',['지금 비밀번호','새 비밀번호','새 비밀번호 한 번 더'],'바꾸기',async(v,msg)=>{
+    if(v[1].length<4) return msg('새 비밀번호는 4자 이상이에요'); if(v[1]!==v[2]) return msg('새 비밀번호 두 칸이 달라요');
+    const r=await rpcText('pay_pin_set',{p_new:v[1],p_old:v[0]}); if(r==='ok'){ pinClose(); toast('급여 비밀번호를 바꿨어요'); return; }
+    msg(r==='bad_old'?'지금 비밀번호가 달라요':r==='locked'?'여러 번 틀려서 10분 동안 잠겼어요':'바꾸지 못했어요 ('+r+')'); },
+    `<button class="btn" type="button" id="pinCancel">취소</button>`);
+  const c=document.getElementById('pinCancel'); if(c) c.onclick=pinClose;
+}
 /* ---------- 시작: 로그인 확인 → 매장 → 이번 달 자동 계산 ---------- */
 function needLogin(msg){ document.getElementById('app').innerHTML=`<div class="card empty"><strong>${esc(msg)}</strong>통합관리(index.html)에서 로그인한 뒤 다시 열어 주세요.</div>`; document.getElementById('monthSel').disabled=true; }
 async function resolveStore(){
@@ -1076,10 +1119,14 @@ async function resolveStore(){
     return true;
   }catch(e){ if(e.auth||e.status===401) needLogin('로그인이 필요해요'); else needLogin('서버에 연결하지 못했어요: '+e.message); return false; }
 }
-(async function boot(){
-  const ok=await resolveStore(); render(); if(!ok) return;
+function startApp(){
+  render(); if(!READY) return;
   if(!ST.can_pay) toast('이 계정은 금액(급여)을 볼 수 없어요. 시간만 계산돼요');
   const ym=ds(new Date()).slice(0,7); if(!pay.months[ym]) syncSchedule(ym); else ensurePeriod();
+}
+(async function boot(){
+  const ok=await resolveStore(); if(!ok) return;
+  document.getElementById('app').innerHTML=''; lockScreen();       // 비밀번호를 넣어야 근무표·금액이 나와요
 })();
 </script>
 </body>

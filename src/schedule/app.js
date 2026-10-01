@@ -398,7 +398,8 @@ function vSet(){
     <label class="f">비밀번호<input type="password" id="mkPw" style="width:150px" placeholder="8자 이상" autocomplete="new-password"></label>
     <label class="f">매장<select id="mkStore">${APP.stores.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label>
     <label class="f">역할<select id="mkRole"><option value="owner">점주</option><option value="manager">매니저</option><option value="staff">직원</option></select></label>
-    <label class="ck" style="margin-bottom:8px"><input type="checkbox" id="mkPay"> 급여 보기</label><button type="button" class="btn pri" data-a="mkaccount">계정 만들기</button></div></form></div>`:''}
+    <label class="ck" style="margin-bottom:8px"><input type="checkbox" id="mkPay"> 급여 보기</label><button type="button" class="btn pri" data-a="mkaccount">계정 만들기</button></div></form>
+    <div class="row" style="align-items:flex-end;margin-top:12px"><label class="f">급여 비밀번호 잊은 계정<input type="text" id="rpId" style="width:150px" placeholder="아이디" autocapitalize="none" autocomplete="off"></label><button type="button" class="btn" data-a="pinreset">급여 비밀번호 초기화</button></div><p class="help">초기화하면 그 계정이 급여 계산기를 열 때 새 비밀번호를 다시 정해요.</p></div>`:''}
     ${ed?`<div class="card"><h2>데이터</h2><p class="help">지금 쓰는 근무표(schedule.html) 데이터를 이 매장으로 옮길 수 있어요. 직원·요일 패턴·기간 설정·이 날만·고정알바 주간 입력·금액까지 옮겨져요.</p>
     <div class="row"><button class="btn pri" data-a="importold">기존 근무표 서버에서 가져오기</button><label class="btn" style="cursor:pointer">기존 백업 파일(.json)로 가져오기<input type="file" id="impFile" accept=".json" hidden></label>
     <button class="btn" data-a="backup">이 매장 백업 받기</button>${APP.be===Local?'<button class="btn bad" data-a="resetdemo">체험 데이터 초기화</button>':''}</div></div>`:''}`;
