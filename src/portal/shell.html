@@ -204,7 +204,7 @@ async function refreshSes(ses){
 }
 async function whoami(){
   const c=readConf(); let ses=readSes();
-  if(!ses||!ses.access_token){ ME={mode:(c.openOnly||c.mode==='local')?'open':'none',hq:true,store:null,token:'',email:''}; return; }
+  if(!ses||!ses.access_token){ ME={mode:(c.mode==='local')?'open':'none',hq:true,store:null,token:'',email:''}; return; }
   const ask=t=>sget(NEW,'/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}',token:t});
   let rows;
   try{ try{ rows=await ask(ses.access_token); }catch(e){ if(e.status!==401||!ses.refresh_token) throw e; ses=await refreshSes(ses); rows=await ask(ses.access_token); } }

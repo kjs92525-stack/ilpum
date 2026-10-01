@@ -86,7 +86,8 @@ const Local={
   async putSummary(sid,week,data){ this.db.sum=this.db.sum||{}; (this.db.sum[sid]=this.db.sum[sid]||{})[week]=data; this.persist(); },
   async createStore(id,name){ if(this.db.stores.some(s=>s.id===id)) throw new Error('이미 있는 매장 코드예요'); this.db.stores.push({id,name}); this.db.items[id]={}; this.persist(); },
   async addMember(){ throw new Error('체험 모드에서는 계정을 연결할 수 없어요. Supabase에 연결한 뒤 사용하세요'); },
-  async createAccount(){ throw new Error('체험 모드에서는 계정을 만들 수 없어요. Supabase에 연결한 뒤 사용하세요'); }
+  async createAccount(){ throw new Error('체험 모드에서는 계정을 만들 수 없어요. Supabase에 연결한 뒤 사용하세요'); },
+  async backupAll(){ throw new Error('체험 모드에서는 백업할 수 없어요'); }, async restoreAll(){ throw new Error('체험 모드에서는 복원할 수 없어요'); }
 };
 
 const PINMSG={bad_pin:'편집 비밀번호가 달라요',locked:'여러 번 틀려서 15분 동안 잠겼어요',denied:'권한이 없어요',short:'비밀번호는 6자 이상으로 정해주세요',bad_rows:'저장할 수 없는 항목이 있어요',nopin:''};
@@ -157,7 +158,28 @@ const Remote={
   async createStore(id,name){ await this.fetchJ('/rest/v1/rpc/sch_create_store',{method:'POST',body:JSON.stringify({p_name:name})}); },
   async addMember(email,sid,role,pay){ await this.fetchJ('/rest/v1/rpc/sch_add_member',{method:'POST',body:JSON.stringify({p_email:email,p_store:sid,p_role:role,p_pay:!!pay})}); },
   // 계정 만들기: 본사만 (서버 함수가 본사인지 확인하고 만들어요)
-  async createAccount(o){ return this.fetchJ('/functions/v1/create-account',{method:'POST',body:JSON.stringify(o)}); }
+  async createAccount(o){ return this.fetchJ('/functions/v1/create-account',{method:'POST',body:JSON.stringify(o)}); },
+  // 전체 백업 / 복원 (본사만 — 서버 규칙이 본사 계정 말고는 모든 매장 자료를 주지 않아요)
+  BK_TABLES:[['sch_items','store_id,kind,id'],['res_days','store_id,id'],['wh_items','store_id,id'],['wh_orders','store_id,code'],['board_notices','id'],['board_msgs','id']],
+  async backupAll(prog){
+    const out={app:'ilpum',version:1,createdAt:new Date().toISOString(),tables:{}};
+    out.stores=await this.fetchJ('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'});
+    for(const [t,ord] of this.BK_TABLES){ if(prog) prog(t); let all=[],from=0;
+      for(;;){ const rows=await this.fetchJ(`/rest/v1/${t}?select=*&order=${ord}&limit=1000&offset=${from}`)||[]; all=all.concat(rows); if(rows.length<1000) break; from+=1000; }
+      out.tables[t]=all; }
+    try{ out.noticeMedia=(out.tables.board_notices||[]).flatMap(n=>n.media||[]).map(m=>m.path); }catch(e){}
+    return out;
+  },
+  // 복원 = 덮어쓰기(upsert)만 해요. 파일에 없는 자료를 지우지는 않아요. 게시판 글은 서버 규칙상 다시 넣을 수 없어 건너뛰어요.
+  async restoreAll(o,prog){
+    if(!o||o.app!=='ilpum'||!o.tables) throw new Error('일품집 백업 파일이 아니에요');
+    const done={};
+    for(const [t,ord] of this.BK_TABLES){ if(t==='board_msgs') continue; const rows=o.tables[t]||[]; if(!rows.length){ done[t]=0; continue; }
+      for(let i=0;i<rows.length;i+=200){ if(prog) prog(t,Math.min(i+200,rows.length),rows.length);
+        await this.fetchJ(`/rest/v1/${t}?on_conflict=${ord}`,{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+200))}); }
+      done[t]=rows.length; }
+    return done;
+  }
 };
 
 /* ================= 매장 데이터 ================= */

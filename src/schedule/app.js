@@ -39,7 +39,7 @@ async function boot(){
   APP.be=remote?Remote:Local;
   try{ APP.user=await APP.be.init(); }
   catch(e){ APP.user=null; if(!e.auth){ renderOffline(e.message); return; } }          // 로그인 유지 토큰이 만료·취소됨 → 로그인 화면
-  if(remote && !APP.user && !Conf.openOnly){ renderLogin(); return; }
+  if(remote && !APP.user){ renderLogin(); return; }          // 로그인 없이 열기는 보안상 없앴어요 (2026-10-01)
   let netErr=null;
   try{ APP.stores=await APP.be.stores(); }catch(e){ netErr=e; setSync('연결 실패','err'); toast('불러오기 실패: '+e.message); APP.stores=[]; }
   if(remote && !APP.user && netErr){ renderOffline(netErr.message); return; }
@@ -400,6 +400,11 @@ function vSet(){
     <label class="f">역할<select id="mkRole"><option value="owner">점주</option><option value="manager">매니저</option><option value="staff">직원</option><option value="order">발주 전용 (발주 화면만)</option></select></label>
     <label class="ck" style="margin-bottom:8px"><input type="checkbox" id="mkPay"> 급여 보기</label><button type="button" class="btn pri" data-a="mkaccount">계정 만들기</button></div></form>
     <div class="row" style="align-items:flex-end;margin-top:12px"><label class="f">급여 비밀번호 잊은 계정<input type="text" id="rpId" style="width:150px" placeholder="아이디" autocapitalize="none" autocomplete="off"></label><button type="button" class="btn" data-a="pinreset">급여 비밀번호 초기화</button></div><p class="help">초기화하면 그 계정이 급여 계산기를 열 때 새 비밀번호를 다시 정해요.</p></div>`:''}
+    ${r==='hq'&&APP.be===Remote?(()=>{ let last=''; try{ last=localStorage.getItem('ilpum-last-backup')||''; }catch(e){} const days=last?Math.floor((Date.now()-new Date(last))/864e5):null;
+      return `<div class="card"><h2>백업 · 복원 (본사만)</h2><p class="help">모든 매장의 예약·근무표·발주·공지·게시판을 파일 하나로 PC에 받아요. <b>일주일에 한 번</b> 받아 두세요. 급여 금액이 들어 있으니 파일은 아무에게도 보내지 말고 안전한 곳에 보관하세요.</p>
+      <p class="help" style="color:${days===null||days>7?'#C0392B':'inherit'}">${days===null?'아직 이 기기에서 백업한 적이 없어요':`마지막 백업: ${days===0?'오늘':days+'일 전'}`}</p>
+      <div class="row"><button class="btn pri" data-a="bkdl">전체 백업 받기</button><button class="btn" data-a="bkpick">백업 파일로 복원…</button><input type="file" id="bkFile" accept=".json" hidden></div>
+      <p class="help">복원은 파일 내용으로 덮어써요(파일에 없는 자료를 지우지는 않아요). 게시판 글과 공지 사진·동영상 파일은 복원되지 않고 백업 파일에만 남아요.</p></div>`; })():''}
     ${ed?`<div class="card"><h2>데이터</h2><p class="help">지금 쓰는 근무표(schedule.html) 데이터를 이 매장으로 옮길 수 있어요. 직원·요일 패턴·기간 설정·이 날만·고정알바 주간 입력·금액까지 옮겨져요.</p>
     <div class="row"><button class="btn pri" data-a="importold">기존 근무표 서버에서 가져오기</button><label class="btn" style="cursor:pointer">기존 백업 파일(.json)로 가져오기<input type="file" id="impFile" accept=".json" hidden></label>
     <button class="btn" data-a="backup">이 매장 백업 받기</button>${APP.be===Local?'<button class="btn bad" data-a="resetdemo">체험 데이터 초기화</button>':''}</div></div>`:''}`;
@@ -414,7 +419,6 @@ function renderLogin(){
       <label class="f">비밀번호<input type="password" name="password" id="lgPw" autocomplete="current-password" required></label><div style="height:10px"></div>
       <label class="ck"><input type="checkbox" id="lgKeep" checked> 자동 로그인 <span class="muted" style="font-size:12px">(이 기기에서 다시 묻지 않아요)</span></label><div style="height:12px"></div>
       <button class="btn pri" type="submit" style="width:100%">로그인</button></form>
-    <button class="btn" data-a="openmode" style="width:100%;margin-top:8px">로그인 없이 보기 (금액 제외)</button>
     <button class="btn ghost" data-a="disconnect" style="width:100%;margin-top:4px">체험 모드로 보기</button></div></div>`;
   setTimeout(()=>{ const f=$(Conf.email?'#lgPw':'#lgEmail'); if(f) f.focus(); },50);
 }

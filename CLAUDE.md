@@ -47,7 +47,7 @@
 **로그인**
 - 편집 **비밀번호는 필요 없음**(당분간 본인 혼자 씀). DB에 PIN 기능은 있으나 **0개 설정, UI에서도 제거**됨.
 - 로그인은 "없애라" → "다시 만들되 **자동 로그인**" 으로 바뀜. 지금: 아이디 `ilpum`(내부 이메일 `ilpum@ilpum.invalid`), 비밀번호는 사용자가 아는 값. 한 번 로그인하면 **로그인 유지 토큰**을 이 기기에 저장해 다시 안 묻고, 브라우저 비밀번호 저장도 동작하도록 `<form autocomplete>` 로 구성. **비밀번호를 localStorage에 저장하지 않는다**(의도적).
-- 로그인 화면에 "로그인 없이 보기(금액 제외)" 버튼이 있음(본점 읽기·편집, 금액 없음).
+- **(2026-10-01 보안 강화) 로그인 없이 보기는 없앴음.** 가맹점이 늘어도 로그인 없이는 아무것도 읽거나 쓸 수 없음(`supabase/migrations/20261001_security_hardening.sql`).
 
 **예약 / 전체 화면**
 - 컴퓨터에서 **예약 목록과 현황(테이블 배치)** 이 좌우로 같이 보이고 **사이 너비 조절**(구현됨).
@@ -93,13 +93,13 @@
 
 **RLS (표마다 켜짐)**
 - `sch_items`: 로그인 사용자는 역할이 있는 매장만 읽기(금액 종류는 `sch_can_pay` 필요). 쓰기는 hq/owner/manager만. 삭제 정책 없음(표시로만 삭제).
-- `sch_items_anon_sel`: **로그인 없이(anon) 본점(`sch_anon_store()`)의 금액 제외 항목을 읽을 수 있음.** (= 직원 이름·스케줄은 주소를 아는 누구나 볼 수 있음. 사용자가 받아들임.)
+- ~~`sch_items_anon_sel`~~ (로그인 없이 읽기)는 2026-10-01 삭제. anon 은 어떤 표도 못 읽고 쓰고, anon 이 부르던 `sch_open_store/put_many/put_summary/…pin/…mig_*` 함수는 전부 실행 권한 회수(`revoke … from public, anon, authenticated`). 새 함수·표도 기본적으로 anon 접근 없음(default privileges). 이전 도구(`ilpum-migrate.html`)는 이 때문에 더는 동작 안 함 — 다시 쓰려면 해당 함수에 grant 필요.
 - `sch_summaries`: 본사는 모든 매장의 **집계**(근무시간·인건비율 등)만 읽음.
 - `sch_members`: 자기 행만 읽기. `sch_pins`·`sch_pin_fail`·`sch_mig_window`: 정책 없음(함수로만 접근).
 
 **RPC 함수 (실행 권한 주의)**
 - 로그인 필요: `sch_my_stores`, `sch_create_store(name)`(본사만), `sch_add_member(email,store,role,pay)`(점주 연결은 본사만·가맹점에만 / 매니저·직원 연결은 그 매장의 본사(본점)·점주만 — 그래서 본사는 가맹점의 매니저·직원을 못 붙임. null 권한 검사 버그를 한 번 고쳤음), `sch_role`, `sch_can_pay`.
-- 로그인 없이(anon) 호출 가능: `sch_open_store`, `sch_put_many(store,pin,rows)`(본점 쓰기, **금액·알 수 없는 종류는 거부**, PIN이 설정돼 있으면 확인), `sch_put_summary`, `sch_check_pin`, `sch_set_pin`, `sch_clear_pin`, `sch_anon_store`.
+- (아래 anon 목록은 **옛 설명**, 지금은 모두 회수됨) 로그인 없이(anon) 호출 가능했던 것: `sch_open_store`, `sch_put_many(store,pin,rows)`(본점 쓰기, **금액·알 수 없는 종류는 거부**, PIN이 설정돼 있으면 확인), `sch_put_summary`, `sch_check_pin`, `sch_set_pin`, `sch_clear_pin`, `sch_anon_store`.
 - **이전 창구 `sch_mig_*`**: `sch_mig_window.until` 시각 전까지만 동작(anon 가능, 본점만, 금액·예약 쓰기 가능). 시각이 지나면 전부 `closed`. 지금 값은 **2026‑10‑01 04:24 UTC** 에 닫히도록 돼 있음.
   - 다시 열기: `update public.sch_mig_window set until = now() + interval '12 hours' where id=1;`
   - 닫기: `update public.sch_mig_window set until = now() where id=1;`
@@ -114,6 +114,8 @@
 - 아이디가 누구나 짐작 가능한 `ilpum` 이라 **보안은 비밀번호 강도에만** 의존. 강한 비밀번호 권장함(사용자에게 안내했음).
 - 대시보드의 Auth 설정 "유출된 비밀번호 검사"가 꺼져 있음(Supabase 경고, 이 프로젝트 기본 설정).
 - `audit_log` 표에 RLS 켜져 있으나 정책 없음(기존 구조, Supabase 경고).
+
+**백업·복원(2026-10-01):** 설정 → "백업 · 복원 (본사만)"(`Remote.backupAll/restoreAll` in `core.js`). 본사 로그인 상태로 `sch_items·res_days·wh_items·wh_orders·board_notices·board_msgs` 와 매장 목록을 JSON 한 파일로 내려받음(RLS 가 본사 말고는 모든 매장 자료를 주지 않으므로 별도 서버 권한 불필요). 복원은 upsert(덮어쓰기, 삭제 없음), 게시판 글은 서버 규칙(작성자=본인)상 되돌릴 수 없어 건너뜀, 공지 사진·동영상 파일 자체는 백업에 없음(경로 목록만). 다른 Supabase 프로젝트로 통째로 옮기려면: 마이그레이션 전부 적용 → `stores` 를 같은 id 로 만들기 → 계정 다시 만들기 → 복원. 급여(`pay`) 줄은 본사 계정이 `can_pay` 인 매장(본점)만 들어감. 테스트 `tests/t32.py`. 마지막 백업 시각은 이 기기 localStorage `ilpum-last-backup`, 7일 넘으면 붉게 표시.
 
 ## 5. 프론트 코드 구조 · 빌드
 

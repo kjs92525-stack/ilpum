@@ -360,6 +360,14 @@ document.addEventListener('click',async e=>{
         APP.stores=await APP.be.stores(); APP.st=APP.stores.find(x=>x.id===APP.sid)||APP.st; APP.sum=null; renderShell(); render(); toast(`‘${nm}’ 으로 바꿨어요`); }catch(err){ toast(err.message); } break; }
     case 'pinreset': { const id=$('#rpId').value.trim().toLowerCase(); if(!id) return toast('아이디를 넣으세요'); if(!confirm(`‘${id}’ 계정의 급여 비밀번호를 지울까요?`)) return;
       try{ const r=await Remote.fetchJ('/rest/v1/rpc/pay_pin_reset',{method:'POST',body:JSON.stringify({p_login:id})}); toast(r==='ok'?`‘${id}’ 급여 비밀번호를 초기화했어요`:r==='none'?'그런 아이디가 없어요':'본사 계정만 할 수 있어요'); if(r==='ok') $('#rpId').value=''; }catch(err){ toast(err.message); } break; }
+    case 'bkdl': { const btn=e.target.closest('button'); btn.disabled=true; const old=btn.textContent;
+      try{ const o=await APP.be.backupAll(t=>{ btn.textContent='받는 중… '+t; }); const txt=JSON.stringify(o); const day=new Date().toISOString().slice(0,10);
+        const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'})); a.download=`일품집백업_${day}.json`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+        try{ localStorage.setItem('ilpum-last-backup',new Date().toISOString()); }catch(er){}
+        const n=Object.values(o.tables).reduce((s,x)=>s+x.length,0); toast(`백업 완료: ${n.toLocaleString('ko-KR')}건 (${Math.round(txt.length/1024).toLocaleString('ko-KR')}KB)`); render(); }
+      catch(err){ toast('백업하지 못했어요: '+err.message); }
+      btn.disabled=false; btn.textContent=old; break; }
+    case 'bkpick': { const f=$('#bkFile'); if(f) f.click(); break; }
     case 'mkaccount': { const id=$('#mkId').value.trim().toLowerCase(), pw=$('#mkPw').value; if(!id||!pw) return toast('아이디와 비밀번호를 넣으세요'); if(pw.length<8) return toast('비밀번호는 8자 이상이에요');
       const btn=e.target.closest('button'); btn.disabled=true;
       try{ await APP.be.createAccount({id,password:pw,store:$('#mkStore').value,role:$('#mkRole').value,pay:$('#mkPay').checked}); $('#mkId').value=''; $('#mkPw').value=''; toast(`‘${id}’ 계정을 만들었어요. 아이디와 비밀번호를 알려 주세요`); }catch(err){ toast(err.message); }
@@ -401,6 +409,12 @@ document.addEventListener('change',e=>{ const t=e.target, d=t.dataset, D=APP.D; 
     if(d.f==='req') p.req[+d.wd]=Math.max(0,+t.value||0); else if(d.f==='name'){ const v=t.value.trim(); if(!v||pos.some((x,j)=>j!==+d.i&&x.name===v)){ toast('이름이 비었거나 겹쳐요'); t.value=p.name; return; }
       const old=p.name; p.name=v; renamePos(old,v); } else p[d.f]=t.value;
     put('cfg','positions',pos); }
+  if(id==='bkFile'&&t.files[0]){ const file=t.files[0]; t.value=''; file.text().then(async txt=>{ let o; try{ o=JSON.parse(txt); }catch(er){ return toast('파일을 읽지 못했어요'); }
+      if(!o||o.app!=='ilpum'||!o.tables) return toast('일품집 백업 파일이 아니에요');
+      const cnt=Object.entries(o.tables).map(([k,v])=>`${k} ${v.length}건`).join(', ');
+      if(!confirm(`${String(o.createdAt||'').slice(0,10)} 백업으로 복원할까요?\n(${cnt})\n\n지금 서버의 같은 자료는 이 파일 내용으로 덮어써져요. 되돌릴 수 없어요.`)) return;
+      try{ const done=await APP.be.restoreAll(o,(tb,i,n)=>setSync('복원 중… '+tb+' '+i+'/'+n,'')); toast('복원했어요: '+Object.entries(done).map(([k,v])=>k+' '+v).join(', ')); setTimeout(()=>location.reload(),1500); }
+      catch(err){ toast('복원하지 못했어요: '+err.message); } }); }
   if(id==='impFile'&&t.files[0]){ t.files[0].text().then(txt=>{ try{ const o=JSON.parse(txt); const n=importOld(o.data&&o.data.staff?o.data:o); render(); toast(`직원 ${n}명과 설정을 가져왔어요`); }catch(err){ toast(err.message||'파일을 읽지 못했어요'); } }); t.value=''; }
 });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('#drawer').classList.contains('on')) closeDrawer();
