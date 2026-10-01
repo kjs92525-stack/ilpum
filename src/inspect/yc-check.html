@@ -16,6 +16,7 @@ pre{white-space:pre-wrap;word-break:break-all;background:#f0f3f0;border-radius:8
 <p class="note">유천점 사이트에 로그인이 있으면 아래에 그 아이디·비밀번호를 넣어 주세요(없으면 비워 두세요). 이 페이지는 비밀번호를 저장하지 않아요.</p>
 <label>이메일(로그인 아이디) <input id="em" type="text" autocapitalize="none" autocomplete="off"></label>
 <label>비밀번호 <input id="pw" type="password" autocomplete="off"></label>
+<label>표 이름을 알면 적어 주세요 <span class="note">(쉼표로 여러 개, 모르면 비워 두세요 — 흔한 이름을 자동으로 열어 봐요)</span><input id="tb" type="text" autocapitalize="none" autocomplete="off" placeholder="예: reservations_day, schedule_state"></label>
 <button id="go">자료 확인하기</button></div>
 <div class="card" id="out" hidden><div id="msg"></div><pre id="res"></pre><button class="sub" id="cp">결과 복사하기</button></div>
 <script>
@@ -33,15 +34,19 @@ $('#go').onclick=async()=>{
   const lines=[];
   try{
     const who=await login(); lines.push(who?('로그인: '+who):'로그인 없이(anon) 확인');
-    const sp=await api('/rest/v1/'); let tables=[];
-    if(sp.ok){ const j=await sp.json().catch(()=>null); if(j&&j.definitions){ tables=Object.keys(j.definitions); } else if(j&&j.paths){ tables=Object.keys(j.paths).filter(p=>p!=='/'&&!p.startsWith('/rpc/')).map(p=>p.slice(1)); } }
-    else lines.push('표 목록 읽기 실패 HTTP '+sp.status+' (표 이름을 직접 알려 주셔야 할 수 있어요)');
-    if(!tables.length) lines.push('표 목록을 못 받았어요. 직접 이름을 입력해야 해요.');
+    let tables=[];
+    const sp=await api('/rest/v1/'); if(sp.ok){ const j=await sp.json().catch(()=>null); if(j&&j.definitions) tables=Object.keys(j.definitions); else if(j&&j.paths) tables=Object.keys(j.paths).filter(p=>p!=='/'&&!p.startsWith('/rpc/')).map(p=>p.slice(1)); }
+    else lines.push('표 목록은 서버가 안 알려 줘요(HTTP '+sp.status+') → 이름을 하나씩 열어 볼게요');
+    const own=$('#tb').value.split(/[,\s]+/).map(x=>x.trim()).filter(Boolean);
+    const guess=['reservations_day','schedule_state','reservations','reservation','bookings','schedule','schedules','staff','employees','workers','shifts','wh_items','wh_orders','orders','items','products','settings','config','app_state','state','kv','data','notes','tables','dining_tables','customers','payroll','pay','cost_log','profiles','stores'];
+    const probe=!tables.length; if(probe) tables=[...new Set(own.concat(guess))];
     for(const t of tables){
+      if(probe&&!own.includes(t)){ /* 짐작한 이름은 없으면 조용히 건너뜀 */ }
       const r=await api('/rest/v1/'+encodeURIComponent(t)+'?select=*&limit=1000',{headers:{Prefer:'count=exact'}});
       let cnt='?', cols='';
       if(r.ok){ const rows=await r.json().catch(()=>[]); const cr=(r.headers.get('content-range')||'').split('/')[1]; cnt=(cr&&cr!=='*')?cr:(rows.length>=1000?'1000개 이상':String(rows.length)); cols=rows[0]?Object.keys(rows[0]).join(', '):'(자료 없음 또는 읽기 막힘)'; }
-      lines.push(`■ ${t}: ${r.ok?('개수 '+cnt):'HTTP '+r.status}\n   칸: ${cols}`);
+      if(probe&&r.status===404&&!own.includes(t)) continue;
+      lines.push(`■ ${t}: ${r.ok?('개수 '+cnt):(r.status===404?'없음':('HTTP '+r.status+' (있지만 로그인 없이는 읽기 막힘)'))}\n   칸: ${cols}`);
     }
     msg.innerHTML='<b>끝났어요.</b> 아래를 복사해서 채팅에 붙여 주세요.';
   }catch(e){ msg.innerHTML='<span class="bad">'+e.message+'</span>'; lines.push('오류: '+e.message); }
