@@ -15,5 +15,5 @@ for src,dst in [('src/reserve/reserve.html','dist/reserve.html'),('src/order/ord
     s=s.replace('/*OLDKEY*/',k.get('old','')).replace('/*NEWKEY*/',k['new']).replace('/*ORDKEY*/',k.get('ord','/*ORDKEY*/'))
     open(dst,'w',encoding='utf-8').write(s)
 PY
-cp "legacy/patched/일품집_급여.html" "dist/일품집_급여.html"
+python3 src/payroll/build.py
 echo "완료: dist/ 폴더를 배포하세요"

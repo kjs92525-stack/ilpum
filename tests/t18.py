@@ -5,8 +5,8 @@ from playwright.async_api import async_playwright
 NEW='https://bdqcrbnbuoujozlpttbe.supabase.co'; OLDH='fmzpmekypmjuydgxpnlu.supabase.co'
 BON='0134d989-757a-4b60-9cb3-93245de2cac8'; F1='ad2ffdae-f76b-44cd-a6c6-58514c4e4638'
 REQ=[]
-ROLES={'hqtok':[{"id":BON,"name":"일품집 본점","is_hq":True,"role":"hq"},{"id":F1,"name":"가맹점 1","is_hq":False,"role":"hq"}],
-       'ownertok':[{"id":F1,"name":"가맹점 1","is_hq":False,"role":"owner"}]}
+ROLES={'hqtok':[{"id":BON,"name":"일품집 본점","is_hq":True,"role":"hq","can_pay":True},{"id":F1,"name":"가맹점 1","is_hq":False,"role":"hq","can_pay":False}],
+       'ownertok':[{"id":F1,"name":"가맹점 1","is_hq":False,"role":"owner","can_pay":True}]}
 async def handler(r):
   u=r.request.url; h=r.request.headers
   if 'localhost' in u: return await r.continue_()
