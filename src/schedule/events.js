@@ -354,6 +354,10 @@ document.addEventListener('click',async e=>{
     case 'gologin': Conf.openOnly=false; saveConf(); location.reload(); break;
     case 'demorole': Local.db.demoRole=d.v; if(d.v==='staff'){ Local.db.demoMe={bonjum:Object.keys(Local.db.items.bonjum.staff)[0]}; } Local.persist(); location.reload(); break;
     case 'resetdemo': if(confirm('체험 데이터를 처음 상태로 되돌릴까요?')){ localStorage.removeItem(LOCAL_KEY); location.reload(); } break;
+    case 'storerename': { const nm=(prompt('새 매장 이름',d.name||'')||'').trim(); if(!nm||nm===d.name) return;
+      try{ const r=await Remote.fetchJ('/rest/v1/rpc/sch_rename_store',{method:'POST',body:JSON.stringify({p_store:d.id,p_name:nm})});
+        if(r!=='ok') return toast(r==='denied'?'본사 계정만 바꿀 수 있어요':r==='bad_name'?'이름은 1~40자예요':'매장을 찾지 못했어요');
+        APP.stores=await APP.be.stores(); APP.st=APP.stores.find(x=>x.id===APP.sid)||APP.st; APP.sum=null; renderShell(); render(); toast(`‘${nm}’ 으로 바꿨어요`); }catch(err){ toast(err.message); } break; }
     case 'pinreset': { const id=$('#rpId').value.trim().toLowerCase(); if(!id) return toast('아이디를 넣으세요'); if(!confirm(`‘${id}’ 계정의 급여 비밀번호를 지울까요?`)) return;
       try{ const r=await Remote.fetchJ('/rest/v1/rpc/pay_pin_reset',{method:'POST',body:JSON.stringify({p_login:id})}); toast(r==='ok'?`‘${id}’ 급여 비밀번호를 초기화했어요`:r==='none'?'그런 아이디가 없어요':'본사 계정만 할 수 있어요'); if(r==='ok') $('#rpId').value=''; }catch(err){ toast(err.message); } break; }
     case 'mkaccount': { const id=$('#mkId').value.trim().toLowerCase(), pw=$('#mkPw').value; if(!id||!pw) return toast('아이디와 비밀번호를 넣으세요'); if(pw.length<8) return toast('비밀번호는 8자 이상이에요');

@@ -357,7 +357,7 @@ function vHQ(){
       <div class="m"><div><small>이번 주 근무시간</small><b>${a?a.hours.toLocaleString('ko-KR'):'-'}h</b></div><div><small>근무 인원</small><b>${a?a.staff:'-'}명</b></div>
       <div><small>인건비율</small><b>${a&&a.ratio!=null?a.ratio+'%':'—'}</b></div><div><small>다음 주 근무시간</small><b>${b?b.hours.toLocaleString('ko-KR')+'h':'-'}</b></div></div>
       <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:12px">${a&&a.at?'갱신 '+new Date(a.at).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'아직 근무표 입력 전'}</span>
-      ${mine?`<button class="btn sm" data-a="gostore" data-id="${s.id}">열기</button>`:''}</div></div>`; };
+      <span>${isHQ()&&APP.be===Remote?`<button class="btn sm" data-a="storerename" data-id="${s.id}" data-name="${esc(s.name)}">이름 바꾸기</button> `:''}${mine?`<button class="btn sm" data-a="gostore" data-id="${s.id}">열기</button>`:''}</span></div></div>`; };
   return `<div class="vh"><div><h1>본사 현황</h1><div class="sub">이번 주 매장별 요약 · <b>열기</b>를 누르면 그 매장의 스케줄을 보고 고칠 수 있어요</div></div><span class="sp"></span><button class="btn" data-a="sumreload">새로고침</button><button class="btn pri" data-a="storenew">+ 매장 추가</button></div>
     ${S?`<div class="stores">${stores.map(card).join('')}</div>`:'<div class="card empty">불러오는 중…</div>'}
     <div class="card" style="margin-top:14px"><h2>본사 권한</h2><p class="help" style="margin:0">본사 계정은 모든 매장의 스케줄을 볼 수 있고 고칠 수 있어요. 가맹점 급여 금액은 점주(허용한 매니저)만 보여요. 가맹점은 자기 매장만 보여요.</p></div>`;
