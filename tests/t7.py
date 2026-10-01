@@ -1,0 +1,32 @@
+import asyncio
+from playwright.async_api import async_playwright
+async def main():
+  async with async_playwright() as p:
+    b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome',ignore_default_args=['--hide-scrollbars'])
+    ctx=await b.new_context(viewport={'width':1440,'height':900},accept_downloads=True); await ctx.grant_permissions(['clipboard-read','clipboard-write'])
+    pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('console',lambda m: errs.append('console:'+m.text) if m.type=='error' and 'net::' not in m.text else None)
+    await pg.route('**/*', lambda r: r.abort() if 'jsdelivr' in r.request.url or 'supabase' in r.request.url else r.continue_())
+    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(600)
+    txt=await pg.inner_text('#main'); print('week: 총 근무시간 gone:', '총 근무시간' not in txt, '| 확인할 것 gone:', '확인할 것' not in txt, '| 합계 gone:', '합계' not in txt)
+    await pg.click('[data-a="paytog"]'); await pg.wait_for_timeout(150)
+    txt=await pg.inner_text('#main'); print('pay on: 인건비 shown:', '인건비' in txt, '| 총 근무시간 gone:', '총 근무시간' not in txt); await pg.click('[data-a="paytog"]')
+    await pg.screenshot(path='e1.png')
+    await pg.click('#nav [data-v="month"]'); await pg.wait_for_timeout(250); await pg.screenshot(path='e2.png')
+    print('month cell names sample:', (await pg.inner_text('.cd.today')).replace('\n',' ')[:120])
+    await pg.click('[data-a="img"][data-t="month"]'); await pg.wait_for_timeout(700)
+    print('drawer open:', await pg.evaluate("document.querySelector('#drawer').classList.contains('on')"), '| img size:', await pg.evaluate("(()=>{const i=document.querySelector('#dBody img'); return [i.naturalWidth,i.naturalHeight]})()"))
+    await pg.screenshot(path='e3.png')
+    async with pg.expect_download() as dl: await pg.click('[data-a="imgsave"]')
+    d=await dl.value; await d.save_as('month.png'); print('downloaded', d.suggested_filename)
+    await pg.click('[data-a="imgcopy"]'); await pg.wait_for_timeout(300); print('copy toast:', await pg.inner_text('#toast'))
+    print('clipboard has image:', await pg.evaluate("(async()=>{const it=await navigator.clipboard.read(); return it[0].types.join(',')})()"))
+    await pg.keyboard.press('Escape')
+    T=await pg.evaluate("todayStr")
+    for t,k,f in [('day',T,'day.png'),('week',await pg.evaluate("weekKey(new Date())"),'week.png')]:
+      await pg.evaluate(f"makeImage('{t}','{k}')"); await pg.wait_for_timeout(600)
+      await pg.evaluate("(()=>{const a=document.createElement('a');})()")
+      data=await pg.evaluate("IMGS.blob.arrayBuffer().then(b=>Array.from(new Uint8Array(b)))"); open(f,'wb').write(bytes(data)); await pg.keyboard.press('Escape')
+    me=await pg.evaluate("Object.values(APP.D.staff).find(s=>s.name==='김지수').id")
+    await pg.evaluate(f"makeImage('me','{me}')"); await pg.wait_for_timeout(500); data=await pg.evaluate("IMGS.blob.arrayBuffer().then(b=>Array.from(new Uint8Array(b)))"); open('me.png','wb').write(bytes(data))
+    print('errs',errs); await b.close()
+asyncio.run(main())

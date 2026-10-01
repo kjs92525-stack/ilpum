@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F4D3A">
+<title>일품집 통합관리</title>
+<style>
+:root{
+  --nav:#1F4D3A; --nav-h:#2A5E49; --nav-ink:#DCE8E1; --nav-sub:#8FAE9F; --gold:#D8B16E;
+  --bg:#F5F6F4; --card:#FFFFFF; --ink:#1B2620; --sub:#6B7871; --line:#E3E8E5; --brand:#2F6B4F; --brand-soft:#E3F0E8;
+  --ok:#2E8B57; --warn:#B98600; --bad:#D64545; --shadow:0 1px 2px rgba(20,40,30,.05),0 4px 14px rgba(20,40,30,.05);
+  --w:232px; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --nav:#14251D; --nav-h:#1D3429; --nav-ink:#D5E3DB; --nav-sub:#7E9A8C;
+  --bg:#111513; --card:#1A201D; --ink:#E8EEEA; --sub:#93A199; --line:#2B3631; --brand:#6CC592; --brand-soft:#1F3A2B;
+  --ok:#6CC592; --warn:#E8C04E; --bad:#FF7A7A; --shadow:none; color-scheme:dark;}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14.5px/1.5 "Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+[hidden]{display:none!important}
+
+/* ---------- 왼쪽 메뉴 ---------- */
+.nav{position:fixed;inset:0 auto 0 0;width:var(--w);background:var(--nav);color:var(--nav-ink);display:flex;flex-direction:column;z-index:30;transition:transform .22s ease;padding:18px 12px 14px;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 6px 18px}
+.mk{width:40px;height:40px;border-radius:11px;background:var(--gold);display:grid;place-items:center;color:#2A2415;font-weight:900;font-size:20px;flex:0 0 auto}
+.brand b{display:block;font-size:19px;color:#fff;letter-spacing:-.02em;line-height:1.15}
+.brand small{color:var(--nav-sub);font-size:12px}
+.lbl{font-size:10.5px;letter-spacing:.14em;color:var(--nav-sub);font-weight:700;padding:6px 10px 8px}
+.mi{display:flex;align-items:center;gap:11px;width:100%;border:0;background:none;color:var(--nav-ink);padding:10px 11px;border-radius:10px;font-size:14.5px;font-weight:600;text-align:left;margin-bottom:2px}
+.mi:hover{background:var(--nav-h)}
+.mi[aria-current="page"]{background:#fff;color:#1A3B2C}
+.mi .car{margin-left:auto;transition:transform .15s;opacity:.7}
+.mi[aria-expanded="true"] .car{transform:rotate(90deg)}
+.subm{display:none;margin:0 0 4px 0;padding-left:30px;flex-direction:column;gap:1px;border-left:1px solid rgba(255,255,255,.12);margin-left:19px}
+.subm.on{display:flex}
+.si{border:0;background:none;color:var(--nav-ink);opacity:.85;text-align:left;padding:7px 10px;border-radius:8px;font-size:13.5px;font-weight:600}
+.si:hover{background:var(--nav-h);opacity:1} .si[aria-current="page"]{color:#fff;opacity:1;background:var(--nav-h);box-shadow:inset 3px 0 0 var(--gold)}
+.grow{flex:1}
+.nfoot{border-top:1px solid rgba(255,255,255,.12);padding:12px 6px 0;margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.ver{display:inline-block;align-self:flex-start;background:rgba(255,255,255,.14);color:#fff;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700}
+.nfoot b{color:#fff;font-size:14px} .nfoot small{color:var(--nav-sub);font-size:12px}
+.hidebtn{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.18);background:none;color:var(--nav-ink);border-radius:9px;padding:7px 11px;font-size:13px;font-weight:600}
+.hidebtn:hover{background:var(--nav-h)}
+
+/* ---------- 본문 ---------- */
+.main{position:fixed;inset:0 0 0 var(--w);display:flex;flex-direction:column;transition:left .22s ease,inset .22s ease}
+body.nav-hidden .nav{transform:translateX(-102%)}
+body.nav-hidden .main{inset:0}
+.bar{height:54px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px;flex:0 0 auto}
+.ib{display:inline-grid;place-items:center;width:36px;height:36px;border:1px solid var(--line);background:var(--card);border-radius:10px;color:var(--ink)}
+.ib:hover{border-color:var(--brand);color:var(--brand)}
+.crumb small{display:block;color:var(--sub);font-size:11.5px;line-height:1.2} .crumb b{font-size:16.5px;letter-spacing:-.01em}
+.sp{flex:1}
+.lk{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:0 12px;height:36px;font-size:13px;font-weight:600;color:var(--ink);text-decoration:none}
+.lk:hover{border-color:var(--brand);color:var(--brand)}
+.pages{position:relative;flex:1;min-height:0}
+.page{position:absolute;inset:0;overflow:auto}
+iframe.fr{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg)}
+.scrim{position:fixed;inset:0;background:rgba(10,20,15,.45);z-index:25;opacity:0;pointer-events:none;transition:opacity .2s}
+
+/* ---------- 오늘 현황 ---------- */
+.dash{max-width:1180px;margin:0 auto;padding:22px 24px 40px}
+.dh{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.dh h1{margin:0;font-size:26px;letter-spacing:-.02em;line-height:1.2} .dh p{margin:3px 0 0;color:var(--sub);font-size:13.5px}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:0 15px;height:38px;font-weight:700;font-size:13.5px}
+.btn:hover{border-color:var(--brand)} .btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+@media (prefers-color-scheme:dark){.btn.pri{color:#0E1A13}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .k{color:var(--sub);font-size:13px} .kpi .v{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi .v small{font-size:13px;color:var(--sub);font-weight:600;margin-left:4px}
+.kpi .bar2{height:4px;border-radius:99px;background:var(--line);margin-top:10px;overflow:hidden} .kpi .bar2 i{display:block;height:100%;background:var(--brand);border-radius:99px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.ph{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.ph h2{margin:0;font-size:16.5px;letter-spacing:-.01em} .cnt{background:var(--brand-soft);color:var(--brand);font-weight:800;font-size:12px;border-radius:99px;padding:1px 9px}
+.more{margin-left:auto;border:0;background:none;color:var(--sub);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:3px}
+.more:hover{color:var(--brand)}
+table{border-collapse:collapse;width:100%} th{font-size:12px;color:var(--sub);font-weight:600;text-align:left;padding:10px 16px;background:color-mix(in srgb,var(--bg) 70%,var(--card))}
+td{padding:11px 16px;border-top:1px solid var(--line);font-size:14px;vertical-align:top} td.n{font-variant-numeric:tabular-nums;font-weight:700}
+td small{display:block;color:var(--sub);font-size:12px}
+.tag{display:inline-block;border-radius:99px;padding:1px 10px;font-size:12px;font-weight:700;background:var(--brand-soft);color:var(--brand)}
+.tag.w{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)} .tag.g{background:color-mix(in srgb,var(--sub) 16%,transparent);color:var(--sub)}
+.empty{padding:34px 16px;text-align:center;color:var(--sub)}
+.staff{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.st{display:flex;align-items:center;gap:12px;padding:13px 18px;border-top:1px solid var(--line)}
+.av{width:38px;height:38px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:800;flex:0 0 auto}
+.st b{display:block;font-size:14.5px} .st small{color:var(--sub);font-size:12px}
+.st .tm{margin-left:auto;text-align:right;font-variant-numeric:tabular-nums;font-weight:800;font-size:14px;white-space:nowrap} .st .tm small{display:block;font-weight:500}
+.note{padding:10px 18px;color:var(--sub);font-size:12.5px;background:color-mix(in srgb,var(--bg) 70%,var(--card));border-top:1px solid var(--line)}
+select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:7px 12px}
+.err{color:var(--bad);padding:16px 18px;font-size:13.5px}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--card);padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:60}
+.toast.on{opacity:1}
+
+/* ---------- 휴대폰 ---------- */
+@media (max-width:860px){
+  .main{inset:0!important}
+  .nav{box-shadow:6px 0 30px rgba(0,0,0,.25)}
+  body.nav-hidden .nav{transform:translateX(-102%)}
+  body:not(.nav-hidden) .scrim{opacity:1;pointer-events:auto}
+  .dash{padding:16px 14px 40px} .dh h1{font-size:22px}
+  .lk span{display:none} .lk{padding:0 10px}
+  th:nth-child(5),td:nth-child(5){display:none}
+  .hidebtn{display:none}
+}
+@media (prefers-reduced-motion:reduce){.nav,.main{transition:none}}
+</style>
+</head>
+<body>
+<aside class="nav" id="nav" aria-label="메뉴">
+  <div class="brand"><div class="mk">일</div><div><b>일품집</b><small>통합 운영관리</small></div></div>
+  <div class="lbl">WORKSPACE</div>
+  <nav id="menu"></nav>
+  <div class="grow"></div>
+  <div class="nfoot"><span class="ver">V2.0</span><b>일품집 통합관리</b><small>예약부터 근무까지, 한곳에서</small>
+    <button class="hidebtn" id="hideBtn"><svg class="i" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>메뉴 숨기기</button></div>
+</aside>
+<div class="scrim" id="scrim"></div>
+
+<div class="main" id="main">
+  <header class="bar">
+    <button class="ib" id="tog" aria-label="메뉴 숨기기 / 보이기" title="메뉴 숨기기 / 보이기"><svg class="i" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <div class="crumb"><small>일품집 통합관리</small><b id="ttl">오늘 현황</b></div>
+    <span class="sp"></span>
+    <button class="lk" id="reload" title="새로고침"><svg class="i" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>새로고침</span></button>
+    <a class="lk" id="solo" target="_blank" rel="noopener" title="이 화면만 새 창으로"><svg class="i" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>새 창</span></a>
+  </header>
+  <section class="pages" id="pages"><div class="page" id="p-dash"><div class="dash" id="dash"></div></div></section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/*ENGINE*/
+
+/* ================= 설정 (파일 이름이 다르면 여기만 고치세요) ================= */
+const FILES={ res:'reserve.html', sch:'ilpum-schedule.html', pay:'일품집_급여.html',
+              ord:'https://ilpumorder.netlify.app', ord2:'https://ilpum.netlify.app' };
+const OLD={url:'https://fmzpmekypmjuydgxpnlu.supabase.co',key:'/*OLDKEY*/'};   // 예약(지금 예약 화면이 쓰는 서버)
+const NEW={url:'https://bdqcrbnbuoujozlpttbe.supabase.co',key:'/*NEWKEY*/'};   // 근무표
+
+/* ================= 메뉴 ================= */
+const ICON={
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>',
+  cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  card:'<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
+  home:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  cart:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>',
+  car:'<polyline points="9 18 15 12 9 6"/>'
+};
+const ic=n=>`<svg class="i" viewBox="0 0 24 24">${ICON[n]}</svg>`;
+// 화면 하나하나: frame = 어떤 창에 띄울지, view = 근무표 안의 어느 화면인지
+const ROUTES={
+  dash:{t:'오늘 현황'}, res:{t:'예약 관리',frame:'res'},
+  staff:{t:'직원 관리',frame:'sch',view:'staff'},
+  cards:{t:'근무 스케줄',frame:'sch',view:'cards'}, week:{t:'근무 스케줄 · 주간표',frame:'sch',view:'week'}, day:{t:'근무 스케줄 · 하루',frame:'sch',view:'day'},
+  rules:{t:'근무 스케줄 · 기간 설정',frame:'sch',view:'rules'}, me:{t:'근무 스케줄 · 내 스케줄',frame:'sch',view:'me'},
+  pay:{t:'급여 관리',frame:'pay'}, hq:{t:'매장 관리',frame:'sch',view:'hq'}, set:{t:'설정',frame:'sch',view:'set'},
+  ord:{t:'발주 관리 · 창고 발주',frame:'ord',ext:true}, ord2:{t:'발주 관리 · 발주량 계산기',frame:'ord2',ext:true}
+};
+// 왼쪽 메뉴 (테이블 현황은 예약 관리 안에 있어서 넣지 않았어요)
+const MENU=[
+  {id:'dash',label:'오늘 현황',icon:'grid'},
+  {id:'res',label:'예약 관리',icon:'cal'},
+  {id:'staff',label:'직원 관리',icon:'user',needEdit:true},
+  {id:'sch',label:'근무 스케줄',icon:'clock',sub:[['cards','스케줄'],['week','주간표'],['day','하루'],['rules','기간 설정'],['me','내 스케줄']]},
+  {id:'pay',label:'급여 관리',icon:'card'},
+  {id:'hq',label:'매장 관리',icon:'home',needHq:true},
+  {id:'set',label:'설정',icon:'gear',needEdit:true},
+  {id:'ord_g',label:'발주 관리',icon:'cart',sub:[['ord','창고 발주'],['ord2','발주량 계산기']]}
+];
+const GROUP_OF={cards:'sch',week:'sch',day:'sch',rules:'sch',me:'sch',ord:'ord_g',ord2:'ord_g'};
+function buildMenu(){
+  $('#menu').innerHTML=MENU.map(m=>m.sub
+    ?`<button class="mi" data-g="${m.id}" aria-expanded="false">${ic(m.icon)}<span>${m.label}</span><span class="car">${ic('car')}</span></button><div class="subm" id="sub-${m.id}">${m.sub.map(s=>`<button class="si" data-go="${s[0]}">${s[1]}</button>`).join('')}</div>`
+    :`<button class="mi" data-go="${m.id}" data-m="${m.id}" ${m.needEdit?'data-edit="1"':''} ${m.needHq?'data-hq="1"':''}>${ic(m.icon)}<span>${m.label}</span></button>`).join('');
+}
+
+/* ================= 화면 전환 ================= */
+const frames={};                 // 이미 띄운 창들 (다시 열어도 입력하던 내용이 그대로 남아요)
+let cur='dash', info={hq:true,edit:true,seen:false};
+function frameSrc(key,view,embed){
+  const f=FILES[key]; if(/^https?:/.test(f)) return f;
+  const base=encodeURI(f); if(key!=='sch') return base;
+  return base+'?'+(embed?'embed=1&':'')+'view='+(view||'cards');
+}
+function ensureFrame(key,view){
+  if(frames[key]) return frames[key];
+  const f=document.createElement('iframe'); f.className='fr'; f.title=key; f.src=frameSrc(key,view,true); f.hidden=true; f.allow='clipboard-write; clipboard-read';
+  $('#pages').appendChild(f); frames[key]=f; return f;
+}
+function go(id,opts){
+  opts=opts||{}; if(!ROUTES[id]) id='dash'; const R=ROUTES[id]; cur=id;
+  $('#ttl').textContent=R.t; document.title='일품집 · '+R.t;
+  // 메뉴 표시
+  $$('#menu [aria-current]').forEach(b=>b.removeAttribute('aria-current'));
+  const g=GROUP_OF[id]; $$('#menu .mi[data-g]').forEach(b=>{ const open=b.dataset.g===g; b.setAttribute('aria-expanded',open); $('#sub-'+b.dataset.g).classList.toggle('on',open); if(open) b.setAttribute('aria-current','page'); });
+  if(g){ const s=$(`#sub-${g} [data-go="${id}"]`); if(s) s.setAttribute('aria-current','page'); } else { const m=$(`#menu [data-m="${id}"]`); if(m) m.setAttribute('aria-current','page'); }
+  // 본문
+  $('#p-dash').hidden=id!=='dash'; Object.values(frames).forEach(f=>f.hidden=true);
+  if(id==='dash'){ loadDash(); $('#solo').hidden=true; }
+  else{
+    const first=!frames[R.frame]; const f=ensureFrame(R.frame,R.view); f.hidden=false;
+    if(!first&&R.view&&!opts.fromFrame){ try{ f.contentWindow.postMessage({type:'fr-goto',view:R.view},'*'); }catch(e){} }
+    try{ const w=f.contentWindow; if(!first&&w&&w.pullNow) w.pullNow(); }catch(e){}
+    const solo=$('#solo'); solo.hidden=false; solo.href=frameSrc(R.frame,R.view,false);
+  }
+  if(location.hash!=='#'+id) history.replaceState(null,'','#'+id);
+  try{ localStorage.setItem('ilpum-page',id); }catch(e){}
+  if(innerWidth<=860) setNav(false);
+}
+// 근무표 안에서 화면이 바뀌면(예: 카드→주간표) 왼쪽 메뉴 표시도 맞춤
+window.addEventListener('message',e=>{
+  const m=e.data; if(!m||!m.type||!frames.sch||e.source!==frames.sch.contentWindow) return;
+  if(m.type==='fr-state'){
+    info={hq:!!m.hq,edit:!!m.edit,seen:true}; applyInfo();
+    if(['cards','week','day','rules','me','staff','hq','set'].includes(m.view)&&ROUTES[cur]&&ROUTES[cur].frame==='sch'&&cur!==m.view){ go(m.view,{fromFrame:true}); }
+  }
+});
+function applyInfo(){ $$('#menu [data-hq]').forEach(b=>b.hidden=!info.hq); $$('#menu [data-edit]').forEach(b=>b.hidden=!info.edit); }
+
+/* ================= 메뉴 숨기기 / 보이기 ================= */
+const mobile=()=>innerWidth<=860;
+function setNav(open){ document.body.classList.toggle('nav-hidden',!open); try{ if(!mobile()) localStorage.setItem('ilpum-nav',open?'open':'hidden'); }catch(e){} }
+function navOpen(){ return !document.body.classList.contains('nav-hidden'); }
+$('#tog').onclick=()=>setNav(!navOpen()); $('#hideBtn').onclick=()=>setNav(false); $('#scrim').onclick=()=>setNav(false);
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='b'){ e.preventDefault(); setNav(!navOpen()); } if(e.key==='Escape'&&mobile()&&navOpen()) setNav(false); });
+$('#menu').addEventListener('click',e=>{
+  const g=e.target.closest('[data-g]'); if(g){ const sub=MENU.find(m=>m.id===g.dataset.g).sub; go(sub[0][0]); return; }
+  const b=e.target.closest('[data-go]'); if(b) go(b.dataset.go);
+});
+$('#reload').onclick=()=>{ if(cur==='dash') return loadDash(true); const R=ROUTES[cur]; const f=frames[R.frame]; if(!f) return; try{ if(R.ext) f.src=f.src; else f.contentWindow.location.reload(); }catch(e){ f.src=f.src; } };
+
+/* ================= 오늘 현황 ================= */
+async function sget(srv,path,opt){ const r=await fetch(srv.url+path,{headers:{apikey:srv.key,Authorization:'Bearer '+srv.key,'Content-Type':'application/json'},...(opt||{})}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+const peopleOf=s=>String(s||'').split(/[+,]/).reduce((a,x)=>a+(parseInt(x,10)||0),0);
+const isCxl=x=>/취소/.test(x.tnote||'');
+const hhmm=t=>{ const m=String(t||'').match(/^(\d{1,2}):?(\d{2})$/); return m?pad(+m[1])+':'+m[2]:''; };
+const toM=t=>{ const m=hhmm(t); return m?(+m.slice(0,2))*60+(+m.slice(3)):null; };
+let dashData=null, soonAt=null;
+async function loadDash(manual){
+  const el=$('#dash'); const now=new Date(); const key=ds(now);
+  if(!dashData) el.innerHTML='<div class="empty">불러오는 중…</div>';
+  const out={res:null,resErr:null,staff:null,staffErr:null};
+  await Promise.all([
+    (async()=>{ try{ const rows=await sget(OLD,`/rest/v1/reservations_day?id=eq.${key}&select=data`); out.res=((rows[0]&&rows[0].data&&rows[0].data.items)||[]).filter(x=>!x.deleted); }catch(e){ out.resErr=e.message; } })(),
+    (async()=>{ try{
+        const os=await sget(NEW,'/rest/v1/rpc/sch_open_store',{method:'POST',body:'{}'}); const st=os&&os[0]; if(!st) throw new Error('본점을 찾지 못했어요');
+        const rows=await sget(NEW,`/rest/v1/sch_items?store_id=eq.${st.id}&deleted=eq.false&select=kind,id,data`);
+        const items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data);
+        const D=buildD(items,st.name); out.staff={D,R:resolve(D,now),name:st.name};
+      }catch(e){ out.staffErr=e.message; } })()
+  ]);
+  dashData=out; renderDash(manual); 
+}
+function renderDash(){
+  const d=dashData; if(!d) return; const now=new Date(), el=$('#dash');
+  const live=(d.res||[]).filter(x=>!isCxl(x)).sort((a,b)=>(toM(a.time)??9999)-(toM(b.time)??9999));
+  const all=(d.res||[]).slice().sort((a,b)=>(toM(a.time)??9999)-(toM(b.time)??9999));
+  const teams=live.length, ppl=live.reduce((a,x)=>a+peopleOf(x.pp),0);
+  const L=d.staff?d.staff.R.list:[], offs=d.staff?d.staff.R.offs.filter(o=>!o.missing).length:0, pm=L.filter(x=>x.sh&&x.sh.k==='pm').length;
+  const pos=d.staff?d.staff.D.positions.map(p=>p.name):[]; const sorted=L.slice().sort((a,b)=>pos.indexOf(a.pos)-pos.indexOf(b.pos));
+  const pct=(n,max)=>Math.min(100,Math.round(n/Math.max(1,max)*100));
+  const kpi=(k,v,u,p)=>`<div class="kpi"><div class="k">${k}</div><div class="v">${v}<small>${u}</small></div><div class="bar2"><i style="width:${p}%"></i></div></div>`;
+  // 곧 들어올 예약
+  const nowM=now.getHours()*60+now.getMinutes(); if(soonAt==null) soonAt=Math.floor(nowM/15)*15;
+  const opts=[]; for(let m=8*60;m<=23*60;m+=15) opts.push(m);
+  const fmtT=m=>{ const h=Math.floor(m/60), mi=m%60; return `${h<12?'오전':'오후'} ${h%12||12}:${pad(mi)}`; };
+  const soon=live.filter(x=>!x.done&&toM(x.time)!=null&&toM(x.time)>=soonAt&&toM(x.time)<=soonAt+150);
+  const stLabel=x=>isCxl(x)?'<span class="tag g">취소</span>':x.done?'<span class="tag">도착</span>':'<span class="tag w">대기</span>';
+  const resRow=x=>`<tr><td class="n">${esc(hhmm(x.time)||'-')}</td><td><b>${esc(x.name||'')}</b><small>${esc(x.phone||'')}</small></td><td class="n">${peopleOf(x.pp)||'-'}명</td><td>${esc((x.tables||[]).join(', ')||'-')}</td><td>${esc(x.req||'')}${x.tnote&&!isCxl(x)?`<small>${esc(x.tnote)}</small>`:''}</td><td>${stLabel(x)}</td></tr>`;
+  el.innerHTML=`
+   <div class="dh"><div><h1>오늘 현황</h1><p>오늘(${now.getMonth()+1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일)의 예약과 근무 현황이에요.</p></div><span class="sp" style="flex:1"></span>
+     <button class="btn" id="dRef">새로고침</button><button class="btn pri" data-jump="res">+ 예약 등록</button></div>
+   <div class="kpis">
+     ${kpi('오늘 예약',d.resErr?'-':teams,'팀',pct(teams,20))}${kpi('예약 인원',d.resErr?'-':ppl,'명',pct(ppl,80))}
+     ${kpi('오늘 출근',d.staffErr?'-':L.length,'명',pct(L.length,30))}${kpi('오후 출근',d.staffErr?'-':pm,'명',pct(pm,10))}${kpi('오늘 휴무',d.staffErr?'-':offs,'명',pct(offs,10))}
+   </div>
+   <div class="panel"><div class="ph"><h2>오늘의 예약</h2><span class="cnt">${d.resErr?'-':all.length}</span><button class="more" data-jump="res">전체 보기 ›</button></div>
+     ${d.resErr?`<div class="err">예약을 불러오지 못했어요 (${esc(d.resErr)})</div>`:all.length?`<div style="overflow-x:auto"><table><thead><tr><th>시간</th><th>고객 / 연락처</th><th>인원</th><th>테이블</th><th>요청사항</th><th>상태</th></tr></thead><tbody>${all.map(resRow).join('')}</tbody></table></div>`:'<div class="empty">오늘 예약이 없어요. 예약 관리에서 등록하세요.</div>'}</div>
+   <div class="panel"><div class="ph"><h2>오늘 출근 직원</h2><span class="cnt">${d.staffErr?'-':L.length}</span><button class="more" data-jump="day">전체 보기 ›</button></div>
+     ${d.staffErr?`<div class="err">근무표를 불러오지 못했어요 (${esc(d.staffErr)})</div>`:L.length?`<div class="staff">${sorted.map(x=>{ const [a,b]=spanOf(d.staff.D.store,x.sh); const t=m=>pad(Math.floor(m/60))+':'+pad(m%60); const lb=shLbl(x.sh,d.staff.D.store);
+       return `<div class="st"><div class="av">${esc((x.name||'?')[0])}</div><div><b>${esc(x.name)}</b><small>${esc(x.pos)}${x.type==='spot'?' · 단기':x.type==='weekly'?' · 매주 변동':''}</small></div><div class="tm">${t(a)}<small>~ ${t(b)}${lb?' · '+esc(lb):''}</small></div></div>`; }).join('')}</div>`:'<div class="empty">오늘 출근자가 없어요.</div>'}
+     <div class="note">근무 시간·휴무는 날짜별로 바꿀 수 있어요 (근무 스케줄)</div></div>
+   <div class="panel"><div class="ph"><h2>곧 들어올 예약</h2><span class="sp" style="flex:1"></span><select id="soonSel">${opts.map(m=>`<option value="${m}" ${m===soonAt?'selected':''}>${fmtT(m)}</option>`).join('')}</select></div>
+     ${d.resErr?'':soon.length?`<div style="overflow-x:auto"><table><thead><tr><th>시간</th><th>고객 / 연락처</th><th>인원</th><th>테이블</th><th>요청사항</th><th>상태</th></tr></thead><tbody>${soon.map(resRow).join('')}</tbody></table></div>`:`<div class="empty">선택 시간부터 150분 이내 예정된 예약이 없어요.</div>`}</div>
+   <p style="color:var(--sub);font-size:12px;margin:0">전체 매장 기준이 아니라 본점 기준이에요 · ${ds(now)} · ${pad(now.getHours())}:${pad(now.getMinutes())} 기준</p>`;
+}
+document.addEventListener('click',e=>{ const j=e.target.closest('[data-jump]'); if(j) go(j.dataset.jump); if(e.target.id==='dRef') loadDash(true); });
+document.addEventListener('change',e=>{ if(e.target.id==='soonSel'){ soonAt=+e.target.value; renderDash(); } });
+setInterval(()=>{ if(cur==='dash'&&!document.hidden) loadDash(); },60000);
+
+/* ================= 시작 ================= */
+buildMenu();
+(function(){
+  let open=true; try{ const v=localStorage.getItem('ilpum-nav'); if(v==='hidden') open=false; }catch(e){} if(mobile()) open=false;
+  document.body.classList.toggle('nav-hidden',!open);
+  let start=location.hash.slice(1); if(!ROUTES[start]){ try{ start=localStorage.getItem('ilpum-page'); }catch(e){} } go(ROUTES[start]?start:'dash');
+})();
+window.addEventListener('hashchange',()=>{ const h=location.hash.slice(1); if(ROUTES[h]&&h!==cur) go(h); });
+</script>
+</body>
+</html>

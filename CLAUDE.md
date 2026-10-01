@@ -1,0 +1,174 @@
+# 일품집 통합관리 — Claude Code 인수인계
+
+> 이 파일은 Claude Code가 이 폴더에서 시작할 때 자동으로 읽어요. 지금까지 채팅(claude.ai)에서 만든 것과 **정한 결정**, **아직 안 끝난 일**을 한 곳에 모았어요.
+> 사실과 추측은 구분해서 적었어요. **"미확인"** 이라고 적힌 것은 채팅 환경에서 외부 접속이 막혀 실제 서버로는 확인하지 못한 부분이에요. 가장 먼저 실서버로 확인해 주세요.
+
+## 0. 한눈에
+
+- **사용자:** 일품집(장어 프랜차이즈 본점) 운영자. 비개발자. 한국어. 직접적·실용적인 스타일을 좋아함.
+- **소통 원칙:** ① 한국어로 답하고 UI 글자는 전부 한국어 ② 기존 코드를 살려서 고치기 ③ **어느 파일을 어디에 교체해야 하는지** 분명히 알려주기 ④ 모바일 화면에서 읽기 쉽게 짧게 ⑤ 모르는 건 묻기보다 합리적으로 정하고 이유를 한 줄로 알려주기 ⑥ 기능을 추가할 때 **다른 기능이 안 깨졌는지** 테스트로 확인하기.
+- **제품:** 본점 + 가맹점(약 10곳 예정)이 함께 쓰는 통합 운영 프로그램. 예약 / 근무 스케줄 / 급여 / 발주를 왼쪽 메뉴 하나로 묶는 중.
+- **구조:** 빌드 도구 없는 정적 HTML 파일들 + Supabase. Netlify/Cloudflare에 폴더째 올리는 방식. React/Next.js 전환은 **아직 안 함**(필요해지면 그때).
+- **가장 큰 주의:** Supabase 프로젝트가 **두 개**예요. 예전 것(예약·예전 근무표·급여)과 새 것(근무표 새 버전). 섞어 생각하면 안 돼요. (§1)
+
+## 1. 시스템 지도
+
+| 화면 | 파일 (dist/) | 데이터가 있는 곳 | 상태 |
+|---|---|---|---|
+| 통합관리 틀(왼쪽 메뉴, 오늘 현황) | `index.html` | 예약=**예전** 서버, 출근=**새** 서버 (읽기만) | 완성, 실서버 미확인 |
+| 예약 관리 | `reserve.html` | **예전** 서버 `reservations_day` | 운영 중. 새 서버로 **미이전** |
+| 근무 스케줄 (+직원·매장·설정 화면) | `ilpum-schedule.html` | **새** 서버 `sch_*` | 완성, 실서버 미확인 |
+| 급여 관리 | `일품집_급여.html` | **예전** 서버 `schedule_state` | 새 근무표와 **미연결** |
+| 일회성 이전 도구 | `ilpum-migrate.html` | 예전 서버 → 새 서버 | 완성, **아직 실행 안 함** |
+| 발주 관리 | (외부 사이트 iframe) | `ilpumorder.netlify.app`, `ilpum.netlify.app` | 주소는 사용자 메모 기준, 미확인 |
+
+**두 Supabase 프로젝트**
+- **예전:** ref `fmzpmekypmjuydgxpnlu`. 예약(`reservations_day`: 날짜별 JSON 한 줄)과 예전 근무표(`schedule_state` id=`main` 한 줄 JSON)가 있음. 공개(anon) 키는 예전 HTML들 안에 박혀 있음(`keys.json`의 `old`). **Claude의 Supabase 도구로는 접근 불가**, 샌드박스에서도 접속 차단이었음. 사장님 컴퓨터에서만 읽을 수 있음.
+- **새:** ref `bdqcrbnbuoujozlpttbe` (서울 리전), URL `https://bdqcrbnbuoujozlpttbe.supabase.co`, 프로젝트 이름 `ilpum-franchise`. 공개(anon) 키는 `keys.json`의 `new`와 `src/schedule/core.js`의 `DEF_SUPA`. **절대 `service_role` 키를 HTML·저장소에 넣지 말 것.**
+
+**새 서버에는 다른 채팅에서 만든 프랜차이즈 기본 구조도 있어요** (내가 만든 게 아님. 함부로 바꾸지 말 것):
+`stores`(본점·가맹점 1), `profiles`(계정↔매장↔역할 hq/franchise), `positions`, `staff`, `shifts`, `staff_rates`, `shift_pay`, `reservations`, `floors`, `dining_tables`, `orders`…, `app_settings`, `audit_log`. 적용된 마이그레이션 12개 중 앞 7개(`franchise_core_schema_rls` … `uploads_bucket_for_ticket_photos`)가 그쪽, 뒤 5개(`schedule_*`)가 내가 만든 근무표 모듈.
+- 근무표 모듈은 `sch_` 접두사 표·함수만 쓰고, **기존 `stores`/`profiles`를 참조만** 함.
+- 기존 `staff`/`shifts` 표는 지금 근무표가 **쓰지 않음**(비어 있음). 그 표의 RLS는 본사가 모든 매장 직원·근무를 볼 수 있게 돼 있음 → §8 참고.
+- 매장 id: 본점 `0134d989-757a-4b60-9cb3-93245de2cac8`, 가맹점 1 `ad2ffdae-f76b-44cd-a6c6-58514c4e4638`.
+
+## 2. 사용자가 정한 결정 (바꾸기 전에 꼭 물어볼 것)
+
+**근무표**
+- 금액(급여)은 **로그인해야만** 보이고, **인쇄·카톡 사진·엑셀에는 절대 안 나간다.**
+- 카톡 공유는 **글이 아니라 사진(이미지)**. 기본은 **하루치** 사진. 공유 창에서 전날/다음날/날짜 이동. PC는 "사진 복사" 후 Ctrl+V, 폰은 공유 시트.
+- **필요 인원 부족 표시, 총 근무시간, "확인할 것" 경고는 필요 없음**(빼 달라고 함). 코드에 계산은 남아 있어도 화면엔 안 나온다.
+- 기본 화면은 예전처럼 **날짜별 카드 안에 포지션 줄과 이름이 전부 보이는 형태**(한 달 / 오늘부터 7일). 월간 달력 형태로 "인원수만" 보이는 건 의미 없다고 함. 디자인(Toss풍)은 지금 것을 유지.
+- **이름 끌어서 옮기기·복사**를 유지: 같은 날 다른 포지션에 놓으면 그 날만 포지션 변경, 다른 날 카드에 놓으면 복사. 마우스는 바로, 폰은 **꾹 누른 채** 끌기.
+- 근무 조건 3단계: **요일 패턴 → 기간 설정 → 그날만**(앞쪽이 기본, 뒤쪽이 우선). 출근 시간(종일/오후/시간 지정)과 금액(일당/시급/추가금, 그날 현금)을 사람·요일·기간·하루 단위로 기록.
+- 포지션 추가/삭제/이름·색/순서는 스케줄 화면의 "포지션 관리"에서. 삭제 시 그 포지션 사람은 다른 포지션으로 옮김.
+- 컴퓨터에서 스케줄이 한눈에 들어오게 촘촘하게, 가로 스크롤바가 눈에 보이게.
+
+**로그인**
+- 편집 **비밀번호는 필요 없음**(당분간 본인 혼자 씀). DB에 PIN 기능은 있으나 **0개 설정, UI에서도 제거**됨.
+- 로그인은 "없애라" → "다시 만들되 **자동 로그인**" 으로 바뀜. 지금: 아이디 `ilpum`(내부 이메일 `ilpum@ilpum.invalid`), 비밀번호는 사용자가 아는 값. 한 번 로그인하면 **로그인 유지 토큰**을 이 기기에 저장해 다시 안 묻고, 브라우저 비밀번호 저장도 동작하도록 `<form autocomplete>` 로 구성. **비밀번호를 localStorage에 저장하지 않는다**(의도적).
+- 로그인 화면에 "로그인 없이 보기(금액 제외)" 버튼이 있음(본점 읽기·편집, 금액 없음).
+
+**예약 / 전체 화면**
+- 컴퓨터에서 **예약 목록과 현황(테이블 배치)** 이 좌우로 같이 보이고 **사이 너비 조절**(구현됨).
+- 왼쪽 카테고리 메뉴(스크린샷 기준) + **숨길 수 있게**. **"테이블 현황" 메뉴는 넣지 않음**(예약 관리 안에 있음).
+- 스타일 참고: Toss 같은 깔끔한 한국 핀테크 느낌이되 **색은 다르게**(지금: 통합 틀은 짙은 초록+금색, 근무표 단독은 호박색, 통합 틀 안에서는 근무표도 초록으로 맞춤).
+- 가맹점끼리는 서로의 예약·스케줄·발주를 **볼 수 없어야** 함. 본사가 가맹점 직원의 근태·급여를 직접 보는 것은 **가맹사업법·불법파견 이슈 때문에 피하는 방향**(집계만 보기)으로 설계함 — 법률 자문은 받지 않았고 변호사 확인 필요.
+
+## 3. 근무표 데이터 모델 (새 서버 `sch_items`)
+
+한 표에 종류별로 한 줄씩: `(store_id, kind, id) → data jsonb`, `deleted`(삭제는 행 삭제가 아니라 표시), `updated_at`(폴링용). 화면은 15초마다 `updated_at` 이후 변경분만 받아옴.
+
+| kind | id 모양 | data |
+|---|---|---|
+| `cfg` | `store` / `positions` | 영업시간·종일/오후 시간·목표율… / `[{name,color,req[7]}]` |
+| `staff` | 직원 id | `{name,pos,type:'regular'|'weekly'|'spot',off:[일=0 기준 요일],wk?:{요일:{sh}},active,order,tel?}` |
+| `rule` | 기간 설정 id | `{ids[],from,to,days[],w:'off'|'on',sh,pos,memo,at}` (나중 것이 우선) |
+| `dc` | `YYYY-MM-DD|직원id` | 그날만: `{st:'off'|'annual'|'extra'|'paidoff',pos,sh,memo}` |
+| `spot` | 알바 id | 단기·당일: `{date,name,pos,sh,memo}` |
+| `aw` | 그 주 월요일 날짜 | 매주 변동 직원의 주간 입력 `{직원id:{off:[월=0 기준],pm:[],t:{}}}` |
+| `pay` | `staff:id` / `pat:id:요일` / `rule:id` / `dc:날짜|id` / `spot:id` | `{k:'day'|'hour'|'bonus'|'month',v,cash?}` — **급여 권한자만 읽기/쓰기** |
+| `sales` | 날짜 | `{v}` 매출(인건비율용) |
+
+- 출근 시간 `sh`: `{k:'full'}` | `{k:'pm'}` | `{k:'t',s:'HH:MM',e:'HH:MM'|''}`(빈 e = 영업 마감). 근무시간은 **영업시간(기본 11–22) 안쪽만** 계산, 종일 10h·오후 5h가 기본.
+- **적용 순서(`core.js`의 `resolve`)**: 요일 패턴 → 기간 설정(rule, `at` 오름차순) → 주간 입력(aw, 매주 변동 직원만) → 그날만(dc) → 단기알바(spot). 포지션이 기본과 다르면 태그 `chg`.
+- **요일 번호 주의:** `off`·`days`·`wk` 는 **일요일=0**, `aw` 의 `off/pm/t` 인덱스는 **월요일=0**. 헷갈리기 쉬움.
+- 직원 종류: `regular`(고정 근무, 쉬는 요일만 빼고 매주 자동) / `weekly`(매주 변동: 그 주 `aw` 입력이 있어야 출근, 없으면 "미입력") / `spot`(단기·당일, `spot` 행으로 넣은 날만). 예전 앱의 "고정알바"=`weekly`.
+
+## 4. 인증·권한 (새 서버)
+
+역할은 `sch_role(store_id)` 가 계산: `hq`(본사 계정이 `is_hq` 매장에서) / `owner`(`profiles.role='franchise'` 계정이 자기 매장) / `manager`·`staff`(`sch_members` 표) / 없음. 금액 권한 `sch_can_pay`: hq(+`finance` 권한) · owner · 허용된 manager.
+
+**RLS (표마다 켜짐)**
+- `sch_items`: 로그인 사용자는 역할이 있는 매장만 읽기(금액 종류는 `sch_can_pay` 필요). 쓰기는 hq/owner/manager만. 삭제 정책 없음(표시로만 삭제).
+- `sch_items_anon_sel`: **로그인 없이(anon) 본점(`sch_anon_store()`)의 금액 제외 항목을 읽을 수 있음.** (= 직원 이름·스케줄은 주소를 아는 누구나 볼 수 있음. 사용자가 받아들임.)
+- `sch_summaries`: 본사는 모든 매장의 **집계**(근무시간·인건비율 등)만 읽음.
+- `sch_members`: 자기 행만 읽기. `sch_pins`·`sch_pin_fail`·`sch_mig_window`: 정책 없음(함수로만 접근).
+
+**RPC 함수 (실행 권한 주의)**
+- 로그인 필요: `sch_my_stores`, `sch_create_store(name)`(본사만), `sch_add_member(email,store,role,pay)`(점주 연결은 본사만·가맹점에만 / 매니저·직원 연결은 그 매장의 본사(본점)·점주만 — 그래서 본사는 가맹점의 매니저·직원을 못 붙임. null 권한 검사 버그를 한 번 고쳤음), `sch_role`, `sch_can_pay`.
+- 로그인 없이(anon) 호출 가능: `sch_open_store`, `sch_put_many(store,pin,rows)`(본점 쓰기, **금액·알 수 없는 종류는 거부**, PIN이 설정돼 있으면 확인), `sch_put_summary`, `sch_check_pin`, `sch_set_pin`, `sch_clear_pin`, `sch_anon_store`.
+- **이전 창구 `sch_mig_*`**: `sch_mig_window.until` 시각 전까지만 동작(anon 가능, 본점만, 금액·예약 쓰기 가능). 시각이 지나면 전부 `closed`. 지금 값은 **2026‑10‑01 04:24 UTC** 에 닫히도록 돼 있음.
+  - 다시 열기: `update public.sch_mig_window set until = now() + interval '12 hours' where id=1;`
+  - 닫기: `update public.sch_mig_window set until = now() where id=1;`
+  - **이전이 끝나면 닫을 것.** 예약 표(고객 이름·전화)에 쓰기가 가능한 창구이므로.
+- 로그인 안 한 상태의 PIN 무차별 대입 방지: 8번 틀리면 15분 잠금(현재 PIN 0개라 비활성).
+
+**아이디 로그인:** 입력 `ilpum` → `ilpum@ilpum.invalid` 로 바꿔 Supabase에 보냄(`core.js` `toLoginEmail`). `.invalid` 는 실제로 존재할 수 없는 주소라 "비밀번호 찾기" 메일이 남의 손에 가지 않음. 새 계정도 `아이디@ilpum.invalid` 로 만들 것. 계정이 있는 곳은 `auth.users`(현재 1개, 본점 hq 프로필 연결).
+
+**알려진 보안 사항**
+- 아이디가 누구나 짐작 가능한 `ilpum` 이라 **보안은 비밀번호 강도에만** 의존. 강한 비밀번호 권장함(사용자에게 안내했음).
+- 대시보드의 Auth 설정 "유출된 비밀번호 검사"가 꺼져 있음(Supabase 경고, 이 프로젝트 기본 설정).
+- `audit_log` 표에 RLS 켜져 있으나 정책 없음(기존 구조, Supabase 경고).
+
+## 5. 프론트 코드 구조 · 빌드
+
+**빌드:** `sh build_all.sh` → `dist/` (Python3 + Node 필요).
+
+**키와 저장소(git):** 공개(anon) 키는 저장소에 올리지 않아요. 소스에는 `/*OLDKEY*/`·`/*NEWKEY*/` 자리 표시만 있고, 빌드가 `keys.json` 에서 채워 넣어요. `keys.json`·`dist/`·`legacy/` 는 `.gitignore` 로 빠져 있어서 **새 환경에서는 사용자에게 받은 zip(또는 Supabase 대시보드의 anon 키)으로 `keys.json` 과 `legacy/` 를 다시 놓아야** 빌드가 돼요(급여 화면이 `legacy/patched/` 에서 복사되기 때문). 소스에서 다시 만든 결과가 채팅에서 전달한 파일과 **해시까지 동일**함을 확인해 둠.
+
+```
+src/schedule/   근무표 앱 (→ dist/ilpum-schedule.html)
+  core.js       유틸·시간/금액 해석 · 저장소(Local 체험 / Remote Supabase) · 근무 계산 엔진(resolve)
+  app.js        상태(APP) · 화면들(카드/주간표/하루/직원/기간 설정/내 스케줄/본사 현황/설정) · 로그인 화면
+  img.js        카톡용 사진 — 캔버스로 직접 그림(하루/주간/월간/내 근무). 화면에는 하루·내 근무만 노출
+  events.js     서랍(편집 창) · 클릭/입력 처리 · 끌어서 옮기기/복사 · 기존 근무표 가져오기
+  app.css / shell.html   스타일 / HTML 뼈대
+src/portal/     통합관리 틀 (→ dist/index.html). 근무표 core.js 의 엔진 부분을 빌드 때 그대로 가져와 씀
+src/migrate/    이전 도구 (→ dist/ilpum-migrate.html). mig.js = 예전→새 형식 변환(순수 함수)
+src/reserve/    reserve.html — 예전 예약 화면 + "목록·현황 너비 조절" 추가본. 빌드 없이 그대로 dist로 복사
+legacy/original 사용자가 처음 올린 예전 운영 파일 4개(원본)
+legacy/patched  예전 근무표(schedule.html)·급여 계산기에 "기간·요일별 출근시간·금액"을 넣은 패치본 (예전 서버용)
+tools/import-oct 엑셀(예전 근무표 10월 내보내기)을 새 서버 형식으로 바꾸고 검증한 일회성 스크립트 (이미 DB에 반영 완료)
+```
+
+**근무표 앱의 저장소 추상화:** `Local`(체험, localStorage)과 `Remote`(Supabase REST/RPC)가 같은 인터페이스(`init, stores, items, since, put, putMany, summaries, putSummary, createStore, addMember`). 화면 코드는 `APP.be` 만 봄.
+
+**통합 틀 ↔ 근무표 iframe:** `?embed=1&view=…` 이면 근무표가 자기 왼쪽 메뉴를 숨기고 초록 강조색을 씀. 틀이 `postMessage({type:'fr-goto',view})` 로 화면을 바꾸고, 근무표는 `{type:'fr-state',view,hq,edit}` 로 현재 화면·권한을 알려 메뉴 강조·숨김을 맞춤. 탭을 다시 열 때 `window.pullNow()` 를 부름(예전 index.html 방식 유지). iframe은 한 번 띄우면 계속 살려 둠(입력 내용 유지).
+
+**localStorage 키:** `ilpum-fr-conf`(접속 설정·로그인 토큰·마지막 아이디·`openOnly`), `ilpum-fr-v1`(체험 모드 데이터), `ilpum-nav`·`ilpum-page`(통합 틀), `ilpum-res-listw`(예약 목록 너비). sessionStorage `fr-pay`(금액 보기 켬), `fr-ses`(자동 로그인 끈 경우의 세션).
+
+## 6. 테스트
+
+`tests/` 의 Playwright(Python) 스크립트. **Supabase를 가짜 서버로 흉내**(`page.route`)내서 화면 동작을 확인하는 방식이라 "로직"은 검증되지만 **실서버와의 연동은 검증하지 못함.**
+- 하드코딩된 것: `/home/claude/...` 경로, `chromium` 실행 파일 경로(`/opt/pw-browsers/...`), 가짜 날짜. → 새 환경에서는 경로를 고치고 `p.chromium.launch()` 기본값을 쓰면 됨(`playwright install chromium`).
+- 주요 테스트: `t9/t10`(카드 화면·끌어서 복사·포지션 관리, 체험 모드), `t14`(로그인 없이 열기), `t16`(자동 로그인 전 과정 + 아이디 변환), `t_shell`·`t_mob`(통합 틀, **`file://` 이 아니라 `http://` 로 띄워야 iframe 내부 접근 가능**), `t_mig2`(이전 도구), `test_conv.js`(변환기를 엑셀 10월 스케줄 279칸과 대조), `tools/import-oct/verify.js`.
+- DB 권한 검증 패턴: `do $$ … set local role authenticated/anon; select set_config('request.jwt.claims', …); … raise exception E'결과…' $$;` — 마지막에 예외를 던져 **전체가 취소**되므로 실데이터에 흔적이 안 남음. 권한을 바꾸면 이 방식으로 역할별(본사/점주/매니저/직원/익명) 검증을 다시 할 것. (이 패턴으로 점주가 다른 매장에 계정을 연결할 수 있던 구멍을 한 번 찾아 고쳤음.)
+
+## 7. 배포
+
+- 정적 호스팅(Netlify 등)에 **`dist/` 안의 파일을 한 폴더에** 올림: `index.html`, `reserve.html`, `ilpum-schedule.html`, `일품집_급여.html`(+ 일회성 `ilpum-migrate.html`).
+- 같은 주소 아래여야 iframe/postMessage/localStorage 공유(자동 로그인)가 동작. 파일 이름을 바꾸면 `src/portal/shell.html` 의 `FILES` 만 고치면 됨.
+- 사용자가 지금 운영하는 사이트(예전 세트: `index.html` 탭 + `reserve.html` + `schedule.html`)를 덮어쓰면 예전 화면이 새 틀로 바뀜. 예전 것을 유지하고 싶으면 별도 경로에 올릴 것.
+- 사용자가 써 온 Netlify 사이트 이름/주소는 **확인하지 못함.** 배포 전에 물어볼 것.
+
+## 8. 남은 일 (우선순위)
+
+1. **실서버 확인(최우선, 미확인):** 배포 후 폰·PC에서 ① `ilpum` 로그인과 자동 로그인 ② 오늘 현황(예약·출근) ③ 사진 공유/복사/저장 ④ 스케줄 저장이 Supabase에 들어가는지. 문제가 나오면 브라우저 콘솔 오류부터.
+2. **예전 → 새 서버 이전 실행:** `ilpum-migrate.html` 을 사장님 PC에서 실행(창구 재오픈 필요 — §4). 근무표는 "통째로 바꾸기"가 기본값(지금 들어 있는 10월 엑셀 임시 자료를 지움, 바꾸기 전 백업 파일 자동 저장). 끝나면 **창구 닫기.** 예약은 삭제·취소 제외, 시간 없는 것은 `00:00`+메모.
+3. **예약 화면을 새 서버로 전환:** `reserve.html` 을 새 `reservations`/`dining_tables` 로 옮기고, 오늘 현황의 예약 출처(`OLD`)도 함께 바꿀 것. 새 `dining_tables` 는 본점 40개(1층 1–24, 2층 42–53, 룸 R1–R4)로 예전 배치(1–53 + 룸 세부)와 **달라서** 테이블 번호가 안 맞을 수 있음 → 배치도를 사용자와 확인해 맞출 것. (`reservations.table_no` 는 자유 텍스트라 이전 자료는 예전 번호 그대로 들어감.)
+4. **급여 계산기를 새 근무표에 연결:** 지금은 예전 서버 `schedule_state` 를 읽음. 새 `sch_items`(특히 `pay`)를 읽도록 바꾸고 `workersOn` 을 `core.js` 의 `resolve` 기반으로 교체. `legacy/patched/일품집_급여.html` 에 `applyCond`(출근시간·금액 반영) 구현이 이미 있음(예전 서버용). 금액은 로그인한 본사 계정에서만 읽을 수 있음.
+5. **가맹점 켜기:** 가맹점 계정은 Supabase Authentication에서 `아이디@ilpum.invalid` 로 만든 뒤 설정 → 계정 연결(또는 `sch_add_member`). 매장 추가는 본사 현황 화면(`sch_create_store`). 가맹점 초기 설정(포지션)은 본점 것을 복사하는 기능이 **없음**.
+6. **정리할 보안 사항:** 기존 `staff`/`shifts` RLS(본사가 모든 매장을 봄) 재검토 · 강한 비밀번호 · 유출 비밀번호 검사 켜기 · `audit_log` 정책 · 가맹사업법/개인정보 관련 변호사 확인.
+7. **예전 근무표에 있던 기능 중 새 앱에 없는 것:** 엑셀로 받기, 인쇄용 월간 A4 2쪽. 필요하면 다시 만들 것(엑셀 표기 `xlTime` 은 `legacy/patched/schedule.html` 참고).
+8. **통합 틀 보강 아이디어:** 전체 매장 선택(본사), 오늘 현황의 예약금·인건비 카드(예약금 자료 구조 미확인), 발주 관리 자체 화면.
+
+## 9. 함정 · 교훈 (실제로 겪은 것)
+
+- **예전 파일 ↔ 새 파일 혼동:** 사용자가 "원래 쓰던 내용이 안 보인다"고 했던 원인이 서로 다른 Supabase였음. 화면을 고칠 때 **어느 서버를 읽는지** 항상 확인.
+- **공개 키는 손으로 옮겨 적지 말 것.** 한 글자 틀려 로그인이 안 됨 → 파일에서 프로그램으로 복사하고 JWT를 디코드해 `ref`·`role` 을 확인(`eyJ…` 의 가운데 부분).
+- **CSS 클래스 이름 충돌:** 끌 때 따라다니는 칩 이름을 `.ghost` 로 했다가 `.btn.ghost` 버튼이 화면 밖으로 튀어나감 → `.dghost`. 전역 클래스는 접두사를 붙일 것.
+- `const APP=…` 는 `window.APP` 가 아님. 바깥에서 읽을 땐 `frame.contentWindow.eval('APP.view')`.
+- Supabase REST: 기본 1000행 제한 → `Range` 헤더로 페이지 넘김(`pagedGet`). 업서트는 `?on_conflict=컬럼&Prefer: resolution=merge-duplicates`. 브라우저에서 `Content-Range` 는 CORS로 안 읽힐 수 있어 **개수는 직접 세는 대체 수단**을 둠.
+- 권한 검사에서 `null not in (…)` 은 `null` → 통과해 버림. `coalesce(role,'') not in (…)` 로 쓸 것.
+- RLS가 켜진 표에 익명 쓰기를 열지 말고 **검증하는 RPC 함수**를 통해서만 쓰게 했음(쓰기 범위·종류·시간 제한을 함수 안에서 강제).
+- 채팅 환경의 미리보기(iframe 샌드박스)는 `blob:` 이미지·클립보드·공유가 막히고 외부 접속도 안 됨 → 사진 미리보기는 `data:` URL + 캔버스 대체로 구현. **사용자가 미리보기 화면에서 열어 보고 "안 된다"고 하는 경우가 잦았으니**, 증상이 접속 문제인지 코드 문제인지 먼저 구분할 것(접속 막힘은 "서버에 연결하지 못했어요" 화면이 뜸).
+- 날짜는 한국 시간 기준 로컬 날짜(`ds(new Date())`). 테스트에서 고정 날짜가 필요하면 `Date` 를 덮어씀.
+- 파일을 고칠 때 `app.js` 같은 조각 파일을 고친 뒤 **반드시 `sh build_all.sh`** 로 dist를 다시 만들 것(dist 파일을 직접 고치면 다음 빌드에서 사라짐).
+
+## 10. 첫 작업 제안
+
+1. `git init && git add -A && git commit -m "채팅에서 인수인계"` (이 시점을 되돌릴 기준점으로).
+2. `sh build_all.sh` 가 되는지, `dist/` 가 사용자에게 전달된 것과 같은지 확인.
+3. Supabase MCP/CLI가 연결돼 있으면 `sch_*` 표·함수·정책을 실제로 조회해 §4와 일치하는지 확인.
+4. §8-1 실서버 확인부터. 결과를 사용자에게 짧게 보고.

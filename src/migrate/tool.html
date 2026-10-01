@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>일품집 자료 옮기기 (예전 → 새 서버)</title>
+<style>
+:root{--bg:#F4F2EE;--card:#fff;--ink:#1E2328;--sub:#7A828B;--line:#E2DDD5;--amber:#C8691C;--ok:#2E8B57;--bad:#D64545;--warn:#B98600}
+@media (prefers-color-scheme:dark){:root{--bg:#15181B;--card:#1D2125;--ink:#ECEEF0;--sub:#9AA1A9;--line:#2E353B;--amber:#E08A3F;--ok:#6CC592;--bad:#FF7A7A;--warn:#E8C04E}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+main{max-width:760px;margin:0 auto;padding:22px 16px 80px}
+h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em} .sub{color:var(--sub);font-size:13.5px;margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--card);font-size:13px;font-weight:800}
+.n.ok{background:var(--ok)} .help{color:var(--sub);font-size:13px;margin:0 0 10px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--sub);font-weight:600;flex:1;min-width:160px}
+input[type=text],input[type=email],input[type=password]{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 10px;font:inherit;color:var(--ink);min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 15px;font-weight:700;cursor:pointer}
+button.pri{background:var(--amber);border-color:var(--amber);color:#fff} button:disabled{opacity:.45;cursor:not-allowed}
+.ck{display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:14px;cursor:pointer} .ck input{margin-top:4px;accent-color:var(--amber)} .ck small{display:block;color:var(--sub);font-size:12.5px}
+table{border-collapse:collapse;width:100%;font-size:14px} td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left} th{color:var(--sub);font-size:12px;font-weight:600} td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.warn{color:var(--warn);font-size:13px} .bad{color:var(--bad)} .ok{color:var(--ok)}
+#log{background:#101316;color:#d8dde2;border-radius:12px;padding:12px 14px;font:12.5px/1.6 ui-monospace,Menlo,Consolas,monospace;max-height:280px;overflow:auto;white-space:pre-wrap}
+#log .e{color:#ff8a8a} #log .g{color:#7fe0a5} #log .w{color:#f1d067}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>일품집 자료 옮기기</h1>
+<p class="sub">예전 서버(예약·근무표)의 내용을 새 서버(ilpum-franchise)로 옮겨요. <b>이 파일을 내 컴퓨터에서 더블클릭해서 여세요.</b> (Claude 미리보기에서는 접속이 막혀 작동하지 않아요)</p>
+
+<section class="card" id="s1">
+  <h2><span class="n" id="n1">1</span>새 서버 연결 확인</h2>
+  <p class="help">로그인은 필요 없어요. 옮기기 창구가 열려 있는 동안만 쓸 수 있어요.</p>
+  <div id="winMsg" class="help" style="margin:0">확인 중…</div>
+</section>
+
+<section class="card" id="s2">
+  <h2><span class="n" id="n2">2</span>예전 서버에서 읽기</h2>
+  <p class="help">읽기만 해요. 예전 서버의 내용은 바뀌지 않아요.</p>
+  <div class="row"><button id="bRead">예전 서버에서 읽기</button>
+  <label class="f" style="flex:0 0 auto;min-width:0"><span>또는 예전 근무표 백업 파일(.json)</span><input type="file" id="fBackup" accept=".json"></label></div>
+  <div id="sum" style="margin-top:10px"></div>
+</section>
+
+<section class="card" id="s3">
+  <h2><span class="n" id="n3">3</span>옮기기</h2>
+  <label class="ck"><input type="checkbox" id="oSch" checked><span>근무표 옮기기<small>직원, 패턴, 예외, 당일알바, 고정알바 주간 입력, 금액</small></span></label>
+  <label class="ck"><input type="checkbox" id="oReplace" checked><span>본점 근무표를 예전 내용으로 통째로 바꾸기 (권장)<small>지금 새 서버에 있는 직원·예외(엑셀로 넣은 10월 임시 자료)를 지우고 예전 내용으로 바꿔요. 바꾸기 전에 지금 내용을 파일로 자동 저장해요.</small></span></label>
+  <label class="ck"><input type="checkbox" id="oRes" checked><span>예약 옮기기<small>같은 예약은 몇 번을 눌러도 중복되지 않아요</small></span></label>
+  <label class="ck"><input type="checkbox" id="oCx"><span>취소된 예약도 옮기기<small>메모에 ‘취소됨’이라고 표시돼요 (기본은 제외)</small></span></label>
+  <div class="row" style="margin-top:8px"><button class="pri" id="bGo" disabled>옮기기 시작</button><span id="goMsg" class="help" style="margin:0"></span></div>
+  <div id="result" style="margin-top:12px"></div>
+</section>
+
+<section class="card"><h2>진행 기록</h2><div id="log">아직 아무것도 하지 않았어요.</div></section>
+</main>
+
+<script>
+/*MIG*/
+const OLD={url:'https://fmzpmekypmjuydgxpnlu.supabase.co',key:'/*OLDKEY*/'};
+const NEW={url:'https://bdqcrbnbuoujozlpttbe.supabase.co',key:'/*NEWKEY*/'};
+const $=s=>document.querySelector(s); const pad=n=>String(n).padStart(2,'0');
+let oldState=null, oldRes=null, store=null, winOpen=false;
+
+function log(msg,cls){ const el=$('#log'); if(el.dataset.f!=='1'){ el.textContent=''; el.dataset.f='1'; } const d=document.createElement('div'); if(cls) d.className=cls; d.textContent=`[${pad(new Date().getHours())}:${pad(new Date().getMinutes())}:${pad(new Date().getSeconds())}] ${msg}`; el.appendChild(d); el.scrollTop=el.scrollHeight; }
+const wt=(p,ms=20000)=>Promise.race([p,new Promise((_,no)=>setTimeout(()=>no(new Error('시간 초과 — 인터넷을 확인해 주세요')),ms))]);
+async function jf(url,opt,label){
+  let r; try{ r=await wt(fetch(url,opt)); }catch(e){ throw new Error(`${label||'요청'} 실패: ${e.message}`); }
+  if(!r.ok){ let m=''; try{ const j=await r.json(); m=j.message||j.msg||j.error_description||''; }catch(e){} throw new Error(`${label||'요청'} 실패 (HTTP ${r.status}${m?': '+m:''})`); }
+  const t=await r.text(); return t?JSON.parse(t):null;
+}
+const oH=()=>({apikey:OLD.key,Authorization:'Bearer '+OLD.key});
+const nH=(x)=>({apikey:NEW.key,Authorization:'Bearer '+NEW.key,'Content-Type':'application/json',...(x||{})});
+const rpc=(fn,body,label)=>jf(`${NEW.url}/rest/v1/rpc/${fn}`,{method:'POST',headers:nH(),body:JSON.stringify(body||{})},label);
+async function pagedGet(base,headers,label){ const out=[]; for(let from=0;;from+=1000){ const rows=await jf(base,{headers:{...headers,'Range-Unit':'items',Range:`${from}-${from+999}`}},label); out.push(...rows); if(rows.length<1000) break; } return out; }
+function download(name,obj){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,1)],{type:'application/json'})); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
+const today=()=>{ const d=new Date(); return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`; };
+
+/* ---- 1. 새 서버 연결 · 창구 확인 ---- */
+async function checkWindow(){
+  const el=$('#winMsg');
+  try{
+    const rows=await rpc('sch_mig_state',{},'새 서버 확인'); const s=rows&&rows[0];
+    if(!s||!s.store_id) throw new Error('새 서버에서 본점을 찾지 못했어요');
+    store={id:s.store_id,name:s.store_name}; winOpen=!!s.is_open;
+    if(winOpen){ const u=new Date(s.until); el.innerHTML=`<span class="ok"><b>열려 있어요</b></span> · ${store.name} · ${u.getMonth()+1}/${u.getDate()} ${pad(u.getHours())}:${pad(u.getMinutes())}까지`; $('#n1').classList.add('ok'); log(`새 서버 연결 확인 · 옮기기 창구 열림 (${store.name})`,'g'); }
+    else { el.innerHTML=`<span class="bad"><b>닫혀 있어요.</b></span> 시간이 지나서 자동으로 닫혔어요. Claude에게 “옮기기 창구 다시 열어줘”라고 하세요.`; log('옮기기 창구가 닫혀 있어요','w'); }
+  }catch(e){ el.innerHTML=`<span class="bad">${e.message}</span><br>인터넷이 되는 내 컴퓨터에서 이 파일을 열었는지 확인하세요.`; log(e.message,'e'); }
+  refreshGo();
+}
+checkWindow();
+
+/* ---- 2. 예전 서버 읽기 ---- */
+function showSummary(){
+  const box=$('#sum'); const rows=[];
+  if(oldState){ const s=oldState; const fixed=(s.staff||[]).filter(x=>x.kind==='fixed').length;
+    rows.push(['근무표 · 직원',`${(s.staff||[]).length}명 (고정알바 ${fixed}명)`]);
+    rows.push(['근무표 · 예외',`${(s.ex||[]).length}건 (당일알바 ${(s.ex||[]).filter(e=>e.type==='당일알바').length}건)`]);
+    rows.push(['근무표 · 기간 설정 / 이 날만',`${(s.rules||[]).length}건 / ${Object.keys(s.dc||{}).length}건`]);
+    rows.push(['근무표 · 고정알바 주간 입력',`${Object.keys(s.aw||{}).length}주`]);
+    const dates=(s.ex||[]).map(e=>e.date).sort(); if(dates.length) rows.push(['근무표 · 예외 기간',`${dates[0]} ~ ${dates[dates.length-1]}`]); }
+  if(oldRes){ const c=MIG.convertReservations(oldRes,'x',{withCancelled:$('#oCx').checked}); const st=c.stat; const ds=oldRes.map(r=>r.id).sort();
+    rows.push(['예약 · 날짜',`${st.days}일 (${ds[0]} ~ ${ds[ds.length-1]})`]);
+    rows.push(['예약 · 옮길 예약',`${st.out}건 <span class="warn">(삭제됨 ${st.deleted}건${$('#oCx').checked?'':`, 취소 ${st.cancelled}건`} 제외)</span>`]);
+    const w=[]; if(st.noTime) w.push(`시간 없음 ${st.noTime}건 → 00:00으로 넣고 메모에 표시`); if(st.noName) w.push(`이름 없음 ${st.noName}건`); if(st.noSize) w.push(`인원 없음 ${st.noSize}건 → 1명`);
+    if(w.length) rows.push(['예약 · 확인',`<span class="warn">${w.join('<br>')}</span>`]); }
+  box.innerHTML=rows.length?`<table>${rows.map(r=>`<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</table>`:'';
+}
+$('#bRead').onclick=async()=>{
+  const b=$('#bRead'); b.disabled=true; b.textContent='읽는 중…';
+  try{
+    log('예전 서버에서 근무표를 읽는 중…');
+    const sch=await jf(`${OLD.url}/rest/v1/schedule_state?id=eq.main&select=data,rev`,{headers:oH()},'예전 근무표 읽기');
+    oldState=(sch&&sch[0]&&sch[0].data)||null; log(oldState?`근무표 읽음 (직원 ${(oldState.staff||[]).length}명)`:'예전 서버에 근무표가 없어요','g');
+    log('예전 서버에서 예약을 읽는 중…');
+    try{ oldRes=await pagedGet(`${OLD.url}/rest/v1/reservations_day?select=id,data&order=id`,oH(),'예전 예약 읽기'); log(`예약 읽음 (${oldRes.length}일)`,'g'); }
+    catch(e){ oldRes=null; log(e.message,'w'); }
+    download(`예전서버_백업_${today()}.json`,{schedule_state:oldState,reservations_day:oldRes,savedAt:new Date().toISOString()});
+    log('예전 내용을 파일로도 저장했어요 (예전서버_백업_날짜.json) — 혹시 몰라 보관하세요','g');
+    $('#n2').classList.add('ok'); showSummary(); refreshGo();
+  }catch(e){ log(e.message,'e'); $('#sum').innerHTML=`<div class="bad">${e.message}</div>`; }
+  b.disabled=false; b.textContent='예전 서버에서 다시 읽기';
+};
+$('#fBackup').onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{ const o=JSON.parse(await f.text());
+    const st=o.schedule_state||(o.data&&o.data.staff?o.data:null)||(o.staff?o:null); if(!st||!Array.isArray(st.staff)) throw new Error('근무표 백업 파일이 아니에요');
+    oldState=st; if(o.reservations_day) oldRes=o.reservations_day; log(`백업 파일에서 근무표를 읽었어요 (직원 ${st.staff.length}명)`,'g'); $('#n2').classList.add('ok'); showSummary(); refreshGo();
+  }catch(err){ log(err.message,'e'); }
+};
+$('#oCx').onchange=showSummary;
+
+/* ---- 3. 옮기기 ---- */
+function refreshGo(){ const ok=winOpen&&!!store&&(oldState||oldRes); $('#bGo').disabled=!ok; $('#goMsg').textContent=ok?'':(!winOpen?'옮기기 창구가 닫혀 있어요':'먼저 2번에서 예전 내용을 읽으세요'); }
+async function send(fn,rows,label){
+  for(let i=0;i<rows.length;i+=300){ const part=rows.slice(i,i+300);
+    const r=await rpc(fn,{p_rows:part},label);
+    if(r!=='ok') throw new Error(r==='closed'?'옮기기 창구가 닫혔어요 (시간 초과). Claude에게 다시 열어달라고 하세요':`${label} 실패: ${r}`);
+    log(`${label}: ${Math.min(i+300,rows.length)} / ${rows.length}`); }
+}
+$('#bGo').onclick=async()=>{
+  const go=$('#bGo'); go.disabled=true; $('#result').innerHTML='';
+  const res=[]; let failed=false;
+  try{
+    /* --- 근무표 --- */
+    if($('#oSch').checked&&oldState){
+      log('── 근무표 옮기기 ──');
+      const existing=(await rpc('sch_mig_existing',{},'새 서버 근무표 확인'))||[];
+      const live=existing.filter(r=>!r.deleted);
+      if($('#oReplace').checked&&live.some(r=>r.kind!=='cfg')){ download(`새서버_근무표_바꾸기전_${today()}.json`,existing); log(`바꾸기 전 새 서버 내용을 파일로 저장했어요 (${live.length}건)`,'g'); }
+      const posRow=live.find(r=>r.kind==='cfg'&&r.id==='positions'); const conv=MIG.convertSchedule(oldState,posRow?posRow.data:[]);
+      const rows=[]; const keep=new Set();
+      ['staff','rule','dc','spot','aw','pay'].forEach(kind=>Object.entries(conv.items[kind]).forEach(([id,data])=>{ rows.push({kind,id,data,deleted:false}); keep.add(kind+'\u0001'+id); }));
+      if(conv.added>0||!posRow) rows.push({kind:'cfg',id:'positions',data:conv.positions,deleted:false});
+      let removed=0;
+      if($('#oReplace').checked){ live.filter(r=>['staff','rule','dc','spot','aw','pay'].includes(r.kind)&&!keep.has(r.kind+'\u0001'+r.id)).forEach(r=>{ rows.push({kind:r.kind,id:r.id,data:null,deleted:true}); removed++; }); }
+      await send('sch_mig_put_items',rows,'근무표 저장');
+      const c=Object.fromEntries(Object.entries(conv.items).map(([k,v])=>[k,Object.keys(v).length]));
+      res.push(['근무표',`직원 ${c.staff}명 · 예외/이 날만 ${c.dc}건 · 당일알바 ${c.spot}건 · 기간 설정 ${c.rule}건 · 주간 입력 ${c.aw}주 · 금액 ${c.pay}건`+(conv.added?` · 포지션 ${conv.added}개 추가`:'')+(removed?` · 이전 임시 자료 ${removed}건 정리`:'')]);
+      log('근무표 옮기기 완료','g');
+    }
+    /* --- 예약 --- */
+    if($('#oRes').checked&&oldRes){
+      log('── 예약 옮기기 ──');
+      const c=MIG.convertReservations(oldRes,store.id,{withCancelled:$('#oCx').checked});
+      await send('sch_mig_put_reservations',c.rows,'예약 저장');
+      res.push(['예약',`${c.stat.out}건 (${c.stat.days}일치)`+(c.stat.noTime?` · 시간 없음 ${c.stat.noTime}건`:'')]);
+      log('예약 옮기기 완료','g');
+    }
+    /* --- 확인 --- */
+    log('── 새 서버에서 다시 세어 보기 ──');
+    const cn=(await rpc('sch_mig_counts',{},'개수 확인'))||{items:{},reservations:'?'}; const cnt=cn.items||{}; const total=cn.reservations;
+    res.push(['새 서버 현재',`근무표 직원 ${cnt.staff||0} · 예외 ${cnt.dc||0} · 당일알바 ${cnt.spot||0} · 금액 ${cnt.pay||0} / 예약 ${total||'?'}건`]);
+    log(`새 서버 확인: 직원 ${cnt.staff||0}, 예외 ${cnt.dc||0}, 당일알바 ${cnt.spot||0}, 예약 ${total||'?'}`,'g');
+  }catch(e){ failed=true; log(e.message,'e'); res.push(['오류',`<span class="bad">${e.message}</span>`]); }
+  $('#result').innerHTML=`<table>${res.map(r=>`<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</table>`+(failed?'<p class="warn">중간에 멈췄어요. 같은 버튼을 다시 누르면 이어서 해요 (중복되지 않아요).</p>':'<p class="ok"><b>끝났어요.</b> 이제 새 근무표 파일을 열어 확인하세요.</p>');
+  $('#n3').classList.toggle('ok',!failed); go.disabled=false; go.textContent='다시 옮기기';
+};
+</script>
+</body>
+</html>
