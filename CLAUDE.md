@@ -20,7 +20,7 @@
 | 근무 스케줄 (+직원·매장·설정 화면) | `ilpum-schedule.html` | **새** 서버 `sch_*` | 완성, 실서버 미확인 |
 | 급여 관리 | `일품집_급여.html` | **예전** 서버 `schedule_state` | 새 근무표와 **미연결** |
 | 일회성 이전 도구 | `ilpum-migrate.html` | 예전 서버 → 새 서버 | 완성, **아직 실행 안 함** |
-| 발주 관리 | (외부 사이트 iframe) | `ilpum-order.netlify.app` | 주소는 사용자 메모 기준, 미확인 |
+| 발주 관리 | `order.html` | **새** 서버 `wh_items`·`wh_orders` (매장별) | 화면 새로 만듦(추정 기반). 자료는 "가져오기" 버튼으로 이전 |
 
 **두 Supabase 프로젝트**
 - **예전:** ref `fmzpmekypmjuydgxpnlu`. 예약(`reservations_day`: 날짜별 JSON 한 줄)과 예전 근무표(`schedule_state` id=`main` 한 줄 JSON)가 있음. 공개(anon) 키는 예전 HTML들 안에 박혀 있음(`keys.json`의 `old`). **Claude의 Supabase 도구로는 접근 불가**, 샌드박스에서도 접속 차단이었음. 사장님 컴퓨터에서만 읽을 수 있음.
