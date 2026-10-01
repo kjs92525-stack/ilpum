@@ -84,24 +84,24 @@ body.resizing iframe{pointer-events:none}
 .qrow .btn{flex:none}
 .qprev{font-size:13px;min-height:20px}
 .qprev .bad{color:var(--warn);font-weight:600}
-.thead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:var(--sub);padding:4px 2px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
-.thead .t{font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums;border:0;background:none;padding:0 4px;border-radius:5px;font-weight:700;cursor:pointer}
+.thead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--sub);padding:2px 2px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+.thead .t{font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums;border:0;background:none;padding:0 4px;border-radius:5px;font-weight:700;cursor:pointer}
 .thead .t:hover{background:var(--soft);text-decoration:underline}
-.rtime{border:1.5px solid var(--accent);background:var(--panel);color:var(--accent);border-radius:6px;padding:0 6px;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;cursor:pointer}
+.rtime{border:1.5px solid var(--accent);background:var(--panel);color:var(--accent);border-radius:6px;padding:0 5px;font-weight:800;font-size:12.5px;font-variant-numeric:tabular-nums;cursor:pointer}
 .rtime:hover{background:var(--accent);color:var(--accent-ink)}
 .res.done .rtime,.res.cxl .rtime{opacity:.5}
 .thead.now .t{color:var(--accent)}
-.res{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 2px;border-bottom:1px dashed var(--line)}
+.res{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:6px;align-items:start;padding:4px 2px;border-bottom:1px dashed var(--line)}
 .res:last-child{border-bottom:0}
 .res{cursor:pointer}
 .res:hover{background:var(--soft);border-radius:8px}
 .res .ck,.res .acts{cursor:auto}
 .res .acts{display:flex;gap:4px}
-.res .ck{width:22px;height:22px;margin-top:2px;accent-color:var(--ok);cursor:pointer}
+.res .ck{width:18px;height:18px;margin-top:1px;accent-color:var(--ok);cursor:pointer}
 .res .l1{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
-.res .nm{font-weight:700;font-size:16.5px}
+.res .nm{font-weight:700;font-size:14px}
 .res .pp{font-weight:600;font-variant-numeric:tabular-nums}
-.tbl{display:inline-block;font-size:15px;font-weight:800;padding:1px 9px;border-radius:6px;background:var(--ink);color:var(--panel);border:1px solid var(--ink);font-variant-numeric:tabular-nums;letter-spacing:.2px}
+.tbl{display:inline-block;font-size:13px;font-weight:800;padding:0 7px;border-radius:6px;background:var(--ink);color:var(--panel);border:1px solid var(--ink);font-variant-numeric:tabular-nums;letter-spacing:.2px}
 .tnote{display:inline-block;font-size:13px;font-weight:700;padding:1px 8px;border-radius:6px;border:1px solid var(--line);background:var(--soft)}
 .tnote.cx{background:var(--warn);color:#fff;border-color:var(--warn)}
 .res.cxl .nm,.res.cxl .pp,.res.cxl .rq{text-decoration:line-through;color:var(--past)}
@@ -154,8 +154,8 @@ body.resizing iframe{pointer-events:none}
 .pk1 .n{font-size:17px;font-weight:700}
 .pk1 .sub{font-size:13px;color:var(--sub);margin-top:2px}
 .tbl.none{color:var(--warn);border-color:var(--warn);background:var(--warn-bg);font-size:13px}
-.res .rq{font-size:13px;color:var(--ink);margin-top:2px;background:var(--soon-bg);border-left:3px solid var(--soon);border-radius:4px;padding:1px 6px;display:inline-block;max-width:100%}
-.res .ph{font-size:13px;color:var(--sub);text-decoration:none;font-variant-numeric:tabular-nums}
+.res .rq{font-size:12px;color:var(--ink);margin-top:2px;background:var(--soon-bg);border-left:3px solid var(--soon);border-radius:4px;padding:1px 6px;display:inline-block;max-width:100%}
+.res .ph{font-size:12px;color:var(--sub);text-decoration:none;font-variant-numeric:tabular-nums}
 .res.done .nm,.res.done .pp,.res.done .rq{text-decoration:line-through;color:var(--past)}
 .res.done .tbl{opacity:.55}
 .badge{display:inline-block;font-size:11.5px;font-weight:700;padding:0 6px;border-radius:4px}
@@ -165,6 +165,15 @@ body.resizing iframe{pointer-events:none}
 .empty strong{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
 
 /* ----- 현황판 ----- */
+.cell.ed{cursor:pointer;position:relative;outline:2px dashed var(--accent);outline-offset:-2px}
+.cell.ed.sel{outline:3px solid var(--ok);background:var(--soft)}
+.cell.ed-blank{border-style:dashed;background:none;color:var(--sub);min-height:clamp(40px,6vh,70px)}
+.cell.addc{border:2px dashed var(--line);background:none;color:var(--sub);font-size:22px;min-height:clamp(40px,6vh,70px);cursor:pointer}
+.cell .x{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;border:0;background:var(--warn);color:#fff;font-size:11px;line-height:1;cursor:pointer;padding:0}
+.ledbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--soon-bg);border:1.5px solid var(--soon);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:13px}
+.ledbar b{font-size:14px}
+.lbtn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:2px 8px;font-size:12px;cursor:pointer;margin-left:6px;font-weight:600}
+.lbtn.bad{color:var(--warn)}
 .btop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
 .ftabs button{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:8px 22px;font-weight:700;font-size:16px}
 .ftabs button[aria-pressed="true"]{border:2px solid #3C5A86;color:#3C5A86}
@@ -315,7 +324,7 @@ let followNow=true;   // 현황판: 기준 시간 앞뒤 2시간
 
 /* ---------- 테이블 배치 (지금 현황판과 같은 모양) ---------- */
 const R = (a,b)=>`R${a}-${b}`;
-const FLOORS = [
+let FLOORS = [
   { key:'1', name:'1층', groups:[
       {title:'1 — 10번',  cols:[[5,4,3,2,1],[10,9,8,7,6]]},
       {title:'11 — 19번', cols:[[15,14,13,12,11],[19,18,17,16]]},
@@ -326,7 +335,9 @@ const FLOORS = [
       {title:'46 — 53번', cols:[[49,48,47,46],[53,52,51,50]]},
       {title:'룸', cols:[[R(1,1),R(1,2),R(2,1),R(2,2),R(3,1),R(3,2)],[R(4,1),R(4,2),R(4,3),R(4,4)]]} ] }
 ];
-const ALL_TABLES = (()=>{ const out=[]; FLOORS.forEach(f=>{ f.groups.forEach(g=>g.cols.flat().forEach(t=>t!=null&&out.push(String(t)))); if(f.bar) f.bar.row.forEach(t=>out.push(String(t))); }); return out; })();
+const tablesOf=F=>{ const out=[]; F.forEach(f=>{ f.groups.forEach(g=>g.cols.flat().forEach(t=>t!=null&&out.push(String(t)))); if(f.bar) f.bar.row.forEach(t=>out.push(String(t))); }); return out; };
+let ALL_TABLES = tablesOf(FLOORS);
+const DEFAULT_FLOORS = JSON.parse(JSON.stringify(FLOORS));
 const tLabel = t=> /^R/.test(t)? '룸'+t.slice(1) : t;
 const ROOM_SUBS={1:[1,2],2:[1,2],3:[1,2],4:[1,2,3,4]};
 // "33 34" → 33,34번 / "r1,2" → 룸1·룸2 전체 / "r4-1,2" → 룸4-1·4-2 / "r4" → 룸4 전체 / "R3-1, R3-2"(시트 표기)도 인식
@@ -344,7 +355,7 @@ function parseTables(s){
       m=tok.match(/^(\d{1,2})\s*(?:T|번)?$/i); if(!m) return; const n=+m[1];
       if(mode==='room' && ROOM_SUBS[n]){ ROOM_SUBS[n].forEach(x=>out.push(R(n,x))); return; }
       if(mode==='sub' && ROOM_SUBS[room].includes(n)){ out.push(R(room,n)); return; }
-      if(n>0 && n<=53){ out.push(String(n)); mode='table'; }
+      if(n>0 && n<=99){ out.push(String(n)); mode='table'; }
     });
   });
   return [...new Set(out)];
@@ -627,9 +638,9 @@ const BIG8=[['29','30'],['31','32'],['33','34']];
 const ROOMS=[1,2,3,4];
 function freeBig(T){
   const busy=new Set(); active(ui.date).forEach(x=>{ const m=toMin(x.time); if(m!=null && Math.abs(m-T)<WIN) (x.tables||[]).forEach(t=>busy.add(t)); });
-  const six={}; Object.keys(BIG6).forEach(f=>six[f]=BIG6[f].filter(t=>!busy.has(t)));
-  const eight=BIG8.filter(p=>p.every(t=>!busy.has(t)));
-  const rooms=[]; ROOMS.forEach(r=>{ const subs=ROOM_SUBS[r].map(x=>R(r,x)); const free=subs.filter(t=>!busy.has(t));
+  const six={}; Object.keys(BIG6).forEach(f=>six[f]=BIG6[f].filter(t=>!busy.has(t)&&ALL_TABLES.includes(t)));
+  const eight=BIG8.filter(p=>p.every(t=>!busy.has(t)&&ALL_TABLES.includes(t)));
+  const rooms=[]; ROOMS.forEach(r=>{ const subs=ROOM_SUBS[r].map(x=>R(r,x)).filter(t=>ALL_TABLES.includes(t)); if(!subs.length) return; const free=subs.filter(t=>!busy.has(t));
     if(free.length===subs.length) rooms.push({label:`룸${r}`,tables:subs});
     else if(r===4){ [[1,2],[3,4]].forEach(pr=>{ const ts=pr.map(x=>R(4,x)); if(ts.every(t=>!busy.has(t))) rooms.push({label:`룸4-${pr.join('·')}`,tables:ts}); }); }
     else if(free.length) rooms.push({label:`룸${r} 일부(${free.map(tLabel).join(',')})`,tables:free}); });
@@ -647,6 +658,7 @@ function freeHtml(T){
   </div>`;
 }
 function renderBoard(){
+  if(layoutEdit) return renderBoardEdit();
   const T=ui.t; const map=boardMap(T);
   const f=FLOORS.find(x=>x.key===ui.floor);
   const cnt={use:0,res:0,soon:0}; const seen=new Set();
@@ -662,6 +674,7 @@ function renderBoard(){
     <div class="btop"><h2>현황판</h2>
       <div class="ftabs" style="display:flex;gap:6px">${FLOORS.map(x=>`<button data-floor="${x.key}" aria-pressed="${x.key===ui.floor}">${x.name}</button>`).join('')}</div>
       <span class="spacer"></span>
+      ${canEditLayout()?'<button class="btn sm" data-led="start" title="테이블 추가·삭제·위치 바꾸기">배치 수정</button>':''}
       <div class="legend"><span class="lg-use">도착 ${cnt.use}</span><span class="lg-res">예약시간 ${cnt.res}</span><span class="lg-soon">2시간 내 예정 ${cnt.soon}</span><span class="lg-tight">⏰ 임박(2시간 간격) ${Object.keys(TIGHT.table).length}</span></div></div>
     <div class="timebox"><button class="btn sm tstep" data-act="t-" aria-label="30분 앞으로">‹</button>
       <span class="tnow">${fromMin(T)}</span>
@@ -671,6 +684,70 @@ function renderBoard(){
       <span class="twin">${fromMin(Math.max(0,T-WIN))} ~ ${fromMin(Math.min(1439,T+WIN))} 예약 표시 · 키보드 ← → 30분</span></div>
     <div class="floor">${groups}</div>${bar}`;
 }
+
+/* ---------- 현황판 배치 수정 (수정 버튼을 눌러야만 바뀜 · 저장해야 반영) ---------- */
+let layoutEdit=null, layoutSel='';           // layoutEdit: 수정 중인 임시본 {floors} / layoutSel: 옮기려고 고른 자리
+const canEditLayout=()=>{ const st=STORES.find(x=>x.id===SID); return !!st && ['hq','owner','manager'].includes(st.role); };
+const cloneL=o=>JSON.parse(JSON.stringify(o));
+function validLayout(F){ return Array.isArray(F)&&F.length>0&&F.every(f=>f&&typeof f.key==='string'&&typeof f.name==='string'&&Array.isArray(f.groups)&&f.groups.every(g=>g&&typeof g.title==='string'&&Array.isArray(g.cols)&&g.cols.every(c=>Array.isArray(c)))&&(!f.bar||(Array.isArray(f.bar.row)))); }
+function layoutError(F){
+  const all=tablesOf(F); if(!all.length) return '테이블이 하나도 없어요';
+  const bad=all.find(t=>!(/^\d{1,2}$/.test(t)&&+t>=1)&&!/^R[1-4]-[1-4]$/.test(t)); if(bad) return `‘${bad}’ 는 쓸 수 없는 번호예요`;
+  const dup=all.find((t,i)=>all.indexOf(t)!==i); if(dup) return `테이블 ${dup}번이 두 번 있어요`;
+  if(new Set(F.map(f=>f.key)).size!==F.length) return '층 구분이 겹쳐요'; return '';
+}
+function rebuildTables(){ ALL_TABLES=tablesOf(FLOORS); if(!FLOORS.some(f=>f.key===ui.floor)) ui.floor=FLOORS[0].key; }
+async function loadLayout(){
+  try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.tables&deleted=eq.false&select=data`); if(!r.ok) return;
+    const rows=await r.json(); const d=rows[0]&&rows[0].data; if(d&&validLayout(d.floors)&&!layoutError(d.floors)){ FLOORS=d.floors; rebuildTables(); } }catch(e){}
+}
+async function saveLayout(F){
+  const r=await fx('/rest/v1/sch_items?on_conflict=store_id,kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({store_id:SID,kind:'cfg',id:'tables',data:{floors:F,v:1},deleted:false})});
+  if(!r.ok) throw new Error(r.status===403?'배치를 바꿀 권한이 없어요':'HTTP '+r.status);
+}
+const slotOf=(F,p)=>{ const a=p.split(','); const f=F[+a[0]]; return a[1]==='b'?{arr:f.bar.row,idx:+a[2]}:{arr:f.groups[+a[1]].cols[+a[2]],idx:+a[3]}; };
+const colOf=(F,p)=>{ const a=p.split(','); const f=F[+a[0]]; return a[1]==='b'?f.bar.row:f.groups[+a[1]].cols[+a[2]]; };
+function editCell(t,p){
+  const sel=layoutSel===p?' sel':'';
+  if(t==null) return `<div class="cell ed ed-blank${sel}" data-dp="${p}"><span class="no">빈칸</span><button class="x" data-led="tdel" data-p="${p}" aria-label="빈칸 지우기">✕</button></div>`;
+  return `<div class="cell empty ed${sel}" data-dp="${p}"><span class="no">${esc(tLabel(String(t)))}</span><button class="x" data-led="tdel" data-p="${p}" aria-label="테이블 지우기">✕</button></div>`;
+}
+function renderBoardEdit(){
+  const F=layoutEdit.floors; if(!F.some(x=>x.key===ui.floor)) ui.floor=F[0].key; const fi=F.findIndex(x=>x.key===ui.floor); const f=F[fi];
+  const groups=f.groups.map((g,gi)=>`<div class="grp"><h3>${esc(g.title)}<button class="lbtn" data-led="gren" data-p="${fi},${gi}">이름 바꾸기</button><button class="lbtn bad" data-led="gdel" data-p="${fi},${gi}">구역 지우기</button></h3><div class="cols">${g.cols.map((c,ci)=>`<div class="col">${c.map((t,ti)=>editCell(t,`${fi},${gi},${ci},${ti}`)).join('')}<button class="cell addc" data-led="tadd" data-p="${fi},${gi},${ci}" data-dp-end="${fi},${gi},${ci}" title="여기에 테이블 추가 (고른 테이블이 있으면 여기로 옮겨요)">+</button></div>`).join('')}</div></div>`).join('');
+  const bar=f.bar?`<div class="grp bar29"><h3>${esc(f.bar.title)}</h3><div class="barrow">${f.bar.row.map((t,ti)=>editCell(t,`${fi},b,${ti}`)).join('')}<button class="cell addc" data-led="tadd" data-p="${fi},b,0" data-dp-end="${fi},b,0">+</button></div></div>`:'';
+  document.getElementById('boardPanel').innerHTML=`<div class="ledbar"><b>배치 수정 중</b><span>저장을 눌러야 실제 현황판에 반영돼요. ① 테이블을 누르고 ② 바꿀 자리를 누르면 서로 자리가 바뀌어요 (<b>+</b> 를 누르면 그 줄 끝으로 옮겨요)</span></div>
+    <div class="btop"><h2>배치 수정</h2><div class="ftabs" style="display:flex;gap:6px">${F.map(x=>`<button data-floor="${x.key}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div><span class="spacer"></span>
+      <button class="lbtn" data-led="gadd">+ 구역</button><button class="lbtn" data-led="fadd">+ 층</button><button class="lbtn" data-led="fren">층 이름</button><button class="lbtn bad" data-led="fdel">층 지우기</button>
+      <button class="lbtn" data-led="reset">처음 배치로</button><button class="btn sm" data-led="cancel">취소</button><button class="btn sm pri" data-led="save">저장</button></div>
+    <div class="floor">${groups}</div>${bar}`;
+}
+document.getElementById('boardPanel').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-led],[data-dp],[data-dp-end]'); if(!b) return;
+  const act=b.dataset.led; if(!act && !layoutEdit) return;
+  if(act==='start'){ if(!confirm('현황판 배치를 수정할까요?\n\n저장을 누르기 전에는 실제 배치가 바뀌지 않아요.')) return; layoutEdit={floors:cloneL(FLOORS)}; layoutSel=''; renderBoard(); return; }
+  if(!layoutEdit) return;
+  e.stopPropagation(); const F=layoutEdit.floors; const f=F.find(x=>x.key===ui.floor); const p=b.dataset.p;
+  const redraw=()=>renderBoard();
+  if(act==='tdel'){ const {arr,idx}=slotOf(F,p); arr.splice(idx,1); layoutSel=''; return redraw(); }
+  if(act==='tadd'){
+    if(layoutSel){ const src=slotOf(F,layoutSel); const v=src.arr[src.idx]; const dst=colOf(F,b.dataset.dpEnd||p); src.arr.splice(src.idx,1); dst.push(v); layoutSel=''; return redraw(); }
+    const v=(prompt('추가할 테이블 번호 (1~99)')||'').trim(); if(!v) return; if(!/^\d{1,2}$/.test(v)||+v<1) return toast('1~99 사이 숫자로 넣어 주세요');
+    if(tablesOf(F).includes(String(+v))) return toast(`${+v}번은 이미 있어요`); colOf(F,p).push(String(+v)); return redraw(); }
+  if(b.dataset.dp!==undefined && !act){
+    const q=b.dataset.dp; if(!layoutSel){ layoutSel=q; return redraw(); } if(layoutSel===q){ layoutSel=''; return redraw(); }
+    const A=slotOf(F,layoutSel), B=slotOf(F,q); const t=A.arr[A.idx]; A.arr[A.idx]=B.arr[B.idx]; B.arr[B.idx]=t; layoutSel=''; return redraw(); }
+  if(act==='gren'){ const [fi,gi]=p.split(',').map(Number); const v=(prompt('구역 이름',F[fi].groups[gi].title)||'').trim(); if(v){ F[fi].groups[gi].title=v; redraw(); } return; }
+  if(act==='gdel'){ const [fi,gi]=p.split(',').map(Number); const g=F[fi].groups[gi]; const n=g.cols.flat().filter(t=>t!=null).length; if(!confirm(`‘${g.title}’ 구역과 안의 테이블 ${n}개를 지울까요?`)) return; F[fi].groups.splice(gi,1); layoutSel=''; return redraw(); }
+  if(act==='gadd'){ const v=(prompt('새 구역 이름 (예: 창가석)')||'').trim(); if(v){ f.groups.push({title:v,cols:[[],[]]}); redraw(); } return; }
+  if(act==='fadd'){ const v=(prompt('새 층 이름 (예: 3층)')||'').trim(); if(v){ const key=String(Math.max(0,...F.map(x=>+x.key||0))+1); F.push({key,name:v,groups:[{title:'구역 1',cols:[[],[]]}]}); ui.floor=key; redraw(); } return; }
+  if(act==='fren'){ const v=(prompt('층 이름',f.name)||'').trim(); if(v){ f.name=v; redraw(); } return; }
+  if(act==='fdel'){ if(F.length<2) return toast('층은 하나 이상 있어야 해요'); if(!confirm(`‘${f.name}’ 전체를 지울까요?`)) return; F.splice(F.indexOf(f),1); layoutSel=''; ui.floor=F[0].key; return redraw(); }
+  if(act==='reset'){ if(!confirm('처음 배치(기본 배치)로 되돌릴까요?\n저장을 눌러야 반영돼요.')) return; layoutEdit.floors=cloneL(DEFAULT_FLOORS); layoutSel=''; ui.floor=layoutEdit.floors[0].key; return redraw(); }
+  if(act==='cancel'){ if(!confirm('수정한 내용을 버리고 닫을까요?')) return; layoutEdit=null; layoutSel=''; return renderBoard(); }
+  if(act==='save'){ const err=layoutError(F); if(err) return toast(err);
+    try{ await saveLayout(F); FLOORS=cloneL(F); rebuildTables(); layoutEdit=null; layoutSel=''; render(); toast('배치를 저장했어요'); }catch(er){ toast('저장하지 못했어요: '+er.message); } return; }
+},true);
 
 /* ---------- 예약 입력 창 ---------- */
 const dlg=document.getElementById('dlg'), dlgBody=document.getElementById('dlgBody');
@@ -1189,7 +1266,7 @@ async function resolveStore(){
     STORES=(await r.json()).filter(x=>x.role);
     if(!STORES.length){ needLogin('연결된 매장이 없어요 — 본사에 계정 연결을 요청하세요'); return; }
     const want=readConf().sid; const st=STORES.find(x=>x.id===want)||STORES.find(x=>x.is_hq)||STORES[0];
-    SID=st.id; REST='1'; showStore(st);
+    SID=st.id; REST='1'; showStore(st); await loadLayout();
   }catch(e){ if(e.auth) needLogin('로그인이 필요해요'); else setSync(`연결 실패(${e.message})`,'err'); }
 }
 function showStore(st){

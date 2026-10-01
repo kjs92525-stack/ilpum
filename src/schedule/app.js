@@ -3,7 +3,7 @@ const QS=new URLSearchParams(location.search);
 const VIEWS=['cards','week','day','staff','rules','me','hq','set'];
 const EMBED=QS.get('embed')==='1';                       // 통합관리 화면 안에 들어갈 때: 자기 왼쪽 메뉴는 숨김
 if(EMBED) document.documentElement.classList.add('embed');
-const APP={be:null,user:null,stores:[],sid:null,st:null,D:null,view:VIEWS.includes(QS.get('view'))?QS.get('view'):'cards',cardMode:'month',anchor:new Date(),day:todayStr,sum:null,me:null,pf:'',q:''};
+const APP={be:null,user:null,stores:[],sid:null,st:null,D:null,view:VIEWS.includes(QS.get('view'))?QS.get('view'):'cards',cardMode:'week7',anchor:new Date(),day:todayStr,sum:null,me:null,pf:'',q:''};
 const role=()=>APP.st?APP.st.role:null;
 const canEdit=()=>['hq','owner','manager','open'].includes(role());
 const payAllowed=()=>!!(APP.st&&APP.st.pay);
