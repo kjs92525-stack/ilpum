@@ -27,8 +27,11 @@ Deno.serve(async (req: Request) => {
   const { data: who, error: whoErr } = await caller.auth.getUser(jwt);
   if (whoErr || !who?.user) return out(401, { error: "로그인이 만료됐어요. 다시 로그인해 주세요" });
   const admin = createClient(url, svc, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: prof } = await admin.from("profiles").select("role").eq("user_id", who.user.id).maybeSingle();
-  if (!prof || prof.role !== "hq") return out(403, { error: "계정은 본사만 만들 수 있어요" });
+  const { data: prof } = await admin.from("profiles").select("role,store_id").eq("user_id", who.user.id).maybeSingle();
+  // 본사는 모든 매장에, 점주(franchise)는 자기 매장에 직원·매니저·발주 전용만 만들 수 있다
+  const isHq = prof?.role === "hq";
+  const isOwner = prof?.role === "franchise";
+  if (!isHq && !isOwner) return out(403, { error: "계정은 본사나 점주만 만들 수 있어요" });
 
   // 2) 입력 확인
   let b: Record<string, unknown>;
@@ -42,6 +45,7 @@ Deno.serve(async (req: Request) => {
   if (password.length < 8 || password.length > 72) return out(400, { error: "비밀번호는 8자 이상이어야 해요" });
   if (!["owner", "manager", "staff", "order"].includes(role)) return out(400, { error: "역할이 올바르지 않아요" });
   if (!/^[0-9a-f-]{36}$/.test(store)) return out(400, { error: "매장을 골라 주세요" });
+  if (!isHq && (store !== prof!.store_id || role === "owner")) return out(403, { error: "우리 매장의 직원·매니저·발주 전용 계정만 만들 수 있어요" });
   const { data: st } = await admin.from("stores").select("id,is_hq").eq("id", store).maybeSingle();
   if (!st) return out(400, { error: "없는 매장이에요" });
   if (role === "owner" && st.is_hq) return out(400, { error: "본점은 본사 계정을 써요. 가맹점에만 점주를 만들 수 있어요" });

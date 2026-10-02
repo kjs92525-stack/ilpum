@@ -26,8 +26,10 @@ Deno.serve(async (req: Request) => {
   const { data: who, error: whoErr } = await caller.auth.getUser(jwt);
   if (whoErr || !who?.user) return out(401, { error: "로그인이 만료됐어요. 다시 로그인해 주세요" });
   const admin = createClient(url, svc, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: me } = await admin.from("profiles").select("role").eq("user_id", who.user.id).maybeSingle();
-  if (!me || me.role !== "hq") return out(403, { error: "계정 관리는 본사만 할 수 있어요" });
+  const { data: me } = await admin.from("profiles").select("role,store_id").eq("user_id", who.user.id).maybeSingle();
+  const isHq = me?.role === "hq", isOwner = me?.role === "franchise";
+  if (!isHq && !isOwner) return out(403, { error: "계정 관리는 본사나 점주만 할 수 있어요" });
+  const myStore: string | null = isOwner ? me!.store_id : null;   // 점주는 자기 매장의 직원·매니저·발주 전용만
 
   let b: Record<string, unknown>;
   try { b = await req.json(); } catch { return out(400, { error: "요청 형식이 올바르지 않아요" }); }
@@ -49,11 +51,12 @@ Deno.serve(async (req: Request) => {
       admin.from("stores").select("id,name"),
     ]);
     const sname = new Map((stores || []).map((s: { id: string; name: string }) => [s.id, s.name]));
-    const rows = users.map((u) => {
+    const mine = (uid: string) => (mems || []).filter((x: { user_id: string }) => x.user_id === uid);
+    const rows = users.filter((u) => isHq || mine(u.id).some((x: { store_id: string }) => x.store_id === myStore)).map((u) => {
       const p = (profs || []).find((x: { user_id: string }) => x.user_id === u.id);
-      const m = (mems || []).filter((x: { user_id: string }) => x.user_id === u.id);
+      const m = mine(u.id).filter((x: { store_id: string }) => isHq || x.store_id === myStore);
       const links = m.map((x: { store_id: string; role: string; can_pay: boolean }) => ({ store: sname.get(x.store_id) || "", role: x.role, pay: !!x.can_pay }));
-      if (p && p.role === "franchise") links.unshift({ store: sname.get(p.store_id) || "", role: "owner", pay: true });
+      if (isHq && p && p.role === "franchise") links.unshift({ store: sname.get(p.store_id) || "", role: "owner", pay: true });
       return { id: u.email.replace(/@ilpum\.invalid$/, ""), email: u.email, hq: p?.role === "hq", me: u.id === who.user.id,
         links, last: u.last, created: u.created, banned: u.banned };
     }).sort((a, b) => Number(b.hq) - Number(a.hq) || a.id.localeCompare(b.id));
@@ -75,6 +78,14 @@ Deno.serve(async (req: Request) => {
   const { data: tp } = await admin.from("profiles").select("role").eq("user_id", target.id).maybeSingle();
   if (tp?.role === "hq") return out(403, { error: "본사 계정은 여기서 바꾸거나 지울 수 없어요" });
   if (target.id === who.user.id) return out(403, { error: "내 계정은 바꿀 수 없어요" });
+  let tMems: { store_id: string }[] = [];
+  if (!isHq) {
+    // 점주: 이 매장에만 연결된 직원·매니저·발주 전용 계정만
+    if (tp) return out(403, { error: "점주·본사 계정은 바꿀 수 없어요" });
+    const { data: tm } = await admin.from("sch_members").select("store_id").eq("user_id", target.id);
+    tMems = tm || [];
+    if (!tMems.length || tMems.some((x) => x.store_id !== myStore)) return out(403, { error: "우리 매장 계정이 아니에요" });
+  }
 
   if (action === "setpw") {
     const password = String(b.password ?? "");
