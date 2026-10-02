@@ -430,6 +430,10 @@ const srcOf=el=>({sid:el.dataset.sid,spot:el.dataset.spot,k:el.dataset.k,pos:el.
 function dragBegin(el,x,y,touch){ DR={el,src:srcOf(el),x,y,x0:x,y0:y,on:false,touch,tgt:null,timer:null}; }
 function dragStart(){ if(!DR||DR.on) return; DR.on=true; document.body.classList.add('dragging-now');
   const g=DR.el.cloneNode(true); g.classList.add('dghost'); g.removeAttribute('data-a'); g.removeAttribute('title'); document.body.appendChild(g); DR.ghost=g; DR.el.classList.add('dragging');
+  // 빈 포지션은 화면을 밀어내지 않고 카드 아래에 떠 있는 판으로 보여줘요 (끌기 시작할 때 화면이 움직이던 것 방지)
+  const card=DR.el.closest('.cards .dcard'); if(card){ const rows=[...card.querySelectorAll('.cr.empty')];
+    if(rows.length){ const pal=document.createElement('div'); pal.className='dpal'; pal.innerHTML='<span class="dpl">빈 포지션으로</span>'+rows.map(r=>{ const b=r.querySelector('.bc[data-drop]'); return b?`<div class="bc dpal-i" data-drop="${esc(b.dataset.drop)}" data-k="${esc(b.dataset.k)}" style="${r.getAttribute('style')||''}">${esc(b.dataset.drop)}</div>`:''; }).join('');
+      document.body.appendChild(pal); const cr=card.getBoundingClientRect(), ph=pal.offsetHeight; pal.style.width=Math.max(160,cr.width)+'px'; pal.style.left=Math.max(4,Math.min(cr.left,innerWidth-pal.offsetWidth-4))+'px'; pal.style.top=Math.max(4,Math.min(cr.bottom+4,innerHeight-ph-8))+'px'; DR.pal=pal; } }
   if(navigator.vibrate) try{ navigator.vibrate(15); }catch(_){} dragMove(DR.x,DR.y); }
 function dragMove(x,y){ if(!DR||!DR.ghost) return; DR.x=x; DR.y=y; DR.ghost.style.left=x+'px'; DR.ghost.style.top=y+'px';
   const w=$('.boardwrap'); if(w){ const r=w.getBoundingClientRect(); if(x>r.right-50) w.scrollLeft+=16; else if(x<r.left+130) w.scrollLeft-=16; if(y>r.bottom-40) w.scrollTop+=14; else if(y<r.top+50) w.scrollTop-=14; }
@@ -438,7 +442,7 @@ function dragMove(x,y){ if(!DR||!DR.ghost) return; DR.x=x; DR.y=y; DR.ghost.styl
   if(c&&!(c.dataset.k===DR.src.k&&c.dataset.drop===DR.src.pos)){ c.classList.add('drop'); DR.tgt=c; DR.ghost.dataset.mode=c.dataset.k===DR.src.k?'move':'copy'; }
   else { DR.tgt=null; DR.ghost.dataset.mode=''; } }
 function dragEnd(commit){ if(!DR) return; clearTimeout(DR.timer); const d=DR; DR=null;
-  if(d.ghost) d.ghost.remove(); d.el.classList.remove('dragging'); $$('.bc.drop').forEach(n=>n.classList.remove('drop')); document.body.classList.remove('dragging-now');
+  if(d.ghost) d.ghost.remove(); if(d.pal) d.pal.remove(); d.el.classList.remove('dragging'); $$('.bc.drop').forEach(n=>n.classList.remove('drop')); document.body.classList.remove('dragging-now');
   if(d.on){ DRSUP=Date.now(); if(commit&&d.tgt) dropTo(d.src,d.tgt.dataset.k,d.tgt.dataset.drop); } }
 function dropTo(src,tk,pos){
   const D=APP.D;
