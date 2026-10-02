@@ -379,8 +379,17 @@ document.addEventListener('click',async e=>{
     case 'bkpick': { const f=$('#bkFile'); if(f) f.click(); break; }
     case 'mkaccount': { const id=$('#mkId').value.trim().toLowerCase(), pw=$('#mkPw').value; if(!id||!pw) return toast('아이디와 비밀번호를 넣으세요'); if(pw.length<8) return toast('비밀번호는 8자 이상이에요');
       const btn=e.target.closest('button'); btn.disabled=true;
-      try{ await APP.be.createAccount({id,password:pw,store:$('#mkStore').value,role:$('#mkRole').value,pay:$('#mkPay').checked}); $('#mkId').value=''; $('#mkPw').value=''; toast(`‘${id}’ 계정을 만들었어요. 아이디와 비밀번호를 알려 주세요`); }catch(err){ toast(err.message); }
+      try{ const sel=$('#mkStore'), rs=$('#mkRole'); const where=sel.options[sel.selectedIndex].text, rn=rs.options[rs.selectedIndex].text.split(' ')[0];
+        await APP.be.createAccount({id,password:pw,store:sel.value,role:rs.value,pay:$('#mkPay').checked});
+        APP.mkNote=`✅ 계정을 만들었어요 — 아이디 ${id} · ${where} ${rn} · 비밀번호는 방금 입력한 값`; APP.accts=undefined; render(); toast(`‘${id}’ 계정을 만들었어요`); }catch(err){ toast(err.message); }
       btn.disabled=false; break; }
+    case 'acctreload': APP.accts=undefined; APP.acctErr=''; render(); break;
+    case 'acctpw': { const pw=(prompt(`‘${d.id}’ 의 새 비밀번호 (8자 이상)`)||''); if(!pw) return; if(pw.length<8) return toast('비밀번호는 8자 이상이에요');
+      try{ await APP.be.manageAccounts({action:'setpw',id:d.id,password:pw}); APP.mkNote=`✅ ‘${d.id}’ 비밀번호를 바꿨어요 — 새 비밀번호: ${pw}`; render(); toast('비밀번호를 바꿨어요'); }catch(err){ toast(err.message); } break; }
+    case 'acctban': { const on=d.on==='1'; if(!confirm(on?`‘${d.id}’ 를 정지할까요? 로그인이 막혀요(자료는 그대로).`:`‘${d.id}’ 정지를 풀까요?`)) return;
+      try{ await APP.be.manageAccounts({action:'ban',id:d.id,on}); APP.accts=undefined; APP.mkNote=`✅ ‘${d.id}’ ${on?'정지했어요':'정지를 풀었어요'}`; render(); }catch(err){ toast(err.message); } break; }
+    case 'acctdel': { if(!confirm(`‘${d.id}’ 계정을 삭제할까요? 되돌릴 수 없어요.`)) return;
+      try{ const r=await APP.be.manageAccounts({action:'delete',id:d.id}); APP.accts=undefined; APP.mkNote=`✅ ‘${d.id}’ `+(r.note?r.note:'계정을 삭제했어요'); render(); toast(r.note?'로그인만 막았어요':'삭제했어요'); }catch(err){ toast(err.message); } break; }
     case 'importold': { if(!confirm('기존 근무표(본점 서버)의 데이터를 이 매장으로 가져올까요? 같은 사람·설정은 덮어써요.')) return;
       try{ toast('가져오는 중…'); const r=await fetch(`${OLD_URL}/rest/v1/schedule_state?id=eq.main&select=data`,{headers:{apikey:OLD_KEY,Authorization:'Bearer '+OLD_KEY}}); const rows=await r.json(); const n=importOld(rows[0]&&rows[0].data); render(); toast(`직원 ${n}명과 설정을 가져왔어요`); }catch(err){ toast('가져오기 실패: '+err.message); } break; }
     case 'backup': { const blob=new Blob([JSON.stringify({store:APP.sid,exportedAt:new Date().toISOString(),data:APP.D},null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`근무표_${APP.D.store.name}_${todayStr}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); break; }

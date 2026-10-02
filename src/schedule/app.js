@@ -364,6 +364,13 @@ function vHQ(){
 }
 
 /* ================= 설정 ================= */
+async function acctLoad(){ try{ const r=await APP.be.manageAccounts({action:'list'}); APP.accts=r.rows||[]; APP.acctErr=''; }catch(e){ APP.accts=[]; APP.acctErr=e.message; } if(APP.view==='set') render(); }
+function acctCard(){
+  if(APP.accts===undefined){ APP.accts=null; acctLoad(); }
+  const A=APP.accts, ago=t=>{ if(!t) return '아직 로그인 안 함'; const d=Math.floor((Date.now()-new Date(t))/864e5); return d<=0?'오늘 로그인':d+'일 전 로그인'; };
+  const body=APP.acctErr?`<p class="help" style="color:#C0392B">${esc(APP.acctErr)}</p>`:!A?'<p class="help">불러오는 중…</p>':A.length?A.map(a=>`<div class="row" style="align-items:center;border-top:1px solid var(--line,#E5E8EB);padding:8px 0"><div class="grow"><b>${esc(a.id)}</b>${a.hq?' <span class="muted">· 본사</span>':''}${a.banned?' <span style="color:#C0392B">· 정지됨</span>':''}<br><span class="muted" style="font-size:12px">${a.links.length?a.links.map(l=>esc(l.store)+' '+esc(roleName(l.role).split(' ')[0])).join(', '):(a.hq?'모든 매장':'연결된 매장 없음')} · ${ago(a.last)}</span></div>${a.hq||a.me?'':`<button class="btn" data-a="acctpw" data-id="${esc(a.id)}">비밀번호 바꾸기</button><button class="btn" data-a="acctban" data-id="${esc(a.id)}" data-on="${a.banned?0:1}">${a.banned?'정지 풀기':'정지'}</button><button class="btn bad" data-a="acctdel" data-id="${esc(a.id)}">삭제</button>`}</div>`).join(''):'<p class="help">계정이 없어요</p>';
+  return `<div class="card"><h2>계정 목록 · 관리 (본사만)</h2><p class="help">만든 아이디를 보고, 비밀번호를 새로 정하거나 정지·삭제할 수 있어요. 지금 비밀번호는 누구도 볼 수 없어요. 본사 계정은 여기서 바꾸지 못해요.</p>${body}<div class="row" style="margin-top:8px"><button class="btn" data-a="acctreload">새로고침</button></div></div>`;
+}
 async function syncLoad(){ try{ APP.syncSt=await APP.be.rpcText('sync_status',{}); }catch(e){ APP.syncSt={err:e.message,last:{error:e.message}}; } if(APP.view==='set') render(); }
 function vSet(){
   const D=APP.D, st=D.store, ed=canEdit(), r=role();
@@ -394,6 +401,7 @@ function vSet(){
     :APP.open?`<p class="help">로그인하지 않고 <b>본점 근무표</b>만 열고 있어요. 금액(급여)과 가맹점 자료는 로그인해야 보여요.</p><div class="row"><button class="btn pri" data-a="gologin">로그인</button><button class="btn" data-a="disconnect">체험 모드로 돌아가기</button></div>`
     :`<p class="help">로그인: <b>${esc(showId(APP.user&&APP.user.email||''))}</b> · 이 기기에서는 다시 묻지 않고 자동으로 들어와요.${Remote.keep?'':' (자동 로그인을 끄고 들어와서, 브라우저를 닫으면 다시 로그인해야 해요)'}</p><div class="row"><button class="btn" data-a="logout">로그아웃</button><button class="btn" data-a="disconnect">체험 모드로 돌아가기</button></div>`}</div>
   ${r==='hq'&&APP.be===Remote?`<div class="card"><h2>계정 만들기 (본사만)</h2><p class="help">가맹점·매니저·직원 계정은 본사에서만 만들 수 있어요. 아이디와 비밀번호를 정해 알려 주세요. 비밀번호는 8자 이상이고, 만든 뒤에는 본사도 다시 볼 수 없어요.</p>
+    ${APP.mkNote?`<p class="help" style="background:#E6F4EA;color:#14532D;padding:10px 12px;border-radius:10px;font-weight:600">${esc(APP.mkNote)}</p>`:''}
     <form id="mkForm" autocomplete="off"><div class="row" style="align-items:flex-end">
     <label class="f">아이디<input type="text" id="mkId" style="width:150px" placeholder="예: suseong" autocapitalize="none" autocomplete="off"></label>
     <label class="f">비밀번호<input type="password" id="mkPw" style="width:150px" placeholder="8자 이상" autocomplete="new-password"></label>
@@ -401,6 +409,7 @@ function vSet(){
     <label class="f">역할<select id="mkRole"><option value="owner">점주</option><option value="manager">매니저</option><option value="staff">직원</option><option value="order">발주 전용 (발주 화면만)</option></select></label>
     <label class="ck" style="margin-bottom:8px"><input type="checkbox" id="mkPay"> 급여 보기</label><button type="button" class="btn pri" data-a="mkaccount">계정 만들기</button></div></form>
     <div class="row" style="align-items:flex-end;margin-top:12px"><label class="f">급여 비밀번호 잊은 계정<input type="text" id="rpId" style="width:150px" placeholder="아이디" autocapitalize="none" autocomplete="off"></label><button type="button" class="btn" data-a="pinreset">급여 비밀번호 초기화</button></div><p class="help">초기화하면 그 계정이 급여 계산기를 열 때 새 비밀번호를 다시 정해요.</p></div>`:''}
+    ${r==='hq'&&APP.be===Remote?acctCard():''}
     ${r==='hq'&&APP.be===Remote?(()=>{ if(APP.syncSt===undefined){ APP.syncSt=null; syncLoad(); } const S=APP.syncSt; const L=S&&S.last||{}; const ago=S&&S.at?Math.max(0,Math.round((Date.now()-new Date(S.at))/60000)):null;
       const msg=!S?'불러오는 중…':L.error?`<span style="color:#C0392B">마지막 실행에 문제가 있었어요: ${esc(String(L.error).slice(0,160))}</span>`:L.ok?`마지막 실행 ${ago<1?'방금':ago+'분 전'} · 예약 ${L.daysChanged||0}일 확인${L.sched&&(L.sched.upserted||L.sched.pruned)?` · 근무표 ${L.sched.upserted||0}줄 바뀜${L.sched.pruned?` · ${L.sched.pruned}줄 정리`:''}`:''}`:'아직 실행한 적이 없어요';
       return `<div class="card"><h2>예전 서버 자동 연동 (본사만)</h2><p class="help">예전 사이트에서 입력한 예약·근무표가 새 시스템으로 <b>자동으로 따라와요</b>(5분마다, 바뀐 것만). 새 시스템에서 직접 고친 내용은 덮어쓰지 않아요. 새 시스템만 쓰게 되면 끄세요.</p>

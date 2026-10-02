@@ -159,6 +159,8 @@ const Remote={
   async addMember(email,sid,role,pay){ await this.fetchJ('/rest/v1/rpc/sch_add_member',{method:'POST',body:JSON.stringify({p_email:email,p_store:sid,p_role:role,p_pay:!!pay})}); },
   // 계정 만들기: 본사만 (서버 함수가 본사인지 확인하고 만들어요)
   async createAccount(o){ return this.fetchJ('/functions/v1/create-account',{method:'POST',body:JSON.stringify(o)}); },
+  // 계정 관리(목록·비밀번호 바꾸기·정지·삭제): 본사만
+  async manageAccounts(o){ return this.fetchJ('/functions/v1/manage-accounts',{method:'POST',body:JSON.stringify(o)}); },
   // 전체 백업 / 복원 (본사만 — 서버 규칙이 본사 계정 말고는 모든 매장 자료를 주지 않아요)
   BK_TABLES:[['sch_items','store_id,kind,id'],['res_days','store_id,id'],['wh_items','store_id,id'],['wh_orders','store_id,code'],['board_notices','id'],['board_msgs','id']],
   async backupAll(prog){
