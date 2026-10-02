@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>유천점 자료 옮기기</title>
+<style>
+:root{--bg:#F1F4F1;--card:#fff;--ink:#17301f;--sub:#5c6e60;--line:#dfe5df;--acc:#1f5a34;--bad:#b3261e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,"Malgun Gothic",sans-serif}
+main{max-width:720px;margin:0 auto;padding:18px 14px 80px}h1{font-size:21px;margin:4px 0 4px}.sub{color:var(--sub);font-size:13.5px;margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}.card h2{font-size:16px;margin:0 0 6px}
+label{display:block;font-size:12.5px;color:var(--sub);font-weight:600;margin-top:8px}input,select{width:100%;font:inherit;padding:10px;border:1px solid #c9d2c9;border-radius:9px;margin-top:3px;background:#fff}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:11px 16px;background:var(--acc);color:#fff;cursor:pointer;margin-top:10px}button.sub2{background:#fff;color:var(--acc);border:1.5px solid var(--acc)}button:disabled{opacity:.45}
+.help{color:var(--sub);font-size:13px;margin:0 0 6px}.ok{color:#1f6b3a;font-weight:700}.bad{color:var(--bad);font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--sub);font-weight:600;width:42%}
+#log{background:#101316;color:#d8dde2;border-radius:10px;padding:10px 12px;font:12.5px/1.6 ui-monospace,Consolas,monospace;max-height:260px;overflow:auto;white-space:pre-wrap}#log .e{color:#ff8a8a}#log .g{color:#7fe0a5}
+</style></head><body><main>
+<h1>유천점 자료 옮기기</h1>
+<p class="sub">유천점 예전 서버의 예약·근무표를 새 시스템의 <b>유천점 칸</b>으로 옮겨요. 읽기만 하고, 유천점 예전 서버는 건드리지 않아요. 이 파일은 <b>가게 컴퓨터에서 더블클릭해서</b> 열어 주세요(사이트에 올리지 마세요).</p>
+
+<div class="card"><h2>1. 본사 로그인 (새 시스템)</h2>
+<label>아이디<input id="uid" value="ilpum" autocapitalize="none"></label><label>비밀번호<input id="upw" type="password"></label>
+<button id="bLogin">로그인</button> <span id="loginMsg" class="help"></span>
+<label>옮길 매장<select id="store"></select></label></div>
+
+<div class="card"><h2>2. 유천점 예전 서버에서 읽기</h2>
+<p class="help">유천점 사이트의 <code>config.js</code> 에 있는 주소(url)와 키(key)를 그대로 붙여 넣으세요. 가게 컴퓨터에서 유천점 사이트를 열고 Ctrl+U → 같은 주소 뒤에 /config.js 를 열면 보여요.</p>
+<label>주소 (https://….supabase.co)<input id="yurl" placeholder="https://vijisdwfbhggnmshlmcl.supabase.co"></label>
+<label>키 (eyJ… 로 시작)<input id="ykey"></label>
+<label>그 사이트에 로그인이 있으면 이메일 (없으면 비워 두세요)<input id="yem" autocapitalize="none"></label><label>비밀번호<input id="ypw" type="password"></label>
+<button id="bRead" disabled>예전 서버에서 읽기</button><div id="sum" style="margin-top:8px"></div></div>
+
+<div class="card"><h2>3. 옮기기</h2>
+<p class="help">이미 새 시스템에 있는 줄은 건드리지 않고 없는 것만 더해요. 예약은 같은 예약이면 더 늦게 고친 쪽을 남겨요. 지우지 않아요.</p>
+<button id="bGo" disabled>옮기기 시작</button><div id="res" style="margin-top:10px"></div></div>
+<div class="card"><h2>진행 기록</h2><div id="log"></div></div>
+
+<script>
+const NEW={url:'https://bdqcrbnbuoujozlpttbe.supabase.co',key:'/*NEWKEY*/'};
+/*MIG*/
+const $=s=>document.querySelector(s); const log=(m,c)=>{ const d=$('#log'); d.insertAdjacentHTML('beforeend',`<div class="${c||''}">${String(m).replace(/</g,'&lt;')}</div>`); d.scrollTop=d.scrollHeight; };
+let TOK='', STORES=[], yc=null;
+const nh=()=>({apikey:NEW.key,Authorization:'Bearer '+TOK,'Content-Type':'application/json'});
+async function nj(path,opt){ const r=await fetch(NEW.url+path,{...opt,headers:{...nh(),...((opt&&opt.headers)||{})}}); if(!r.ok){ let m='HTTP '+r.status; try{ m=(await r.json()).message||m; }catch(e){} throw new Error(m); } const t=await r.text(); return t?JSON.parse(t):null; }
+$('#bLogin').onclick=async()=>{
+  const id=$('#uid').value.trim().toLowerCase(), pw=$('#upw').value; if(!id||!pw) return;
+  try{ const r=await fetch(NEW.url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:NEW.key,'Content-Type':'application/json'},body:JSON.stringify({email:id.includes('@')?id:id+'@ilpum.invalid',password:pw})});
+    const j=await r.json(); if(!r.ok||!j.access_token) throw new Error(j.error_description||j.msg||'로그인 실패'); TOK=j.access_token;
+    STORES=(await nj('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'})).filter(s=>s.role==='hq'&&!s.is_hq);
+    if(!STORES.length) throw new Error('본사 계정이 아니거나 가맹점 칸이 없어요');
+    $('#store').innerHTML=STORES.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''); $('#loginMsg').innerHTML='<span class="ok">로그인했어요</span>'; $('#bRead').disabled=false; log('로그인 완료','g');
+  }catch(e){ $('#loginMsg').innerHTML=`<span class="bad">${e.message}</span>`; }
+};
+async function yget(path){ const key=$('#ykey').value.trim(); const url=$('#yurl').value.trim().replace(/\/$/,''); const tok=yc&&yc.tok||key;
+  const r=await fetch(url+path,{headers:{apikey:key,Authorization:'Bearer '+tok}}); if(!r.ok) throw new Error(`유천점 서버 HTTP ${r.status}`+(r.status===401?' — 키가 거부됐어요(키가 틀렸거나 프로젝트가 멈춤)':'')); return r.json(); }
+$('#bRead').onclick=async()=>{
+  const b=$('#bRead'); b.disabled=true; b.textContent='읽는 중…'; yc={tok:''}; $('#sum').innerHTML='';
+  try{ const key=$('#ykey').value.trim(), url=$('#yurl').value.trim().replace(/\/$/,''); if(!url||!key) throw new Error('주소와 키를 넣어 주세요');
+    const em=$('#yem').value.trim(), pw=$('#ypw').value;
+    if(em&&pw){ const r=await fetch(url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:key,'Content-Type':'application/json'},body:JSON.stringify({email:em.includes('@')?em:em+'@ilpum.invalid',password:pw})}); const j=await r.json(); if(!r.ok||!j.access_token) throw new Error('유천점 로그인 실패'); yc.tok=j.access_token; }
+    log('유천점 서버에서 근무표 읽는 중…'); let sch=null,res=null;
+    try{ const s=await yget('/rest/v1/schedule_state?id=eq.main&select=data,rev'); sch=s&&s[0]&&s[0].data||null; log(sch?`근무표 읽음 (직원 ${(sch.staff||[]).length}명)`:'근무표가 비어 있어요','g'); }catch(e){ log('근무표: '+e.message,'e'); }
+    log('예약 읽는 중…'); try{ res=[]; for(let from=0;;from+=1000){ const part=await yget(`/rest/v1/reservations_day?select=id,data,rev&order=id&limit=1000&offset=${from}`); res=res.concat(part); if(part.length<1000) break; } log(`예약 읽음 (${res.length}일)`,'g'); }catch(e){ log('예약: '+e.message,'e'); res=null; }
+    if(!sch&&!res) throw new Error('읽은 자료가 없어요. 위 기록의 오류 문구를 Claude에게 알려 주세요');
+    yc.sch=sch; yc.res=res;
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify({schedule_state:sch,reservations_day:res,savedAt:new Date().toISOString()})],{type:'application/json'})); a.download='유천점_백업_'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove();
+    log('읽은 내용을 파일로도 저장했어요(유천점_백업_날짜.json) — 보관하세요','g');
+    const n=(res||[]).reduce((s,r)=>s+(((r.data||{}).items||[]).filter(x=>!x.deleted).length),0);
+    $('#sum').innerHTML=`<table>${sch?`<tr><th>근무표 직원</th><td>${(sch.staff||[]).length}명</td></tr><tr><th>예외·당일알바</th><td>${(sch.ex||[]).length}건</td></tr>`:''}${res?`<tr><th>예약</th><td>${res.length}일 · ${n}건</td></tr>`:''}</table>`;
+    $('#bGo').disabled=false;
+  }catch(e){ $('#sum').innerHTML=`<span class="bad">${e.message}</span>`; log(e.message,'e'); }
+  b.disabled=false; b.textContent='다시 읽기';
+};
+$('#bGo').onclick=async()=>{
+  const sid=$('#store').value; const go=$('#bGo'); go.disabled=true; const out=[];
+  try{
+    if(yc.sch){ log('── 근무표 ──');
+      const ex=await nj(`/rest/v1/sch_items?store_id=eq.${sid}&select=kind,id,data,deleted&limit=5000`); const have=new Set(ex.filter(r=>!r.deleted).map(r=>r.kind+'\u0001'+r.id));
+      const pos=(ex.find(r=>r.kind==='cfg'&&r.id==='positions'&&!r.deleted)||{}).data||[];
+      const conv=MIG.convertSchedule(yc.sch,pos); const rows=[]; let skip=0;
+      ['staff','rule','dc','spot','aw','pay'].forEach(k=>Object.entries(conv.items[k]).forEach(([id,data])=>{ if(have.has(k+'\u0001'+id)){ skip++; return; } rows.push({store_id:sid,kind:k,id,data,deleted:false}); }));
+      if(conv.added>0||!pos.length) rows.push({store_id:sid,kind:'cfg',id:'positions',data:conv.positions,deleted:false});
+      for(let i=0;i<rows.length;i+=200){ await nj('/rest/v1/sch_items?on_conflict=store_id,kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+200))}); log(`근무표 저장 ${Math.min(i+200,rows.length)} / ${rows.length}`); }
+      out.push(['근무표',`${rows.length}줄 추가 (이미 있어서 건너뜀 ${skip}줄)`]); log('근무표 완료','g'); }
+    if(yc.res){ log('── 예약 ──'); let added=0,merged=0;
+      for(let i=0;i<yc.res.length;i+=20){ const part=yc.res.slice(i,i+20).filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.id)&&r.data&&typeof r.data==='object');
+        const ids=part.map(r=>r.id).join(','); const cur=await nj(`/rest/v1/res_days?store_id=eq.${sid}&id=in.(${ids})&select=id,data,rev`); const cm=Object.fromEntries(cur.map(r=>[r.id,r]));
+        const up=part.map(r=>{ const e=cm[r.id]; if(!e){ added++; return {store_id:sid,id:r.id,data:r.data,rev:Math.max(1,r.rev||1)}; }
+          const by={}; const u=x=>+x.u||0; (e.data.items||[]).forEach(x=>by[x.id]=x); (r.data.items||[]).forEach(x=>{ if(!by[x.id]||u(x)>u(by[x.id])) by[x.id]=x; }); merged++;
+          return {store_id:sid,id:r.id,data:{...r.data,...e.data,items:Object.values(by)},rev:(e.rev||0)+1}; });
+        if(up.length) await nj('/rest/v1/res_days?on_conflict=store_id,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(up)}); log(`예약 ${Math.min(i+20,yc.res.length)} / ${yc.res.length}일`); }
+      out.push(['예약',`${added}일 새로 · ${merged}일 합침`]); log('예약 완료','g'); }
+    $('#res').innerHTML=`<table>${out.map(r=>`<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</table><p class="ok">끝났어요. 새 시스템에서 유천점으로 열어 확인해 보세요.</p>`;
+  }catch(e){ $('#res').innerHTML=`<span class="bad">${e.message}</span>`; log(e.message,'e'); }
+  go.disabled=false;
+};
+</script></main></body></html>
