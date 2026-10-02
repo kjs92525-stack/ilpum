@@ -433,7 +433,7 @@ const todayStr=()=>ds(new Date());
 /* ---------- 상태 ---------- */
 const ui={ date:todayStr(), filter:'all', q:'', sort:(()=>{ try{ return localStorage.getItem('ilpum-res-sort')==='table'?'table':'time'; }catch(e){ return 'time'; } })(), floor:'1', t:Math.max(600,Math.min(1320, Math.round(nowMin()/30)*30)), view:'list' };
 const days={};   // date → {items:[], rev}
-function dayDoc(d){ if(!days[d]){ let c=null; try{ c=JSON.parse(localStorage.getItem('ilpum-res-'+SID+'-'+d)||'null'); }catch(e){} days[d]=c||{items:[],rev:0}; } return days[d]; }
+function dayDoc(d){ if(!days[d]){ let c=null; try{ c=JSON.parse(localStorage.getItem('ilpum-res-'+SID+'-'+d)||'null'); }catch(e){} days[d]=(c&&Array.isArray(c.items))? {items:c.items.filter(x=>x&&typeof x==='object'),rev:+c.rev||0} : {items:[],rev:0}; } return days[d]; }   // 저장된 임시 기록이 깨져 있어도(items 없음 등) 화면이 멈추지 않게 바로잡음
 function items(d){ return dayDoc(d).items.filter(x=>!x.deleted); }
 // 테이블 칸에 쓴 글자 중 테이블이 아닌 것(예: 네이버 취소, 전화취소)은 메모로 남김
 function tableNote(s){ return String(s||'').split(/\s+/).filter(g=>g && !parseTables(g).length && !/^(T|번)$/i.test(g)).join(' '); }
@@ -464,7 +464,7 @@ async function pushDay(d){
     for(let tries=0; tries<4; tries++){
       const doc=dayDoc(d); const cur=await fetchDay(d);
       let merged=doc.items, base=0;
-      if(cur){ merged=mergeItems(cur.data.items||[], doc.items); base=cur.rev||0; }
+      if(cur){ merged=mergeItems(((cur.data&&cur.data.items)||[]), doc.items); base=cur.rev||0; }
       const rev=base+1; const body={data:{items:merged}, rev, updated_at:new Date().toISOString()};
       let r;
       if(cur) r=await withTimeout(fx(`${RP()}id=eq.${d}&rev=eq.${base}&select=rev`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(body)}),10000);
@@ -498,9 +498,9 @@ async function pullDay(d){
     if(rv===null && !doc.items.length){ if(!document.getElementById('sync').dataset.kind) setSync('연결됨','ok'); return; }
     const cur=rv===null? null : await fetchDay(d);
     if(cur && (cur.rev||0)!==doc.rev){
-      const merged=mergeItems(doc.items, cur.data.items||[]);
+      const merged=mergeItems(doc.items, ((cur.data&&cur.data.items)||[]));
       const changed=!same(merged, doc.items);
-      const needPush=!same(merged, cur.data.items||[]);
+      const needPush=!same(merged, ((cur.data&&cur.data.items)||[]));
       doc.items=merged; doc.rev=cur.rev; cacheDay(d);
       if(changed && d===ui.date && !document.getElementById('dlg').open) render();
       if(needPush) pushDay(d);
