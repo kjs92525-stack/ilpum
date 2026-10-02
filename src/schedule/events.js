@@ -133,6 +133,7 @@ function dStaff(sid){
     `<div class="row"><label class="f grow">이름<input type="text" id="sfName" value="${esc(s.name)}"></label><label class="f">연락처<input type="tel" id="sfTel" value="${esc(s.tel||'')}" style="width:140px"></label></div>
     <div class="row"><label class="f grow">종류<select id="sfType">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${s.type===k?'selected':''}>${t}</option>`).join('')}</select></label>
       <label class="f grow">기본 포지션<select id="sfPos">${D.positions.map(p=>`<option ${s.pos===p.name?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label></div>
+    <div class="row"><label class="f grow">마지막 근무일 <small class="muted">(그만두는 날 · 이 날까지만 근무로 나와요 · 비우면 계속)</small><input type="date" id="sfLast" value="${esc(s.last||'')}"></label></div>
     <p class="hint" style="margin:-6px 0 0">고정 근무: 쉬는 요일만 빼고 매주 자동 · 매주 변동: 주마다 입력 · 단기·당일: 넣은 날만</p>
     <div class="sect"><div class="lb"><span>요일 패턴 (매주 기본)</span>${cp&&sid?'<button class="lnk" data-a="patpay">요일별 금액도 정하기</button>':''}</div>${WD_MON.map(pr).join('')}
       <span class="hint">‘매주 변동’·‘단기’는 휴무 칸이 무시되고, 출근할 때의 기본 시간으로만 쓰여요.</span></div>
@@ -144,7 +145,7 @@ function dStaff(sid){
 function saveStaff(sid){
   const D=APP.D; const name=$('#sfName').value.trim(); if(!name) return toast('이름을 넣어주세요');
   const id=sid||uid(); const s=Object.assign({},D.staff[id]||{id,active:true,order:Object.keys(D.staff).length});
-  s.name=name; s.tel=$('#sfTel').value.trim(); s.type=$('#sfType').value; s.pos=$('#sfPos').value; s.off=[]; s.wk={};
+  s.name=name; s.tel=$('#sfTel').value.trim(); { const lv=($('#sfLast').value||'').trim(); if(lv) s.last=lv; else delete s.last; } s.type=$('#sfType').value; s.pos=$('#sfPos').value; s.off=[]; s.wk={};
   for(const sel of $$('[data-pat]')){ const wd=+sel.dataset.pat, v=sel.value;
     if(v==='off') s.off.push(wd); else if(v==='pm') s.wk[wd]={sh:{k:'pm'}};
     else if(v==='t'){ const raw=$(`[data-patt="${wd}"]`).value.trim(); const [a,b]=raw.split(/[~\-]/); const st=parseT(a,false), en=b?parseT(b,true):'';

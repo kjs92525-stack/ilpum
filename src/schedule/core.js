@@ -204,6 +204,7 @@ function resolve(D,d,opt={}){
   const key=ds(d), wd=d.getDay(), di=(wd+6)%7, wk=weekKey(d);
   const list=[], offs=[]; const pnames=D.positions.map(p=>p.name);
   staffList(D).forEach(s=>{
+    if(s.last&&key>s.last) return;            // 마지막 근무일이 지난 사람은 그 다음 날부터 근무표에서 빠져요 (지난 기록은 그대로)
     let working=false, reason=null, pos=s.pos, tag=null, sh=null, shSrc='', ruleIds=[], payoff=false, awSh=null, awMissing=false;
     if(s.type==='weekly'){ const en=(D.aw[wk]||{})[s.id];
       if(en){ working=!(en.off||[]).includes(di); if(!working) reason='주간휴무';

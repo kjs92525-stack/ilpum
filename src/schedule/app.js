@@ -303,7 +303,7 @@ function vStaff(){
       <input type="text" id="staffQ" placeholder="이름 찾기" value="${esc(APP.q)}" style="width:140px"></div>
     <div class="card" style="padding:6px 8px"><div class="scroll"><table class="t"><thead><tr><th>이름</th><th>종류</th><th>포지션</th><th>요일 패턴 (월~일)</th><th>이번 주</th>${cp?'<th>기본 급여</th>':''}</tr></thead><tbody>
     ${list.map(s=>{ const p=W.per[s.id]; const b=(D.pay||{})['staff:'+s.id];
-      return `<tr class="click" data-a="staff" data-sid="${s.id}" style="${s.active===false?'opacity:.45':''}"><td><b>${esc(s.name)}</b>${s.active===false?' <span class="tag">그만둠</span>':''}</td><td><span class="tag ${s.type==='weekly'?'amber':s.type==='spot'?'warn':''}">${TYPES[s.type]}</span></td>
+      return `<tr class="click" data-a="staff" data-sid="${s.id}" style="${s.active===false||(s.last&&s.last<todayStr)?'opacity:.45':''}"><td><b>${esc(s.name)}</b>${s.active===false?' <span class="tag">그만둠</span>':''}${s.last?` <span class="tag ${s.last<todayStr?'':'amber'}">${md(s.last)}까지</span>`:''}</td><td><span class="tag ${s.type==='weekly'?'amber':s.type==='spot'?'warn':''}">${TYPES[s.type]}</span></td>
         <td><span style="color:${posColor(s.pos)};font-weight:700">${esc(s.pos)}</span></td><td>${pat7(s)}</td><td class="num">${p?fmtH(p.h)+'시간 · '+p.days.length+'일':'-'}${p&&p.h>=13&&p.h<15?' <span class="tag warn">주휴 경계</span>':''}</td>
         ${cp?`<td class="num">${b?esc(payLbl(b)):'<span class="muted">미입력</span>'}</td>`:''}</tr>`; }).join('')||`<tr><td colspan="6" class="empty">조건에 맞는 직원이 없어요</td></tr>`}
     </tbody></table></div></div>`;
