@@ -390,8 +390,10 @@ document.addEventListener('input',e=>{ const t=e.target, id=t.id||'';
   const m=id.match(/^([a-z])(S|E|Pv)$/); if(m) updHints(m[1]);
   if(id==='rQ'){ const q=t.value.trim(); $$('#rPick label').forEach(l=>l.hidden=!!q&&!l.dataset.rn.includes(q)); }
   if(t.closest&&t.closest('#dBody')&&$('#rPrev')) rulePrev();
-  if(id==='staffQ'){ APP.q=t.value; const pos=t.selectionStart; render(); const n=$('#staffQ'); n.focus(); n.setSelectionRange(pos,pos); }
+  if(id==='staffQ'&&!e.isComposing) staffSearch(t);   // 한글 조합 중에 화면을 다시 그리면 ㅇㅣㅈㅐ 처럼 낱글자로 풀려요 → 조합이 끝난 뒤에만
 });
+function staffSearch(t){ APP.q=t.value; const pos=t.selectionStart; render(); const n=$('#staffQ'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(er){} } }
+document.addEventListener('compositionend',e=>{ if(e.target&&e.target.id==='staffQ') staffSearch(e.target); });
 document.addEventListener('change',e=>{ const t=e.target, d=t.dataset, D=APP.D; const id=t.id||'';
   if(id==='imgDate'){ if(t.value) makeImage('day',t.value); return; }
   const m=id.match(/^([a-z])(Pk|Pc)$/); if(m) updHints(m[1]);
