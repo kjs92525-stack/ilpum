@@ -86,3 +86,6 @@ grant execute on function public.sync_status(), public.sync_set_enabled(boolean)
 -- 5분마다 실행 (아직 켜지 않음 — 사용자 확인 후): 
 -- select cron.schedule('sync-old','*/5 * * * *',$$ select net.http_post(url:='https://bdqcrbnbuoujozlpttbe.supabase.co/functions/v1/sync-old', headers:=jsonb_build_object('Content-Type','application/json','x-sync-token',(select val->>'v' from public.sync_state where key='token')), body:='{}'::jsonb, timeout_milliseconds:=55000) $$);
 -- 끄기: select cron.unschedule('sync-old');
+
+-- 설정 화면 버튼용 함수 (본사만): sync_status(켜짐 여부·마지막 결과), sync_run_now(처음부터 한 번 실행), sync_auto_set(5분마다 자동 켜기/끄기)
+-- 본문은 DB 마이그레이션 auto_sync_buttons 에 적용돼 있음.

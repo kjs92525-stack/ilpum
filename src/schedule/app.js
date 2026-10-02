@@ -364,6 +364,7 @@ function vHQ(){
 }
 
 /* ================= 설정 ================= */
+async function syncLoad(){ try{ APP.syncSt=await APP.be.rpcText('sync_status',{}); }catch(e){ APP.syncSt={err:e.message,last:{error:e.message}}; } if(APP.view==='set') render(); }
 function vSet(){
   const D=APP.D, st=D.store, ed=canEdit(), r=role();
   const posRows=D.positions.map((p,i)=>`<tr><td><input type="color" value="${p.color}" data-a="posf" data-i="${i}" data-f="color" style="width:34px;height:30px;padding:0;border:0;background:none" aria-label="색"></td>
@@ -400,6 +401,11 @@ function vSet(){
     <label class="f">역할<select id="mkRole"><option value="owner">점주</option><option value="manager">매니저</option><option value="staff">직원</option><option value="order">발주 전용 (발주 화면만)</option></select></label>
     <label class="ck" style="margin-bottom:8px"><input type="checkbox" id="mkPay"> 급여 보기</label><button type="button" class="btn pri" data-a="mkaccount">계정 만들기</button></div></form>
     <div class="row" style="align-items:flex-end;margin-top:12px"><label class="f">급여 비밀번호 잊은 계정<input type="text" id="rpId" style="width:150px" placeholder="아이디" autocapitalize="none" autocomplete="off"></label><button type="button" class="btn" data-a="pinreset">급여 비밀번호 초기화</button></div><p class="help">초기화하면 그 계정이 급여 계산기를 열 때 새 비밀번호를 다시 정해요.</p></div>`:''}
+    ${r==='hq'&&APP.be===Remote?(()=>{ if(APP.syncSt===undefined){ APP.syncSt=null; syncLoad(); } const S=APP.syncSt; const L=S&&S.last||{}; const ago=S&&S.at?Math.max(0,Math.round((Date.now()-new Date(S.at))/60000)):null;
+      const msg=!S?'불러오는 중…':L.error?`<span style="color:#C0392B">마지막 실행에 문제가 있었어요: ${esc(String(L.error).slice(0,160))}</span>`:L.ok?`마지막 실행 ${ago<1?'방금':ago+'분 전'} · 예약 ${L.daysChanged||0}일 확인${L.sched&&(L.sched.upserted||L.sched.pruned)?` · 근무표 ${L.sched.upserted||0}줄 바뀜${L.sched.pruned?` · ${L.sched.pruned}줄 정리`:''}`:''}`:'아직 실행한 적이 없어요';
+      return `<div class="card"><h2>예전 서버 자동 연동 (본사만)</h2><p class="help">예전 사이트에서 입력한 예약·근무표가 새 시스템으로 <b>자동으로 따라와요</b>(5분마다, 바뀐 것만). 새 시스템에서 직접 고친 내용은 덮어쓰지 않아요. 새 시스템만 쓰게 되면 끄세요.</p>
+      <p class="help"><b>${S?(S.auto?'● 자동 연동 켜짐':'○ 자동 연동 꺼짐'):''}</b> · ${msg}</p>
+      <div class="row"><button class="btn pri" data-a="syncrun">지금 한 번 가져오기</button>${S&&S.auto?'<button class="btn" data-a="syncoff">자동 끄기</button>':'<button class="btn pri" data-a="syncon">자동 켜기</button>'}</div></div>`; })():''}
     ${r==='hq'&&APP.be===Remote?(()=>{ let last=''; try{ last=localStorage.getItem('ilpum-last-backup')||''; }catch(e){} const days=last?Math.floor((Date.now()-new Date(last))/864e5):null;
       return `<div class="card"><h2>백업 · 복원 (본사만)</h2><p class="help">모든 매장의 예약·근무표·발주·공지·게시판을 파일 하나로 PC에 받아요. <b>일주일에 한 번</b> 받아 두세요. 급여 금액이 들어 있으니 파일은 아무에게도 보내지 말고 안전한 곳에 보관하세요.</p>
       <p class="help" style="color:${days===null||days>7?'#C0392B':'inherit'}">${days===null?'아직 이 기기에서 백업한 적이 없어요':`마지막 백업: ${days===0?'오늘':days+'일 전'}`}</p>

@@ -87,7 +87,7 @@ const Local={
   async createStore(id,name){ if(this.db.stores.some(s=>s.id===id)) throw new Error('이미 있는 매장 코드예요'); this.db.stores.push({id,name}); this.db.items[id]={}; this.persist(); },
   async addMember(){ throw new Error('체험 모드에서는 계정을 연결할 수 없어요. Supabase에 연결한 뒤 사용하세요'); },
   async createAccount(){ throw new Error('체험 모드에서는 계정을 만들 수 없어요. Supabase에 연결한 뒤 사용하세요'); },
-  async backupAll(){ throw new Error('체험 모드에서는 백업할 수 없어요'); }, async restoreAll(){ throw new Error('체험 모드에서는 복원할 수 없어요'); }
+  async rpcText(){ throw new Error('체험 모드에서는 쓸 수 없어요'); }, async backupAll(){ throw new Error('체험 모드에서는 백업할 수 없어요'); }, async restoreAll(){ throw new Error('체험 모드에서는 복원할 수 없어요'); }
 };
 
 const PINMSG={bad_pin:'편집 비밀번호가 달라요',locked:'여러 번 틀려서 15분 동안 잠겼어요',denied:'권한이 없어요',short:'비밀번호는 6자 이상으로 정해주세요',bad_rows:'저장할 수 없는 항목이 있어요',nopin:''};
