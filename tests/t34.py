@@ -70,6 +70,8 @@ async def rooms():
     await pg.click('[data-led="save"]'); await pg.wait_for_timeout(500)
     chk('저장 통과(오류 없음)', await pg.evaluate("layoutEdit")==None and 'R1' in await pg.evaluate("ALL_TABLES"))
     chk('입력 "룸1" → R1 칸', await pg.evaluate("JSON.stringify(parseTables('룸1'))")=='["R1"]' and await pg.evaluate("tablesText(['R1','R2'])")==['룸1','룸2'])
+    await pg.evaluate("ui.t=780; render()"); await pg.wait_for_timeout(200)
+    h=await pg.evaluate("freeHtml(ui.t)"); chk('큰 자리 상자의 룸 칸에 R1·R2 나옴', '룸1' in h and '룸2' in h and '룸 <b>6</b>' in h)
     chk('오류 없음', not errs)
     print('룸 전체','OK' if ok else 'FAIL')
 asyncio.run(rooms())

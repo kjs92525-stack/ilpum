@@ -668,6 +668,7 @@ function freeBig(T){
     if(free.length===subs.length) rooms.push({label:`룸${r}`,tables:subs});
     else if(r===4){ [[1,2],[3,4]].forEach(pr=>{ const ts=pr.map(x=>R(4,x)); if(ts.every(t=>!busy.has(t))) rooms.push({label:`룸4-${pr.join('·')}`,tables:ts}); }); }
     else if(free.length) rooms.push({label:`룸${r} 일부(${free.map(tLabel).join(',')})`,tables:free}); });
+  ALL_TABLES.filter(t=>/^R\d+$/.test(t)).forEach(t=>{ if(!busy.has(t)) rooms.push({label:tLabel(t),tables:[t]}); });   // 배치에 "R1" 처럼 통째로 만든 룸
   return {six,eight,rooms,seatRows,hasSeats,legacy};
 }
 function freeHtml(T){
