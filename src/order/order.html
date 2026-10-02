@@ -117,7 +117,7 @@ const safeUrl=u=>/^https?:\/\//i.test(String(u||''))?String(u):'';
 let tt; function toast(m){ const el=$('#toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),2600); }
 function setSync(t,bad){ const e=$('#sync'); e.textContent=t; e.style.color=bad?'#ffb4a8':''; }
 const canEditItems=()=>!!ST&&['hq','owner','manager'].includes(ST.role);
-const canDelete=canEditItems;
+const canDelete=canEditItems;   // 발주 삭제는 본사·점주·매니저만 (서버 규칙과 같게). 고치기는 그 매장 사람 누구나
 const kst=iso=>{ const d=new Date(iso); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
 const unitOf=stock=>{ const m=String(stock||'').match(/\d+\s*([^\d\s].*)$/); return m?m[1].trim():'개'; };
 const linksOf=it=>{ let l=Array.isArray(it.links)?it.links.filter(x=>x&&safeUrl(x.u)):[]; if(!l.length&&safeUrl(it.buy_url)) l=[{n:'구매',u:it.buy_url}]; return l; };
@@ -187,7 +187,7 @@ function vItems(){
       ${ed?`<div><button class="btn sm" data-iedit="${esc(x.id)}">수정</button> <button class="btn sm bad" data-idel="${esc(x.id)}">삭제</button></div>`:''}</div>`).join('')}</div>`).join(''):'<div class="card empty">품목이 없어요</div>');
 }
 function ordCard(o,showStore){ const L=Array.isArray(o.lines)?o.lines:[]; const nd=L.filter(l=>l.done).length; const sid=o.store_id||SID;
-  return `<div class="card ord"><div class="h">${showStore?`<span class="sname">${esc(storeName(sid))}</span>`:''}<span class="code">${esc(o.code)}</span><span class="badge ${o.status}">${o.status==='done'?'완료':'진행 중'}</span><span class="when">${kst(o.created_at)} · ${nd}/${L.length}</span><span style="flex:1"></span>${canDelete()?`<button class="btn sm bad" data-odel="${esc(o.code)}" data-sid="${esc(sid)}">삭제</button>`:''}</div>
+  return `<div class="card ord"><div class="h">${showStore?`<span class="sname">${esc(storeName(sid))}</span>`:''}<span class="code">${esc(o.code)}</span><span class="badge ${o.status}">${o.status==='done'?'완료':'진행 중'}</span><span class="when">${kst(o.created_at)} · ${nd}/${L.length}</span><span style="flex:1"></span><button class="btn sm" data-oedit="${esc(o.code)}" data-sid="${esc(sid)}">수정</button>${canDelete()?`<button class="btn sm bad" data-odel="${esc(o.code)}" data-sid="${esc(sid)}">삭제</button>`:''}</div>
     ${L.map((l,i)=>`<div class="ln ${l.done?'done':''}"><input type="checkbox" data-ck="${esc(o.code)}" data-sid="${esc(sid)}" data-i="${i}" ${l.done?'checked':''} aria-label="${esc(l.name)} 구매 완료"><div class="n"><b>${esc(l.name)}</b> × ${esc(l.qty)}${esc(l.unit||'')}</div><div>${(l.links||[]).filter(x=>safeUrl(x.u)).map(x=>`<a class="chip" href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.n||'구매')}</a>`).join('')}</div></div>`).join('')}</div>`; }
 function vHist(){
   const list=ORDERS.filter(o=>HFILTER==='all'||o.status===HFILTER);
@@ -218,6 +218,7 @@ document.addEventListener('click',async e=>{
   if(act==='import') return importOld();
   const ie=t.closest('[data-iedit]'); if(ie) return dlgItem(ITEMS.find(x=>x.id===ie.dataset.iedit));
   const id=t.closest('[data-idel]'); if(id){ const it=ITEMS.find(x=>x.id===id.dataset.idel); if(it&&confirm(`‘${it.name}’ 품목을 지울까요?\n이미 넣은 발주 내역은 그대로 남아요.`)){ try{ await jx(`/rest/v1/wh_items?store_id=eq.${SID}&id=eq.${encodeURIComponent(it.id)}`,{method:'DELETE'}); ITEMS=ITEMS.filter(x=>x!==it); render(); toast('지웠어요'); }catch(er){ toast('지우지 못했어요: '+er.message); } } return; }
+  const oe=t.closest('[data-oedit]'); if(oe) return dlgOrder(oe.dataset.oedit,oe.dataset.sid||SID);
   const od=t.closest('[data-odel]'); if(od){ const sid=od.dataset.sid||SID; if(!confirm(`발주 ${od.dataset.odel} 을(를) 지울까요?`)) return; try{ await jx(`/rest/v1/wh_orders?store_id=eq.${sid}&code=eq.${encodeURIComponent(od.dataset.odel)}`,{method:'DELETE'}); const gone=o=>o.code===od.dataset.odel&&(o.store_id||SID)===sid; ORDERS=ORDERS.filter(o=>!gone(o)); ALLOPEN=ALLOPEN.filter(o=>!gone(o)); labelStores(); render(); }catch(er){ toast('지우지 못했어요: '+er.message); } return; }
   if(t.id==='clear'){ QTY={}; EXTRA=[]; render(); return; }
   if(t.id==='send') return sendOrder();
@@ -248,6 +249,30 @@ async function sendOrder(){
 }
 function openDlg(html){ $('#dlgBody').innerHTML=html; const d=$('#dlg'); if(!d.open) d.showModal(); }
 function closeDlg(){ $('#dlg').close(); }
+// 넣은 발주 고치기: 수량 바꾸기 · 줄 빼기 · 목록에서 물건 더하기 (구매 체크 표시는 그대로 유지)
+function findOrder(code,sid){ return ORDERS.find(x=>x.code===code&&(x.store_id||SID)===sid)||ALLOPEN.find(x=>x.code===code&&x.store_id===sid); }
+function dlgOrder(code,sid){
+  const o=findOrder(code,sid); if(!o) return; const lines=JSON.parse(JSON.stringify(o.lines||[]));
+  const paint=()=>{
+    const have=new Set(lines.map(l=>l.id)); const cand=ITEMS.filter(x=>!have.has(x.id));
+    $('#dlgBody').innerHTML=`<h2>발주 ${esc(code)} 고치기</h2>
+      ${lines.length?lines.map((l,i)=>`<div class="ln ${l.done?'done':''}" style="align-items:center"><div class="n" style="flex:1"><b>${esc(l.name)}</b>${l.done?' <small>(구매 완료)</small>':''}</div><input inputmode="numeric" value="${esc(l.qty)}" data-lq="${i}" style="width:64px;text-align:center" aria-label="${esc(l.name)} 수량"><span>${esc(l.unit||'')}</span><button class="btn sm bad" data-lx="${i}">빼기</button></div>`).join(''):'<div class="note">물건이 하나도 없어요. 저장하려면 하나 이상 있어야 해요 (발주를 지우려면 삭제 버튼을 쓰세요)</div>'}
+      ${cand.length?`<div class="lk" style="margin-top:10px"><div style="flex:1"><label class="f">물건 더하기</label><select id="oAdd"><option value="">고르세요</option>${cand.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></div><div><label class="f">수량</label><input id="oQty" inputmode="numeric" value="1"></div></div><div style="margin-top:6px"><button class="btn sm" id="oAddBtn">+ 더하기</button></div>`:''}
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="dCancel">취소</button><button class="btn pri" id="dOk">저장</button></div>`;
+    $('#dCancel').onclick=closeDlg;
+    $('#dlgBody').querySelectorAll('[data-lq]').forEach(el=>el.oninput=()=>{ lines[+el.dataset.lq].qty=Math.max(0,parseInt(el.value,10)||0); });
+    $('#dlgBody').querySelectorAll('[data-lx]').forEach(el=>el.onclick=()=>{ lines.splice(+el.dataset.lx,1); paint(); });
+    const ab=$('#oAddBtn'); if(ab) ab.onclick=()=>{ const id=$('#oAdd').value; const q=parseInt($('#oQty').value,10)||0; if(!id||q<1) return toast('물건과 수량을 골라 주세요'); const it=ITEMS.find(x=>x.id===id); if(!it) return;
+      lines.push({id:it.id,qty:q,done:false,name:it.name,unit:unitOf(it.stock),links:linksOf(it),buy_url:safeUrl(it.buy_url)||null}); paint(); };
+    $('#dOk').onclick=async()=>{ if(!lines.length) return toast('물건이 하나도 없어요'); if(lines.some(l=>!(+l.qty>0))) return toast('수량은 1 이상으로 넣어 주세요');
+      const status=lines.every(l=>l.done)?'done':'open';
+      try{ await jx(`/rest/v1/wh_orders?store_id=eq.${sid}&code=eq.${encodeURIComponent(code)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({lines,status,updated_at:new Date().toISOString()})});
+        [ORDERS.find(x=>x.code===code&&(x.store_id||SID)===sid),ALLOPEN.find(x=>x.code===code&&x.store_id===sid)].forEach(x=>{ if(x){ x.lines=JSON.parse(JSON.stringify(lines)); x.status=status; } });
+        if(status==='done') ALLOPEN=ALLOPEN.filter(x=>!(x.code===code&&x.store_id===sid)); closeDlg(); labelStores(); render(); toast('고쳤어요'); }
+      catch(er){ toast('저장하지 못했어요: '+er.message); } };
+  };
+  $('#dlgBody').innerHTML=''; const d=$('#dlg'); if(!d.open) d.showModal(); paint();
+}
 function dlgExtra(){
   const cats=[...new Set(ITEMS.map(x=>x.category).filter(Boolean))];
   openDlg(`<h2>목록에 없는 물건</h2><label class="f">이름</label><input id="xName" placeholder="예: 깻잎">
