@@ -2,10 +2,11 @@
 import asyncio, json, time, datetime
 from playwright.async_api import async_playwright
 NEW='bdqcrbnbuoujozlpttbe.supabase.co'; F1='ad2ffdae-f76b-44cd-a6c6-58514c4e4638'
-T=[{"id":str(i),"x":20+(i%10)*90,"y":20+(i//10)*100,"w":86,"h":86,"shape":"square"} for i in range(1,32)]+[{"id":"R1","x":20,"y":420,"w":120,"h":86,"shape":"rect"},{"id":"R2","x":160,"y":420,"w":120,"h":86,"shape":"rect"}]
+T=[{"id":str(i),"x":20+(i%10)*90,"y":20+(i//10)*100,"w":86,"h":86,"shape":"square"} for i in range(1,37)]+[{"id":"R1","x":20,"y":420,"w":120,"h":86,"shape":"rect"},{"id":"R2","x":160,"y":420,"w":120,"h":86,"shape":"rect"}]
 LAYOUT={"v":1,"seats":{str(i):6 for i in (11,13,17,21,23,26,27,28,29,30,31)},"floors":[{"key":"1","mode":"free","name":"1층","tables":T}]}
 TODAY=datetime.date.today().isoformat()
-ITEMS=[{"id":"a1","c":TODAY,"u":1790909475866,"pp":"4","req":"","done":False,"name":"김","time":"18:00","tables":["13"],"phone":"0101","tnote":""},{"id":"a2","c":TODAY,"u":1790909475867,"pp":"2+3","name":"이","time":"","tables":[]}]
+ITEMS=[{"id":"i%d"%n,"c":TODAY,"u":1790900000000+n,"pp":pp,"req":"","done":False,"name":nm,"time":tm,"phone":"010","tnote":"","tables":tb} for n,(nm,pp,tm,tb) in enumerate([("김원섭","4","18:00",["3"]),("이상윤","5","18:00",["27"]),("김정희","9","18:30",["R1-1","R2-1"]),("현대","18","17:30",["R3-1","R4-1","R5-1"]),("박","","19:30",["10"]),("이정구","4","18:30",["7"]),("정수영","4","19:20",["8"]),("삭제","7","12:30",["21"])])]
+ITEMS[-1]["deleted"]=True
 async def handler(r):
   u=r.request.url; m=r.request.method
   if 'localhost' in u: return await r.continue_()

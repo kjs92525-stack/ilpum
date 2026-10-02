@@ -393,7 +393,7 @@ function tablesText(ts){
   ts=ts||[]; const nums=ts.filter(t=>!/^R/.test(t)).sort((a,b)=>a-b); const rooms={};
   const whole=ts.filter(t=>/^R\d+$/.test(t)).map(t=>'룸'+t.slice(1));
   ts.filter(t=>/^R\d+-\d+$/.test(t)).forEach(t=>{ const [r,x]=t.slice(1).split('-').map(Number); (rooms[r]=rooms[r]||[]).push(x); });
-  const rs=Object.keys(rooms).sort().map(r=>{ const xs=rooms[r].sort(); return xs.length===ROOM_SUBS[r].length? `룸${r}` : `룸${r}-${xs.join('·')}`; });
+  const rs=Object.keys(rooms).sort().map(r=>{ const xs=rooms[r].sort(); return ROOM_SUBS[r]&&xs.length===ROOM_SUBS[r].length? `룸${r}` : `룸${r}-${xs.join('·')}`; });
   return [...nums,...whole,...rs];
 }
 // 표시용 → 다시 입력칸에 넣을 때 쓰는 짧은 표기
