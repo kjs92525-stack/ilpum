@@ -43,6 +43,7 @@ async def main():
     chk('저장 내용에 seats 포함', POSTS and set(POSTS[-1]['data']['seats'].values())=={3,6,8})
     chk('현황판 칸에 배지 표시', await pg.locator('.seatb').count()==3)
     html=await pg.evaluate("freeHtml(ui.t)"); chk('큰 자리 줄: 6인석·8인석 나옴(3인은 제외)', '6인석' in html and '8인석' in html and '3인석' not in html)
+    st=await pg.inner_text('#seatStat'); chk('예약 목록 위에 남은 6인석·8인석 표시', '6인석' in st and '8인석' in st and '3인석' not in st and '/1' in st)
     await ctx.close()
     ctx,pg,errs=await open_page(b,[])   # 다시 열기
     chk('다시 열어도 유지', await pg.evaluate("Object.keys(SEATS).length")==3 and await pg.locator('.seatb').count()==3)

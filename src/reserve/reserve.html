@@ -208,6 +208,8 @@ body.resizing iframe{pointer-events:none}
 .col{display:flex;flex-direction:column;gap:8px}
 .cell{min-height:clamp(66px,10vh,128px);border:1.5px solid var(--line);border-radius:10px;background:var(--panel);padding:6px 4px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:1px;position:relative;cursor:pointer}
 .cell.blank{visibility:hidden}
+.seatline{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 2px;font-size:13px}.seatline:empty{display:none}
+.seatline .sl-t{color:var(--sub);font-size:12px;margin-right:2px}.seatline .sl{background:#E8EEF7;color:#3C5A86;border-radius:999px;padding:2px 10px;font-weight:700}.seatline .sl b{font-size:15px}.seatline .sl.zero{background:#FBE9E7;color:#B3261E}
 .seatb{position:absolute;top:3px;right:4px;font-size:10.5px;font-weight:800;background:#E8EEF7;color:#3C5A86;border-radius:4px;padding:0 5px}
 .seatset{font:inherit;font-size:11px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:1px 6px;cursor:pointer;margin-top:3px}
 .cell .no{font-size:13.5px;font-weight:700;color:var(--sub)}
@@ -621,6 +623,7 @@ function renderList(){
       <div class="stat"><div class="k">도착</div><div class="v">${done.length}팀</div></div>
       ${cxl.length?`<div class="stat"><div class="k">취소</div><div class="v" style="color:var(--warn)">${cxl.length}팀</div></div>`:''}
     </div>
+    <div class="seatline" id="seatStat"></div>
     <div class="filters">
       <div class="seg" role="group" aria-label="보기">
         <button data-f="all" aria-pressed="${ui.filter==='all'}">전체</button>
@@ -628,6 +631,7 @@ function renderList(){
         <button data-f="done" aria-pressed="${ui.filter==='done'}">도착</button></div>
     </div>
     ${html || `<div class="empty"><strong>${all.length?'조건에 맞는 예약이 없어요':'예약이 없어요'}</strong>${all.length?'':'위 입력 줄에 쓰고 Enter를 누르면 추가돼요.'}</div>`}`;
+  paintSeatStat();
 }
 function cellHtml(t,map){
   if(t==null) return '<div class="cell blank"></div>';
@@ -674,6 +678,13 @@ function freeHtml(T){
     <div class="frow"><span class="fk">룸 <b>${f.rooms.filter(r=>!/일부/.test(r.label)).length}</b></span>${f.rooms.map(r=>chip(r.label,r.tables)).join('')||none}</div>
   </div>`;
 }
+// 예약 목록 위: 지금 현황판 시간 기준으로 남은 6인석·8인석 (큰 자리만)
+function paintSeatStat(){
+  const el=document.getElementById('seatStat'); if(!el) return; const f=freeBig(ui.t); let parts=[];
+  if(f.hasSeats) f.seatRows.forEach(r=>{ const left=r.byFloor.reduce((n,x)=>n+x.ts.length,0), tot=0; const all=FLOORS.reduce((n,fl)=>n+floorTables(fl).filter(t=>seatOf(t)===r.cap).length,0); parts.push([r.cap+'인석',left,all]); });
+  else if(f.legacy){ parts.push(['6인석',f.six['1층'].length+f.six['2층'].length,Object.values(BIG6).flat().filter(t=>ALL_TABLES.includes(t)).length]); parts.push(['8인석',f.eight.length,BIG8.filter(p=>p.every(t=>ALL_TABLES.includes(t))).length]); }
+  el.innerHTML=parts.length?`<span class="sl-t">${fromMin(ui.t)} 기준 남은 자리</span>`+parts.map(([n,l,a])=>`<span class="sl ${l===0?'zero':''}">${n} <b>${l}</b>/${a}</span>`).join(''):'';
+}
 function renderBoard(){
   if(layoutEdit) return renderBoardEdit();
   const T=ui.t; const map=boardMap(T);
@@ -700,6 +711,7 @@ function renderBoard(){
       ${isToday?'<button class="btn sm" data-act="now">지금</button>':''}
       <span class="twin">${fromMin(Math.max(0,T-WIN))} ~ ${fromMin(Math.min(1439,T+WIN))} 예약 표시 · 키보드 ← → 30분</span></div>
     <div class="floor">${groups}</div>${bar}`;
+  paintSeatStat();
 }
 
 /* ---------- 현황판 배치 수정 (수정 버튼을 눌러야만 바뀜 · 저장해야 반영) ---------- */
