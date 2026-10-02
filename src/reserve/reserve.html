@@ -101,6 +101,7 @@ body.resizing iframe{pointer-events:none}
 .res .l1{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
 .res .nm{font-weight:700;font-size:14px}
 .res .pp{font-weight:600;font-variant-numeric:tabular-nums}
+.thead .tgl{font-size:20px;font-weight:900;color:#0B2455;background:#DCEBFF;border:2px solid #3C5A86;border-radius:8px;padding:0 10px}
 .tbls{display:inline-flex;flex-wrap:wrap;gap:3px;align-items:center;margin-right:2px}
 .tbls .tbl:not(.dupt):not(.tightt):not(.none){background:#DCEBFF;color:#0B2455;border:2px solid #3C5A86}
 .tbls .tbl{font-size:18px;font-weight:900;padding:0 9px;border-radius:8px;min-width:36px;text-align:center}.tbl small{font-size:.62em;font-weight:700;margin-left:1px;opacity:.85}
@@ -429,7 +430,7 @@ const nowMin=()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes(); };
 const todayStr=()=>ds(new Date());
 
 /* ---------- 상태 ---------- */
-const ui={ date:todayStr(), filter:'all', q:'', floor:'1', t:Math.max(600,Math.min(1320, Math.round(nowMin()/30)*30)), view:'list' };
+const ui={ date:todayStr(), filter:'all', q:'', sort:(()=>{ try{ return localStorage.getItem('ilpum-res-sort')==='table'?'table':'time'; }catch(e){ return 'time'; } })(), floor:'1', t:Math.max(600,Math.min(1320, Math.round(nowMin()/30)*30)), view:'list' };
 const days={};   // date → {items:[], rev}
 function dayDoc(d){ if(!days[d]){ let c=null; try{ c=JSON.parse(localStorage.getItem('ilpum-res-'+SID+'-'+d)||'null'); }catch(e){} days[d]=c||{items:[],rev:0}; } return days[d]; }
 function items(d){ return dayDoc(d).items.filter(x=>!x.deleted); }
@@ -604,20 +605,23 @@ function renderList(){
   let list = ui.filter==='left'? left : ui.filter==='done'? done : all;
   if(q) list=list.filter(x=>[x.name,x.phone,x.req,(x.tables||[]).map(tLabel).join(' ')].join(' ').includes(q));
   const isToday=ui.date===todayStr(); const nm=nowMin();
-  const groups={}; list.forEach(x=>{ const k=x.time||'시간 없음'; (groups[k]=groups[k]||[]).push(x); });
+  const tkey=x=>{ const t=(x.tables||[])[0]; if(t==null) return 99999; return /^\d+$/.test(t)?+t:/^R(\d+)/.test(t)?1000+(+RegExp.$1):5000; };
+  const groups={};
+  if(ui.sort==='table'){ list.slice().sort((a,b)=>tkey(a)-tkey(b)||(toMin(a.time)??9999)-(toMin(b.time)??9999)).forEach(x=>{ const t=(x.tables||[])[0]; const k=t==null?'테이블 미정':tablesText([t])[0]+(/^\d+$/.test(t)?'번':''); (groups[k]=groups[k]||[]).push(x); }); }
+  else list.forEach(x=>{ const k=x.time||'시간 없음'; (groups[k]=groups[k]||[]).push(x); });
   const keys=Object.keys(groups);
   const nowKey = isToday? keys.find(k=>toMin(k)!=null && toMin(k)>=nm-30) : null;
   const html=keys.map(k=>{ const g=groups[k]; const gl=g.filter(x=>!isCxl(x)); const pp=gl.reduce((a,x)=>a+people(x.pp),0);
-    return `<div class="tgroup" ${k===nowKey?'id="nowGroup"':''}><div class="thead ${k===nowKey?'now':''}"><button class="t" data-goto="${esc(k)}" title="현황판을 ${esc(k)}로">${esc(k)}</button><span>${gl.length}팀 · ${pp}명${g.length>gl.length?` · 취소 ${g.length-gl.length}`:''}</span>${k===nowKey?`<span class="badge warn">${Math.abs(toMin(k)-nm)<=30?'지금':'다음'}</span>`:''}</div>
+    return `<div class="tgroup" ${k===nowKey?'id="nowGroup"':''}><div class="thead ${k===nowKey?'now':''}">${ui.sort==='table'?`<span class="t tgl">${esc(k)}</span>`:`<button class="t" data-goto="${esc(k)}" title="현황판을 ${esc(k)}로">${esc(k)}</button>`}<span>${gl.length}팀 · ${pp}명${g.length>gl.length?` · 취소 ${g.length-gl.length}`:''}</span>${k===nowKey?`<span class="badge warn">${Math.abs(toMin(k)-nm)<=30?'지금':'다음'}</span>`:''}</div>
       ${g.map(x=>{ const tb=(x.tables||[]); const tel=(x.phone||'').replace(/[^\d]/g,'');
         const dw=CONF.who[x.id];
         const tw=TIGHT.who[x.id];
         const cx=isCxl(x);
         return `<div class="res ${x.done?'done':''} ${dw?'dup':''} ${tw?'tight':''} ${cx?'cxl':''}" data-row="${x.id}" title="누르면 수정">
           <input type="checkbox" class="ck" data-done="${x.id}" ${x.done?'checked':''} aria-label="${esc(x.name)} 도착">
-          <div><div class="l1"><span class="tbls">${(()=>{ const ct=CONF.tabs[x.id], tt=TIGHT.tabs[x.id];
+          <div><div class="l1">${ui.sort==='table'&&tb.length===1&&!x.tnote?'':`<span class="tbls">${(()=>{ const ct=CONF.tabs[x.id], tt=TIGHT.tabs[x.id];
               if(!ct && !tt) return tablesText(tb).map(t=>`<span class="tbl">${esc(t)}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join('');
-              return tb.map(t=>`<span class="tbl ${ct&&ct.has(t)?'dupt':tt&&tt.has(t)?'tightt':''}">${esc(tLabel(t))}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join(''); })()}${x.tnote?`<span class="tnote ${cx?'cx':''}">${esc(x.tnote)}</span>`:''}${!tb.length&&!x.tnote?'<span class="tbl none">테이블 미정</span>':''}</span><button class="rtime" data-goto="${esc(x.time)}" data-gt="${esc((x.tables||[])[0]||'')}" title="현황판을 ${esc(x.time)}로">${esc(x.time)}</button><span class="nm ${x.c&&x.c===ui.date?'sameday':''}">${esc(x.name)}</span>${x.c&&x.c===ui.date?'<span class="sdb">당일</span>':''}${x.pp?`<span class="pp">${esc(x.pp)}명</span>`:''}
+              return tb.map(t=>`<span class="tbl ${ct&&ct.has(t)?'dupt':tt&&tt.has(t)?'tightt':''}">${esc(tLabel(t))}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join(''); })()}${x.tnote?`<span class="tnote ${cx?'cx':''}">${esc(x.tnote)}</span>`:''}${!tb.length&&!x.tnote?'<span class="tbl none">테이블 미정</span>':''}</span>`}<button class="rtime" data-goto="${esc(x.time)}" data-gt="${esc((x.tables||[])[0]||'')}" title="현황판을 ${esc(x.time)}로">${esc(x.time)}</button><span class="nm ${x.c&&x.c===ui.date?'sameday':''}">${esc(x.name)}</span>${x.c&&x.c===ui.date?'<span class="sdb">당일</span>':''}${x.pp?`<span class="pp">${esc(x.pp)}명</span>`:''}
             ${x.done?'<span class="badge done">도착</span>':''}</div>
             ${dw?`<div class="dupline">⚠ 중복: ${esc(dw.join(', '))}</div>`:''}
             ${!dw&&tw?`<div class="tightline">⏰ 임박(2시간 간격): ${esc(tw.join(', '))}</div>`:''}
@@ -639,6 +643,7 @@ function renderList(){
         <button data-f="all" aria-pressed="${ui.filter==='all'}">전체</button>
         <button data-f="left" aria-pressed="${ui.filter==='left'}">남은 예약</button>
         <button data-f="done" aria-pressed="${ui.filter==='done'}">도착</button></div>
+      <div class="seg" role="group" aria-label="정렬" title="손님 몰릴 때는 테이블순이 찾기 쉬워요"><button data-sort="time" aria-pressed="${ui.sort!=='table'}">시간순</button><button data-sort="table" aria-pressed="${ui.sort==='table'}">테이블순</button></div>
     </div>
     ${html || `<div class="empty"><strong>${all.length?'조건에 맞는 예약이 없어요':'예약이 없어요'}</strong>${all.length?'':'위 입력 줄에 쓰고 Enter를 누르면 추가돼요.'}</div>`}`;
   paintSeatStat();
@@ -1025,6 +1030,7 @@ document.getElementById('listPanel').addEventListener('click',e=>{
   if(b.dataset.del){ const it=dayDoc(ui.date).items.find(x=>x.id===b.dataset.del); if(!it) return;
     confirmBox(`${it.name} ${it.time} 예약을 삭제할까요?`,'삭제',()=>{ it.deleted=true; saveItem(ui.date,it); toast('삭제했어요'); }); return; }
   if(b.dataset.f){ ui.filter=b.dataset.f; renderList(); return; }
+  if(b.dataset.sort){ ui.sort=b.dataset.sort; try{ localStorage.setItem('ilpum-res-sort',ui.sort); }catch(e){} renderList(); return; }
   if(b.dataset.edit){ const it=items(ui.date).find(x=>x.id===b.dataset.edit); if(it){ openForm({...it,origDate:ui.date}); } }
 });
 document.getElementById('listPanel').addEventListener('focusout',e=>{

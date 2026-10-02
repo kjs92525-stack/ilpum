@@ -75,3 +75,22 @@ async def rooms():
     chk('오류 없음', not errs)
     print('룸 전체','OK' if ok else 'FAIL')
 asyncio.run(rooms())
+
+async def sortmode():
+  async with async_playwright() as p:
+    b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
+    ctx,pg,errs=await open_page(b,[])
+    ok=True
+    def chk(n,c):
+        nonlocal ok; ok&=bool(c); print(('OK  ' if c else 'FAIL'),n)
+    for nm,t,pp,tb in [('가','1830','4','21'),('나','1800','2','5'),('다','1900','3','13'),('라','1700','2','')]:
+      await pg.fill('#qName',nm); await pg.fill('#qTime',t); await pg.fill('#qPP',pp); await pg.fill('#qTables',tb); await pg.press('#qTables','Enter'); await pg.wait_for_timeout(250)
+    heads=lambda: pg.evaluate("[...document.querySelectorAll('.thead .t')].map(e=>e.textContent.trim())")
+    chk('기본은 시간순', await heads()==['17:00','18:00','18:30','19:00'])
+    await pg.click('[data-sort="table"]'); await pg.wait_for_timeout(150)
+    chk('테이블순: 5번 → 13번 → 21번 → 미정', await heads()==['5번','13번','21번','테이블 미정'])
+    chk('선택이 기억됨', await pg.evaluate("localStorage.getItem('ilpum-res-sort')")=='table')
+    await pg.click('[data-sort="time"]'); await pg.wait_for_timeout(150); chk('시간순으로 되돌림', await heads()==['17:00','18:00','18:30','19:00'])
+    chk('오류 없음', not errs)
+    print('정렬 전체','OK' if ok else 'FAIL')
+asyncio.run(sortmode())
