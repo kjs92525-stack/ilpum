@@ -208,6 +208,8 @@ body.resizing iframe{pointer-events:none}
 .col{display:flex;flex-direction:column;gap:8px}
 .cell{min-height:clamp(66px,10vh,128px);border:1.5px solid var(--line);border-radius:10px;background:var(--panel);padding:6px 4px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:1px;position:relative;cursor:pointer}
 .cell.blank{visibility:hidden}
+.seatb{position:absolute;top:3px;right:4px;font-size:10.5px;font-weight:800;background:#E8EEF7;color:#3C5A86;border-radius:4px;padding:0 5px}
+.seatset{font:inherit;font-size:11px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:1px 6px;cursor:pointer;margin-top:3px}
 .cell .no{font-size:13.5px;font-weight:700;color:var(--sub)}
 .cell .cn{font-weight:700;font-size:17px;line-height:1.2;word-break:keep-all}
 .cell .ci{font-size:13px;font-variant-numeric:tabular-nums}
@@ -630,7 +632,7 @@ function renderList(){
 function cellHtml(t,map){
   if(t==null) return '<div class="cell blank"></div>';
   t=String(t); const list=map[t]||[];
-  if(!list.length) return `<div class="cell empty" data-cell="${t}" data-pick="${t}"><span class="no">${esc(tLabel(t))}</span></div>`;
+  if(!list.length) return `<div class="cell empty" data-cell="${t}" data-pick="${t}"><span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}</div>`;
   const top=list[0]; const it=top.it;
   const dup=CONF.table[t]? [...CONF.table[t].values()].filter(x=>list.some(l=>l.it.id===x.id) || list.some(l=>Math.abs(toMin(l.it.time)-toMin(x.time))<WIN)) : [];
   if(dup.length>1){
@@ -643,20 +645,23 @@ function cellHtml(t,map){
   const tightNote = tight.length? `<span class="tightb">⏰ 다음팀 ${esc(tight.filter(x=>x.id!==it.id).map(x=>x.time).join('·'))}</span>` : '';
   return `<div class="cell st-${top.st}" data-cell="${t}" data-pick="${t}" title=""${esc(it.name)} ${esc(it.time)} ${esc(it.pp)}명${it.req?' · '+esc(it.req):''}${tight.length?' · 2시간 뒤 다음팀 있음':''}">
     ${list.length>1?`<span class="more">+${list.length-1}</span>`:''}
-    ${top.st==='use'?'<span class="arr">✓ 도착</span>':''}<span class="no">${esc(tLabel(t))}</span><span class="cn">${esc(it.name)}</span><span class="ci">${esc(it.pp)}명·${esc(it.time)}</span>${it.req?'<span class="memo">📝 메모</span>':''}${tightNote}</div>`;
+    ${top.st==='use'?'<span class="arr">✓ 도착</span>':''}<span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}<span class="cn">${esc(it.name)}</span><span class="ci">${esc(it.pp)}명·${esc(it.time)}</span>${it.req?'<span class="memo">📝 메모</span>':''}${tightNote}</div>`;
 }
 const BIG6={ '1층':['6','7','8','9','10'], '2층':['42','43','44','45','51','52','53'] };
 const BIG8=[['29','30'],['31','32'],['33','34']];
 const ROOMS=[1,2,3,4];
 function freeBig(T){
   const busy=new Set(); active(ui.date).forEach(x=>{ const m=toMin(x.time); if(m!=null && Math.abs(m-T)<WIN) (x.tables||[]).forEach(t=>busy.add(t)); });
+  const seatRows=[]; const hasSeats=Object.keys(SEATS).length>0, legacy=!hasSeats&&!!(STORES.find(x=>x.id===SID)||{}).is_hq;
+  if(hasSeats){ const caps=[...new Set(Object.values(SEATS).filter(n=>n>=6))].sort((a,b)=>a-b);
+    caps.forEach(c=>{ const byFloor=[]; FLOORS.forEach(fl=>{ const ts=floorTables(fl).filter(t=>seatOf(t)===c&&!busy.has(t)); const all=floorTables(fl).filter(t=>seatOf(t)===c).length; if(all) byFloor.push({name:fl.name,ts}); }); seatRows.push({cap:c,byFloor}); }); }
   const six={}; Object.keys(BIG6).forEach(f=>six[f]=BIG6[f].filter(t=>!busy.has(t)&&ALL_TABLES.includes(t)));
   const eight=BIG8.filter(p=>p.every(t=>!busy.has(t)&&ALL_TABLES.includes(t)));
   const rooms=[]; ROOMS.forEach(r=>{ const subs=ROOM_SUBS[r].map(x=>R(r,x)).filter(t=>ALL_TABLES.includes(t)); if(!subs.length) return; const free=subs.filter(t=>!busy.has(t));
     if(free.length===subs.length) rooms.push({label:`룸${r}`,tables:subs});
     else if(r===4){ [[1,2],[3,4]].forEach(pr=>{ const ts=pr.map(x=>R(4,x)); if(ts.every(t=>!busy.has(t))) rooms.push({label:`룸4-${pr.join('·')}`,tables:ts}); }); }
     else if(free.length) rooms.push({label:`룸${r} 일부(${free.map(tLabel).join(',')})`,tables:free}); });
-  return {six,eight,rooms};
+  return {six,eight,rooms,seatRows,hasSeats,legacy};
 }
 function freeHtml(T){
   const f=freeBig(T); const chip=(label,ts)=>`<button class="fchip" data-free="${ts.join(' ')}">${esc(label)}</button>`;
@@ -664,8 +669,8 @@ function freeHtml(T){
   const sixN=f.six['1층'].length+f.six['2층'].length;
   return `<div class="freebox">
     <div class="fh">${fromMin(T)} 기준 비어 있는 큰 자리 <span class="hint">(앞뒤 2시간 예약 없음 · 누르면 입력 줄에 들어가요)</span></div>
-    <div class="frow"><span class="fk">6인석 <b>${sixN}</b></span><span class="ff">1층</span>${f.six['1층'].map(t=>chip(t,[t])).join('')||none}<span class="ff">2층</span>${f.six['2층'].map(t=>chip(t,[t])).join('')||none}</div>
-    <div class="frow"><span class="fk">8인석 <b>${f.eight.length}</b></span>${f.eight.map(p=>chip(p.join('·'),p)).join('')||none}</div>
+    ${f.hasSeats?f.seatRows.map(r=>`<div class="frow"><span class="fk">${r.cap}인석 <b>${r.byFloor.reduce((n,x)=>n+x.ts.length,0)}</b></span>${r.byFloor.map(x=>`${f.seatRows.length&&r.byFloor.length>1?`<span class="ff">${esc(x.name)}</span>`:''}${x.ts.map(t=>chip(tLabel(t),[t])).join('')||none}`).join('')}</div>`).join(''):f.legacy?`<div class="frow"><span class="fk">6인석 <b>${sixN}</b></span><span class="ff">1층</span>${f.six['1층'].map(t=>chip(t,[t])).join('')||none}<span class="ff">2층</span>${f.six['2층'].map(t=>chip(t,[t])).join('')||none}</div>
+    <div class="frow"><span class="fk">8인석 <b>${f.eight.length}</b></span>${f.eight.map(p=>chip(p.join('·'),p)).join('')||none}</div>`:'<div class="frow"><span class="fnone">배치 수정에서 테이블마다 몇 인석인지 정해 두면 여기에 큰 자리가 나와요</span></div>'}
     <div class="frow"><span class="fk">룸 <b>${f.rooms.filter(r=>!/일부/.test(r.label)).length}</b></span>${f.rooms.map(r=>chip(r.label,r.tables)).join('')||none}</div>
   </div>`;
 }
@@ -698,6 +703,9 @@ function renderBoard(){
 }
 
 /* ---------- 현황판 배치 수정 (수정 버튼을 눌러야만 바뀜 · 저장해야 반영) ---------- */
+let SEATS={};   // 테이블 번호 → 몇 인석 (배치 수정에서 지정, 매장별 저장)
+const seatOf=t=>SEATS[String(t)]||0;
+const seatBadge=t=>seatOf(t)?`<span class="seatb">${seatOf(t)}인</span>`:'';
 let layoutEdit=null, layoutSel='';           // layoutEdit: 수정 중인 임시본 {floors} / layoutSel: 옮기려고 고른 자리
 const canEditLayout=()=>{ const st=STORES.find(x=>x.id===SID); return !!st && ['hq','owner','manager'].includes(st.role); };
 const cloneL=o=>JSON.parse(JSON.stringify(o));
@@ -711,10 +719,10 @@ function layoutError(F){
 function rebuildTables(){ ALL_TABLES=tablesOf(FLOORS); if(!FLOORS.some(f=>f.key===ui.floor)) ui.floor=FLOORS[0].key; }
 async function loadLayout(){
   try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.tables&deleted=eq.false&select=data`); if(!r.ok) return;
-    const rows=await r.json(); const d=rows[0]&&rows[0].data; if(d&&validLayout(d.floors)&&!layoutError(d.floors)){ FLOORS=d.floors; rebuildTables(); } }catch(e){}
+    const rows=await r.json(); const d=rows[0]&&rows[0].data; if(d&&validLayout(d.floors)&&!layoutError(d.floors)){ FLOORS=d.floors; SEATS=(d.seats&&typeof d.seats==='object')?d.seats:{}; rebuildTables(); } }catch(e){}
 }
-async function saveLayout(F){
-  const r=await fx('/rest/v1/sch_items?on_conflict=store_id,kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({store_id:SID,kind:'cfg',id:'tables',data:{floors:F,v:1},deleted:false})});
+async function saveLayout(F,S){
+  const r=await fx('/rest/v1/sch_items?on_conflict=store_id,kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({store_id:SID,kind:'cfg',id:'tables',data:{floors:F,seats:S||{},v:1},deleted:false})});
   if(!r.ok) throw new Error(r.status===403?'배치를 바꿀 권한이 없어요':'HTTP '+r.status);
 }
 const slotOf=(F,p)=>{ const a=p.split(','); const f=F[+a[0]]; return a[1]==='b'?{arr:f.bar.row,idx:+a[2]}:{arr:f.groups[+a[1]].cols[+a[2]],idx:+a[3]}; };
@@ -722,7 +730,7 @@ const colOf=(F,p)=>{ const a=p.split(','); const f=F[+a[0]]; return a[1]==='b'?f
 function editCell(t,p){
   const sel=layoutSel===p?' sel':'';
   if(t==null) return `<div class="cell ed ed-blank${sel}" data-dp="${p}"><span class="no">빈칸</span><button class="x" data-led="tdel" data-p="${p}" aria-label="빈칸 지우기">✕</button></div>`;
-  return `<div class="cell empty ed${sel}" data-dp="${p}"><span class="no">${esc(tLabel(String(t)))}</span><button class="x" data-led="tdel" data-p="${p}" aria-label="테이블 지우기">✕</button></div>`;
+  return `<div class="cell empty ed${sel}" data-dp="${p}"><span class="no">${esc(tLabel(String(t)))}</span>${seatBadge(t)}<button class="seatset" data-led="tseat" data-t="${esc(String(t))}">${seatOf(t)?'인원 변경':'인원'}</button><button class="x" data-led="tdel" data-p="${p}" aria-label="테이블 지우기">✕</button></div>`;
 }
 function renderBoardEdit(){
   const F=layoutEdit.floors; if(!F.some(x=>x.key===ui.floor)) ui.floor=F[0].key; const fi=F.findIndex(x=>x.key===ui.floor); const f=F[fi];
@@ -731,7 +739,7 @@ function renderBoardEdit(){
   document.getElementById('boardPanel').innerHTML=`<div class="ledbar"><b>배치 수정 중</b><span>${f.mode==='free'?'저장을 눌러야 실제 현황판에 반영돼요. 테이블을 <b>끌어서</b> 마음대로 옮기고, 누르면 모양·크기를 바꿀 수 있어요':'저장을 눌러야 실제 현황판에 반영돼요. ① 테이블을 누르고 ② 바꿀 자리를 누르면 서로 자리가 바뀌어요 (<b>+</b> 를 누르면 그 줄 끝으로 옮겨요)'}</span></div>
     <div class="btop"><h2>배치 수정</h2><div class="ftabs" style="display:flex;gap:6px">${F.map(x=>`<button data-floor="${x.key}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div><span class="spacer"></span>
       ${f.mode==='free'?`<button class="lbtn" data-led="ftadd">+ 테이블</button><button class="lbtn" data-led="fcircle">원형으로 배치</button><button class="lbtn" data-led="togrid">칸 배치로 되돌리기</button>`:`<button class="lbtn" data-led="gadd">+ 구역</button><button class="lbtn" data-led="tofree">자유 배치로 바꾸기</button>`}<button class="lbtn" data-led="fadd">+ 층(칸)</button><button class="lbtn" data-led="ffadd">+ 층(자유)</button><button class="lbtn" data-led="fren">층 이름</button><button class="lbtn bad" data-led="fdel">층 지우기</button>
-      <button class="lbtn" data-led="reset">처음 배치로</button><button class="btn sm" data-led="cancel">취소</button><button class="btn sm pri" data-led="save">저장</button></div>
+      ${(STORES.find(x=>x.id===SID)||{}).is_hq?'<button class="lbtn" data-led="seedseats">6·8인석 기본값</button>':''}<button class="lbtn" data-led="reset">처음 배치로</button><button class="btn sm" data-led="cancel">취소</button><button class="btn sm pri" data-led="save">저장</button></div>
     ${f.mode==='free'?freeSelBar(f):''}
     <div class="floor">${groups}</div>${bar}`;
 }
@@ -741,13 +749,13 @@ const editFloor=()=>layoutEdit&&layoutEdit.floors.find(x=>x.key===ui.floor);
 function freeFloorHtml(f,map,edit){
   const T=f.tables||[];
   return `<div class="freecanvas${edit?' fedit':''}" id="fcanvas">${T.map(t=>{ const id=String(t.id); const sel=edit&&layoutSel===id?' sel':''; const sh=t.shape||'round';
-    const inner=edit?`<div class="cell empty ed${sel}"><span class="no">${esc(tLabel(id))}</span></div>`:cellHtml(id,map);
+    const inner=edit?`<div class="cell empty ed${sel}"><span class="no">${esc(tLabel(id))}</span>${seatBadge(id)}</div>`:cellHtml(id,map);
     return `<div class="fpos ${sh}" data-ft="${esc(id)}" style="left:${t.x/10}%;top:${t.y/6}%;width:${t.w/10}%;height:${t.h/6}%">${inner}</div>`; }).join('')}</div>`;
 }
 function freeSelBar(f){
   const t=(f.tables||[]).find(x=>String(x.id)===layoutSel);
   if(!t) return `<div class="fselbar"><span class="note">테이블을 눌러 고르면 번호·모양·크기를 바꿀 수 있어요</span></div>`;
-  return `<div class="fselbar"><b>${esc(tLabel(String(t.id)))}번</b><button class="lbtn" data-led="frenum">번호</button><button class="lbtn" data-led="fshape" data-v="round">원</button><button class="lbtn" data-led="fshape" data-v="square">네모</button><button class="lbtn" data-led="fshape" data-v="rect">직사각</button><button class="lbtn" data-led="fsize" data-v="-1">작게</button><button class="lbtn" data-led="fsize" data-v="1">크게</button><button class="lbtn bad" data-led="fdelt">지우기</button></div>`;
+  return `<div class="fselbar"><b>${esc(tLabel(String(t.id)))}번</b><button class="lbtn" data-led="frenum">번호</button><button class="lbtn" data-led="tseat" data-t="${esc(String(t.id))}">인원수</button><button class="lbtn" data-led="fshape" data-v="round">원</button><button class="lbtn" data-led="fshape" data-v="square">네모</button><button class="lbtn" data-led="fshape" data-v="rect">직사각</button><button class="lbtn" data-led="fsize" data-v="-1">작게</button><button class="lbtn" data-led="fsize" data-v="1">크게</button><button class="lbtn bad" data-led="fdelt">지우기</button></div>`;
 }
 function freeSpot(f,w,h){ const T=f.tables||[]; for(let y=30;y<=FH-h;y+=20) for(let x=30;x<=FW-w;x+=20){ if(!T.some(t=>x<t.x+t.w+6&&x+w+6>t.x&&y<t.y+t.h+6&&y+h+6>t.y)) return {x,y}; } return {x:30,y:30}; }
 // 지금 칸 배치의 테이블들을 자유 배치로: 줄 맞춰 늘어놓고 그다음 마음대로 옮기게
@@ -773,7 +781,7 @@ document.getElementById('boardPanel').addEventListener('pointerdown',e=>{
 document.getElementById('boardPanel').addEventListener('click',async e=>{
   const b=e.target.closest('[data-led],[data-dp],[data-dp-end]'); if(!b) return;
   const act=b.dataset.led; if(!act && !layoutEdit) return;
-  if(act==='start'){ if(!confirm('현황판 배치를 수정할까요?\n\n저장을 누르기 전에는 실제 배치가 바뀌지 않아요.')) return; layoutEdit={floors:cloneL(FLOORS)}; layoutSel=''; renderBoard(); return; }
+  if(act==='start'){ if(!confirm('현황판 배치를 수정할까요?\n\n저장을 누르기 전에는 실제 배치가 바뀌지 않아요.')) return; layoutEdit={floors:cloneL(FLOORS),seats:cloneL(SEATS)}; layoutSel=''; renderBoard(); return; }
   if(!layoutEdit) return;
   e.stopPropagation(); const F=layoutEdit.floors; const f=F.find(x=>x.key===ui.floor); const p=b.dataset.p;
   const redraw=()=>renderBoard();
@@ -793,6 +801,9 @@ document.getElementById('boardPanel').addEventListener('click',async e=>{
     if(sel&&act==='frenum'){ const v=(prompt('새 번호 (1~99)',sel.id)||'').trim(); if(!v||v===String(sel.id)) return; if(!/^\d{1,2}$/.test(v)||+v<1) return toast('1~99 사이 숫자로 넣어 주세요'); if(tablesOf(F).includes(String(+v))) return toast(`${+v}번은 이미 있어요`); sel.id=String(+v); layoutSel=sel.id; return redraw(); }
     if(sel&&act==='fdelt'){ f.tables.splice(f.tables.indexOf(sel),1); layoutSel=''; return redraw(); }
   }
+  if(act==='tseat'){ const t=b.dataset.t; const cur=layoutEdit.seats[t]||''; const v=(prompt(`${tLabel(t)}번은 몇 인석인가요? (예: 6, 8 · 비우면 표시 해제)`,cur)||'').trim();
+    if(v===''){ delete layoutEdit.seats[t]; return redraw(); } const n=parseInt(v,10); if(!(n>=1&&n<=30)) return toast('1~30 사이 숫자로 넣어 주세요'); layoutEdit.seats[t]=n; return redraw(); }
+  if(act==='seedseats'){ if(!confirm('본점 기본 큰 자리를 불러올까요?\n6인석: 1층 6~10번, 2층 42~45·51~53번\n8인석: 29~34번(바 자리)\n(저장을 눌러야 반영돼요)')) return; const all=new Set(tablesOf(F)); Object.values(BIG6).flat().forEach(t=>{ if(all.has(t)) layoutEdit.seats[t]=6; }); BIG8.flat().forEach(t=>{ if(all.has(t)) layoutEdit.seats[t]=8; }); return redraw(); }
   if(act==='tdel'){ const {arr,idx}=slotOf(F,p); arr.splice(idx,1); layoutSel=''; return redraw(); }
   if(act==='tadd'){
     if(layoutSel){ const src=slotOf(F,layoutSel); const v=src.arr[src.idx]; const dst=colOf(F,b.dataset.dpEnd||p); src.arr.splice(src.idx,1); dst.push(v); layoutSel=''; return redraw(); }
@@ -807,10 +818,11 @@ document.getElementById('boardPanel').addEventListener('click',async e=>{
   if(act==='fadd'){ const v=(prompt('새 층 이름 (예: 3층)')||'').trim(); if(v){ const key=String(Math.max(0,...F.map(x=>+x.key||0))+1); F.push({key,name:v,groups:[{title:'구역 1',cols:[[],[]]}]}); ui.floor=key; redraw(); } return; }
   if(act==='fren'){ const v=(prompt('층 이름',f.name)||'').trim(); if(v){ f.name=v; redraw(); } return; }
   if(act==='fdel'){ if(F.length<2) return toast('층은 하나 이상 있어야 해요'); if(!confirm(`‘${f.name}’ 전체를 지울까요?`)) return; F.splice(F.indexOf(f),1); layoutSel=''; ui.floor=F[0].key; return redraw(); }
-  if(act==='reset'){ if(!confirm('처음 배치(기본 배치)로 되돌릴까요?\n저장을 눌러야 반영돼요.')) return; layoutEdit.floors=cloneL(DEFAULT_FLOORS); layoutSel=''; ui.floor=layoutEdit.floors[0].key; return redraw(); }
+  if(act==='reset'){ if(!confirm('처음 배치(기본 배치)로 되돌릴까요?\n저장을 눌러야 반영돼요.')) return; layoutEdit.floors=cloneL(DEFAULT_FLOORS); layoutEdit.seats={}; layoutSel=''; ui.floor=layoutEdit.floors[0].key; return redraw(); }
   if(act==='cancel'){ if(!confirm('수정한 내용을 버리고 닫을까요?')) return; layoutEdit=null; layoutSel=''; return renderBoard(); }
   if(act==='save'){ const err=layoutError(F); if(err) return toast(err);
-    try{ await saveLayout(F); FLOORS=cloneL(F); rebuildTables(); layoutEdit=null; layoutSel=''; render(); toast('배치를 저장했어요'); }catch(er){ toast('저장하지 못했어요: '+er.message); } return; }
+    const all=new Set(tablesOf(F)); const S={}; Object.entries(layoutEdit.seats||{}).forEach(([k,v])=>{ if(all.has(k)&&v>0) S[k]=v; });
+    try{ await saveLayout(F,S); FLOORS=cloneL(F); SEATS=S; rebuildTables(); layoutEdit=null; layoutSel=''; render(); toast('배치를 저장했어요'); }catch(er){ toast('저장하지 못했어요: '+er.message); } return; }
 },true);
 
 /* ---------- 예약 입력 창 ---------- */
