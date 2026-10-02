@@ -101,6 +101,7 @@ body.resizing iframe{pointer-events:none}
 .res .l1{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
 .res .nm{font-weight:700;font-size:14px}
 .res .pp{font-weight:600;font-variant-numeric:tabular-nums}
+.tgroup.nohead .thead{display:none}
 .thead .tgl{font-size:20px;font-weight:900;color:#0B2455;background:#DCEBFF;border:2px solid #3C5A86;border-radius:8px;padding:0 10px}
 .tbls{display:inline-flex;flex-wrap:wrap;gap:3px;align-items:center;margin-right:2px}
 .tbls .tbl:not(.dupt):not(.tightt):not(.none){background:#DCEBFF;color:#0B2455;border:2px solid #3C5A86}
@@ -607,21 +608,21 @@ function renderList(){
   const isToday=ui.date===todayStr(); const nm=nowMin();
   const tkey=x=>{ const t=(x.tables||[])[0]; if(t==null) return 99999; return /^\d+$/.test(t)?+t:/^R(\d+)/.test(t)?1000+(+RegExp.$1):5000; };
   const groups={};
-  if(ui.sort==='table'){ list.slice().sort((a,b)=>tkey(a)-tkey(b)||(toMin(a.time)??9999)-(toMin(b.time)??9999)).forEach(x=>{ const t=(x.tables||[])[0]; const k=t==null?'테이블 미정':tablesText([t])[0]+(/^\d+$/.test(t)?'번':''); (groups[k]=groups[k]||[]).push(x); }); }
+  if(ui.sort==='table'){ list.slice().sort((a,b)=>tkey(a)-tkey(b)||(toMin(a.time)??9999)-(toMin(b.time)??9999)).forEach(x=>{ const t=(x.tables||[])[0]; (groups['__t']=groups['__t']||[]).push(x); }); }
   else list.forEach(x=>{ const k=x.time||'시간 없음'; (groups[k]=groups[k]||[]).push(x); });
   const keys=Object.keys(groups);
   const nowKey = isToday? keys.find(k=>toMin(k)!=null && toMin(k)>=nm-30) : null;
   const html=keys.map(k=>{ const g=groups[k]; const gl=g.filter(x=>!isCxl(x)); const pp=gl.reduce((a,x)=>a+people(x.pp),0);
-    return `<div class="tgroup" ${k===nowKey?'id="nowGroup"':''}><div class="thead ${k===nowKey?'now':''}">${ui.sort==='table'?`<span class="t tgl">${esc(k)}</span>`:`<button class="t" data-goto="${esc(k)}" title="현황판을 ${esc(k)}로">${esc(k)}</button>`}<span>${gl.length}팀 · ${pp}명${g.length>gl.length?` · 취소 ${g.length-gl.length}`:''}</span>${k===nowKey?`<span class="badge warn">${Math.abs(toMin(k)-nm)<=30?'지금':'다음'}</span>`:''}</div>
+    return `<div class="tgroup ${ui.sort==='table'?'nohead':''}" ${k===nowKey?'id="nowGroup"':''}><div class="thead ${k===nowKey?'now':''}">${ui.sort==='table'?`<span class="t tgl">${esc(k)}</span>`:`<button class="t" data-goto="${esc(k)}" title="현황판을 ${esc(k)}로">${esc(k)}</button>`}<span>${gl.length}팀 · ${pp}명${g.length>gl.length?` · 취소 ${g.length-gl.length}`:''}</span>${k===nowKey?`<span class="badge warn">${Math.abs(toMin(k)-nm)<=30?'지금':'다음'}</span>`:''}</div>
       ${g.map(x=>{ const tb=(x.tables||[]); const tel=(x.phone||'').replace(/[^\d]/g,'');
         const dw=CONF.who[x.id];
         const tw=TIGHT.who[x.id];
         const cx=isCxl(x);
         return `<div class="res ${x.done?'done':''} ${dw?'dup':''} ${tw?'tight':''} ${cx?'cxl':''}" data-row="${x.id}" title="누르면 수정">
           <input type="checkbox" class="ck" data-done="${x.id}" ${x.done?'checked':''} aria-label="${esc(x.name)} 도착">
-          <div><div class="l1">${ui.sort==='table'&&tb.length===1&&!x.tnote?'':`<span class="tbls">${(()=>{ const ct=CONF.tabs[x.id], tt=TIGHT.tabs[x.id];
-              if(!ct && !tt) return tablesText(tb).map(t=>`<span class="tbl">${esc(t)}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join('');
-              return tb.map(t=>`<span class="tbl ${ct&&ct.has(t)?'dupt':tt&&tt.has(t)?'tightt':''}">${esc(tLabel(t))}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join(''); })()}${x.tnote?`<span class="tnote ${cx?'cx':''}">${esc(x.tnote)}</span>`:''}${!tb.length&&!x.tnote?'<span class="tbl none">테이블 미정</span>':''}</span>`}<button class="rtime" data-goto="${esc(x.time)}" data-gt="${esc((x.tables||[])[0]||'')}" title="현황판을 ${esc(x.time)}로">${esc(x.time)}</button><span class="nm ${x.c&&x.c===ui.date?'sameday':''}">${esc(x.name)}</span>${x.c&&x.c===ui.date?'<span class="sdb">당일</span>':''}${x.pp?`<span class="pp">${esc(x.pp)}명</span>`:''}
+          <div><div class="l1"><span class="tbls">${(()=>{ const ct=CONF.tabs[x.id], tt=TIGHT.tabs[x.id];
+              if(!ct && !tt){ const tx=tablesText(tb), nums=tx.filter(t=>/^\d+$/.test(t)), rest=tx.filter(t=>!/^\d+$/.test(t)); return (nums.length?`<span class="tbl">${esc(nums.join('·'))}<small>번</small></span>`:'')+rest.map(t=>`<span class="tbl">${esc(t)}</span>`).join(''); }
+              return tb.map(t=>`<span class="tbl ${ct&&ct.has(t)?'dupt':tt&&tt.has(t)?'tightt':''}">${esc(tLabel(t))}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join(''); })()}${x.tnote?`<span class="tnote ${cx?'cx':''}">${esc(x.tnote)}</span>`:''}${!tb.length&&!x.tnote?'<span class="tbl none">테이블 미정</span>':''}</span><button class="rtime" data-goto="${esc(x.time)}" data-gt="${esc((x.tables||[])[0]||'')}" title="현황판을 ${esc(x.time)}로">${esc(x.time)}</button><span class="nm ${x.c&&x.c===ui.date?'sameday':''}">${esc(x.name)}</span>${x.c&&x.c===ui.date?'<span class="sdb">당일</span>':''}${x.pp?`<span class="pp">${esc(x.pp)}명</span>`:''}
             ${x.done?'<span class="badge done">도착</span>':''}</div>
             ${dw?`<div class="dupline">⚠ 중복: ${esc(dw.join(', '))}</div>`:''}
             ${!dw&&tw?`<div class="tightline">⏰ 임박(2시간 간격): ${esc(tw.join(', '))}</div>`:''}
