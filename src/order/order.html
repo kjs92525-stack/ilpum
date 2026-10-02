@@ -24,6 +24,10 @@ header .sp{flex:1}
 main{max-width:860px;margin:0 auto;padding:12px 12px 90px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
 h2{font-size:15px;margin:0 0 8px}
+.sbox{position:sticky;top:0;z-index:5;display:flex;gap:6px;align-items:center;padding:8px 12px;background:var(--bg)}
+.sbox input{flex:1;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);min-width:0}
+.sbox button{border:0;background:var(--soft);border-radius:999px;width:32px;height:32px;cursor:pointer;color:var(--sub)}
+.nomatch{text-align:center;color:var(--sub);padding:24px 8px}
 .cat{font-weight:800;color:var(--accent);margin:14px 2px 6px;font-size:14px}
 .it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px dashed var(--line)}
 .it:last-child{border-bottom:0}
@@ -75,6 +79,7 @@ label.f{display:block;margin:8px 0 2px;font-size:13px;font-weight:700;color:var(
   <div class="row"><h1>발주</h1><span id="storeSlot"></span><span class="sp"></span><span id="sync">연결 중…</span><button class="btn sm" id="reload" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.5)">새로고침</button></div>
   <div class="tabs" role="tablist"><button role="tab" data-tab="in" aria-selected="true">발주 입력</button><button role="tab" data-tab="items" aria-selected="false">품목 관리</button><button role="tab" data-tab="hist" aria-selected="false">발주 내역</button><button role="tab" data-tab="all" id="allTab" aria-selected="false" hidden>전체 현황</button></div>
 </header>
+<div class="sbox" id="sbox"><input type="search" id="sq" placeholder="검색 (물건 이름·분류)" autocomplete="off" aria-label="검색"><button type="button" id="sqx" hidden aria-label="지우기">✕</button></div>
 <main id="main"></main>
 <div class="bar" id="bar" hidden><span class="sum" id="sum"></span><button class="btn" id="clear">비우기</button><button class="btn pri" id="send">발주 넣기</button></div>
 <dialog id="dlg"><div id="dlgBody"></div></dialog>
@@ -147,7 +152,16 @@ function render(){
   if(!READY){ return; }
   if(TAB==='in') m.innerHTML=vIn(); else if(TAB==='items') m.innerHTML=vItems(); else if(TAB==='all'&&isHqUser()) m.innerHTML=vAll(); else m.innerHTML=vHist();
   if(TAB==='in') updateBar();
+  applyFilter();
 }
+// 검색: 화면을 다시 그리지 않고 줄만 숨겨서(입력 중 커서·수량이 안 사라지게) 걸러 줘요
+function applyFilter(){
+  const q=($('#sq').value||'').trim().toLowerCase(); $('#sqx').hidden=!q; const m=$('#main'); m.querySelectorAll('.nomatch').forEach(e=>e.remove());
+  const rows=[...m.querySelectorAll('.it, .card.ord')]; rows.forEach(r=>{ r.hidden=!!q&&!r.textContent.toLowerCase().includes(q); });
+  m.querySelectorAll('.cat').forEach(c=>{ const card=c.nextElementSibling; const any=card?[...card.querySelectorAll('.it, .card.ord')].some(r=>!r.hidden):false; c.hidden=!!q&&!any; if(card&&card.classList.contains('card')) card.hidden=!!q&&!any; });
+  if(q&&rows.length&&rows.every(r=>r.hidden)) m.insertAdjacentHTML('beforeend','<div class="nomatch">검색 결과가 없어요</div>');
+}
+$('#sq').addEventListener('input',applyFilter); $('#sqx').onclick=()=>{ $('#sq').value=''; applyFilter(); $('#sq').focus(); };
 function groups(list){ const g={}; list.forEach(x=>{ (g[x.category||'기타']=g[x.category||'기타']||[]).push(x); }); return g; }
 function vIn(){
   if(!ITEMS.length&&!EXTRA.length) return `<div class="card empty"><b>등록된 품목이 없어요</b><br>${canEditItems()?'‘품목 관리’에서 추가하거나 예전 발주 사이트에서 가져오세요.':'본사나 점주에게 품목 등록을 요청하세요.'}</div>${extraHtml()}`;
