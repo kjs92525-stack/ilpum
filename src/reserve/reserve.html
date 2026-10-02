@@ -364,7 +364,9 @@ function parseTables(s){
     group.split(/[,/·]+/).forEach(tok=>{
       tok=tok.trim(); if(!tok) return;
       let m=tok.match(/^r\s*(\d)(?:\s*-\s*(\d))?$/i);
-      if(m){ const r=+m[1]; if(!ROOM_SUBS[r]) return;
+      if(m){ const r=+m[1];
+        if(!m[2]&&ALL_TABLES.includes('R'+r)){ out.push('R'+r); mode='table'; return; }   // 배치에 "R1" 처럼 통째로 만든 룸
+        if(!ROOM_SUBS[r]) return;
         if(m[2]){ if(ROOM_SUBS[r].includes(+m[2])) out.push(R(r,+m[2])); mode='sub'; room=r; }
         else { ROOM_SUBS[r].forEach(x=>out.push(R(r,x))); mode='room'; }
         return; }
@@ -379,9 +381,10 @@ function parseTables(s){
 // 표시용: 룸 전체면 "룸4", 일부면 "룸4-1·2"
 function tablesText(ts){
   ts=ts||[]; const nums=ts.filter(t=>!/^R/.test(t)).sort((a,b)=>a-b); const rooms={};
-  ts.filter(t=>/^R/.test(t)).forEach(t=>{ const [r,x]=t.slice(1).split('-').map(Number); (rooms[r]=rooms[r]||[]).push(x); });
+  const whole=ts.filter(t=>/^R\d+$/.test(t)).map(t=>'룸'+t.slice(1));
+  ts.filter(t=>/^R\d+-\d+$/.test(t)).forEach(t=>{ const [r,x]=t.slice(1).split('-').map(Number); (rooms[r]=rooms[r]||[]).push(x); });
   const rs=Object.keys(rooms).sort().map(r=>{ const xs=rooms[r].sort(); return xs.length===ROOM_SUBS[r].length? `룸${r}` : `룸${r}-${xs.join('·')}`; });
-  return [...nums,...rs];
+  return [...nums,...whole,...rs];
 }
 // 표시용 → 다시 입력칸에 넣을 때 쓰는 짧은 표기
 function tablesInput(ts){
@@ -724,10 +727,12 @@ const cloneL=o=>JSON.parse(JSON.stringify(o));
 function validLayout(F){ return Array.isArray(F)&&F.length>0&&F.every(f=>f&&typeof f.key==='string'&&typeof f.name==='string'&&(f.mode==='free'? (Array.isArray(f.tables)&&f.tables.every(t=>t&&t.id!=null&&isFinite(t.x)&&isFinite(t.y)&&t.w>0&&t.h>0)) : (Array.isArray(f.groups)&&f.groups.every(g=>g&&typeof g.title==='string'&&Array.isArray(g.cols)&&g.cols.every(c=>Array.isArray(c)))&&(!f.bar||(Array.isArray(f.bar.row)))))); }
 function layoutError(F){
   const all=tablesOf(F); if(!all.length) return '테이블이 하나도 없어요';
-  const bad=all.find(t=>!(/^\d{1,2}$/.test(t)&&+t>=1)&&!/^R[1-4]-[1-4]$/.test(t)); if(bad) return `‘${bad}’ 는 쓸 수 없는 번호예요`;
+  const bad=all.find(t=>!normTid(t)||normTid(t)!==t); if(bad) return `‘${bad}’ 는 쓸 수 없는 번호예요`;
   const dup=all.find((t,i)=>all.indexOf(t)!==i); if(dup) return `테이블 ${dup}번이 두 번 있어요`;
   if(new Set(F.map(f=>f.key)).size!==F.length) return '층 구분이 겹쳐요'; return '';
 }
+// 테이블 번호 입력: 숫자(1~99) 또는 룸(R1, R1-2, 룸1)
+function normTid(v){ v=String(v||'').trim().toUpperCase().replace(/^룸/,'R').replace(/\s+/g,''); if(/^\d{1,2}$/.test(v)&&+v>=1) return String(+v); if(/^R\d{1,2}(-\d{1,2})?$/.test(v)) return v; return ''; }
 function rebuildTables(){ ALL_TABLES=tablesOf(FLOORS); if(!FLOORS.some(f=>f.key===ui.floor)) ui.floor=FLOORS[0].key; }
 async function loadLayout(){
   try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.tables&deleted=eq.false&select=data`); if(!r.ok) return;
@@ -802,15 +807,15 @@ document.getElementById('boardPanel').addEventListener('click',async e=>{
   if(act==='ffadd'){ const v=(prompt('새 층 이름 (자유 배치, 예: 홀)')||'').trim(); if(v){ const key=String(Math.max(0,...F.map(x=>+x.key||0))+1); F.push({key,name:v,mode:'free',tables:[]}); ui.floor=key; layoutSel=''; redraw(); } return; }
   if(f&&f.mode==='free'){
     const sel=(f.tables||[]).find(x=>String(x.id)===layoutSel);
-    if(act==='ftadd'){ const v=(prompt('추가할 테이블 번호 (1~99)')||'').trim(); if(!v) return; if(!/^\d{1,2}$/.test(v)||+v<1) return toast('1~99 사이 숫자로 넣어 주세요'); if(tablesOf(F).includes(String(+v))) return toast(`${+v}번은 이미 있어요`);
-      const sp=freeSpot(f,100,90); f.tables.push({id:String(+v),x:sp.x,y:sp.y,w:100,h:90,shape:'round'}); layoutSel=String(+v); return redraw(); }
+    if(act==='ftadd'){ const raw=(prompt('추가할 테이블 번호 (1~99, 룸은 R1 처럼)')||'').trim(); if(!raw) return; const v=normTid(raw); if(!v) return toast('1~99 사이 숫자나 룸(R1, R1-2)으로 넣어 주세요'); if(tablesOf(F).includes(v)) return toast(`${tLabel(v)}번은 이미 있어요`);
+      const sp=freeSpot(f,100,90); f.tables.push({id:v,x:sp.x,y:sp.y,w:100,h:90,shape:/^R/.test(v)?'rect':'round'}); layoutSel=v; return redraw(); }
     if(act==='fcircle'){ const n=parseInt(prompt('몇 개를 원형으로 놓을까요? (2~30)','8'),10); if(!(n>=2&&n<=30)) return toast('2~30 사이로 넣어 주세요'); const st=parseInt(prompt('시작 번호 (이 번호부터 차례로)','1'),10); if(!(st>=1&&st+n-1<=99)) return toast('번호는 1~99 안에서 정해 주세요');
       const used=new Set(tablesOf(F)); const ids=Array.from({length:n},(_,i)=>String(st+i)); const dup=ids.find(x=>used.has(x)); if(dup) return toast(`${dup}번이 이미 있어요. 다른 시작 번호를 쓰거나 먼저 지워 주세요`);
       const rx=380, ry=200, size=clampN(Math.floor(2*Math.PI*Math.sqrt((rx*rx+ry*ry)/2)/n*0.8),50,120);
       ids.forEach((id,i)=>{ const a=-Math.PI/2+2*Math.PI*i/n; f.tables.push({id,x:Math.round(FW/2+rx*Math.cos(a)-size/2),y:Math.round(FH/2+ry*Math.sin(a)-size/2),w:size,h:size,shape:'round'}); }); layoutSel=''; return redraw(); }
     if(sel&&act==='fshape'){ const v=b.dataset.v; if(v==='rect'){ sel.w=Math.min(260,Math.round(sel.h*1.6)); } else { const m=Math.round((sel.w+sel.h)/2); sel.w=sel.h=m; } sel.shape=v; sel.x=clampN(sel.x,0,FW-sel.w); sel.y=clampN(sel.y,0,FH-sel.h); return redraw(); }
     if(sel&&act==='fsize'){ const k=+b.dataset.v>0?1.15:0.87; sel.w=clampN(Math.round(sel.w*k),40,300); sel.h=clampN(Math.round(sel.h*k),40,300); sel.x=clampN(sel.x,0,FW-sel.w); sel.y=clampN(sel.y,0,FH-sel.h); return redraw(); }
-    if(sel&&act==='frenum'){ const v=(prompt('새 번호 (1~99)',sel.id)||'').trim(); if(!v||v===String(sel.id)) return; if(!/^\d{1,2}$/.test(v)||+v<1) return toast('1~99 사이 숫자로 넣어 주세요'); if(tablesOf(F).includes(String(+v))) return toast(`${+v}번은 이미 있어요`); sel.id=String(+v); layoutSel=sel.id; return redraw(); }
+    if(sel&&act==='frenum'){ const raw=(prompt('새 번호 (1~99, 룸은 R1 처럼)',sel.id)||'').trim(); if(!raw||raw===String(sel.id)) return; const v=normTid(raw); if(!v) return toast('1~99 사이 숫자나 룸(R1, R1-2)으로 넣어 주세요'); if(tablesOf(F).includes(v)) return toast(`${tLabel(v)}번은 이미 있어요`); if(layoutEdit.seats&&layoutEdit.seats[sel.id]){ layoutEdit.seats[v]=layoutEdit.seats[sel.id]; delete layoutEdit.seats[sel.id]; } sel.id=v; layoutSel=sel.id; return redraw(); }
     if(sel&&act==='fdelt'){ f.tables.splice(f.tables.indexOf(sel),1); layoutSel=''; return redraw(); }
   }
   if(act==='tseat'){ const t=b.dataset.t; const cur=layoutEdit.seats[t]||''; const v=(prompt(`${tLabel(t)}번은 몇 인석인가요? (예: 6, 8 · 비우면 표시 해제)`,cur)||'').trim();
@@ -819,8 +824,8 @@ document.getElementById('boardPanel').addEventListener('click',async e=>{
   if(act==='tdel'){ const {arr,idx}=slotOf(F,p); arr.splice(idx,1); layoutSel=''; return redraw(); }
   if(act==='tadd'){
     if(layoutSel){ const src=slotOf(F,layoutSel); const v=src.arr[src.idx]; const dst=colOf(F,b.dataset.dpEnd||p); src.arr.splice(src.idx,1); dst.push(v); layoutSel=''; return redraw(); }
-    const v=(prompt('추가할 테이블 번호 (1~99)')||'').trim(); if(!v) return; if(!/^\d{1,2}$/.test(v)||+v<1) return toast('1~99 사이 숫자로 넣어 주세요');
-    if(tablesOf(F).includes(String(+v))) return toast(`${+v}번은 이미 있어요`); colOf(F,p).push(String(+v)); return redraw(); }
+    const raw=(prompt('추가할 테이블 번호 (1~99, 룸은 R1 처럼)')||'').trim(); if(!raw) return; const v=normTid(raw); if(!v) return toast('1~99 사이 숫자나 룸(R1, R1-2)으로 넣어 주세요');
+    if(tablesOf(F).includes(v)) return toast(`${tLabel(v)}번은 이미 있어요`); colOf(F,p).push(v); return redraw(); }
   if(b.dataset.dp!==undefined && !act){
     const q=b.dataset.dp; if(!layoutSel){ layoutSel=q; return redraw(); } if(layoutSel===q){ layoutSel=''; return redraw(); }
     const A=slotOf(F,layoutSel), B=slotOf(F,q); const t=A.arr[A.idx]; A.arr[A.idx]=B.arr[B.idx]; B.arr[B.idx]=t; layoutSel=''; return redraw(); }

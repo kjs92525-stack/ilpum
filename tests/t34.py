@@ -54,3 +54,22 @@ async def main():
     chk('오류 없음', not errs)
   print('전체','OK' if ok else 'FAIL')
 asyncio.run(main())
+
+async def rooms():
+  async with async_playwright() as p:
+    b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
+    ctx,pg,errs=await open_page(b,['R1','룸2','R1','99'])
+    await pg.click('[data-led="start"]'); await pg.click('[data-led="tofree"]'); await pg.wait_for_timeout(200)
+    ok=True
+    def chk(n,c):
+        nonlocal ok; ok&=bool(c); print(('OK  ' if c else 'FAIL'),n)
+    await pg.click('[data-led="ftadd"]'); await pg.wait_for_timeout(150)
+    await pg.click('[data-led="ftadd"]'); await pg.wait_for_timeout(150)
+    ids=await pg.evaluate("editFloor().tables.map(t=>t.id)"); chk('룸 R1·R2 추가됨', 'R1' in ids and 'R2' in ids)
+    await pg.click('[data-led="ftadd"]'); await pg.wait_for_timeout(150); chk('같은 번호(R1) 중복은 거절', await pg.evaluate("editFloor().tables.filter(t=>t.id==='R1').length")==1)
+    await pg.click('[data-led="save"]'); await pg.wait_for_timeout(500)
+    chk('저장 통과(오류 없음)', await pg.evaluate("layoutEdit")==None and 'R1' in await pg.evaluate("ALL_TABLES"))
+    chk('입력 "룸1" → R1 칸', await pg.evaluate("JSON.stringify(parseTables('룸1'))")=='["R1"]' and await pg.evaluate("tablesText(['R1','R2'])")==['룸1','룸2'])
+    chk('오류 없음', not errs)
+    print('룸 전체','OK' if ok else 'FAIL')
+asyncio.run(rooms())
