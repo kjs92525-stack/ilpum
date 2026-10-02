@@ -196,7 +196,7 @@ function vCards(){
     ${hiddenN>0||APP.showEmpty?`<button class="btn" data-a="empty">${APP.showEmpty?'빈 포지션 숨기기':`빈 포지션 ${hiddenN}개 보기`}</button>`:''}
     ${ed?'<button class="btn" data-a="posmgr">포지션 관리</button>':''}
     ${ed&&hasWeekly?`<button class="btn ${missingAw?'pri':''}" data-a="weekly" data-k="${ds(ws)}">매주 변동 입력${missingAw?` (${missingAw}명 미입력)`:''}</button>`:''}
-    ${payToggle()}<button class="btn" data-a="print">인쇄</button></div>
+    ${payToggle()}${EMBED&&window.parent!==window?'<button class="btn" data-a="tores">예약 보기 ›</button>':''}<button class="btn" data-a="print">인쇄</button></div>
     <div class="cards">${cards}</div>
     <div class="legend"><span><span class="chip">이름</span> 기본</span><span><span class="chip g-add">이름</span> 추가 출근</span><span><span class="chip g-chg">이름</span> 포지션 변경</span><span><span class="chip t-spot">이름</span> 단기·당일</span><span><span class="chip t-weekly">이름</span> 매주 변동</span><span><span class="chip">이름<i class="pmb">오후</i></span><span class="chip">이름<i class="tm soft">11시</i></span> 출근 시간</span></div>`;
 }

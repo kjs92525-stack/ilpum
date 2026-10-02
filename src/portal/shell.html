@@ -61,6 +61,8 @@ body.nav-hidden .main{inset:0}
 .pages{position:relative;flex:1;min-height:0}
 .page{position:absolute;inset:0;overflow:auto}
 iframe.fr{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg)}
+body.nav-temp .scrim{background:rgba(10,20,15,.06)}
+body.nav-temp:not(.nav-hidden) .scrim{opacity:1;pointer-events:auto}
 .scrim{position:fixed;inset:0;background:rgba(10,20,15,.45);z-index:25;opacity:0;pointer-events:none;transition:opacity .2s}
 
 /* ---------- 오늘 현황 ---------- */
@@ -259,6 +261,7 @@ window.addEventListener('message',e=>{
   const m=e.data; if(!m||!m.type) return;
   if(gateFr&&e.source===gateFr.contentWindow){ if(m.type==='fr-state') location.reload(); return; }
   if(m.type==='fr-refresh'){ refreshBadges(); return; }
+  if(m.type==='fr-open'&&ROUTES[m.id]&&allowed(m.id)){ go(m.id); return; }
   if(!frames.sch||e.source!==frames.sch.contentWindow) return;
   if(m.type==='fr-state'){
     info={hq:!!m.hq,edit:!!m.edit,seen:true}; applyInfo();
@@ -269,9 +272,9 @@ function applyInfo(){ $$('#menu [data-hq]').forEach(b=>b.hidden=!info.hq); $$('#
 
 /* ================= 메뉴 숨기기 / 보이기 ================= */
 const mobile=()=>innerWidth<=860;
-function setNav(open){ document.body.classList.toggle('nav-hidden',!open); try{ if(!mobile()) localStorage.setItem('ilpum-nav',open?'open':'hidden'); }catch(e){} }
+function setNav(open,temp){ document.body.classList.toggle('nav-hidden',!open); document.body.classList.toggle('nav-temp',!!(open&&temp&&!mobile())); if(temp) return; try{ if(!mobile()) localStorage.setItem('ilpum-nav',open?'open':'hidden'); }catch(e){} }
 function navOpen(){ return !document.body.classList.contains('nav-hidden'); }
-$('#tog').onclick=()=>setNav(!navOpen()); $('#hideBtn').onclick=()=>setNav(false); $('#scrim').onclick=()=>setNav(false);
+$('#tog').onclick=()=>{ if(navOpen()) setNav(false); else setNav(true,true); }; /* 햄버거로 연 메뉴는 빈 화면을 누르면 닫혀요 */ $('#hideBtn').onclick=()=>setNav(false); $('#scrim').onclick=()=>setNav(false);
 document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='b'){ e.preventDefault(); setNav(!navOpen()); } if(e.key==='Escape'&&mobile()&&navOpen()) setNav(false); });
 $('#menu').addEventListener('click',e=>{
   const g=e.target.closest('[data-g]'); if(g){ const sub=MENU.find(m=>m.id===g.dataset.g).sub; go(sub[0][0]); return; }

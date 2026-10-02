@@ -360,6 +360,7 @@ document.addEventListener('click',async e=>{
         APP.stores=await APP.be.stores(); APP.st=APP.stores.find(x=>x.id===APP.sid)||APP.st; APP.sum=null; renderShell(); render(); toast(`‘${nm}’ 으로 바꿨어요`); }catch(err){ toast(err.message); } break; }
     case 'pinreset': { const id=$('#rpId').value.trim().toLowerCase(); if(!id) return toast('아이디를 넣으세요'); if(!confirm(`‘${id}’ 계정의 급여 비밀번호를 지울까요?`)) return;
       try{ const r=await Remote.fetchJ('/rest/v1/rpc/pay_pin_reset',{method:'POST',body:JSON.stringify({p_login:id})}); toast(r==='ok'?`‘${id}’ 급여 비밀번호를 초기화했어요`:r==='none'?'그런 아이디가 없어요':'본사 계정만 할 수 있어요'); if(r==='ok') $('#rpId').value=''; }catch(err){ toast(err.message); } break; }
+    case 'tores': { try{ window.parent.postMessage({type:'fr-open',id:'res'},'*'); }catch(er){} break; }
     case 'bkdl': { const btn=e.target.closest('button'); btn.disabled=true; const old=btn.textContent;
       try{ const o=await APP.be.backupAll(t=>{ btn.textContent='받는 중… '+t; }); const txt=JSON.stringify(o); const day=new Date().toISOString().slice(0,10);
         const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'})); a.download=`일품집백업_${day}.json`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
