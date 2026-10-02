@@ -50,7 +50,8 @@ table{border-collapse:collapse;width:100%;font-size:14px} td,th{padding:6px 8px;
 <section class="card" id="s3">
   <h2><span class="n" id="n3">3</span>옮기기</h2>
   <label class="ck"><input type="checkbox" id="oSch" checked><span>근무표 옮기기<small>직원, 패턴, 예외, 당일알바, 고정알바 주간 입력, 금액</small></span></label>
-  <label class="ck"><input type="checkbox" id="oReplace" checked><span>본점 근무표를 예전 내용으로 통째로 바꾸기 (권장)<small>지금 새 서버에 있는 직원·예외(엑셀로 넣은 10월 임시 자료)를 지우고 예전 내용으로 바꿔요. 바꾸기 전에 지금 내용을 파일로 자동 저장해요.</small></span></label>
+  <label class="ck"><input type="checkbox" id="oMerge" checked><span><b>합치기 (권장)</b> — 새 서버에서 직접 고친 건 지키고, 예전 서버에서 바뀐 것만 합쳐요<small>근무표: 10/2 11:26 이후 새 서버에서 고친 줄은 그대로 두고, 그 전 줄과 새로 생긴 줄만 예전 내용으로. 예약: 같은 예약이 양쪽에 있으면 더 늦게 고친 쪽을 쓰고 한쪽에만 있는 예약은 모두 남겨요. <u>지우지는 않아요</u></small></span></label>
+  <label class="ck"><input type="checkbox" id="oReplace"><span>본점 근무표를 예전 내용으로 통째로 바꾸기 (합치기를 끄고 쓸 때만 · 새 서버에서 고친 내용이 사라져요)<small>지금 새 서버에 있는 직원·예외(엑셀로 넣은 10월 임시 자료)를 지우고 예전 내용으로 바꿔요. 바꾸기 전에 지금 내용을 파일로 자동 저장해요.</small></span></label>
   <label class="ck"><input type="checkbox" id="oRes" checked><span>예약 옮기기<small>날짜별로 그대로 옮겨요 (취소·삭제·휴지통 포함). 같은 날짜는 몇 번을 눌러도 중복되지 않아요</small></span></label>
   <div class="row" style="margin-top:8px"><button class="pri" id="bGo" disabled>옮기기 시작</button><span id="goMsg" class="help" style="margin:0"></span></div>
   <div id="result" style="margin-top:12px"></div>
@@ -133,9 +134,10 @@ $('#fBackup').onchange=async e=>{
 
 /* ---- 3. 옮기기 ---- */
 function refreshGo(){ const ok=winOpen&&!!store&&(oldState||oldRes); $('#bGo').disabled=!ok; $('#goMsg').textContent=ok?'':(!winOpen?'옮기기 창구가 닫혀 있어요':'먼저 2번에서 예전 내용을 읽으세요'); }
-async function send(fn,rows,label){
+const MERGE_CUTOFF='2026-10-02T02:26:00Z';   // 마지막 "통째로" 이전(10/2 11:25)이 끝난 직후. 이후에 새 서버에서 직접 고친 줄은 합치기에서 지켜요
+async function send(fn,rows,label,extra){
   for(let i=0;i<rows.length;i+=300){ const part=rows.slice(i,i+300);
-    const r=await rpc(fn,{p_rows:part},label);
+    const r=await rpc(fn,Object.assign({p_rows:part},extra||{}),label);
     if(r!=='ok') throw new Error(r==='closed'?'옮기기 창구가 닫혔어요 (시간 초과). Claude에게 다시 열어달라고 하세요':`${label} 실패: ${r}`);
     log(`${label}: ${Math.min(i+300,rows.length)} / ${rows.length}`); }
 }
@@ -148,14 +150,16 @@ $('#bGo').onclick=async()=>{
       log('── 근무표 옮기기 ──');
       const existing=(await rpc('sch_mig_existing',{},'새 서버 근무표 확인'))||[];
       const live=existing.filter(r=>!r.deleted);
-      if($('#oReplace').checked&&live.some(r=>r.kind!=='cfg')){ download(`새서버_근무표_바꾸기전_${today()}.json`,existing); log(`바꾸기 전 새 서버 내용을 파일로 저장했어요 (${live.length}건)`,'g'); }
+      const MERGE=$('#oMerge').checked; const REPL=$('#oReplace').checked&&!MERGE;
+      if(REPL&&live.some(r=>r.kind!=='cfg')){ download(`새서버_근무표_바꾸기전_${today()}.json`,existing); log(`바꾸기 전 새 서버 내용을 파일로 저장했어요 (${live.length}건)`,'g'); }
       const posRow=live.find(r=>r.kind==='cfg'&&r.id==='positions'); const conv=MIG.convertSchedule(oldState,posRow?posRow.data:[]);
       const rows=[]; const keep=new Set();
       ['staff','rule','dc','spot','aw','pay'].forEach(kind=>Object.entries(conv.items[kind]).forEach(([id,data])=>{ rows.push({kind,id,data,deleted:false}); keep.add(kind+'\u0001'+id); }));
       if(conv.added>0||!posRow) rows.push({kind:'cfg',id:'positions',data:conv.positions,deleted:false});
       let removed=0;
-      if($('#oReplace').checked){ live.filter(r=>['staff','rule','dc','spot','aw','pay'].includes(r.kind)&&!keep.has(r.kind+'\u0001'+r.id)).forEach(r=>{ rows.push({kind:r.kind,id:r.id,data:null,deleted:true}); removed++; }); }
-      await send('sch_mig_put_items',rows,'근무표 저장');
+      if(REPL){ live.filter(r=>['staff','rule','dc','spot','aw','pay'].includes(r.kind)&&!keep.has(r.kind+'\u0001'+r.id)).forEach(r=>{ rows.push({kind:r.kind,id:r.id,data:null,deleted:true}); removed++; }); }
+      if(MERGE){ download(`새서버_근무표_합치기전_${today()}.json`,existing); log('합치기 전 새 서버 내용을 파일로 저장했어요','g'); await send('sch_mig_merge_items',rows,'근무표 합치기',{p_cutoff:MERGE_CUTOFF}); }
+      else await send('sch_mig_put_items',rows,'근무표 저장');
       const c=Object.fromEntries(Object.entries(conv.items).map(([k,v])=>[k,Object.keys(v).length]));
       res.push(['근무표',`직원 ${c.staff}명 · 예외/이 날만 ${c.dc}건 · 당일알바 ${c.spot}건 · 기간 설정 ${c.rule}건 · 주간 입력 ${c.aw}주 · 금액 ${c.pay}건`+(conv.added?` · 포지션 ${conv.added}개 추가`:'')+(removed?` · 이전 임시 자료 ${removed}건 정리`:'')]);
       log('근무표 옮기기 완료','g');
@@ -164,7 +168,8 @@ $('#bGo').onclick=async()=>{
     if($('#oRes').checked&&oldRes){
       log('── 예약 옮기기 ──');
       const days=oldRes.filter(r=>r&&/^\d{4}-\d{2}-\d{2}$/.test(r.id)&&r.data&&typeof r.data==='object').map(r=>({id:r.id,data:r.data,rev:r.rev||1}));
-      for(let i=0;i<days.length;i+=20) await send('sch_mig_put_resdays',days.slice(i,i+20),'예약 저장');
+      const MERGE=$('#oMerge').checked;
+      for(let i=0;i<days.length;i+=20) await send(MERGE?'sch_mig_merge_resdays':'sch_mig_put_resdays',days.slice(i,i+20),MERGE?'예약 합치기':'예약 저장');
       res.push(['예약',`${days.length}일치`]);
       log('예약 옮기기 완료','g');
     }

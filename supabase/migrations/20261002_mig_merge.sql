@@ -1,0 +1,4 @@
+-- 이전 도구 "합치기" 모드: 새 서버에서 직접 고친 내용은 지키고 예전 서버 변경분만 합침.
+-- sch_mig_merge_items(rows, cutoff): cutoff 이후 새 서버에서 고친 줄은 건드리지 않고, 그 전 줄·없는 줄만 예전 내용으로.
+-- sch_mig_merge_resdays(rows): 같은 날짜의 예약을 id 로 합침 — 양쪽에 있으면 더 늦게 고친 쪽(u)을, 한쪽에만 있으면 그대로 남김.
+-- (함수 본문은 DB 마이그레이션 mig_merge_functions 에 적용돼 있음. 창구(sch_mig_window)가 열려 있을 때만 동작.)
