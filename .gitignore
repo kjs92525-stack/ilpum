@@ -7,3 +7,5 @@ dist/
 legacy/
 out/
 dist-tools/
+# 테스트가 만드는 스크린샷
+/*.png
