@@ -6,11 +6,11 @@ TODAY=datetime.date.today().isoformat()
 def item(i,name,tm,tb,req="",u=0): return {"id":"i%d"%i,"c":TODAY,"u":1790900000000+i,"pp":"4","req":req,"done":False,"name":name,"time":tm,"phone":"010-1111-2222","tnote":"","tables":tb}
 ITEMS=[item(1,"예약금손님","18:00",["3"],"예약금 5만원(입완)"),item(2,"일반손님","18:30",["4"],"창가 자리"),item(3,"메모없음","19:00",["5"]),
        item(4,"둘다","19:30",["7"],"초1+아기2, 예약금(입완)"),item(5,"취소손님","20:00",["8"],"예약금 5만원"),
-       item(6,"입금대기","18:00",["9"],"예약금 5만원 입금대기"),item(7,"입완만","18:15",["10"],"입완")]
+       item(6,"입금대기","18:00",["9"],"예약금 5만원 입금대기"),item(7,"입완만","18:15",["10"],"입완"),item(8,"예약금엑스","18:20",["11"],"예약금x"),item(9,"엑스입완","18:40",["12"],"예약금x(입완)")]
 ITEMS[4]["tnote"]="취소"
 MODE={'v':'grid'}
-GRID={"floors":[{"key":"1","name":"1층","groups":[{"title":"홀","cols":[[3,4,5],[7,8],[9,10]]}]}]}
-FREE={"floors":[{"key":"1","mode":"free","name":"홀","tables":[{"id":str(i),"x":20+(i-3)*100,"y":60,"w":100,"h":100,"shape":"round"} for i in (3,4,5,7,8,9,10)]}]}
+GRID={"floors":[{"key":"1","name":"1층","groups":[{"title":"홀","cols":[[3,4,5],[7,8],[9,10],[11,12]]}]}]}
+FREE={"floors":[{"key":"1","mode":"free","name":"홀","tables":[{"id":str(i),"x":20+(i-3)*100,"y":60,"w":100,"h":100,"shape":"round"} for i in (3,4,5,7,8,9,10,11,12)]}]}
 async def handler(r):
   u=r.request.url
   if 'localhost' in u: return await r.continue_()
@@ -40,7 +40,7 @@ async def main():
       MODE['v']=mode; ctx,pg,errs=await run(b, f'/tmp/dep_{mode}.png' if len(sys.argv)>1 else None)
       rows=await pg.evaluate("[...document.querySelectorAll('.res')].map(r=>({n:r.querySelector('.nm')?r.querySelector('.nm').textContent.trim():'',dep:r.classList.contains('dep'),q:!!r.querySelector('.rq.depq')}))")
       d={x['n']:x for x in rows}
-      chk(f'[{mode}] 목록: 예약금 예약만 강조', d.get('예약금손님',{}).get('dep') and d.get('예약금손님',{}).get('q') and d.get('둘다',{}).get('dep') and not d.get('일반손님',{}).get('dep') and not d.get('메모없음',{}).get('dep') and not d.get('입금대기',{}).get('dep') and not d.get('입완만',{}).get('dep') and not d.get('취소손님',{}).get('dep'), str(rows))
+      chk(f'[{mode}] 목록: 예약금 예약만 강조', d.get('예약금손님',{}).get('dep') and d.get('예약금손님',{}).get('q') and d.get('둘다',{}).get('dep') and not d.get('일반손님',{}).get('dep') and not d.get('메모없음',{}).get('dep') and not d.get('입금대기',{}).get('dep') and not d.get('입완만',{}).get('dep') and not d.get('예약금엑스',{}).get('dep') and not d.get('엑스입완',{}).get('dep') and not d.get('취소손님',{}).get('dep'), str(rows))
       await pg.click('.res .rtime'); await pg.wait_for_timeout(800)
       if len(sys.argv)>1: await pg.screenshot(path=f'/tmp/dep_{mode}.png')
       cells=await pg.evaluate("[...document.querySelectorAll('#boardPanel .cell')].filter(c=>c.querySelector('.cn')).map(c=>({n:c.querySelector('.cn').textContent.trim(),dep:c.classList.contains('dep'),b:!!c.querySelector('.depb')}))")

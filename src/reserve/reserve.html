@@ -450,7 +450,8 @@ function items(d){ return dayDoc(d).items.filter(x=>!x.deleted); }
 function tableNote(s){ return String(s||'').split(/\s+/).filter(g=>g && !parseTables(g).length && !/^(T|번)$/i.test(g)).join(' '); }
 const isCxl=x=>/취소/.test(x.tnote||'');
 // 예약금을 이미 받은 예약만: 요청사항에 '예약금' 과 '입완'(입금 완료)이 같이 있을 때 (예: 예약금 5만원(입완), 예약금(입완))
-const hasDep=x=>{ const t=String((x&&x.req)||''); return /예약금/.test(t)&&/입완/.test(t); };
+// '예약금x', '예약금 X', '예약금 없음', '예약금 안받음' 처럼 예약금이 없다는 뜻은 제외
+const hasDep=x=>{ const t=String((x&&x.req)||''); return /입완/.test(t)&&/예약금(?!\s*[xX×✕]|\s*(?:없|무|안|미))/.test(t); };
 function active(d){ return items(d).filter(x=>!isCxl(x)); }   // 현황판·중복 계산용 (취소 제외)
 function tableShow(x){ const ts=tablesText(x.tables); return [...ts, ...(x.tnote?[x.tnote]:[])].join(', '); }
 function cacheDay(d){ try{ localStorage.setItem('ilpum-res-'+SID+'-'+d, JSON.stringify(days[d])); }catch(e){} }
