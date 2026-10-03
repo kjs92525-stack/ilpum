@@ -797,7 +797,7 @@ function periodData(){
   const missing=yms.filter(ym=>!pay.months[ym]); const names=new Set();
   yms.forEach(ym=>{ const mon=pay.months[ym]; if(mon) Object.keys(mon.people).forEach(n=>names.add(n)); });
   const rows=[]; let tot={days:0,h:0,sum:0,miss:false};
-  [...names].filter(isSelAny).sort((a,b)=>a.localeCompare(b,'ko')).forEach(n=>{
+  [...names].filter(isSel).sort((a,b)=>a.localeCompare(b,'ko')).forEach(n=>{
     let days=0,h=0,sum=0,miss=false;
     yms.forEach(ym=>{ const p=pay.months[ym]&&pay.months[ym].people[n]; if(!p) return;
       Object.keys(p.days).forEach(dt=>{ if(dt<from||dt>to) return; const d=p.days[dt]; if(d.removed) return; const c=dayCalc(n,d);
@@ -810,21 +810,51 @@ async function ensurePeriod(){
   const need=ymsBetween(view.pf,view.pt).slice(0,14).filter(ym=>!pay.months[ym]); if(!need.length||periodBusy||!READY) return;
   periodBusy=true; try{ await syncMonths(need,false); save(); }catch(e){ toast('기간의 근무표를 받지 못했어요: '+(e.message||e)); } periodBusy=false; render();
 }
+function periodBar(P){ return `<div class="row noprint" style="align-items:flex-end">
+      <label>시작일<input type="date" id="pFrom" value="${P.from}" style="font-size:15px;padding:6px 8px"></label><label>끝일<input type="date" id="pTo" value="${P.to}" style="font-size:15px;padding:6px 8px"></label>
+      <button class="btn" data-act="pset" data-v="prev" title="지금 정한 기간만큼 앞으로">◀ 이전 기간</button><button class="btn" data-act="pset" data-v="next" title="지금 정한 기간만큼 뒤로">다음 기간 ▶</button>
+      <button class="btn" data-act="pset" data-v="lastweek">지난 주</button><button class="btn" data-act="pset" data-v="this">이번 주</button><button class="btn" data-act="pset" data-v="lastmonth">지난 달</button><button class="btn" data-act="pset" data-v="month">이번 달</button>
+      <button class="btn" data-act="pcopy">텍스트 복사</button></div>`; }
+function isSelNone(){ const mon=pay.months[pay.cur]; return !mon||!Object.keys(mon.people).some(isSel); }
 function periodCard(){
   const P=periodData(); const fmtD=dt=>fmtMD(dt); const wkNo=P.from===mondayOf(P.from)&&P.to===addD(P.from,6);
   const rows=P.rows.map(r=>`<tr><td><button class="name" data-person="${esc(r.n)}">${esc(r.n)}</button> <span class="muted" style="font-size:12.5px">${esc(baseLabel(r.n))}</span></td><td class="n">${r.days}일</td><td class="n">${fmtH(r.h)}시간</td><td class="n money">${r.miss&&!r.sum?'<span class="muted">시급·일급 필요</span>':won(r.sum)+(r.miss?' <span class="muted">+ 미입력</span>':'')}</td></tr>`).join('');
   return `<div class="card" id="periodCard"><h2 style="margin:0 0 6px">기간 정해서 계산 <span class="muted" style="font-size:14px;font-weight:500">${fmtD(P.from)} ~ ${fmtD(P.to)} · ${Math.round((new Date(P.to)-new Date(P.from))/86400000)+1}일${wkNo?' (한 주)':''}</span></h2>
     <p class="help noprint">위 표에서 <b>체크한 사람</b>만 계산해요. <b>일급이 없는 사람</b>은 시급 × 일한 시간, <b>일급인 사람</b>은 일한 날마다 일급을 더해요 (그 날 금액이 따로 정해진 날은 그 금액). 한 주씩 넘겨 보면 주급이에요. <b>시작일·끝일을 직접 고르면</b> 달이 걸쳐도(예: 9월 26일 ~ 10월 5일) 두 달 근무표를 자동으로 합쳐서 계산해요.</p>
-    <div class="row noprint" style="align-items:flex-end">
-      <label>시작일<input type="date" id="pFrom" value="${P.from}" style="font-size:15px;padding:6px 8px"></label><label>끝일<input type="date" id="pTo" value="${P.to}" style="font-size:15px;padding:6px 8px"></label>
-      <button class="btn" data-act="pset" data-v="prev" title="지금 정한 기간만큼 앞으로">◀ 이전 기간</button><button class="btn" data-act="pset" data-v="next" title="지금 정한 기간만큼 뒤로">다음 기간 ▶</button>
-      <button class="btn" data-act="pset" data-v="lastweek">지난 주</button><button class="btn" data-act="pset" data-v="this">이번 주</button><button class="btn" data-act="pset" data-v="lastmonth">지난 달</button><button class="btn" data-act="pset" data-v="month">이번 달</button>
-      <button class="btn" data-act="pcopy">텍스트 복사</button></div>
+    ${periodBar(P)}
     ${P.missing.length?`<p class="help" style="color:var(--warn)">${periodBusy?'근무표를 받아오는 중…':'아직 불러오지 않은 달이 있어요: '+P.missing.map(m=>m.replace('-','년 ')+'월').join(', ')}</p>`:''}
     ${P.rows.length?`<div class="tablewrap"><table><thead><tr><th>이름</th><th class="n">일한 날</th><th class="n">시간</th><th class="n">이 기간 금액</th></tr></thead><tbody>${rows}</tbody>
       <tfoot><tr><td>합계 ${P.rows.length}명</td><td class="n">${P.tot.days}일</td><td class="n">${fmtH(P.tot.h)}시간</td><td class="n">${won(P.tot.sum)}</td></tr></tfoot></table></div>`
-      :`<div class="empty">이 기간에 계산할 근무가 없어요.</div>`}</div>`;
+      :`<div class="empty">${isSelNone()?'위 표에서 <b>계산할 사람을 체크</b>해 주세요.':'이 기간에 계산할 근무가 없어요.'}</div>`}</div>`;
 }
+// ---- 사람 한 명의 기간 계산 (사람 이름을 눌러 들어간 화면): 달이 걸쳐도 날짜별로 합침 ----
+function personRange(n,from,to){
+  const yms=ymsBetween(from,to).slice(0,14); const days=[]; const tot={days:0,h:0,sum:0,miss:false,bonus:0};
+  yms.forEach(ym=>{ const p=pay.months[ym]&&pay.months[ym].people[n]; if(!p) return;
+    Object.keys(p.days).sort().forEach(dt=>{ if(dt<from||dt>to) return; const d=p.days[dt]; if(d.removed) return; const c=dayCalc(n,d);
+      days.push({dt,c}); if(!c.flat) tot.days++; tot.h+=c.hours; if(c.amount!=null) tot.sum+=c.amount; if(c.missing) tot.miss=true; }); });
+  return {from,to,yms,days,tot,missing:yms.filter(ym=>!pay.months[ym])};
+}
+function personPeriodCard(n){
+  periodInit(); const R=personRange(n,view.pf,view.pt); const wkNo=view.pf===mondayOf(view.pf)&&view.pt===addD(view.pf,6);
+  const len=Math.round((new Date(view.pt)-new Date(view.pf))/86400000)+1;
+  const rows=R.days.map(({dt,c})=>{ const dd=new Date(dt+'T00:00'), wd=dd.getDay();
+    return `<tr><td class="${wd===0?'sun':wd===6?'sat':''}">${dd.getMonth()+1}/${dd.getDate()} (${DOW[wd]})</td><td>${c.flat?'추가금만':c.type==='pm'?'오후':'종일'}</td><td class="n">${fmtH(c.hours)}시간</td><td class="n money">${c.amount!=null?won(c.amount):'<span class="muted">시급·일급 필요</span>'}</td></tr>`; }).join('');
+  return `<div class="card" id="periodCard" style="margin:10px 0 14px;background:var(--soft,rgba(128,128,128,.07))">
+    <h3 style="margin:0 0 6px;font-size:16px">${esc(n)} 기간 정해서 계산 <span class="muted" style="font-size:13.5px;font-weight:500">${fmtMD(R.from)} ~ ${fmtMD(R.to)} · ${len}일${wkNo?' (한 주)':''}</span></h3>
+    <p class="help noprint" style="margin:0 0 6px">달이 걸쳐도 돼요 (예: 9월 26일 ~ 10월 2일). 두 달 근무표를 자동으로 합쳐서 날짜별로 더해요.</p>
+    ${periodBar(R)}
+    ${R.missing.length?`<p class="help" style="color:var(--warn)">${periodBusy?'근무표를 받아오는 중…':'아직 불러오지 않은 달이 있어요: '+R.missing.map(m=>m.replace('-','년 ')+'월').join(', ')}</p>`:''}
+    ${R.days.length?`<div class="sum" style="margin:6px 0">
+        <div class="stat"><div class="k">일한 날</div><div class="v">${R.tot.days}일</div></div><div class="stat"><div class="k">근무시간</div><div class="v">${fmtH(R.tot.h)}시간</div></div>
+        <div class="stat big"><div class="k">이 기간 급여</div><div class="v">${won(R.tot.sum)}${R.tot.miss?' <span class="muted" style="font-size:13px">+ 미입력</span>':''}</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>날짜</th><th>구분</th><th class="n">시간</th><th class="n">금액</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td>합계</td><td></td><td class="n">${fmtH(R.tot.h)}시간</td><td class="n">${won(R.tot.sum)}</td></tr></tfoot></table></div>`
+      :`<div class="empty">이 기간에 ${esc(n)}님 근무가 없어요.</div>`}</div>`;
+}
+function personPeriodText(n){ const R=personRange(n,view.pf,view.pt); const L=[`${n} ${fmtMD(R.from)} ~ ${fmtMD(R.to)} 급여`];
+  R.days.forEach(({dt,c})=>L.push(`${fmtMD(dt)} ${c.flat?'추가금':c.type==='pm'?'오후':'종일'} ${fmtH(c.hours)}시간 ${c.amount!=null?won(c.amount):'(시급·일급 필요)'}`));
+  L.push(''); L.push(`${R.tot.days}일 · ${fmtH(R.tot.h)}시간 · 합계 ${won(R.tot.sum)}`); return L.join('\n'); }
 function periodText(){
   const P=periodData(); const L=[`${fmtMD(P.from)} ~ ${fmtMD(P.to)} 급여`];
   P.rows.forEach(r=>L.push(`${r.n} ${r.miss&&!r.sum?'(시급·일급 필요)':won(r.sum)} (${r.days}일 · ${fmtH(r.h)}시간)`));
@@ -892,6 +922,7 @@ function detailView(n){
       ${(()=>{ if(cycleOf(n)!=='week') return ''; const wk=weeklyBreakdown(n); const last=[...wk].reverse().find(w=>w.lastWork);
         return last? `<div class="stat"><div class="k">이번 달 마지막 급여일</div><div class="v" style="font-size:17px">${fmtMD(last.lastWork)}</div></div>` : ''; })()}
     </div>
+    ${personPeriodCard(n)}
     <div class="row" style="margin-bottom:10px">
       <label>기본 시급<input type="text" inputmode="numeric" class="rate" id="baseRate" data-rate="${esc(n)}" value="${pay.rates[n]!=null?pay.rates[n].toLocaleString('ko-KR'):''}" placeholder="예: 12,000"></label>
       <label>기본 일급<input type="text" inputmode="numeric" class="rate" data-drate="${esc(n)}" value="${pay.drates[n]!=null?pay.drates[n].toLocaleString('ko-KR'):''}" placeholder="예: 130,000"></label>
@@ -920,7 +951,7 @@ function detailView(n){
 const app=document.getElementById('app');
 app.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
-  if(d.person){ view.person=d.person; render(); window.scrollTo(0,0); return; }
+  if(d.person){ view.person=d.person; render(); ensurePeriod(); window.scrollTo(0,0); return; }
   if(d.back){ view.person=''; render(); return; }
   if(d.dailyback){ view.daily=null; render(); return; }
   if(b.id==='dailySave'){ saveDailyImage(); return; }
@@ -943,7 +974,7 @@ app.addEventListener('click',e=>{
       render(); ensurePeriod(); break; }
     case 'pinChange': pinChangeDialog(); break;
     case 'pgo': { const el=document.getElementById('periodCard'); if(el){ el.scrollIntoView({behavior:'smooth',block:'start'}); el.style.outline='3px solid var(--brand,#7A3E12)'; setTimeout(()=>{ el.style.outline=''; },1600); } break; }
-    case 'pcopy': copyText(periodText(),'기간 계산을 복사했어요'); break;
+    case 'pcopy': copyText(view.person?personPeriodText(view.person):periodText(),'기간 계산을 복사했어요'); break;
     case 'syncNow': { const ym=pay.cur || ds(new Date()).slice(0,7); syncSchedule(ym); break; }
     case 'syncYm': { const ym=document.getElementById('ymPick').value; if(!ym) return; syncSchedule(ym); break; }
     case 'delMonth': askConfirm(`${pay.cur.replace('-','년 ')}월 급여 기록을 지울까요?`,'시급 설정은 남고, 이 달의 근무일과 수정 내용만 지워져요. 먼저 급여 명세 HTML로 저장해 두면 나중에 복원할 수 있어요.','지우기',()=>{
