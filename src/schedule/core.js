@@ -162,6 +162,7 @@ const Remote={
   // 계정 관리(목록·비밀번호 바꾸기·정지·삭제): 본사만
   // 내 비밀번호 바꾸기 (로그인한 본인). pw_self_at 은 "본사가 바꾼 뒤 내가 다시 바꿨는지" 판단용
   async changeMyPassword(pw){ const j=await this.fetchJ('/auth/v1/user',{method:'PUT',body:JSON.stringify({password:pw,data:{pw_self_at:new Date().toISOString()}})}); if(j&&j.id&&this.ses){ this.ses.user=j; this.persist(); } return j; },
+  async manageStores(o){ return this.fetchJ('/functions/v1/manage-stores',{method:'POST',body:JSON.stringify(o)}); },
   async manageAccounts(o){ return this.fetchJ('/functions/v1/manage-accounts',{method:'POST',body:JSON.stringify(o)}); },
   // 전체 백업 / 복원 (본사만 — 서버 규칙이 본사 계정 말고는 모든 매장 자료를 주지 않아요)
   BK_TABLES:[['sch_items','store_id,kind,id'],['res_days','store_id,id'],['wh_items','store_id,id'],['wh_orders','store_id,code'],['board_notices','id'],['board_msgs','id']],
@@ -194,6 +195,7 @@ const safeColor=c=>/^#[0-9a-fA-F]{3,8}$/.test(String(c||''))?c:'#888888';
 const cleanPositions=a=>Array.isArray(a)? a.filter(p=>p&&typeof p.name==='string').map(p=>Object.assign({},p,{color:safeColor(p.color)})) : [];
 // 본사가 이 계정 비밀번호를 바꾼 뒤 본인이 아직 다시 안 바꿨으면 그 시각(문자열), 아니면 ''
 const pwByHqAt=u=>{ const h=u&&u.app_metadata&&u.app_metadata.pw_by_hq, m=u&&u.user_metadata&&u.user_metadata.pw_self_at; return h&&(!m||m<h)?h:''; };
+const CLOSED_MARK=' (사용 중지)', isClosedName=n=>String(n||'').endsWith(CLOSED_MARK);
 const TYPES={regular:'고정 근무',weekly:'매주 변동',spot:'단기·당일'};
 function buildD(items,storeName){
   const g=k=>items[k]||{}; const cfg=g('cfg');

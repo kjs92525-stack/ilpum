@@ -355,7 +355,11 @@ document.addEventListener('click',async e=>{
     case 'gologin': Conf.openOnly=false; saveConf(); location.reload(); break;
     case 'demorole': Local.db.demoRole=d.v; if(d.v==='staff'){ Local.db.demoMe={bonjum:Object.keys(Local.db.items.bonjum.staff)[0]}; } Local.persist(); location.reload(); break;
     case 'resetdemo': if(confirm('체험 데이터를 처음 상태로 되돌릴까요?')){ localStorage.removeItem(LOCAL_KEY); location.reload(); } break;
-    case 'storerename': { const nm=(prompt('새 매장 이름',d.name||'')||'').trim(); if(!nm||nm===d.name) return;
+    case 'storeactive': { const on=d.on==='1', nm=isClosedName(d.name)?d.name.slice(0,-CLOSED_MARK.length):d.name;
+      if(!confirm(on?`‘${nm}’ 을(를) 다시 사용할까요?\n이 매장 계정들이 다시 로그인할 수 있어요.`:`‘${nm}’ 을(를) 사용 중지할까요?\n\n· 이 매장에만 연결된 점주·직원 계정은 로그인이 막혀요\n· 자료는 그대로 남아요 (언제든 다시 사용 가능)\n· 매장 이름 뒤에 (사용 중지) 가 붙어요`)) return;
+      try{ const r=await APP.be.manageStores({action:'setactive',store:d.id,on}); APP.stores=await APP.be.stores(); APP.st=APP.stores.find(x=>x.id===APP.sid)||APP.st; APP.sum=null; notifyStores(); renderShell(); render();
+        toast(on?`‘${nm}’ 을(를) 다시 사용해요 (계정 ${r.accounts}개 풀림)`:`‘${nm}’ 을(를) 사용 중지했어요 (계정 ${r.accounts}개 막음)`); }catch(err){ toast(err.message); } break; }
+    case 'storerename': { const wasClosed=isClosedName(d.name), cur=wasClosed?d.name.slice(0,-CLOSED_MARK.length):(d.name||''); let nm=(prompt('새 매장 이름',cur)||'').trim(); if(!nm||nm===cur) return; if(wasClosed) nm+=CLOSED_MARK;
       try{ const r=await Remote.fetchJ('/rest/v1/rpc/sch_rename_store',{method:'POST',body:JSON.stringify({p_store:d.id,p_name:nm})});
         if(r!=='ok') return toast(r==='denied'?'본사 계정만 바꿀 수 있어요':r==='bad_name'?'이름은 1~40자예요':'매장을 찾지 못했어요');
         APP.stores=await APP.be.stores(); APP.st=APP.stores.find(x=>x.id===APP.sid)||APP.st; APP.sum=null; notifyStores(); renderShell(); render(); toast(`‘${nm}’ 으로 바꿨어요`); }catch(err){ toast(err.message); } break; }
