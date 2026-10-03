@@ -331,7 +331,8 @@ async function resolveStore(){
     window.addEventListener('storage',e=>{ if(e.key===CONF_KEY&&readConf().sid&&readConf().sid!==SID&&STORES.some(x=>x.id===readConf().sid)) location.reload(); });
   }catch(e){ if(e.auth) needLogin('로그인이 필요해요'); else setSync('연결 실패: '+e.message,true); }
 }
-window.pullNow=()=>{ if(READY&&!document.hidden) loadAll(); };
+window.pullNow=async()=>{ if(!READY||document.hidden) return; loadAll();
+  try{ const r=await fx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); if(!r.ok) return; const ids=(await r.json()).filter(x=>x.role).map(x=>x.id).sort().join(); if(ids!==STORES.map(x=>x.id).sort().join()) location.reload(); }catch(e){} };
 (async function boot(){ await resolveStore(); if(READY){ render(); await loadAll(); } })();
 </script>
 </body>

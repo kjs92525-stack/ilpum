@@ -330,7 +330,7 @@ document.addEventListener('click',async e=>{
     case 'gostore': closeDrawer(); await openStore(d.id); if(APP.view==='hq') APP.view='cards'; renderShell(); render(); break;
     case 'storenew': dStoreNew(); break;
     case 'storecreate': { const name=$('#snName').value.trim(); if(!name) return toast('매장 이름을 넣으세요'); const id=(name.toLowerCase().replace(/[^a-z0-9]/g,'')||'s')+Date.now().toString(36);
-      try{ await APP.be.createStore(id,name); APP.stores=await APP.be.stores(); APP.sum=null; closeDrawer(); renderShell(); render(); toast(`${name}을(를) 만들었어요`); }catch(err){ toast(err.message); } break; }
+      try{ await APP.be.createStore(id,name); APP.stores=await APP.be.stores(); APP.sum=null; notifyStores(); closeDrawer(); renderShell(); render(); toast(`${name}을(를) 만들었어요`); }catch(err){ toast(err.message); } break; }
     case 'sumreload': APP.sum=null; render(); break;
     case 'pf': APP.pf=d.v; render(); break;
     case 'empty': APP.showEmpty=!APP.showEmpty; render(); break;
@@ -358,7 +358,7 @@ document.addEventListener('click',async e=>{
     case 'storerename': { const nm=(prompt('새 매장 이름',d.name||'')||'').trim(); if(!nm||nm===d.name) return;
       try{ const r=await Remote.fetchJ('/rest/v1/rpc/sch_rename_store',{method:'POST',body:JSON.stringify({p_store:d.id,p_name:nm})});
         if(r!=='ok') return toast(r==='denied'?'본사 계정만 바꿀 수 있어요':r==='bad_name'?'이름은 1~40자예요':'매장을 찾지 못했어요');
-        APP.stores=await APP.be.stores(); APP.st=APP.stores.find(x=>x.id===APP.sid)||APP.st; APP.sum=null; renderShell(); render(); toast(`‘${nm}’ 으로 바꿨어요`); }catch(err){ toast(err.message); } break; }
+        APP.stores=await APP.be.stores(); APP.st=APP.stores.find(x=>x.id===APP.sid)||APP.st; APP.sum=null; notifyStores(); renderShell(); render(); toast(`‘${nm}’ 으로 바꿨어요`); }catch(err){ toast(err.message); } break; }
     case 'pinreset': { const id=$('#rpId').value.trim().toLowerCase(); if(!id) return toast('아이디를 넣으세요'); if(!confirm(`‘${id}’ 계정의 급여 비밀번호를 지울까요?`)) return;
       try{ const r=await Remote.fetchJ('/rest/v1/rpc/pay_pin_reset',{method:'POST',body:JSON.stringify({p_login:id})}); toast(r==='ok'?`‘${id}’ 급여 비밀번호를 초기화했어요`:r==='none'?'그런 아이디가 없어요':'본사 계정만 할 수 있어요'); if(r==='ok') $('#rpId').value=''; }catch(err){ toast(err.message); } break; }
     case 'tores': { try{ window.parent.postMessage({type:'fr-open',id:'res'},'*'); }catch(er){} break; }

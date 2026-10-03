@@ -44,7 +44,7 @@ async def main():
     chk('새 사용자 정보 저장', bool(saved)); chk('오류 없음', not errs, str(errs)); await ctx.close()
     ctx,pg,errs=await open_page(b,'http://localhost:8765/index.html'); await pg.wait_for_timeout(1500)
     chk('오늘 현황에 경고', '비밀번호를 바꿨어요' in await pg.inner_text('body')); chk('오류 없음(통합 틀)', not errs, str(errs)); await ctx.close()
-    ROLE['v']='hq'; ctx,pg,errs=await open_page(b,'http://localhost:8765/ilpum-schedule.html?view=set')
+    ROLE['v']='hq'; ctx,pg,errs=await open_page(b,'http://localhost:8765/ilpum-schedule.html?view=acct')
     t=await pg.inner_text('#main')
     chk('본사 계정 목록에 표시', '본사가 비밀번호 바꿈' in t); chk('본사 화면엔 경고 없음', '본사가 비밀번호를 바꿨어요' not in t); chk('오류 없음(본사)', not errs, str(errs)); await ctx.close()
     await b.close()

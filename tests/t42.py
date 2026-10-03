@@ -24,7 +24,7 @@ async def main():
     pg.on('dialog',lambda d: asyncio.ensure_future(d.accept('newpass1234') if d.type=='prompt' else d.accept()))
     await pg.route('**/*',handler); await pg.route_web_socket(f'wss://{NEW}/**',lambda ws: asyncio.ensure_future(ws.close()))
     await pg.add_init_script(f"try{{ localStorage.setItem('ilpum-fr-conf',{json.dumps(json.dumps(S))}); }}catch(e){{}}")
-    await pg.goto('http://localhost:8765/ilpum-schedule.html?view=set'); await pg.wait_for_timeout(1800)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html?view=acct'); await pg.wait_for_timeout(1800)
     t=await pg.inner_text('#main')
     print('1) 목록에 아이디:', 'yucheon' in t and '유천점 점주' in t, '| 본사/내 계정은 버튼 없음:', await pg.evaluate("document.querySelectorAll('[data-a=acctdel]').length")==1)
     await pg.click('[data-a=acctpw][data-id=yucheon]'); await pg.wait_for_timeout(600)

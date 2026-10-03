@@ -167,7 +167,7 @@ const ROUTES={
   staff:{t:'직원 관리',frame:'sch',view:'staff'},
   cards:{t:'근무 스케줄',frame:'sch',view:'cards'}, week:{t:'근무 스케줄 · 주간표',frame:'sch',view:'week'}, day:{t:'근무 스케줄 · 하루',frame:'sch',view:'day'},
   rules:{t:'근무 스케줄 · 기간 설정',frame:'sch',view:'rules'}, me:{t:'근무 스케줄 · 내 스케줄',frame:'sch',view:'me'},
-  pay:{t:'급여 관리',frame:'pay'}, hq:{t:'매장 관리',frame:'sch',view:'hq'}, set:{t:'설정',frame:'sch',view:'set'},
+  pay:{t:'급여 관리',frame:'pay'}, hq:{t:'매장 관리',frame:'sch',view:'hq'}, acct:{t:'계정 · 권한',frame:'sch',view:'acct'}, set:{t:'설정',frame:'sch',view:'set'},
   ord:{t:'발주 관리',frame:'ord'}, notice:{t:'공지사항',frame:'notice'}, board:{t:'게시판 · 본사와 1:1 상담',frame:'board'}
 };
 // 왼쪽 메뉴 (테이블 현황은 예약 관리 안에 있어서 넣지 않았어요)
@@ -180,6 +180,7 @@ const MENU=[
   {id:'pay',label:'급여 관리',icon:'card',payOnly:true},
   {id:'board',label:'게시판',icon:'chat',boardOnly:true},
   {id:'hq',label:'매장 관리',icon:'home',needHq:true},
+  {id:'acct',label:'계정 · 권한',icon:'user',needAcct:true},
   {id:'set',label:'설정',icon:'gear',needEdit:true},
   {id:'ord',label:'발주 관리',icon:'cart'}
 ];
@@ -187,7 +188,7 @@ const GROUP_OF={cards:'sch',week:'sch',day:'sch',rules:'sch',me:'sch'};
 function buildMenu(){
   $('#menu').innerHTML=MENU.map(m=>m.sub
     ?`<button class="mi" data-g="${m.id}" ${m.hqOnly?'data-hqonly="1"':''} aria-expanded="false">${ic(m.icon)}<span>${m.label}</span><span class="car">${ic('car')}</span></button><div class="subm" id="sub-${m.id}">${m.sub.map(s=>`<button class="si" data-go="${s[0]}">${s[1]}</button>`).join('')}</div>`
-    :`<button class="mi" data-go="${m.id}" data-m="${m.id}" ${m.hqOnly?'data-hqonly="1"':''} ${m.payOnly?'data-payonly="1"':''} ${m.boardOnly?'data-boardonly="1"':''} ${m.needEdit?'data-edit="1"':''} ${m.needHq?'data-hq="1"':''}>${ic(m.icon)}<span>${m.label}</span></button>`).join('');
+    :`<button class="mi" data-go="${m.id}" data-m="${m.id}" ${m.hqOnly?'data-hqonly="1"':''} ${m.payOnly?'data-payonly="1"':''} ${m.boardOnly?'data-boardonly="1"':''} ${m.needEdit?'data-edit="1"':''} ${m.needHq?'data-hq="1"':''} ${m.needAcct?'data-acct="1"':''}>${ic(m.icon)}<span>${m.label}</span></button>`).join('');
 }
 
 /* ================= 로그인 확인 · 내 매장 ================= */
@@ -195,7 +196,7 @@ function buildMenu(){
 // 본사 계정: 모든 기능 / 가맹점 계정: 자기 매장의 근무표만 (예약·급여·발주 메뉴는 숨김)
 let ME={mode:'none',hq:false,store:null,token:'',email:''};
 // 급여 메뉴는 금액을 볼 수 있는 계정(본사=본점 / 점주 / 허용된 매니저)에게만 보여요
-const allowed=id=>ME.orderOnly?id==='ord':!(ME.mode==='in'&&((id==='pay'&&!ME.canPay)||(id==='board'&&!ME.board)));
+const allowed=id=>ME.orderOnly?id==='ord':!(ME.mode==='in'&&((id==='pay'&&!ME.canPay)||(id==='board'&&!ME.board)||(id==='acct'&&!ME.acct)));
 function readConf(){ try{ return JSON.parse(localStorage.getItem('ilpum-fr-conf'))||{}; }catch(e){ return {}; } }
 function readSes(){ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; }
 async function refreshSes(ses){
@@ -212,12 +213,12 @@ async function whoami(){
   try{ try{ rows=await ask(ses.access_token); }catch(e){ if(e.status!==401||!ses.refresh_token) throw e; ses=await refreshSes(ses); rows=await ask(ses.access_token); } }
   catch(e){ ME={mode:(e.status===401||e.message==='refresh')?'none':'in',hq:false,store:null,token:ses.access_token,email:'',err:e.message}; if(ME.mode==='in'){ ME.err=e.message; } return; }
   const mine=rows.filter(r=>r.role); const hq=mine.some(r=>r.role==='hq');
-  ME={mode:'in',orderOnly:mine.length>0&&mine.every(r=>r.role==='order'),hq,canPay:mine.some(r=>r.can_pay),board:mine.some(r=>['hq','owner','manager'].includes(r.role)),store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||'',pwWarn:pwByHqAt(ses.user),names:Object.fromEntries(mine.map(r=>[r.id,r.name]))};
+  ME={mode:'in',orderOnly:mine.length>0&&mine.every(r=>r.role==='order'),hq,canPay:mine.some(r=>r.can_pay),board:mine.some(r=>['hq','owner','manager'].includes(r.role)),acct:mine.some(r=>['hq','owner'].includes(r.role)),store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||'',pwWarn:pwByHqAt(ses.user),names:Object.fromEntries(mine.map(r=>[r.id,r.name]))};
 }
 let gateFr=null;
 function showGate(){ gateFr=document.createElement('iframe'); gateFr.id='gate'; gateFr.title='로그인'; gateFr.src='ilpum-schedule.html?embed=1&view=cards';
   gateFr.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:99;background:#fff'; document.body.appendChild(gateFr); }
-function applyMe(){ if(ME.orderOnly){ $$('#menu .mi').forEach(b=>b.hidden=b.dataset.m!=='ord'); $$('#menu .subm').forEach(b=>b.hidden=true); } else $$('#menu .subm').forEach(b=>b.hidden=false); $$('#menu [data-hqonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.hq)); $$('#menu [data-payonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.canPay)); $$('#menu [data-boardonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.board));
+function applyMe(){ $$('#menu [data-acct]').forEach(b=>{ if(ME.mode==='in'&&!ME.acct) b.hidden=true; }); if(ME.orderOnly){ $$('#menu .mi').forEach(b=>b.hidden=b.dataset.m!=='ord'); $$('#menu .subm').forEach(b=>b.hidden=true); } else $$('#menu .subm').forEach(b=>b.hidden=false); $$('#menu [data-hqonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.hq)); $$('#menu [data-payonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.canPay)); $$('#menu [data-boardonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.board));
   const a=$('#acct'); a.hidden=false; a.textContent=ME.mode==='in'?'로그아웃':'로그인'; a.title=ME.mode==='in'?(ME.email||'')+' 로그아웃':'로그인 화면으로';
   a.onclick=()=>{ if(ME.mode==='in'&&!confirm('로그아웃할까요?')) return;
     try{ const c=readConf(); c.openOnly=false; if(c.mode==='local') c.mode='remote'; if(ME.mode==='in') delete c.ses; localStorage.setItem('ilpum-fr-conf',JSON.stringify(c)); sessionStorage.removeItem('fr-ses'); }catch(e){}
@@ -260,15 +261,16 @@ function go(id,opts){
 window.addEventListener('message',e=>{
   const m=e.data; if(!m||!m.type) return;
   if(gateFr&&e.source===gateFr.contentWindow){ if(m.type==='fr-state') location.reload(); return; }
+  if(m.type==='fr-stores'){ Object.keys(frames).forEach(k=>{ if(k!=='sch'){ try{ frames[k].remove(); }catch(er){} delete frames[k]; } }); refreshBadges(); return; }     // 매장·계정이 바뀌면 다른 화면은 다음에 열 때 새로 불러옴(매장 목록 갱신)
   if(m.type==='fr-refresh'){ refreshBadges(); return; }
   if(m.type==='fr-open'&&ROUTES[m.id]&&allowed(m.id)){ go(m.id); return; }
   if(!frames.sch||e.source!==frames.sch.contentWindow) return;
   if(m.type==='fr-state'){
-    info={hq:!!m.hq,edit:!!m.edit,seen:true}; applyInfo();
-    if(['cards','week','day','rules','me','staff','hq','set'].includes(m.view)&&ROUTES[cur]&&ROUTES[cur].frame==='sch'&&cur!==m.view){ go(m.view,{fromFrame:true}); }
+    info={hq:!!m.hq,edit:!!m.edit,role:m.role||'',seen:true}; applyInfo();
+    if(['cards','week','day','rules','me','staff','hq','set','acct'].includes(m.view)&&ROUTES[cur]&&ROUTES[cur].frame==='sch'&&cur!==m.view){ go(m.view,{fromFrame:true}); }
   }
 });
-function applyInfo(){ $$('#menu [data-hq]').forEach(b=>b.hidden=!info.hq); $$('#menu [data-edit]').forEach(b=>b.hidden=!info.edit); }
+function applyInfo(){ $$('#menu [data-acct]').forEach(b=>b.hidden=!(info.hq||info.role==='owner')||(ME&&ME.mode==='in'&&!ME.acct)); $$('#menu [data-hq]').forEach(b=>b.hidden=!info.hq); $$('#menu [data-edit]').forEach(b=>b.hidden=!info.edit); }
 
 /* ================= 메뉴 숨기기 / 보이기 ================= */
 const mobile=()=>innerWidth<=860;

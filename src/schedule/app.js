@@ -1,6 +1,6 @@
 /* ================= 앱 상태 ================= */
 const QS=new URLSearchParams(location.search);
-const VIEWS=['cards','week','day','staff','rules','me','hq','set'];
+const VIEWS=['cards','week','day','staff','rules','me','hq','set','acct'];
 const EMBED=QS.get('embed')==='1';                       // 통합관리 화면 안에 들어갈 때: 자기 왼쪽 메뉴는 숨김
 if(EMBED) document.documentElement.classList.add('embed');
 const APP={be:null,user:null,stores:[],sid:null,st:null,D:null,view:VIEWS.includes(QS.get('view'))?QS.get('view'):'cards',cardMode:'week7',anchor:new Date(),day:todayStr,sum:null,me:null,pf:'',q:''};
@@ -145,8 +145,8 @@ async function summaryFor(sid,silent){
 }
 
 /* ================= 화면 틀 ================= */
-const NAV=[['cards','▦','스케줄'],['week','▤','주간 표'],['day','◫','하루 타임라인'],['staff','◉','직원'],['rules','⟷','기간 설정'],['me','☺','내 스케줄'],['hq','◆','본사 현황'],['set','⚙','설정']];
-function navAllowed(v){ if(v==='hq') return isHQ(); if(!canEdit()) return v==='me'||((v==='cards'||v==='week')&&APP.D.store.vis==='week'); return true; }
+const NAV=[['cards','▦','스케줄'],['week','▤','주간 표'],['day','◫','하루 타임라인'],['staff','◉','직원'],['rules','⟷','기간 설정'],['me','☺','내 스케줄'],['hq','◆','본사 현황'],['acct','⚿','계정 · 권한'],['set','⚙','설정']];
+function navAllowed(v){ if(v==='hq') return isHQ(); if(v==='acct') return APP.be===Remote&&(isHQ()||role()==='owner'); if(!canEdit()) return v==='me'||((v==='cards'||v==='week')&&APP.D.store.vis==='week'); return true; }
 function renderShell(){
   const st=APP.st, r=role();
   $('#app').innerHTML=`<aside class="side">
@@ -164,7 +164,7 @@ function render(){
   if(!APP.st) return; afterShell();
   if(!navAllowed(APP.view)) APP.view=canEdit()?'cards':'me';
   $$('#nav button,#mbar button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===APP.view?'page':'false'));
-  const V={cards:vCards,week:vWeek,month:vMonth,day:vDay,staff:vStaff,rules:vRules,me:vMe,hq:vHQ,set:vSet}[APP.view]||vCards;
+  const V={cards:vCards,week:vWeek,month:vMonth,day:vDay,staff:vStaff,rules:vRules,me:vMe,hq:vHQ,set:vSet,acct:vAcct}[APP.view]||vCards;
   $('#main').innerHTML=V();
   if(EMBED&&window.parent!==window){ try{ window.parent.postMessage({type:'fr-state',view:APP.view,hq:isHQ(),edit:canEdit(),role:role()},'*'); }catch(e){} }
   if(APP.view==='hq'&&!APP.sum) loadSum();
@@ -368,7 +368,7 @@ function vHQ(){
 function payBtn(a){ const hqName=(APP.stores.find(s=>s.isHq)||{}).name; const L=a.links.find(l=>l.role==='manager'&&(role()==='owner'||(isHQ()&&l.store===hqName))); if(!L) return '';
   return `<button class="btn" data-a="acctpay" data-id="${esc(a.id)}" data-on="${L.pay?0:1}">${L.pay?'급여 보기 끄기':'급여 보기 켜기'}</button>`; }
 const fmtAt=t=>{ const d=new Date(t); return isNaN(d)?'':`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
-async function acctLoad(){ try{ const r=await APP.be.manageAccounts({action:'list'}); APP.accts=r.rows||[]; APP.acctErr=''; }catch(e){ APP.accts=[]; APP.acctErr=e.message; } if(APP.view==='set') render(); }
+async function acctLoad(){ try{ const r=await APP.be.manageAccounts({action:'list'}); APP.accts=r.rows||[]; APP.acctErr=''; }catch(e){ APP.accts=[]; APP.acctErr=e.message; } if(APP.view==='set'||APP.view==='acct') render(); }
 function acctCard(){
   if(APP.accts===undefined){ APP.accts=null; acctLoad(); }
   const A=APP.accts, ago=t=>{ if(!t) return '아직 로그인 안 함'; const d=Math.floor((Date.now()-new Date(t))/864e5); return d<=0?'오늘 로그인':d+'일 전 로그인'; };
@@ -376,6 +376,22 @@ function acctCard(){
   return `<div class="card"><h2>계정 목록 · 관리${isHQ()?' (본사만)':''}</h2><p class="help">만든 아이디를 보고, 비밀번호를 새로 정하거나 정지·삭제할 수 있어요. 지금 비밀번호는 누구도 볼 수 없어요.${isHQ()?' 본사 계정은 여기서 바꾸지 못해요.':''}</p>${body}<div class="row" style="margin-top:8px"><button class="btn" data-a="acctreload">새로고침</button></div></div>`;
 }
 async function syncLoad(){ try{ APP.syncSt=await APP.be.rpcText('sync_status',{}); }catch(e){ APP.syncSt={err:e.message,last:{error:e.message}}; } if(APP.view==='set') render(); }
+// 매장·계정이 바뀌었음을 통합 틀에 알림 → 예약·발주 같은 다른 화면이 다음에 열 때 매장 목록을 새로 불러옴
+function notifyStores(){ if(EMBED&&window.parent!==window){ try{ window.parent.postMessage({type:'fr-stores'},'*'); }catch(e){} } }
+function acctPage(r){ return `
+  ${(r==='hq'||r==='owner')&&APP.be===Remote?`<div class="card"><h2>계정 만들기${r==='hq'?' (본사만)':''}</h2><p class="help">${r==='hq'?'가맹점·매니저·직원 계정은 본사에서만 만들 수 있어요.':'우리 매장 직원·매니저·발주 전용 계정을 만들 수 있어요.'} 아이디와 비밀번호를 정해 알려 주세요. 비밀번호는 8자 이상이고, 만든 뒤에는 본사도 다시 볼 수 없어요.</p>
+    ${APP.mkNote?`<p class="help" style="background:#E6F4EA;color:#14532D;padding:10px 12px;border-radius:10px;font-weight:600">${esc(APP.mkNote)}</p>`:''}
+    <form id="mkForm" autocomplete="off"><div class="row" style="align-items:flex-end">
+    <label class="f">아이디<input type="text" id="mkId" style="width:150px" placeholder="예: suseong" autocapitalize="none" autocomplete="off"></label>
+    <label class="f">비밀번호<input type="password" id="mkPw" style="width:150px" placeholder="8자 이상" autocomplete="new-password"></label>
+    <label class="f">매장<select id="mkStore">${APP.stores.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label>
+    <label class="f">역할<select id="mkRole">${r==='hq'?'<option value="owner">점주</option>':''}<option value="manager">매니저</option><option value="staff">직원</option><option value="order">발주 전용 (발주 화면만)</option></select></label>
+    <label class="ck" style="margin-bottom:8px"><input type="checkbox" id="mkPay"> 급여 보기 <span class="muted">(매니저만 · 직원은 불가)</span></label><button type="button" class="btn pri" data-a="mkaccount">계정 만들기</button></div></form>
+    ${r!=='hq'?'':`<div class="row" style="align-items:flex-end;margin-top:12px"><label class="f">급여 비밀번호 잊은 계정<input type="text" id="rpId" style="width:150px" placeholder="아이디" autocapitalize="none" autocomplete="off"></label><button type="button" class="btn" data-a="pinreset">급여 비밀번호 초기화</button></div><p class="help">초기화하면 그 계정이 급여 계산기를 열 때 새 비밀번호를 다시 정해요.</p>`}</div>`:''}
+    ${(r==='hq'||r==='owner')&&APP.be===Remote?acctCard():''}
+`; }
+function vAcct(){ const r=role();
+  return `<div class="vh"><div><h1>계정 · 권한</h1><div class="sub">${esc(APP.st.name)} · 계정 만들기, 비밀번호, 급여 보기 권한</div></div></div>${APP.be===Remote?acctPage(r):'<div class="card empty"><b>연결된 서버가 없어요</b>설정에서 먼저 연결해 주세요</div>'}`; }
 function vSet(){
   const D=APP.D, st=D.store, ed=canEdit(), r=role();
   const posRows=D.positions.map((p,i)=>`<tr><td><input type="color" value="${p.color}" data-a="posf" data-i="${i}" data-f="color" style="width:34px;height:30px;padding:0;border:0;background:none" aria-label="색"></td>
@@ -405,16 +421,7 @@ function vSet(){
       <div class="row" style="margin-top:14px"><span class="muted" style="font-size:13px">체험용 역할 바꿔보기:</span><div class="seg">${['hq','owner','manager','staff'].map(x=>`<button data-a="demorole" data-v="${x}" aria-pressed="${(Local.db.demoRole||'hq')===x}">${roleName(x).split(' ')[0]}</button>`).join('')}</div></div>`
     :APP.open?`<p class="help">로그인하지 않고 <b>본점 근무표</b>만 열고 있어요. 금액(급여)과 가맹점 자료는 로그인해야 보여요.</p><div class="row"><button class="btn pri" data-a="gologin">로그인</button><button class="btn" data-a="disconnect">체험 모드로 돌아가기</button></div>`
     :`<p class="help">로그인: <b>${esc(showId(APP.user&&APP.user.email||''))}</b> · 이 기기에서는 다시 묻지 않고 자동으로 들어와요.${Remote.keep?'':' (자동 로그인을 끄고 들어와서, 브라우저를 닫으면 다시 로그인해야 해요)'}</p><div class="row"><button class="btn" data-a="logout">로그아웃</button><button class="btn" data-a="mypw">내 비밀번호 바꾸기</button><button class="btn" data-a="disconnect">체험 모드로 돌아가기</button></div>`}</div>
-  ${(r==='hq'||r==='owner')&&APP.be===Remote?`<div class="card"><h2>계정 만들기${r==='hq'?' (본사만)':''}</h2><p class="help">${r==='hq'?'가맹점·매니저·직원 계정은 본사에서만 만들 수 있어요.':'우리 매장 직원·매니저·발주 전용 계정을 만들 수 있어요.'} 아이디와 비밀번호를 정해 알려 주세요. 비밀번호는 8자 이상이고, 만든 뒤에는 본사도 다시 볼 수 없어요.</p>
-    ${APP.mkNote?`<p class="help" style="background:#E6F4EA;color:#14532D;padding:10px 12px;border-radius:10px;font-weight:600">${esc(APP.mkNote)}</p>`:''}
-    <form id="mkForm" autocomplete="off"><div class="row" style="align-items:flex-end">
-    <label class="f">아이디<input type="text" id="mkId" style="width:150px" placeholder="예: suseong" autocapitalize="none" autocomplete="off"></label>
-    <label class="f">비밀번호<input type="password" id="mkPw" style="width:150px" placeholder="8자 이상" autocomplete="new-password"></label>
-    <label class="f">매장<select id="mkStore">${APP.stores.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label>
-    <label class="f">역할<select id="mkRole">${r==='hq'?'<option value="owner">점주</option>':''}<option value="manager">매니저</option><option value="staff">직원</option><option value="order">발주 전용 (발주 화면만)</option></select></label>
-    <label class="ck" style="margin-bottom:8px"><input type="checkbox" id="mkPay"> 급여 보기 <span class="muted">(매니저만 · 직원은 불가)</span></label><button type="button" class="btn pri" data-a="mkaccount">계정 만들기</button></div></form>
-    ${r!=='hq'?'':`<div class="row" style="align-items:flex-end;margin-top:12px"><label class="f">급여 비밀번호 잊은 계정<input type="text" id="rpId" style="width:150px" placeholder="아이디" autocapitalize="none" autocomplete="off"></label><button type="button" class="btn" data-a="pinreset">급여 비밀번호 초기화</button></div><p class="help">초기화하면 그 계정이 급여 계산기를 열 때 새 비밀번호를 다시 정해요.</p>`}</div>`:''}
-    ${(r==='hq'||r==='owner')&&APP.be===Remote?acctCard():''}
+  ${(r==='hq'||r==='owner')&&APP.be===Remote?'<div class="card"><h2>계정 · 권한</h2><p class="help">계정 만들기 · 비밀번호 바꾸기 · <b>급여 보기 권한 주기</b>는 왼쪽 메뉴 <b>계정 · 권한</b>으로 옮겼어요.</p><div class="row"><button class="btn pri" data-a="view" data-v="acct">계정 · 권한 열기</button></div></div>':''}
     ${r==='hq'&&APP.be===Remote?(()=>{ if(APP.syncSt===undefined){ APP.syncSt=null; syncLoad(); } const S=APP.syncSt; const L=S&&S.last||{}; const ago=S&&S.at?Math.max(0,Math.round((Date.now()-new Date(S.at))/60000)):null;
       const msg=!S?'불러오는 중…':L.error?`<span style="color:#C0392B">마지막 실행에 문제가 있었어요: ${esc(String(L.error).slice(0,160))}</span>`:L.ok?`마지막 실행 ${ago<1?'방금':ago+'분 전'} · 예약 ${L.daysChanged||0}일 확인${L.sched&&(L.sched.upserted||L.sched.pruned)?` · 근무표 ${L.sched.upserted||0}줄 바뀜${L.sched.pruned?` · ${L.sched.pruned}줄 정리`:''}`:''}`:'아직 실행한 적이 없어요';
       return `<div class="card"><h2>예전 서버 자동 연동 (본사만)</h2><p class="help">예전 사이트에서 입력한 예약·근무표가 새 시스템으로 <b>자동으로 따라와요</b>(5분마다, 바뀐 것만). 새 시스템에서 직접 고친 내용은 덮어쓰지 않아요. 새 시스템만 쓰게 되면 끄세요.</p>

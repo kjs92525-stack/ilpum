@@ -1423,7 +1423,9 @@ let lastPollAt=0;
 (async function boot(){
   await resolveStore();
   render();
-  window.pullNow=()=>{ if(REST) pullDay(ui.date); };
+  // 탭을 다시 열 때: 매장 목록이 바뀌었으면(다른 기기에서 가맹점을 추가 등) 새로 불러옴. 아주 작은 요청 1건
+  window.pullNow=async()=>{ if(!REST) return; pullDay(ui.date);
+    try{ const r=await fx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); if(!r.ok) return; const ids=(await r.json()).filter(x=>x.role).map(x=>x.id).sort().join(); if(ids!==STORES.map(x=>x.id).sort().join()) location.reload(); }catch(e){} };
   document.getElementById('sync').onclick=()=>{ if(document.getElementById('sync').dataset.kind!=='err') return; pullNextAt=0; Object.keys(needRetry).forEach(d=>{ if(needRetry[d]){ fails[d]=0; pushDay(d); } }); pullDay(ui.date); };
   if(REST){ pullDay(ui.date); lastPollAt=Date.now(); rtSet(false); rtConnect();
     // 실시간 연결이 되어 있으면 5분마다 안전 확인만 / 안 되면 30초마다 확인 (30분 동안 아무도 안 만졌으면 쉼)

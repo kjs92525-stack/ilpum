@@ -21,7 +21,7 @@ async def run(b):
   pg.on('dialog',lambda d: asyncio.ensure_future(d.accept()))
   await pg.route('**/*',handler); await pg.route_web_socket(f'wss://{NEW}/**',lambda ws: asyncio.ensure_future(ws.close()))
   await pg.add_init_script(f"try{{ localStorage.setItem('ilpum-fr-conf',{json.dumps(json.dumps(S))}); }}catch(e){{}}")
-  await pg.goto('http://localhost:8765/ilpum-schedule.html?view=set'); await pg.wait_for_timeout(1800); return ctx,pg,errs
+  await pg.goto('http://localhost:8765/ilpum-schedule.html?view=acct'); await pg.wait_for_timeout(1800); return ctx,pg,errs
 async def main():
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
