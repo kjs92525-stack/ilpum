@@ -605,14 +605,14 @@ function dailyPayoutRows(dateStr){
       out.push({name:n, hours:k.hours, amount:k.amount||0, tag:(k.memoDay||d.noteDay)?(diff?`메모 ${fmtMan(memoAmt)} ≠ 금액 ${fmtMan(k.amount)} 확인`:'메모 일급'):'근무표 현금', warn:!!diff});
     }
   });
-  out.forEach(r=>{ const c=cashRec(dateStr,r.name); r.paid=!!c.paid; r.memo=c.memo||''; r.acctSaved=pay.accts[r.name]||''; r.acct=pay.showAcct? r.acctSaved : ''; });
+  out.forEach(r=>{ const c=cashRec(dateStr,r.name); if(c.amt!=null){ r.calcAmt=r.amount; r.amount=c.amt; r.edited=true; r.warn=false; r.tag='직접 수정'; } r.paid=!!c.paid; r.memo=c.memo||''; r.acctSaved=pay.accts[r.name]||''; r.acct=pay.showAcct? r.acctSaved : ''; });
   // 일당 화면에서 직접 추가한 사람(예: 3일치를 한 번에 지급) — 근무표와 상관없이 그날 목록에 들어감
   ((mon.extra||{})[dateStr]||[]).forEach(x=>{ out.push({name:x.name,hours:0,amount:+x.amount||0,tag:(x.days>1?x.days+'일치':'직접 추가'),eid:x.id,paid:!!x.paid,memo:x.memo||'',acctSaved:pay.accts[x.name]||'',acct:pay.showAcct?(pay.accts[x.name]||''):''}); });
   return out.sort((a,b)=>a.name.localeCompare(b.name,'ko')||(a.eid?1:0)-(b.eid?1:0));
 }
 function cashRec(dateStr,name){ const mon=pay.months[pay.cur]; const c=(mon.cash||{})[dateStr]||{}; return c[name]||{}; }
 function setCash(dateStr,name,patch){ const mon=pay.months[pay.cur]; mon.cash=mon.cash||{}; const c=mon.cash[dateStr]=mon.cash[dateStr]||{};
-  const r=Object.assign({},c[name]||{},patch); if(!r.paid) delete r.paid; if(!r.memo) delete r.memo;
+  const r=Object.assign({},c[name]||{},patch); if(!r.paid) delete r.paid; if(!r.memo) delete r.memo; if(r.amt==null) delete r.amt;
   if(Object.keys(r).length) c[name]=r; else delete c[name]; if(!Object.keys(c).length) delete mon.cash[dateStr]; save(); }
 function dailyDateBounds(){
   const [y,m]=pay.cur.split('-'); return {min:`${pay.cur}-01`, max:`${pay.cur}-${pad(new Date(+y,+m,0).getDate())}`};
@@ -656,6 +656,7 @@ function dailyView(dateStr){
     <div class="daily-rows">${rows.length? rows.map(r=>`<div class="daily-row${r.paid?' paid':''}"><div class="top"><label class="pchk"><input type="checkbox" ${r.eid?`data-xpaid="${esc(r.eid)}"`:`data-cashpaid="${esc(r.name)}"`} ${r.paid?'checked':''}><span>${r.paid?'지급완료':'미지급'}</span></label><div class="nm">${esc(r.name)}${r.hours?`<span class="hh">${fmtH(r.hours)}시간</span>`:''}${r.tag?`<span class="hh"${r.warn?' style="color:#B4541A;font-weight:700"':''}>${esc(r.tag)}</span>`:''}</div><div class="amt">${won(r.amount)}</div></div>
       ${pay.showAcct?`${r.acctSaved?`<button class="btn sm" data-copyacct="${esc(r.name)}" style="margin-top:7px;float:right;margin-left:6px">계좌 복사</button>`:''}<input type="text" class="cmemo" data-acct="${esc(r.name)}" value="${esc(r.acctSaved)}" style="${r.acctSaved?'width:calc(100% - 90px)':''}"`:'<input type="hidden"'} placeholder="계좌 (예: 국민 123-456-789 홍길동) · 한 번 넣으면 저장돼요">
       <input type="text" class="cmemo" ${r.eid?`data-xmemo="${esc(r.eid)}"`:`data-cashmemo="${esc(r.name)}"`} value="${esc(r.memo)}" placeholder="비고 (예: 계좌이체, 내일 지급)">
+      ${!r.eid?`<div class="row noprint" style="margin-top:6px;align-items:center"><label>금액<input type="text" inputmode="numeric" class="rate" data-cashamt="${esc(r.name)}" value="${r.amount.toLocaleString('ko-KR')}"></label>${r.edited?`<button class="btn sm" data-cashamtreset="${esc(r.name)}">원래대로 (${won(r.calcAmt)})</button>`:''}</div>`:''}
       ${r.eid?`<div class="row noprint" style="margin-top:6px;align-items:center"><label>금액<input type="text" inputmode="numeric" class="rate" data-xamt="${esc(r.eid)}" value="${r.amount.toLocaleString('ko-KR')}"></label><button class="btn sm danger" data-xdel="${esc(r.eid)}">이 줄 삭제</button></div>`:''}</div>`).join('')
       : `<div class="daily-empty">이 날 지급할 일당 근무자가 없어요.</div>`}</div>
     ${rows.length?`<div class="daily-total"><div class="k">합계</div><div class="v">${won(tot)}</div></div>`:''}
@@ -987,6 +988,7 @@ app.addEventListener('click',e=>{
   const P=()=>pay.months[pay.cur].people[view.person];
   if(d.remove){ const x=P().days[d.remove]; if(x.base) x.removed=true; else delete P().days[d.remove]; save(); render(); return; }
   if(d.restore){ delete P().days[d.restore].removed; save(); render(); return; }
+  if(d.cashamtreset){ setCash(view.daily,d.cashamtreset,{amt:null}); render(); return; }
   if(d.xdel){ const mon=pay.months[pay.cur]; const L=(mon.extra||{})[view.daily]||[]; const i=L.findIndex(x=>x.id===d.xdel); if(i>=0&&confirm(`‘${L[i].name}’ ${won(L[i].amount)} 줄을 지울까요?`)){ L.splice(i,1); if(!L.length) delete mon.extra[view.daily]; save(); render(); } return; }
   if(d.reset){ const x=P().days[d.reset]; delete x.type; delete x.hours; delete x.rate; delete x.amount; delete x.bonusOv; save(); render(); return; }
   switch(d.act){
@@ -1040,6 +1042,7 @@ app.addEventListener('change',e=>{
   if(t.id==='xDays'||t.id==='xPer'){ const days=Math.max(1,Math.round(+document.getElementById('xDays').value||1)); const per=num(document.getElementById('xPer').value); if(per!=null) document.getElementById('xTotal').value=(per*days).toLocaleString('ko-KR'); return; }
   if(d.showacct!==undefined){ pay.showAcct=t.checked; save(); render(); return; }
   if(d.acct!==undefined){ const v=t.value.trim(); if(v) pay.accts[d.acct]=v; else delete pay.accts[d.acct]; save(); render(); return; }
+  if(d.cashamt!==undefined){ const v=num(t.value); if(v!=null&&v>=0){ const base=dailyPayoutRows(view.daily).find(r=>r.name===d.cashamt&&!r.eid); setCash(view.daily,d.cashamt,{amt:(base&&!base.edited&&Math.round(v)===Math.round(base.amount))?null:Math.round(v)}); } render(); return; }
   if(d.cashmemo!==undefined){ setCash(view.daily,d.cashmemo,{memo:t.value.trim()}); render(); return; }
   if(d.fullh!==undefined){ const x=parseFloat(t.value); if(!(x>0)) delete pay.fullHs[d.fullh]; else pay.fullHs[d.fullh]=x; save(); render(); return; }
   if(d.cyclesel!==undefined){ pay.cycle=pay.cycle||{}; pay.cycle[d.cyclesel]=t.value==='week'?'week':'month'; save(); render(); return; }
