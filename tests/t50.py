@@ -12,7 +12,9 @@ async def handler(r):
   if '/rpc/sch_rename_store' in u:
     b=json.loads(r.request.post_data); CALLS.append(('rename',b)); ST[b['p_store']]=b['p_name']; return await J('ok')
   if '/functions/v1/manage-stores' in u:
-    b=json.loads(r.request.post_data); CALLS.append(('active',b)); M=' (사용 중지)'; n=ST[b['store']]; base=n[:-len(M)] if n.endswith(M) else n
+    b=json.loads(r.request.post_data); CALLS.append(('active',b)) if b['action']=='setactive' else None; M=' (사용 중지)'; n=ST[b['store']]; base=n[:-len(M)] if n.endswith(M) else n
+    if b['action']=='delete':
+      CALLS.append(('delete',b)); ST.pop(b['store']); return await J({"ok":True,"deleted":base})
     ST[b['store']]= base if b['on'] else base+M; return await J({"ok":True,"name":ST[b['store']],"accounts":2,"failed":0})
   await J([])
 S={"ses":{"access_token":"tok","refresh_token":"r","expires_at":int(time.time())+3000,"user":{"email":"x@ilpum.invalid"}},"mode":"remote","url":"https://"+NEW,"key":"k"}
@@ -40,6 +42,13 @@ async def main():
     chk('중지된 매장 이름을 바꿔도 중지 표시 유지', ST[F1]=='수성점 (사용 중지)', ST[F1])
     await pg.click(f'[data-a=storeactive][data-id="{F1}"]'); await pg.wait_for_timeout(1200)
     chk('다시 사용하면 표시가 사라짐', ST[F1]=='수성점', ST[F1])
+    # 삭제: 중지된 매장에만 버튼이 있고, 이름을 쳐야 지워짐
+    chk('사용 중인 매장엔 삭제 버튼 없음', not await pg.evaluate(f"!!document.querySelector('[data-a=storedel][data-id=\"{F1}\"]')"))
+    await pg.click(f'[data-a=storeactive][data-id="{F1}"]'); await pg.wait_for_timeout(1000)
+    chk('중지하면 삭제 버튼이 생김', await pg.evaluate(f"!!document.querySelector('[data-a=storedel][data-id=\"{F1}\"]')"))
+    ans.append('수성점'); await pg.click(f'[data-a=storedel][data-id="{F1}"]'); await pg.wait_for_timeout(1200)
+    chk('삭제 호출에 입력한 이름이 실림', ('delete',{'action':'delete','store':F1,'confirm':'수성점'}) in CALLS, str([c for c in CALLS if c[0]=='delete']))
+    chk('삭제 뒤 카드가 사라짐', F1 not in ST and '수성점' not in await pg.inner_text('#main'))
     chk('오류 없음', not errs, str(errs)); await ctx.close(); await b.close()
   print('전체 OK' if ok else '실패 있음')
 asyncio.run(main())
