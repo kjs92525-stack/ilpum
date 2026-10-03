@@ -387,6 +387,7 @@ function parseNote(raw){
   const r=stripAttrs(normText(raw)); let s=r.s, bonus=r.bonus, rate=r.rate, hours=r.hours, start=r.start;
   // 다른 특이사항 글자가 같이 있어도, 앞뒤가 공백(또는 문장의 시작/끝)인 1~2자리 숫자는 금액으로 인식
   // 예: "6.5 오늘 늦게옴" · "연락처 010-1234 지각 6.5" 모두 인식. 전화번호처럼 다른 숫자에 붙어있으면 무시.
+  s=s.replace(/일당백\s*(?=\d)/g,'일당백 ');     // '일당백7' = 7만원 (일당백은 표기)
   const m=s.match(/(?:^|\s)(\d{1,2}(?:\.\d+)?)(?:\s|$)/);
   if(m){
     bonus+=Math.round(parseFloat(m[1])*10000);
@@ -589,6 +590,7 @@ function fmtMD(dt){ const d=new Date(dt+'T00:00'); return `${d.getMonth()+1}/${d
 
 /* ---------- 일당(당일 현금) 지급 목록 ---------- */
 // 당일알바(alba)로 표시됐거나, 근무표에 "이름+숫자"만 적힌 사람(그 날 금액만·시간 없음)을 그 날 지급 대상으로 봄
+const fmtMan=v=>{ const m=Math.round(v/1000)/10; return (Number.isInteger(m)?m:m.toFixed(1))+'만'; };
 function dailyPayoutRows(dateStr){
   const mon=pay.months[pay.cur]; if(!mon||!dateStr) return [];
   const out=[];
@@ -596,8 +598,11 @@ function dailyPayoutRows(dateStr){
     const p=mon.people[n]; const d=p.days[dateStr]; if(!d||d.removed) return;
     const k=dayCalc(n,d);
     // 메모에 일당(숫자만, 예: 6.5)이 적힌 사람, 또는 근무표에서 그날 현금으로 정한 사람만 나와요. 메모에 일당이 없으면(당일알바 포함) 월급·주급 계산에만 들어가요.
-    if(k.memoDay || d.cash){
-      out.push({name:n, hours:k.hours, amount:k.amount||0, tag:k.memoDay?'메모 일급':'근무표 현금'});
+    if(k.memoDay || d.noteDay || d.cash){
+      // 메모 숫자(예: 7 = 7만원)가 있으면 근무표에 금액이 따로 있어도 일당 지급 대상. 두 금액이 다르면 표시해서 확인하게 함
+      const memoAmt = d.noteDay ? (d.bonus||0) : 0;
+      const diff = d.noteDay && !k.memoDay && memoAmt>0 && k.amount!=null && Math.round(memoAmt)!==Math.round(k.amount);
+      out.push({name:n, hours:k.hours, amount:k.amount||0, tag:(k.memoDay||d.noteDay)?(diff?`메모 ${fmtMan(memoAmt)} ≠ 금액 ${fmtMan(k.amount)} 확인`:'메모 일급'):'근무표 현금', warn:!!diff});
     }
   });
   out.forEach(r=>{ const c=cashRec(dateStr,r.name); r.paid=!!c.paid; r.memo=c.memo||''; r.acctSaved=pay.accts[r.name]||''; r.acct=pay.showAcct? r.acctSaved : ''; });
@@ -626,7 +631,7 @@ function dailyView(dateStr){
       <button class="btn" id="dailyCopy">텍스트 복사</button>
       <button class="btn primary" id="dailySave">이미지로 저장</button>
     </div>
-    <p class="help" style="margin:10px 0 0">근무표 <b>메모에 일당(숫자만, 예: 6.5)</b>이 적힌 사람, 또는 근무표에서 <b>그날 현금</b>으로 정한 사람만 나와요. 메모에 일당이 없는 사람은 여기 안 나오고, 월급·주급 계산에만 들어가요.</p>
+    <p class="help" style="margin:10px 0 0">근무표 <b>메모에 일당(숫자, 예: 6.5 · 7 · 일당백7)</b>이 적힌 사람(근무표에 금액이 따로 있어도 나와요), 또는 근무표에서 <b>그날 현금</b>으로 정한 사람이 나와요. 메모 숫자와 금액이 다르면 <b style="color:#B4541A">주황색 "확인"</b> 표시가 떠요. 메모에 일당이 없는 사람은 월급·주급 계산에만 들어가요. 빠진 사람은 아래 <b>사람 추가</b>로 넣을 수 있어요.</p>
   </div>
   <div class="card noprint" style="margin-bottom:14px" id="xAddCard">
     <h3 style="margin:0 0 6px;font-size:16px">사람 추가 <span class="muted" style="font-size:13px;font-weight:500">이 날(${dd.getMonth()+1}/${dd.getDate()}) 일당 목록에 직접 넣기 · 며칠치를 한 번에 줄 때도 써요</span></h3>
@@ -648,7 +653,7 @@ function dailyView(dateStr){
   </div>
   <div class="daily-card">
     <div class="daily-head"><div class="dt">${dd.getMonth()+1}월 ${dd.getDate()}일 (${DOW[dd.getDay()]}) 일당 지급</div><div class="sub">${rows.length}명 · 지급완료 ${rows.filter(r=>r.paid).length}명${rows.length?` · 미지급 ${won(tot-paidSum)}`:''}</div></div>
-    <div class="daily-rows">${rows.length? rows.map(r=>`<div class="daily-row${r.paid?' paid':''}"><div class="top"><label class="pchk"><input type="checkbox" ${r.eid?`data-xpaid="${esc(r.eid)}"`:`data-cashpaid="${esc(r.name)}"`} ${r.paid?'checked':''}><span>${r.paid?'지급완료':'미지급'}</span></label><div class="nm">${esc(r.name)}${r.hours?`<span class="hh">${fmtH(r.hours)}시간</span>`:''}${r.tag?`<span class="hh">${esc(r.tag)}</span>`:''}</div><div class="amt">${won(r.amount)}</div></div>
+    <div class="daily-rows">${rows.length? rows.map(r=>`<div class="daily-row${r.paid?' paid':''}"><div class="top"><label class="pchk"><input type="checkbox" ${r.eid?`data-xpaid="${esc(r.eid)}"`:`data-cashpaid="${esc(r.name)}"`} ${r.paid?'checked':''}><span>${r.paid?'지급완료':'미지급'}</span></label><div class="nm">${esc(r.name)}${r.hours?`<span class="hh">${fmtH(r.hours)}시간</span>`:''}${r.tag?`<span class="hh"${r.warn?' style="color:#B4541A;font-weight:700"':''}>${esc(r.tag)}</span>`:''}</div><div class="amt">${won(r.amount)}</div></div>
       ${pay.showAcct?`${r.acctSaved?`<button class="btn sm" data-copyacct="${esc(r.name)}" style="margin-top:7px;float:right;margin-left:6px">계좌 복사</button>`:''}<input type="text" class="cmemo" data-acct="${esc(r.name)}" value="${esc(r.acctSaved)}" style="${r.acctSaved?'width:calc(100% - 90px)':''}"`:'<input type="hidden"'} placeholder="계좌 (예: 국민 123-456-789 홍길동) · 한 번 넣으면 저장돼요">
       <input type="text" class="cmemo" ${r.eid?`data-xmemo="${esc(r.eid)}"`:`data-cashmemo="${esc(r.name)}"`} value="${esc(r.memo)}" placeholder="비고 (예: 계좌이체, 내일 지급)">
       ${r.eid?`<div class="row noprint" style="margin-top:6px;align-items:center"><label>금액<input type="text" inputmode="numeric" class="rate" data-xamt="${esc(r.eid)}" value="${r.amount.toLocaleString('ko-KR')}"></label><button class="btn sm danger" data-xdel="${esc(r.eid)}">이 줄 삭제</button></div>`:''}</div>`).join('')
