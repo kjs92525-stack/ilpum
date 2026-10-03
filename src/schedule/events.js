@@ -9,7 +9,7 @@ function closeDrawer(){ $('#drawer').classList.remove('on'); $('#scrim').classLi
 /* ---------- 출근 시간 · 금액 입력 ---------- */
 function timeW(p,cur,baseTxt){
   const k=cur?cur.k:(baseTxt!=null?'base':'full'); const st=APP.D.store;
-  const opts=[...(baseTxt!=null?[['base','기본대로']]:[]),['full','종일'],['pm','오후'],['t','시간 지정']];
+  const opts=[...(baseTxt!=null?[['base','기본대로']]:[]),['full','종일'],['pm','오후'],['am','오전(12~5시)'],['t','시간 지정']];
   return `<div class="sect"><div class="lb"><span>출근 시간</span>${baseTxt!=null?`<span class="bt">기본: ${esc(baseTxt)}</span>`:''}</div>
     <input type="hidden" id="${p}K" value="${k}">
     <div class="seg4">${opts.map(([v,t])=>`<button type="button" data-a="shk" data-p="${p}" data-v="${v}" aria-pressed="${v===k}">${t}</button>`).join('')}</div>
@@ -24,7 +24,7 @@ function payW(p,cur,baseTxt,none){
     <input type="text" id="${p}Pv" class="grow" inputmode="decimal" value="${cur?cur.v:''}" placeholder="예: 13 → 13만원"></div>
     <label class="ck"><input type="checkbox" id="${p}Pc" ${cur&&cur.cash?'checked':''}> 그날 현금으로 지급</label><div class="hint" id="${p}PH"></div></div>`;
 }
-function readTime(p){ const k=($('#'+p+'K')||{}).value; if(!k||k==='base') return {ok:true,sh:null}; if(k==='full'||k==='pm') return {ok:true,sh:{k}};
+function readTime(p){ const k=($('#'+p+'K')||{}).value; if(!k||k==='base') return {ok:true,sh:null}; if(k==='full'||k==='pm'||k==='am') return {ok:true,sh:{k}};
   const s=parseT($('#'+p+'S').value,false), er=$('#'+p+'E').value.trim(), e=er?parseT(er,true):'';
   if(!s) return {ok:false,msg:'출근 시간을 알아보지 못했어요 (예: 11, 5시반, 17:30)'}; if(er&&!e) return {ok:false,msg:'퇴근 시간을 알아보지 못했어요'};
   if(e&&tMin(e)<=tMin(s)) return {ok:false,msg:'퇴근이 출근보다 빨라요'};
@@ -128,7 +128,7 @@ function dStaff(sid){
   const D=APP.D, s=sid?D.staff[sid]:{name:'',pos:D.positions[0].name,type:'regular',off:[],wk:{}}; const cp=canPay(), ed=canEdit(); const b=sid?(D.pay||{})['staff:'+sid]:null;
   const pr=wd=>{ const off=(s.off||[]).includes(wd), c=(s.wk||{})[wd]; const v=off?'off':c&&c.sh?c.sh.k:'full'; const pay=cp&&sid?(D.pay||{})['pat:'+sid+':'+wd]:null;
     return `<div class="patrow"><b style="color:${wd===0?'var(--bad)':wd===6?'var(--pm)':'inherit'}">${DOW[wd]}</b>
-      <select data-pat="${wd}">${[['full','종일'],['pm','오후'],['t','시간 지정'],['off','휴무']].map(([k,t])=>`<option value="${k}" ${v===k?'selected':''}>${t}</option>`).join('')}</select>
+      <select data-pat="${wd}">${[['full','종일'],['pm','오후'],['am','오전'],['t','시간 지정'],['off','휴무']].map(([k,t])=>`<option value="${k}" ${v===k?'selected':''}>${t}</option>`).join('')}</select>
       <input type="text" data-patt="${wd}" value="${v==='t'?esc(tLbl(c.sh.s)+(c.sh.e?'~'+tLbl(c.sh.e):'')):''}" placeholder="${v==='t'?'예: 11 또는 11~9':''}" ${v==='t'?'':'hidden'}>
       ${cp&&sid?`<input type="text" data-patp="${wd}" value="${pay?pay.v:''}" placeholder="그날 금액 (선택)" inputmode="decimal" style="grid-column:2/-1;${pay?'':'display:none'}">`:''}</div>`; };
   openDrawer(sid?s.name:'직원 추가',sid?`${TYPES[s.type]} · ${esc(s.pos)}`:'',
@@ -151,7 +151,7 @@ function saveStaff(sid){
   const id=sid||uid(); const s=Object.assign({},D.staff[id]||{id,active:true,order:Object.keys(D.staff).length});
   s.name=name; s.tel=$('#sfTel').value.trim(); { const nt=($('#sfNote').value||'').trim().slice(0,12); if(nt) s.note=nt; else delete s.note; } { const lv=($('#sfLast').value||'').trim(); if(lv) s.last=lv; else delete s.last; } s.type=$('#sfType').value; s.pos=$('#sfPos').value; s.off=[]; s.wk={};
   for(const sel of $$('[data-pat]')){ const wd=+sel.dataset.pat, v=sel.value;
-    if(v==='off') s.off.push(wd); else if(v==='pm') s.wk[wd]={sh:{k:'pm'}};
+    if(v==='off') s.off.push(wd); else if(v==='pm'||v==='am') s.wk[wd]={sh:{k:v}};
     else if(v==='t'){ const raw=$(`[data-patt="${wd}"]`).value.trim(); const [a,b]=raw.split(/[~\-]/); const st=parseT(a,false), en=b?parseT(b,true):'';
       if(!st||(b&&!en)) return toast(`${DOW[wd]}요일 시간을 알아보지 못했어요 (예: 11 또는 11~9)`); s.wk[wd]={sh:{k:'t',s:st,e:en&&en!==D.store.close?en:''}}; } }
   s.off.sort(); if(!Object.keys(s.wk).length) delete s.wk;
@@ -435,8 +435,8 @@ document.addEventListener('change',e=>{ const t=e.target, d=t.dataset, D=APP.D; 
   if(d.wt&&WD){ const mm=WD.map[d.wt], i=+d.i; const v=t.value.trim(); if(!v) delete mm.t[i]; else { const s=parseT(v,false); if(!s){ toast('시간을 알아보지 못했어요'); t.value=''; return; } mm.t[i]={s}; mm.pm=mm.pm.filter(x=>x!==i); t.value=tLbl(s); } }
   if(d.a==='mepick'){ APP.me=t.value; render(); }
   if(d.a==='stf'){ const st={...D.store}; const f=d.f; let v=t.type==='checkbox'?t.checked:t.value;
-    if(['open','close','pmStart'].includes(f)){ const p=parseT(v,f!=='open'); if(!p){ toast('시간을 확인하세요 (예: 11:00)'); t.value=st[f]; return; } v=p; t.value=p; }
-    if(['fullH','pmH','target'].includes(f)) v=+v||0; st[f]=v; put('cfg','store',st); if(f==='name') renderShell(),render(); toast('저장했어요'); }
+    if(['open','close','pmStart','amStart'].includes(f)){ const p=parseT(v,f!=='open'); if(!p){ toast('시간을 확인하세요 (예: 11:00)'); t.value=st[f]; return; } v=p; t.value=p; }
+    if(['fullH','pmH','amH','target'].includes(f)) v=+v||0; st[f]=v; put('cfg','store',st); if(f==='name') renderShell(),render(); toast('저장했어요'); }
   if(d.a==='pmf'){ const pos=D.positions.map(p=>({...p,req:[...(p.req||[0,0,0,0,0,0,0])]})); const p=pos[+d.i]; if(!p) return;
     if(d.f==='name'){ const v=t.value.trim(); if(!v||pos.some((x,j)=>j!==+d.i&&x.name===v)){ toast('이름이 비었거나 이미 있어요'); t.value=p.name; return; } if(v===p.name) return; const old=p.name; p.name=v; renamePos(old,v); }
     else p.color=t.value;

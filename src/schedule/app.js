@@ -295,7 +295,7 @@ function dayText(key){
 }
 
 /* ================= 직원 ================= */
-function pat7(s){ return `<span class="pat7">${WD_MON.map(wd=>{ const off=s.type==='regular'&&(s.off||[]).includes(wd); const c=(s.wk||{})[wd]; const k=off?'off':c&&c.sh?(c.sh.k==='pm'?'pm':c.sh.k==='t'?'t':''):(s.type!=='regular'?'wk':'');
+function pat7(s){ return `<span class="pat7">${WD_MON.map(wd=>{ const off=s.type==='regular'&&(s.off||[]).includes(wd); const c=(s.wk||{})[wd]; const k=off?'off':c&&c.sh?(c.sh.k==='pm'?'pm':c.sh.k==='am'?'pm':c.sh.k==='t'?'t':''):(s.type!=='regular'?'wk':'');
   return `<i class="${k}" title="${DOW[wd]}">${off?'휴':DOW[wd]}</i>`; }).join('')}</span>`; }
 function vStaff(){
   const D=APP.D, ed=canEdit(), cp=canPay(); const all=staffList(D,true); const ws=weekStart(APP.anchor); const W=weekCalc(D,ws,cp);
@@ -409,6 +409,8 @@ function vSet(){
       <label class="f">종일 근무(시간)<input type="number" step="0.5" data-a="stf" data-f="fullH" value="${st.fullH}" style="width:80px"></label>
       <label class="f">오후 근무(시간)<input type="number" step="0.5" data-a="stf" data-f="pmH" value="${st.pmH}" style="width:80px"></label>
       <label class="f">오후 출근 시각<input type="text" data-a="stf" data-f="pmStart" value="${st.pmStart}" style="width:80px"></label>
+      <label class="f">오전 근무(시간)<input type="number" step="0.5" data-a="stf" data-f="amH" value="${st.amH||5}" style="width:80px"></label>
+      <label class="f">오전 출근 시각<input type="text" data-a="stf" data-f="amStart" value="${st.amStart||'12:00'}" style="width:80px"></label>
       <label class="f">목표 인건비율(%)<input type="number" data-a="stf" data-f="target" value="${st.target}" style="width:80px"></label>
     </div>
     <div class="row" style="margin-top:12px;gap:18px">

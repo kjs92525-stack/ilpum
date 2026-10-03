@@ -38,13 +38,13 @@ function parseT(raw,isEnd){
 function parseWon(raw){ let s=zen(raw).trim().replace(/[,\s원]/g,''); if(!s) return null;
   const man=/만$/.test(s); s=s.replace(/만$/,''); if(!/^\d+(\.\d+)?$/.test(s)) return NaN;
   let v=parseFloat(s); if(man||v<1000) v*=10000; return Math.round(v); }
-function shLbl(sh,st){ if(!sh||sh.k==='full') return ''; if(sh.k==='pm') return '오후';
+function shLbl(sh,st){ if(!sh||sh.k==='full') return ''; if(sh.k==='pm') return '오후'; if(sh.k==='am') return '오전';
   if(sh.k==='t') return tLbl(sh.s)+(sh.e&&sh.e!==(st?st.close:'22:00')?'~'+tLbl(sh.e):''); return ''; }
-function shSame(a,b){ const n=x=>(!x||x.k==='full')?'full':x.k==='pm'?'pm':'t'+x.s+'-'+(x.e||''); return n(a)===n(b); }
+function shSame(a,b){ const n=x=>(!x||x.k==='full')?'full':x.k==='pm'?'pm':x.k==='am'?'am':'t'+x.s+'-'+(x.e||''); return n(a)===n(b); }
 function shIsPm(sh,st){ return !!sh&&(sh.k==='pm'||(sh.k==='t'&&tMin(sh.s)>=12*60)); }
 // 근무시간: 영업시간 안쪽만 (급여 계산기와 같은 규칙)
 function hoursOf(st,sh){
-  if(!sh||sh.k==='full') return +st.fullH||10; if(sh.k==='pm') return +st.pmH||5;
+  if(!sh||sh.k==='full') return +st.fullH||10; if(sh.k==='pm') return +st.pmH||5; if(sh.k==='am') return +st.amH||5;
   const o=tMin(st.open), c=tMin(st.close); let a=tMin(sh.s), b=tMin(sh.e||st.close); if(a==null||b==null) return +st.fullH||10;
   a=Math.max(o,Math.min(c,a)); b=Math.max(o,Math.min(c,b)); return Math.max(0,Math.round((b-a)/60*100)/100);
 }
@@ -52,6 +52,7 @@ function spanOf(st,sh){ // 타임라인 막대용 [시작분, 끝분]
   const o=tMin(st.open), c=tMin(st.close);
   if(!sh||sh.k==='full') return [o,c];
   if(sh.k==='pm') return [tMin(st.pmStart)||c-300,c];
+  if(sh.k==='am'){ const a=tMin(st.amStart)||720; return [a,Math.min(c,a+60*(+st.amH||5))]; }
   return [Math.max(o,tMin(sh.s)),Math.min(c,tMin(sh.e||st.close))];
 }
 
@@ -189,7 +190,7 @@ const Remote={
 
 /* ================= 매장 데이터 ================= */
 const DEF_POS=[['카운터','#3C5A86',1,1],['홀','#2F6B3F',3,4],['그릴','#B8621B',2,3],['주방','#8A2E2E',3,4],['장치','#5B3F86',0,0],['장잡','#1F6F78',0,0],['배송','#8A6A12',0,0],['주차','#55605A',0,1]];
-const defStore=()=>({name:'',open:'11:00',close:'22:00',fullH:10,pmH:5,pmStart:'17:00',fivePlus:true,vis:'week',target:25});
+const defStore=()=>({name:'',open:'11:00',close:'22:00',fullH:10,pmH:5,pmStart:'17:00',amH:5,amStart:'12:00',fivePlus:true,vis:'week',target:25});
 const defPositions=()=>DEF_POS.map(([name,color,wd,we])=>({name,color,req:[we,wd,wd,wd,wd,wd,we]}));
 const safeColor=c=>/^#[0-9a-fA-F]{3,8}$/.test(String(c||''))?c:'#888888';
 const cleanPositions=a=>Array.isArray(a)? a.filter(p=>p&&typeof p.name==='string').map(p=>Object.assign({},p,{color:safeColor(p.color)})) : [];
