@@ -71,6 +71,15 @@ async def main():
     chk('A: 다시 열면 바뀐 줄(설정)과 이 기기에 없는 달만 받음, 있는 9월은 안 받음', 'calc:cfg' in got and 'calc:m:2026-09' not in got, str(gets))
     chk('A: B에서 바꾼 계좌가 보임', acct=='국민 999', acct)
     chk('A: 다시 열어도 쓸데없이 올리지 않음', not [x for x in LOG if x[0]=='POST'], str([x for x in LOG if x[0]=='POST']))
+    await ctxA.close()
+    # 3-2) 빈 기기 C 가 먼저 열려 기본값을 올린 뒤, 진짜 기록이 있는 기기 D 를 처음 열어도 D 의 시급·계좌가 지켜지고 합쳐져야 함
+    SRV.clear(); LOG.clear(); ctxC,C,_=await open_dev(b); await ctxC.close()
+    D_LOCAL=json.loads(json.dumps(LOCAL)); D_LOCAL['accts']={'김철수':'우리 555'}; D_LOCAL['rates']={'김철수':11000}
+    ctxD,Dp,errs=await open_dev(b,D_LOCAL); await Dp.wait_for_timeout(2500)
+    chk('D: 처음 연결해도 이 기기 계좌·시급이 안 지워짐', await Dp.evaluate("pay.accts['김철수']")=='우리 555' and await Dp.evaluate("pay.rates['김철수']")==11000)
+    chk('D: 합친 결과가 서버에 올라감', SRV.get('calc:cfg',{}).get('data',{}).get('accts',{}).get('김철수')=='우리 555')
+    chk('D: 오류 없음',not errs,str(errs)); await ctxD.close()
+    ctxA,A,errs=await open_dev(b,LOCAL,json.loads(metaA))
     # 4) 서버가 계속 500 이면 점점 느리게 (20초에 몇 번?)
     FAIL['v']=True; LOG.clear(); await A.evaluate("pay.accts['홍길동']='신한 1'; save()"); await A.wait_for_timeout(20000)
     n=len([x for x in LOG if x[0]=='POST-FAIL']); note=await A.inner_text('#srvNote')

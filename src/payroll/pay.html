@@ -221,6 +221,7 @@ async function srvPush(){
 async function srvPull(){
   if(!READY||!ST||!ST.can_pay) return;
   let prevSent={}; try{ const m=JSON.parse(localStorage.getItem(srvKey())||'null'); SRV_AT=(m&&m.at)||{}; prevSent=(m&&m.sent)||{}; }catch(e){ SRV_AT={}; }
+  let firstSync=false; try{ firstSync=!localStorage.getItem(srvKey())&&!!localStorage.getItem(KEY); }catch(e){}     // 이 기기에 기록이 있는데 서버와는 처음 맞추는 경우
   const list=(await jx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.pay&id=like.calc:*&select=id,updated_at,deleted`)).filter(x=>x&&/^calc:(cfg|m:\d{4}-\d{2})$/.test(x.id));
   SENT={};
   if(!list.length){ srvQueue(); return; }           // 서버에 아직 없음 → 이 기기 기록을 올림(처음 한 번)
@@ -231,7 +232,13 @@ async function srvPull(){
   list.forEach(x=>{
     if(x.deleted){ if(x.id.startsWith('calc:m:')) delete pay.months[x.id.slice(7)]; SENT[x.id]=null; SRV_AT[x.id]=x.updated_at; return; }
     const g=got[x.id];
-    if(g){ if(x.id==='calc:cfg'){ const keep=pay.months; pay=Object.assign(pay,g.data||{}); pay.months=keep; } else pay.months[x.id.slice(7)]=g.data; SRV_AT[x.id]=g.updated_at; }
+    if(g){
+      if(firstSync){   // 이 기기가 서버와 처음 맞출 때: 이 기기에 있는 값이 이김(빈 기기가 먼저 올린 기본값이 진짜 기록을 덮지 않게), 없는 것만 서버 것으로 채움
+        if(x.id==='calc:cfg'){ const sv=g.data||{}; ['rates','drates','cycle','fullHs','accts','sel'].forEach(k=>{ pay[k]=Object.assign({},sv[k]||{},pay[k]||{}); }); }
+        else if(!pay.months[x.id.slice(7)]) pay.months[x.id.slice(7)]=g.data;
+        SRV_AT[x.id]=g.updated_at; SENT[x.id]='?'; return;      // 합친 결과를 다시 올림
+      }
+      if(x.id==='calc:cfg'){ const keep=pay.months; pay=Object.assign(pay,g.data||{}); pay.months=keep; } else pay.months[x.id.slice(7)]=g.data; SRV_AT[x.id]=g.updated_at; }
     // 서버에서 새로 받은 줄은 지금 내용이 서버와 같음. 안 받은 줄은 지난번에 올린 값 기준(그 뒤 이 기기에서 고친 게 있으면 다시 올라감)
     SENT[x.id]= g? hsh(JSON.stringify(x.id==='calc:cfg'? srvRows()['calc:cfg'] : pay.months[x.id.slice(7)])) : (prevSent[x.id]||'?');
   });
