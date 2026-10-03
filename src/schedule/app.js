@@ -202,13 +202,15 @@ function vCards(){
 }
 
 /* ================= 주간 보드 ================= */
+// 이름 옆 표기(직원 편집 창의 "이름 옆 표기"): 화면에만 보이는 꼬리표, 메모·급여와 무관
+const nlH=x=>x&&x.nl?`<em class="nl2">${esc(x.nl)}</em>`:'';
 function chipH(x,dd,cp,ed){
   const st=APP.D.store, l=shLbl(x.sh,st);
   const tb=l?`<i class="${x.sh.k==='pm'?'pmb':'tm'}${x.shSrc==='pat'?' soft':''}">${esc(l)}</i>`:'';
   const pb=cp&&x.cost&&(x.cost.ov||x.cost.base)&&x.cost.ov?`<i class="won">${esc(payLbl(x.cost.ov))}</i>`:'';
   const cls=['chip','t-'+x.type,x.tag?'g-'+x.tag:''].join(' ');
   const tip=[x.name,TYPES[x.type]||'',l?l+' 출근':'',x.memo].filter(Boolean).join(' · ');
-  return `<button class="${cls}" data-a="edit" data-sid="${x.sid||''}" data-spot="${x.spotId||''}" data-k="${dd.key}" data-pos="${esc(x.pos)}" title="${esc(tip)}">${esc(x.name)}${tb}${pb}${x.memo?'<i class="mm">✎</i>':''}</button>`;
+  return `<button class="${cls}" data-a="edit" data-sid="${x.sid||''}" data-spot="${x.spotId||''}" data-k="${dd.key}" data-pos="${esc(x.pos)}" title="${esc(tip)}">${esc(x.name)}${nlH(x)}${tb}${pb}${x.memo?'<i class="mm">✎</i>':''}</button>`;
 }
 function vWeek(){
   const D=APP.D, st=D.store, ws=weekStart(APP.anchor), cp=canPay(), ed=canEdit();
@@ -259,7 +261,7 @@ function vMonth(){
     const list=R.list.slice().sort((p,q)=>order.indexOf(p.pos)-order.indexOf(q.pos)); list.forEach(x=>used.add(x.pos));
     const offs=R.offs.filter(o=>!o.missing);
     cells+=`<button class="cd ${key===todayStr?'today':''}" data-a="gweek" data-k="${key}"><span class="n ${R.wd===0?'sun':R.wd===6?'sat':''}">${day}</span>
-      <span class="nl">${list.map(x=>{ const t=shLbl(x.sh,st); return `<i class="${x.type==='spot'?'sp':''}" style="--pc:${posColor(x.pos)}">${esc(x.name)}${t?`<u>${esc(t)}</u>`:''}</i>`; }).join('')}</span>
+      <span class="nl">${list.map(x=>{ const t=shLbl(x.sh,st); return `<i class="${x.type==='spot'?'sp':''}" style="--pc:${posColor(x.pos)}">${esc(x.name)}${nlH(x)}${t?`<u>${esc(t)}</u>`:''}</i>`; }).join('')}</span>
       ${offs.length?`<span class="of"><b>휴</b> ${esc(offs.map(o=>o.name).join(' '))}</span>`:''}</button>`; }
   const ym=`${y}-${pad(m+1)}`;
   return `<div class="vh"><div><h1>${y}년 ${m+1}월</h1><div class="sub">날짜를 누르면 그 주 보드로 가요</div></div>
@@ -274,7 +276,7 @@ function vDay(){
   const D=APP.D, st=D.store, key=APP.day, R=resolve(D,pd(key)); const o=tMin(st.open), c=tMin(st.close); const hrs=Math.max(1,Math.round((c-o)/60));
   const ed=canEdit();
   const rows=D.positions.map(p=>R.list.filter(x=>x.pos===p.name).map(x=>{ const [a,b]=spanOf(st,x.sh); const L=(a-o)/(c-o)*100, Wd=Math.max(2,(b-a)/(c-o)*100);
-    return `<div class="nm" style="--pc:${p.color}"><span>${esc(x.name)}</span><small>${esc(p.name)}</small></div>
+    return `<div class="nm" style="--pc:${p.color}"><span>${esc(x.name)}${nlH(x)}</span><small>${esc(p.name)}</small></div>
       <div class="lane" style="--hrs:${hrs}"><button class="blk ${x.type==='spot'?'spot':''}" style="--pc:${p.color};left:${L}%;width:${Wd}%;border:0" data-a="edit" data-sid="${x.sid||''}" data-spot="${x.spotId||''}" data-k="${key}" data-pos="${esc(x.pos)}">${esc(shLbl(x.sh,st)||(x.sh&&x.sh.k==='full'?'종일':'종일'))} · ${fmtH(hoursOf(st,x.sh))}h</button></div>`; }).join('')).join('');
   const cnt=[]; for(let i=0;i<hrs;i++){ const t=o+i*60+30; cnt.push(R.list.filter(x=>{ const [a,b]=spanOf(st,x.sh); return a<=t&&t<b; }).length); }
   const d=pd(key);
@@ -303,7 +305,7 @@ function vStaff(){
       <input type="text" id="staffQ" placeholder="이름 찾기" value="${esc(APP.q)}" style="width:140px"></div>
     <div class="card" style="padding:6px 8px"><div class="scroll"><table class="t"><thead><tr><th>이름</th><th>종류</th><th>포지션</th><th>요일 패턴 (월~일)</th><th>이번 주</th>${cp?'<th>기본 급여</th>':''}</tr></thead><tbody>
     ${list.map(s=>{ const p=W.per[s.id]; const b=(D.pay||{})['staff:'+s.id];
-      return `<tr class="click" data-a="staff" data-sid="${s.id}" style="${s.active===false||(s.last&&s.last<todayStr)?'opacity:.45':''}"><td><b>${esc(s.name)}</b>${s.active===false?' <span class="tag">그만둠</span>':''}${s.last?` <span class="tag ${s.last<todayStr?'':'amber'}">${md(s.last)}까지</span>`:''}</td><td><span class="tag ${s.type==='weekly'?'amber':s.type==='spot'?'warn':''}">${TYPES[s.type]}</span></td>
+      return `<tr class="click" data-a="staff" data-sid="${s.id}" style="${s.active===false||(s.last&&s.last<todayStr)?'opacity:.45':''}"><td><b>${esc(s.name)}</b>${s.note?` <em class="nl2">${esc(s.note)}</em>`:''}${s.active===false?' <span class="tag">그만둠</span>':''}${s.last?` <span class="tag ${s.last<todayStr?'':'amber'}">${md(s.last)}까지</span>`:''}</td><td><span class="tag ${s.type==='weekly'?'amber':s.type==='spot'?'warn':''}">${TYPES[s.type]}</span></td>
         <td><span style="color:${posColor(s.pos)};font-weight:700">${esc(s.pos)}</span></td><td>${pat7(s)}</td><td class="num">${p?fmtH(p.h)+'시간 · '+p.days.length+'일':'-'}${p&&p.h>=13&&p.h<15?' <span class="tag warn">주휴 경계</span>':''}</td>
         ${cp?`<td class="num">${b?esc(payLbl(b)):'<span class="muted">미입력</span>'}</td>`:''}</tr>`; }).join('')||`<tr><td colspan="6" class="empty">조건에 맞는 직원이 없어요</td></tr>`}
     </tbody></table></div></div>`;

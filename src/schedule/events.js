@@ -131,6 +131,8 @@ function dStaff(sid){
       ${cp&&sid?`<input type="text" data-patp="${wd}" value="${pay?pay.v:''}" placeholder="그날 금액 (선택)" inputmode="decimal" style="grid-column:2/-1;${pay?'':'display:none'}">`:''}</div>`; };
   openDrawer(sid?s.name:'직원 추가',sid?`${TYPES[s.type]} · ${esc(s.pos)}`:'',
     `<div class="row"><label class="f grow">이름<input type="text" id="sfName" value="${esc(s.name)}"></label><label class="f">연락처<input type="tel" id="sfTel" value="${esc(s.tel||'')}" style="width:140px"></label></div>
+    <div class="row"><label class="f grow">이름 옆 표기<input type="text" id="sfNote" maxlength="12" value="${esc(s.note||'')}" placeholder="예: 신입, 마감, 학생"></label></div>
+    <p class="help" style="margin:-4px 0 8px">스케줄에서 이름 옆에 작게 보여요. 화면에만 표시되고, 날짜별 메모나 급여 계산과는 상관없어요.</p>
     <div class="row"><label class="f grow">종류<select id="sfType">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${s.type===k?'selected':''}>${t}</option>`).join('')}</select></label>
       <label class="f grow">기본 포지션<select id="sfPos">${D.positions.map(p=>`<option ${s.pos===p.name?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label></div>
     <div class="row"><label class="f grow">마지막 근무일 <small class="muted">(그만두는 날 · 이 날까지만 근무로 나와요 · 비우면 계속)</small><input type="date" id="sfLast" value="${esc(s.last||'')}"></label></div>
@@ -145,7 +147,7 @@ function dStaff(sid){
 function saveStaff(sid){
   const D=APP.D; const name=$('#sfName').value.trim(); if(!name) return toast('이름을 넣어주세요');
   const id=sid||uid(); const s=Object.assign({},D.staff[id]||{id,active:true,order:Object.keys(D.staff).length});
-  s.name=name; s.tel=$('#sfTel').value.trim(); { const lv=($('#sfLast').value||'').trim(); if(lv) s.last=lv; else delete s.last; } s.type=$('#sfType').value; s.pos=$('#sfPos').value; s.off=[]; s.wk={};
+  s.name=name; s.tel=$('#sfTel').value.trim(); { const nt=($('#sfNote').value||'').trim().slice(0,12); if(nt) s.note=nt; else delete s.note; } { const lv=($('#sfLast').value||'').trim(); if(lv) s.last=lv; else delete s.last; } s.type=$('#sfType').value; s.pos=$('#sfPos').value; s.off=[]; s.wk={};
   for(const sel of $$('[data-pat]')){ const wd=+sel.dataset.pat, v=sel.value;
     if(v==='off') s.off.push(wd); else if(v==='pm') s.wk[wd]={sh:{k:'pm'}};
     else if(v==='t'){ const raw=$(`[data-patt="${wd}"]`).value.trim(); const [a,b]=raw.split(/[~\-]/); const st=parseT(a,false), en=b?parseT(b,true):'';

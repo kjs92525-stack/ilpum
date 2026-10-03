@@ -372,3 +372,7 @@ body.dragging-now .bl.empty,body.dragging-now .bc.empty{display:flex;opacity:.55
 .embed body,.embed{--amber:#2F6B4F;--amber-ink:#FFFFFF;--amber-soft:#E3F0E8;--amber-deep:#1F4D3A;--bg:#F5F6F4;--line:#E3E8E5}
 @media (prefers-color-scheme:dark){ .embed:not([data-theme="light"]){--amber:#6CC592;--amber-ink:#0E1A13;--amber-soft:#1F3A2B;--amber-deep:#8FE0B0;--bg:#111513;--line:#2B3631} }
 @media (max-width:860px){ .embed .main{padding:12px 12px 40px} }
+
+/* 이름 옆 표기 */
+.nl2{font-style:normal;font-size:.76em;font-weight:700;color:var(--sub);background:rgba(128,128,128,.18);border-radius:5px;padding:0 5px;margin-left:3px;white-space:nowrap;vertical-align:1px}
+.chip .nl2{font-size:.72em}

@@ -236,7 +236,7 @@ function resolve(D,d,opt={}){
       if(dc.pos) pos=dc.pos; if(dc.sh){ sh=dc.sh; shSrc='day'; } }
     if(!pnames.includes(pos)) pos=pnames[0];
     if(!tag&&pos!==s.pos) tag='chg';
-    if(working) list.push({sid:s.id,name:s.name,type:s.type,pos,tag,sh,shSrc,ruleIds,payoff,memo:(dc&&dc.memo)||''});
+    if(working) list.push({sid:s.id,name:s.name,nl:s.note||'',type:s.type,pos,tag,sh,shSrc,ruleIds,payoff,memo:(dc&&dc.memo)||''});
     else if(reason||(awMissing&&!opt.quiet)) offs.push({sid:s.id,name:s.name,reason:reason||'미입력',ruleIds,missing:!reason&&awMissing});
   });
   Object.values(D.spot).filter(x=>x&&x.date===key).forEach(x=>{
