@@ -119,6 +119,7 @@ tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
 #dailyCanvasHolder{margin:14px auto 0;max-width:420px;text-align:center}
 #dailyCanvasHolder canvas{max-width:100%;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.12)}
 @media print{header,.noprint,.btn,.toast{display:none!important} body{background:#fff;color:#000} .card{border:0;padding:0} input,select{border:0;background:none!important;padding:0}}
+.srvnote{margin:8px 16px 0;padding:8px 12px;border-radius:10px;background:#FDECEA;color:#9B2C1F;font-weight:600;font-size:13px}
 </style>
 </head>
 <body>
@@ -132,6 +133,7 @@ tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
     <button class="btn" id="dailyBtn">일당 지급</button>
   </div>
 </header>
+<p id="srvNote" class="srvnote" hidden></p>
 <main id="app"></main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -169,7 +171,7 @@ let SCHED=null, SCHED_AT=0;       // 받아 온 근무표(메모리에만) — �
 async function getSchedule(force){
   if(!READY) throw new Error(ST===null?'로그인이 필요해요':'매장을 확인하지 못했어요');
   if(!force&&SCHED&&Date.now()-SCHED_AT<5*60*1000) return SCHED;
-  const rows=await jx(`/rest/v1/sch_items?store_id=eq.${SID}&deleted=eq.false&select=kind,id,data`);
+  const rows=await jx(`/rest/v1/sch_items?store_id=eq.${SID}&deleted=eq.false&id=not.like.calc:*&select=kind,id,data`);
   const items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data);
   SCHED=Core.buildD(items,ST.name); SCHED_AT=Date.now(); return SCHED;
 }
@@ -188,7 +190,56 @@ const cycleOf=n=>pay.cycle[n]||(pay.drates[n]!=null?'month':'week');
 const fullOf=n=>(pay.fullHs&&pay.fullHs[n]!=null)? pay.fullHs[n] : pay.fullH;   // 사람별 종일 시간 (없으면 공통 기준)
 const fmtW=v=>Math.round(v).toLocaleString('ko-KR');
 function baseLabel(n){ return pay.drates[n]!=null? '일급 '+fmtW(pay.drates[n]) : (pay.rates[n]!=null? '시급 '+fmtW(pay.rates[n]) : ''); }
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify(pay)); }catch(e){ toast('저장 공간이 부족해요. 백업 파일을 받아두세요'); } }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(pay)); }catch(e){} srvQueue(); }
+
+/* ---------- 서버 보관 (급여 권한자만 읽고 쓰는 sch_items 의 pay 칸) ----------
+   설정은 'calc:cfg', 달마다 'calc:m:YYYY-MM' 한 줄. 바뀐 줄만 올리고, 열 때는 더 새로운 줄만 받음(전송량 절약).
+   PC를 바꾸거나 브라우저를 정리해도 기록이 남고, 본사 전체 백업에도 들어감. */
+let SENT={}, SRV_AT={}, srvT=null, srvBusy=false, srvFails=0;
+const srvKey=()=>KEY+'-srv';
+const hsh=t=>{ let h=5381; for(let i=0;i<t.length;i++) h=((h<<5)+h+t.charCodeAt(i))|0; return t.length+':'+h; };
+const srvMeta=()=>{ try{ localStorage.setItem(srvKey(),JSON.stringify({at:SRV_AT,sent:SENT})); }catch(e){} };
+function srvRows(){ const {months,...cfg}=pay; const rows={'calc:cfg':cfg}; Object.keys(months||{}).forEach(m=>rows['calc:m:'+m]=months[m]); return rows; }
+function srvQueue(){ if(!READY||!ST||!ST.can_pay) return; clearTimeout(srvT); srvT=setTimeout(srvPush, 1500*Math.pow(2,Math.min(srvFails,5))); }
+async function srvPush(){
+  if(srvBusy){ return srvQueue(); } srvBusy=true;
+  try{
+    const rows=srvRows(), out=[];
+    Object.entries(rows).forEach(([id,d])=>{ const j=hsh(JSON.stringify(d)); if(SENT[id]!==j) out.push({id,data:d,deleted:false,j}); });
+    Object.keys(SENT).forEach(id=>{ if(!(id in rows)&&SENT[id]!==null) out.push({id,data:null,deleted:true,j:null}); });
+    if(!out.length) return;
+    const r=await fx('/rest/v1/sch_items?on_conflict=store_id,kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},
+      body:JSON.stringify(out.map(x=>({store_id:SID,kind:'pay',id:x.id,data:x.data,deleted:x.deleted})))});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const back=await r.json().catch(()=>[]); out.forEach(x=>SENT[x.id]=x.j); (back||[]).forEach(b=>SRV_AT[b.id]=b.updated_at);
+    srvMeta();
+    srvFails=0; setSrvNote('');
+  }catch(e){ srvFails++; setSrvNote('서버에 저장하지 못했어요 — 이 기기에는 남아 있어요. 잠시 뒤 다시 시도해요'); srvQueue(); }
+  finally{ srvBusy=false; }
+}
+// 열 때: 서버 줄의 고친 시각만 먼저 받고, 이 기기 것보다 새로운 줄만 내용까지 받음
+async function srvPull(){
+  if(!READY||!ST||!ST.can_pay) return;
+  let prevSent={}; try{ const m=JSON.parse(localStorage.getItem(srvKey())||'null'); SRV_AT=(m&&m.at)||{}; prevSent=(m&&m.sent)||{}; }catch(e){ SRV_AT={}; }
+  const list=(await jx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.pay&id=like.calc:*&select=id,updated_at,deleted`)).filter(x=>x&&/^calc:(cfg|m:\d{4}-\d{2})$/.test(x.id));
+  SENT={};
+  if(!list.length){ srvQueue(); return; }           // 서버에 아직 없음 → 이 기기 기록을 올림(처음 한 번)
+  const need=list.filter(x=>!x.deleted&&(x.updated_at!==SRV_AT[x.id]||(x.id.startsWith('calc:m:')&&!pay.months[x.id.slice(7)]))).map(x=>x.id);
+  const got={};
+  for(let i=0;i<need.length;i+=20){ const part=need.slice(i,i+20).map(x=>'"'+x+'"').join(',');
+    (await jx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.pay&id=in.(${encodeURIComponent(part)})&select=id,data,updated_at`)).forEach(r=>{ if(need.includes(r.id)) got[r.id]=r; }); }
+  list.forEach(x=>{
+    if(x.deleted){ if(x.id.startsWith('calc:m:')) delete pay.months[x.id.slice(7)]; SENT[x.id]=null; SRV_AT[x.id]=x.updated_at; return; }
+    const g=got[x.id];
+    if(g){ if(x.id==='calc:cfg'){ const keep=pay.months; pay=Object.assign(pay,g.data||{}); pay.months=keep; } else pay.months[x.id.slice(7)]=g.data; SRV_AT[x.id]=g.updated_at; }
+    // 서버에서 새로 받은 줄은 지금 내용이 서버와 같음. 안 받은 줄은 지난번에 올린 값 기준(그 뒤 이 기기에서 고친 게 있으면 다시 올라감)
+    SENT[x.id]= g? hsh(JSON.stringify(x.id==='calc:cfg'? srvRows()['calc:cfg'] : pay.months[x.id.slice(7)])) : (prevSent[x.id]||'?');
+  });
+  pay.drates=pay.drates||{}; pay.cycle=pay.cycle||{}; pay.fullHs=pay.fullHs||{}; pay.accts=pay.accts||{}; pay.months=pay.months||{};
+  try{ localStorage.setItem(KEY,JSON.stringify(pay)); }catch(e){} srvMeta();
+  srvQueue();     // 이 기기에만 있거나 고친 뒤 못 올린 줄이 있으면 올림(같으면 아무것도 안 보냄)     // 이 기기에만 있는 달은 올림
+}
+function setSrvNote(t){ const el=document.getElementById('srvNote'); if(el){ el.textContent=t; el.hidden=!t; } }
 
 const pad=n=>String(n).padStart(2,'0');
 const ds=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -1119,7 +1170,8 @@ async function resolveStore(){
     return true;
   }catch(e){ if(e.auth||e.status===401) needLogin('로그인이 필요해요'); else needLogin('서버에 연결하지 못했어요: '+e.message); return false; }
 }
-function startApp(){
+async function startApp(){
+  if(READY&&ST.can_pay){ try{ await srvPull(); }catch(e){ toast('서버의 급여 기록을 받지 못했어요 — 이 기기 기록으로 열어요'); } }
   render(); if(!READY) return;
   if(!ST.can_pay) toast('이 계정은 금액(급여)을 볼 수 없어요. 시간만 계산돼요');
   const ym=ds(new Date()).slice(0,7); if(!pay.months[ym]) syncSchedule(ym); else ensurePeriod();

@@ -461,7 +461,8 @@ async function pushDay(d){
   if(pushing[d]){ dirty[d]=true; return; }
   pushing[d]=true; setSync('저장 중…');
   try{
-    for(let tries=0; tries<4; tries++){
+    let saved=false;
+    for(let tries=0; tries<4&&!saved; tries++){
       const doc=dayDoc(d); const cur=await fetchDay(d);
       let merged=doc.items, base=0;
       if(cur){ merged=mergeItems(((cur.data&&cur.data.items)||[]), doc.items); base=cur.rev||0; }
@@ -475,8 +476,9 @@ async function pushDay(d){
       doc.items=merged; doc.rev=rev; cacheDay(d); fails[d]=0; needRetry[d]=false;
       const t=new Date(); setSync(`저장됨 ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`,'ok');
       if(d===ui.date) render();
-      break;
+      saved=true;
     }
+    if(!saved) throw new Error('다른 기기와 동시에 저장 중');     // 4번 연속 겹치면 조용히 멈추지 말고 아래처럼 잠시 뒤 다시 시도
   }catch(e){ const n=fails[d]=(fails[d]||0)+1; needRetry[d]=true;     // 실패하면 점점 천천히 다시 시도 (서버를 계속 두드리지 않도록)
     if(e.auth||/HTTP 40[13]/.test(e.message)) setSync('로그인이 필요해요 — 통합관리에서 다시 로그인한 뒤 새로고침하세요','err');
     else if(n>=8) setSync(`저장 실패(${e.message}) — 여기를 눌러 다시 시도`,'err');
@@ -651,7 +653,7 @@ function renderList(){
 }
 function cellHtml(t,map){
   if(t==null) return '<div class="cell blank"></div>';
-  t=String(t); const list=map[t]||[];
+  t=String(t); if(!validTid(t)) return '<div class="cell blank"></div>'; const list=map[t]||[];
   if(!list.length) return `<div class="cell empty ${seatCls(t)}" data-cell="${t}" data-pick="${t}"><span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}</div>`;
   const top=list[0]; const it=top.it;
   const dup=CONF.table[t]? [...CONF.table[t].values()].filter(x=>list.some(l=>l.it.id===x.id) || list.some(l=>Math.abs(toMin(l.it.time)-toMin(x.time))<WIN)) : [];
@@ -708,8 +710,8 @@ function renderBoard(){
   const f=FLOORS.find(x=>x.key===ui.floor);
   const cnt={use:0,res:0,soon:0}; const seen=new Set();
   Object.values(map).forEach(a=>a.forEach(x=>{ if(!seen.has(x.it.id)){ seen.add(x.it.id); cnt[x.st]++; } }));
-  const groups=f.mode==='free'? freeFloorHtml(f,map,false) : f.groups.map(g=>`<div class="grp"><h3>${g.title}</h3><div class="cols">${g.cols.map(c=>`<div class="col">${c.map(t=>cellHtml(t,map)).join('')}</div>`).join('')}</div></div>`).join('');
-  const bar=f.mode!=='free'&&f.bar? `<div class="grp bar29"><h3>${f.bar.title}</h3><div class="barrow">${f.bar.row.map(t=>cellHtml(t,map)).join('')}</div></div>`:'';
+  const groups=f.mode==='free'? freeFloorHtml(f,map,false) : f.groups.map(g=>`<div class="grp"><h3>${esc(g.title)}</h3><div class="cols">${g.cols.map(c=>`<div class="col">${c.map(t=>cellHtml(t,map)).join('')}</div>`).join('')}</div></div>`).join('');
+  const bar=f.mode!=='free'&&f.bar? `<div class="grp bar29"><h3>${esc(f.bar.title)}</h3><div class="barrow">${f.bar.row.map(t=>cellHtml(t,map)).join('')}</div></div>`:'';
   const isToday=ui.date===todayStr();
   const dupT=Object.keys(CONF.table);
   const dupBar = dupT.length? `<div class="dupbar" data-dupfirst="1" title="누르면 현황판이 중복 시간으로 이동"><span class="dh">⚠ 중복 예약 ${dupT.length}곳 <small>· 눌러서 이동</small></span>${dupT.map(t=>`<button class="dchip" data-dupgo="${t}" title="현황판을 이 중복 시간으로"><b>${esc(tLabel(t))}</b> ${[...CONF.table[t].values()].sort((a,b)=>toMin(a.time)-toMin(b.time)).map(x=>esc(x.name)+' <small>'+esc(x.time)+'</small>').join(' · ')}</button>`).join('')}</div>` : '';
@@ -717,7 +719,7 @@ function renderBoard(){
   const tightBar = tightT.length? `<div class="tightbar" data-tightfirst="1" title="누르면 현황판이 임박 시간으로 이동"><span class="th">⏰ 임박 예약 ${tightT.length}곳 <small>· 2시간 간격 · 눌러서 이동</small></span>${tightT.map(t=>`<button class="tchip" data-tightgo="${t}" title="현황판을 이 임박 시간으로"><b>${esc(tLabel(t))}</b> ${[...TIGHT.table[t].values()].sort((a,b)=>toMin(a.time)-toMin(b.time)).map(x=>esc(x.name)+' <small>'+esc(x.time)+'</small>').join(' · ')}</button>`).join('')}</div>` : '';
   document.getElementById('boardPanel').innerHTML=`${dupBar}${tightBar}${freeHtml(T)}
     <div class="btop"><h2>현황판</h2>
-      <div class="ftabs" style="display:flex;gap:6px">${FLOORS.map(x=>`<button data-floor="${x.key}" aria-pressed="${x.key===ui.floor}">${x.name}</button>`).join('')}</div>
+      <div class="ftabs" style="display:flex;gap:6px">${FLOORS.map(x=>`<button data-floor="${esc(x.key)}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div>
       <span class="spacer"></span>
       ${canEditLayout()?'<button class="btn sm" data-led="start" title="테이블 추가·삭제·위치 바꾸기">배치 수정</button>':''}
       <div class="legend"><span class="lg-use">도착 ${cnt.use}</span><span class="lg-res">예약시간 ${cnt.res}</span><span class="lg-soon">2시간 내 예정 ${cnt.soon}</span><span class="lg-tight">⏰ 임박(2시간 간격) ${Object.keys(TIGHT.table).length}</span></div></div>
@@ -739,7 +741,10 @@ const seatBadge=t=>seatOf(t)?`<span class="seatb">${seatOf(t)}인</span>`:'';
 let layoutEdit=null, layoutSel='';           // layoutEdit: 수정 중인 임시본 {floors} / layoutSel: 옮기려고 고른 자리
 const canEditLayout=()=>{ const st=STORES.find(x=>x.id===SID); return !!st && ['hq','owner','manager'].includes(st.role); };
 const cloneL=o=>JSON.parse(JSON.stringify(o));
-function validLayout(F){ return Array.isArray(F)&&F.length>0&&F.every(f=>f&&typeof f.key==='string'&&typeof f.name==='string'&&(f.mode==='free'? (Array.isArray(f.tables)&&f.tables.every(t=>t&&t.id!=null&&isFinite(t.x)&&isFinite(t.y)&&t.w>0&&t.h>0)) : (Array.isArray(f.groups)&&f.groups.every(g=>g&&typeof g.title==='string'&&Array.isArray(g.cols)&&g.cols.every(c=>Array.isArray(c)))&&(!f.bar||(Array.isArray(f.bar.row)))))); }
+const FSHAPES=['round','square','rect'];
+function validTid(t){ return t!=null&&normTid(t)===String(t); }
+function validLayout(F){ const txt=v=>typeof v==='string'&&v.length<=40; const okT=c=>Array.isArray(c)&&c.every(t=>t==null||validTid(t));
+  return Array.isArray(F)&&F.length>0&&F.length<=20&&F.every(f=>f&&typeof f.key==='string'&&/^[A-Za-z0-9_-]{1,20}$/.test(f.key)&&txt(f.name)&&(f.mode==='free'? (Array.isArray(f.tables)&&f.tables.every(t=>t&&validTid(t.id)&&[t.x,t.y,t.w,t.h].every(v=>typeof v==='number'&&isFinite(v))&&t.w>0&&t.h>0&&(t.shape==null||FSHAPES.includes(t.shape)))) : (Array.isArray(f.groups)&&f.groups.every(g=>g&&txt(g.title)&&Array.isArray(g.cols)&&g.cols.every(okT))&&(!f.bar||(txt(f.bar.title||'')&&okT(f.bar.row)))))); }
 function layoutError(F){
   const all=tablesOf(F); if(!all.length) return '테이블이 하나도 없어요';
   const bad=all.find(t=>!normTid(t)||normTid(t)!==t); if(bad) return `‘${bad}’ 는 쓸 수 없는 번호예요`;
@@ -769,7 +774,7 @@ function renderBoardEdit(){
   const groups=f.mode==='free'? freeFloorHtml(f,{},true) : f.groups.map((g,gi)=>`<div class="grp"><h3>${esc(g.title)}<button class="lbtn" data-led="gren" data-p="${fi},${gi}">이름 바꾸기</button><button class="lbtn bad" data-led="gdel" data-p="${fi},${gi}">구역 지우기</button></h3><div class="cols">${g.cols.map((c,ci)=>`<div class="col">${c.map((t,ti)=>editCell(t,`${fi},${gi},${ci},${ti}`)).join('')}<button class="cell addc" data-led="tadd" data-p="${fi},${gi},${ci}" data-dp-end="${fi},${gi},${ci}" title="여기에 테이블 추가 (고른 테이블이 있으면 여기로 옮겨요)">+</button></div>`).join('')}</div></div>`).join('');
   const bar=f.mode!=='free'&&f.bar?`<div class="grp bar29"><h3>${esc(f.bar.title)}</h3><div class="barrow">${f.bar.row.map((t,ti)=>editCell(t,`${fi},b,${ti}`)).join('')}<button class="cell addc" data-led="tadd" data-p="${fi},b,0" data-dp-end="${fi},b,0">+</button></div></div>`:'';
   document.getElementById('boardPanel').innerHTML=`<div class="ledbar"><b>배치 수정 중</b><span>${f.mode==='free'?'저장을 눌러야 실제 현황판에 반영돼요. 테이블을 <b>끌어서</b> 마음대로 옮기고, 누르면 모양·크기를 바꿀 수 있어요':'저장을 눌러야 실제 현황판에 반영돼요. ① 테이블을 누르고 ② 바꿀 자리를 누르면 서로 자리가 바뀌어요 (<b>+</b> 를 누르면 그 줄 끝으로 옮겨요)'}</span></div>
-    <div class="btop"><h2>배치 수정</h2><div class="ftabs" style="display:flex;gap:6px">${F.map(x=>`<button data-floor="${x.key}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div><span class="spacer"></span>
+    <div class="btop"><h2>배치 수정</h2><div class="ftabs" style="display:flex;gap:6px">${F.map(x=>`<button data-floor="${esc(x.key)}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div><span class="spacer"></span>
       ${f.mode==='free'?`<button class="lbtn" data-led="ftadd">+ 테이블</button><button class="lbtn" data-led="fcircle">원형으로 배치</button><button class="lbtn" data-led="togrid">칸 배치로 되돌리기</button>`:`<button class="lbtn" data-led="gadd">+ 구역</button><button class="lbtn" data-led="tofree">자유 배치로 바꾸기</button>`}<button class="lbtn" data-led="fadd">+ 층(칸)</button><button class="lbtn" data-led="ffadd">+ 층(자유)</button><button class="lbtn" data-led="fren">층 이름</button><button class="lbtn bad" data-led="fdel">층 지우기</button>
       ${(STORES.find(x=>x.id===SID)||{}).is_hq?'<button class="lbtn" data-led="seedseats">6·8인석 기본값</button>':''}<button class="lbtn" data-led="reset">처음 배치로</button><button class="btn sm" data-led="cancel">취소</button><button class="btn sm pri" data-led="save">저장</button></div>
     ${f.mode==='free'?freeSelBar(f):''}
@@ -780,7 +785,7 @@ const FW=1000, FH=600, snapN=v=>Math.round(v/10)*10, clampN=(v,a,b)=>Math.max(a,
 const editFloor=()=>layoutEdit&&layoutEdit.floors.find(x=>x.key===ui.floor);
 function freeFloorHtml(f,map,edit){
   const T=f.tables||[];
-  return `<div class="freecanvas${edit?' fedit':''}" id="fcanvas">${T.map(t=>{ const id=String(t.id); const sel=edit&&layoutSel===id?' sel':''; const sh=t.shape||'round';
+  return `<div class="freecanvas${edit?' fedit':''}" id="fcanvas">${T.map(t=>{ const id=String(t.id); const sel=edit&&layoutSel===id?' sel':''; const sh=FSHAPES.includes(t.shape)?t.shape:'round';
     const inner=edit?`<div class="cell empty ed${sel} ${seatCls(id)}"><span class="no">${esc(tLabel(id))}</span>${seatBadge(id)}</div>`:cellHtml(id,map);
     return `<div class="fpos ${sh}" data-ft="${esc(id)}" style="left:${t.x/10}%;top:${t.y/6}%;width:${t.w/10}%;height:${t.h/6}%">${inner}</div>`; }).join('')}</div>`;
 }

@@ -1,4 +1,3 @@
--- 매장 이름 바꾸기: 본사만 (앱의 매장 관리 화면에서 사용)
 create or replace function public.sch_rename_store(p_store uuid, p_name text) returns text
  language plpgsql security definer set search_path to '' as $f$
 begin

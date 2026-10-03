@@ -1,4 +1,3 @@
--- 공지사항(본사가 쓰고 모든 매장이 읽음) + 게시판(점주↔본사 1:1 상담: 점주 글은 본사와 그 매장 사람만 보임, 점주끼리는 서로 안 보임)
 create or replace function public.has_any_role() returns boolean
  language sql stable security definer set search_path to '' as $$
   select exists(select 1 from public.profiles where user_id = auth.uid())
@@ -31,14 +30,11 @@ create table if not exists public.board_msgs (
 );
 create index if not exists board_msgs_store on public.board_msgs (store_id, created_at);
 alter table public.board_msgs enable row level security;
--- 읽기: 본사(모든 매장) 또는 그 매장의 점주·매니저 (다른 매장 점주 글은 안 보임)
 create policy bm_sel on public.board_msgs for select to authenticated using (public.is_hq() or public.sch_role(store_id) in ('owner','manager'));
--- 쓰기: 점주·매니저는 자기 매장에 "점주 글", 본사는 아무 매장에 "본사 답글"
 create policy bm_ins on public.board_msgs for insert to authenticated with check (
   author_id = auth.uid() and (
     (from_hq = false and public.sch_role(store_id) in ('owner','manager'))
     or (from_hq = true and public.is_hq())));
--- 고치기·지우기 정책 없음: 읽음 표시는 함수로만
 
 create or replace function public.board_mark_read(p_store uuid) returns void
  language plpgsql security definer set search_path to '' as $f$

@@ -1,4 +1,4 @@
-// 본사 전용 계정 관리: 목록 보기 · 비밀번호 바꾸기 · 삭제.
+// 계정 관리(본사: 전체 / 점주: 자기 매장 직원): 목록 보기 · 비밀번호 바꾸기 · 정지 · 삭제. 바꾼 기록은 audit_log 에 남김.
 // - 호출자의 로그인 토큰으로 "본사(hq)" 인지 확인한다. 아니면 거부.
 // - 본사 계정(hq)과 본인 계정은 바꾸거나 지울 수 없다 (잠기는 사고 방지).
 // - service_role 키는 이 함수 안(Supabase 서버)에서만 쓰고 앱·저장소에는 없다.
@@ -37,12 +37,12 @@ Deno.serve(async (req: Request) => {
 
   // ---- 목록 ----
   if (action === "list") {
-    const users: { id: string; email: string; last: string | null; created: string; banned: boolean }[] = [];
+    const users: { id: string; email: string; last: string | null; created: string; banned: boolean; pwByHq: string | null }[] = [];
     for (let page = 1; page <= 10; page++) {
       const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
       if (error) return out(500, { error: "목록을 불러오지 못했어요: " + error.message });
       for (const u of data.users) users.push({ id: u.id, email: u.email || "", last: u.last_sign_in_at || null, created: u.created_at,
-        banned: !!(u.banned_until && new Date(u.banned_until) > new Date()) });
+        banned: !!(u.banned_until && new Date(u.banned_until) > new Date()), pwByHq: (u.app_metadata?.pw_by_hq as string) || null });
       if (data.users.length < 200) break;
     }
     const [{ data: profs }, { data: mems }, { data: stores }] = await Promise.all([
@@ -58,7 +58,7 @@ Deno.serve(async (req: Request) => {
       const links = m.map((x: { store_id: string; role: string; can_pay: boolean }) => ({ store: sname.get(x.store_id) || "", role: x.role, pay: !!x.can_pay }));
       if (isHq && p && p.role === "franchise") links.unshift({ store: sname.get(p.store_id) || "", role: "owner", pay: true });
       return { id: u.email.replace(/@ilpum\.invalid$/, ""), email: u.email, hq: p?.role === "hq", me: u.id === who.user.id,
-        links, last: u.last, created: u.created, banned: u.banned };
+        links, last: u.last, created: u.created, banned: u.banned, pwByHq: u.pwByHq };
     }).sort((a, b) => Number(b.hq) - Number(a.hq) || a.id.localeCompare(b.id));
     return out(200, { ok: true, rows });
   }
@@ -67,7 +67,7 @@ Deno.serve(async (req: Request) => {
   const id = String(b.id ?? "").trim().toLowerCase();
   if (!/^[a-z0-9][a-z0-9._-]{2,19}$/.test(id)) return out(400, { error: "아이디가 올바르지 않아요" });
   const email = `${id}@ilpum.invalid`;
-  let target: { id: string } | null = null;
+  let target: { id: string; app_metadata?: Record<string, unknown> } | null = null;
   for (let page = 1; page <= 10 && !target; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
     if (error) return out(500, { error: error.message });
@@ -87,22 +87,33 @@ Deno.serve(async (req: Request) => {
     if (!tMems.length || tMems.some((x) => x.store_id !== myStore)) return out(403, { error: "우리 매장 계정이 아니에요" });
   }
 
+  // 누가 언제 어떤 계정을 바꿨는지 남김 (audit_log 는 서비스 키로만 쓰고 읽음)
+  const audit = (act: string, extra: Record<string, unknown> = {}) =>
+    admin.from("audit_log").insert({ actor: who.user.id, tbl: "accounts", row_id: id, action: act, new: { by: who.user.email, ...extra } });
+
   if (action === "setpw") {
     const password = String(b.password ?? "");
     if (password.length < 8 || password.length > 72) return out(400, { error: "비밀번호는 8자 이상이어야 해요" });
-    const { error } = await admin.auth.admin.updateUserById(target.id, { password });
+    // 본사가 점주 비밀번호를 바꾸면 점주 화면에 알림이 뜨도록 표시 (점주가 직접 다시 바꾸면 사라짐)
+    const ownerByHq = isHq && tp?.role === "franchise";
+    const upd: Record<string, unknown> = { password };
+    if (ownerByHq) upd.app_metadata = { ...(target.app_metadata || {}), pw_by_hq: new Date().toISOString() };
+    const { error } = await admin.auth.admin.updateUserById(target.id, upd);
     if (error) return out(400, { error: "비밀번호를 바꾸지 못했어요: " + error.message });
-    return out(200, { ok: true, id });
+    await audit("setpw", { owner: ownerByHq });
+    return out(200, { ok: true, id, ownerNotified: ownerByHq });
   }
 
   if (action === "ban") {
     const on = b.on !== false;
     const { error } = await admin.auth.admin.updateUserById(target.id, { ban_duration: on ? "876000h" : "none" });
     if (error) return out(400, { error: "처리하지 못했어요: " + error.message });
+    await audit(on ? "ban" : "unban");
     return out(200, { ok: true, id, banned: on });
   }
 
   if (action === "delete") {
+    await audit("delete");
     await admin.from("sch_members").delete().eq("user_id", target.id);
     await admin.from("profiles").delete().eq("user_id", target.id).neq("role", "hq");
     const { error } = await admin.auth.admin.deleteUser(target.id);

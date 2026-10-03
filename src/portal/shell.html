@@ -212,7 +212,7 @@ async function whoami(){
   try{ try{ rows=await ask(ses.access_token); }catch(e){ if(e.status!==401||!ses.refresh_token) throw e; ses=await refreshSes(ses); rows=await ask(ses.access_token); } }
   catch(e){ ME={mode:(e.status===401||e.message==='refresh')?'none':'in',hq:false,store:null,token:ses.access_token,email:'',err:e.message}; if(ME.mode==='in'){ ME.err=e.message; } return; }
   const mine=rows.filter(r=>r.role); const hq=mine.some(r=>r.role==='hq');
-  ME={mode:'in',orderOnly:mine.length>0&&mine.every(r=>r.role==='order'),hq,canPay:mine.some(r=>r.can_pay),board:mine.some(r=>['hq','owner','manager'].includes(r.role)),store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||'',names:Object.fromEntries(mine.map(r=>[r.id,r.name]))};
+  ME={mode:'in',orderOnly:mine.length>0&&mine.every(r=>r.role==='order'),hq,canPay:mine.some(r=>r.can_pay),board:mine.some(r=>['hq','owner','manager'].includes(r.role)),store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||'',pwWarn:pwByHqAt(ses.user),names:Object.fromEntries(mine.map(r=>[r.id,r.name]))};
 }
 let gateFr=null;
 function showGate(){ gateFr=document.createElement('iframe'); gateFr.id='gate'; gateFr.title='로그인'; gateFr.src='ilpum-schedule.html?embed=1&view=cards';
@@ -314,7 +314,7 @@ async function loadDash(manual){
         if(!st) throw new Error('매장을 찾지 못했어요');
         let items;
         if(!manual&&dashItems&&dashItems.sid===st.id&&Date.now()-dashItems.at<1800000) items=dashItems.items;
-        else{ const rows=await sget(NEW,`/rest/v1/sch_items?store_id=eq.${st.id}&deleted=eq.false&select=kind,id,data`,{token:tk}); items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data); dashItems={sid:st.id,at:Date.now(),items}; }
+        else{ const rows=await sget(NEW,`/rest/v1/sch_items?store_id=eq.${st.id}&deleted=eq.false&id=not.like.calc:*&select=kind,id,data`,{token:tk}); items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data); dashItems={sid:st.id,at:Date.now(),items}; }
         const D=buildD(items,st.name); out.staff={D,R:resolve(D,now),name:st.name};
       }catch(e){ out.staffErr=e.message; } })()
   ]);
@@ -364,7 +364,7 @@ function renderDash(){
   const soon=live.filter(x=>!x.done&&toM(x.time)!=null&&toM(x.time)>=soonAt&&toM(x.time)<=soonAt+150);
   const stLabel=x=>isCxl(x)?'<span class="tag g">취소</span>':x.done?'<span class="tag">도착</span>':'<span class="tag w">대기</span>';
   const resRow=x=>`<tr><td class="n">${esc(hhmm(x.time)||'-')}</td><td><b>${esc(x.name||'')}</b><small>${esc(x.phone||'')}</small></td><td class="n">${peopleOf(x.pp)||'-'}명</td><td>${esc((x.tables||[]).join(', ')||'-')}</td><td>${esc(x.req||'')}${x.tnote&&!isCxl(x)?`<small>${esc(x.tnote)}</small>`:''}</td><td>${stLabel(x)}</td></tr>`;
-  el.innerHTML=`
+  el.innerHTML=`${ME.pwWarn?`<div class="panel" style="border-color:#E5533D;padding:12px 16px;color:#9B2C1F;font-weight:600">⚠ 본사가 ${new Date(ME.pwWarn).getMonth()+1}/${new Date(ME.pwWarn).getDate()}에 이 계정의 비밀번호를 바꿨어요. 직접 부탁한 게 아니라면 근무 스케줄 → 설정 → <b>내 비밀번호 바꾸기</b>로 새로 정하세요.</div>`:''}
    <div class="dh"><div><h1>오늘 현황</h1><p>오늘(${now.getMonth()+1}월 ${now.getDate()}일 ${'일월화수목금토'[now.getDay()]}요일)의 예약과 근무 현황이에요.</p></div><span class="sp" style="flex:1"></span>
      <button class="btn" id="dRef">새로고침</button>${noRes?'':'<button class="btn pri" data-jump="res">+ 예약 등록</button>'}</div>
    <div class="kpis">

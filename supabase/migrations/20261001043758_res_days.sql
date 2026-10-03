@@ -1,4 +1,3 @@
--- 예약: 예전 서버의 reservations_day(날짜별 JSON 한 줄)를 그대로 옮긴 표. 매장별로 나뉘고 로그인한 사람만 읽고 씀.
 create table if not exists public.res_days (
   store_id uuid not null references public.stores(id) on delete cascade,
   id text not null check (id ~ '^\d{4}-\d{2}-\d{2}$'),
@@ -12,7 +11,6 @@ create policy res_days_sel on public.res_days for select to authenticated using 
 create policy res_days_ins on public.res_days for insert to authenticated with check (public.sch_role(store_id) is not null);
 create policy res_days_upd on public.res_days for update to authenticated using (public.sch_role(store_id) is not null) with check (public.sch_role(store_id) is not null);
 
--- 일회성 이전 창구(창구가 열려 있는 동안만, 본점만)
 create or replace function public.sch_mig_put_resdays(p_rows jsonb) returns text
  language plpgsql security definer set search_path to ''
 as $function$

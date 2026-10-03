@@ -6,7 +6,7 @@ async def main():
     pg=await b.new_page(viewport={'width':1440,'height':900}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.on('dialog', lambda d: asyncio.ensure_future(d.accept()))
     await pg.route('**/*', lambda r: r.abort() if 'jsdelivr' in r.request.url or 'supabase' in r.request.url else r.continue_())
-    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.evaluate("localStorage.clear(); localStorage.setItem('ilpum-fr-conf','{\"mode\":\"local\"}')"); await pg.reload(); await pg.wait_for_timeout(600)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.evaluate("localStorage.clear(); localStorage.setItem('ilpum-fr-conf','{\"mode\":\"local\"}')"); await pg.reload(); await pg.wait_for_timeout(600)
     names=lambda: pg.evaluate("APP.D.positions.map(p=>p.name).join(',')")
     print('start:', await names())
     await pg.click('[data-a="posmgr"]'); await pg.wait_for_timeout(250); print('drawer:', await pg.inner_text('#dTitle'))

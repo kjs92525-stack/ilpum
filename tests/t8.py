@@ -6,7 +6,7 @@ async def main():
     ctx=await b.new_context(viewport={'width':1300,'height':820},accept_downloads=True); await ctx.grant_permissions(['clipboard-read','clipboard-write'])
     pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     await pg.route('**/*', lambda r: r.abort() if 'jsdelivr' in r.request.url or 'supabase' in r.request.url else r.continue_())
-    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(500)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(500)
     for v in ['week','month','day']:
       await pg.click(f'#nav [data-v="{v}"]'); await pg.wait_for_timeout(150)
       print(v,'button:', await pg.inner_text('.vh .btn.pri'))

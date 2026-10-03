@@ -1,4 +1,3 @@
--- 발주 전용 계정(role 'order'): 발주 화면(wh_*)만 쓰고, 예약·근무표·공지·게시판은 못 봄.
 alter table public.sch_members drop constraint if exists sch_members_role_check;
 alter table public.sch_members add constraint sch_members_role_check check (role = any (array['manager','staff','order']));
 

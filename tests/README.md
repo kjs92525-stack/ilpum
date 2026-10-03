@@ -1,8 +1,9 @@
 # tests — Playwright(Python) 화면 테스트
 
 Supabase는 **가짜 서버**(`page.route`)로 흉내 내요. 그래서 화면 로직은 확인되지만 **실서버 연동은 확인되지 않아요.**
-실행 전 고칠 것: `/home/claude/...` 경로들, `chromium` 실행 파일 경로(`p.chromium.launch()` 기본값으로), 고정 날짜(`Date` 덮어쓰기).
-`t_shell`·`t_mob` 은 `file://` 이 아니라 `python3 -m http.server` 로 띄운 `http://localhost` 에서 돌려야 해요(iframe 내부 접근).
+**실행:** `sh build_all.sh` 다음 `sh tests/run.sh` (전체) 또는 `sh tests/run.sh t43 t45` (골라서).
+`run.sh` 가 `dist/` 를 `http://localhost:8765`, `dist-tools/` 를 `:8766` 으로 띄워요. 브라우저 경로는 `/opt/pw-browsers/...` 로 박혀 있으니 다른 컴퓨터에서는 `p.chromium.launch()` 기본값으로 바꾸세요.
+실제 자료 파일이 필요해서 저장소만으로는 안 도는 것: `t_shell`(`/home/claude/imp/items.json`), `t_mig2`(`old_state.json`), `test_conv.js`(`expected.json`) — 개인정보라 저장소에 안 올림.
 
 ## 지금 동작과 맞는 것
 | 파일 | 확인하는 것 |

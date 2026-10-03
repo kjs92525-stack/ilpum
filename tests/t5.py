@@ -5,7 +5,7 @@ async def main():
     b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
     ctx=await b.new_context(viewport={'width':1280,'height':800},has_touch=True); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     await pg.route('**/*', lambda r: r.abort() if 'jsdelivr' in r.request.url or 'supabase' in r.request.url else r.continue_())
-    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.evaluate("localStorage.clear(); localStorage.setItem('ilpum-fr-conf','{\"mode\":\"local\"}')"); await pg.reload(); await pg.wait_for_timeout(600)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.evaluate("localStorage.clear(); localStorage.setItem('ilpum-fr-conf','{\"mode\":\"local\"}')"); await pg.reload(); await pg.wait_for_timeout(600)
     await pg.click('#nav [data-v="week"]'); await pg.wait_for_timeout(200)
     await pg.screenshot(path='c1.png')
     print('board h/w:', await pg.evaluate("(()=>{const w=document.querySelector('.boardwrap'); return [w.clientHeight,w.scrollHeight,w.clientWidth,w.scrollWidth,innerHeight]})()"))

@@ -134,9 +134,9 @@ const Remote={
     const rows=await this.fetchJ('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'});
     return rows.map(r=>({id:r.id,name:r.name,isHq:!!r.is_hq,role:r.role||null,pay:!!r.can_pay,staffId:r.staff_id||null}));
   },
-  async items(sid){ const rows=await this.fetchJ(`/rest/v1/sch_items?select=kind,id,data,deleted,updated_at&store_id=eq.${encodeURIComponent(sid)}&deleted=eq.false`);
+  async items(sid){ const rows=await this.fetchJ(`/rest/v1/sch_items?select=kind,id,data,deleted,updated_at&store_id=eq.${encodeURIComponent(sid)}&deleted=eq.false&id=not.like.calc:*`);
     const out={}; let last=''; rows.forEach(r=>{ (out[r.kind]=out[r.kind]||{})[r.id]=r.data; if(r.updated_at>last) last=r.updated_at; }); this.last=last||new Date(0).toISOString(); return out; },
-  async since(sid){ const rows=await this.fetchJ(`/rest/v1/sch_items?select=kind,id,data,deleted,updated_at&store_id=eq.${encodeURIComponent(sid)}&updated_at=gt.${encodeURIComponent(this.last)}&order=updated_at`);
+  async since(sid){ const rows=await this.fetchJ(`/rest/v1/sch_items?select=kind,id,data,deleted,updated_at&store_id=eq.${encodeURIComponent(sid)}&id=not.like.calc:*&updated_at=gt.${encodeURIComponent(this.last)}&order=updated_at`);
     rows.forEach(r=>{ if(r.updated_at>this.last) this.last=r.updated_at; }); return rows; },
   async putMany(batch){
     const by={}; batch.forEach(w=>(by[w.sid]=by[w.sid]||[]).push(w));
@@ -160,6 +160,8 @@ const Remote={
   // 계정 만들기: 본사만 (서버 함수가 본사인지 확인하고 만들어요)
   async createAccount(o){ return this.fetchJ('/functions/v1/create-account',{method:'POST',body:JSON.stringify(o)}); },
   // 계정 관리(목록·비밀번호 바꾸기·정지·삭제): 본사만
+  // 내 비밀번호 바꾸기 (로그인한 본인). pw_self_at 은 "본사가 바꾼 뒤 내가 다시 바꿨는지" 판단용
+  async changeMyPassword(pw){ const j=await this.fetchJ('/auth/v1/user',{method:'PUT',body:JSON.stringify({password:pw,data:{pw_self_at:new Date().toISOString()}})}); if(j&&j.id&&this.ses){ this.ses.user=j; this.persist(); } return j; },
   async manageAccounts(o){ return this.fetchJ('/functions/v1/manage-accounts',{method:'POST',body:JSON.stringify(o)}); },
   // 전체 백업 / 복원 (본사만 — 서버 규칙이 본사 계정 말고는 모든 매장 자료를 주지 않아요)
   BK_TABLES:[['sch_items','store_id,kind,id'],['res_days','store_id,id'],['wh_items','store_id,id'],['wh_orders','store_id,code'],['board_notices','id'],['board_msgs','id']],
@@ -188,11 +190,15 @@ const Remote={
 const DEF_POS=[['카운터','#3C5A86',1,1],['홀','#2F6B3F',3,4],['그릴','#B8621B',2,3],['주방','#8A2E2E',3,4],['장치','#5B3F86',0,0],['장잡','#1F6F78',0,0],['배송','#8A6A12',0,0],['주차','#55605A',0,1]];
 const defStore=()=>({name:'',open:'11:00',close:'22:00',fullH:10,pmH:5,pmStart:'17:00',fivePlus:true,vis:'week',target:25});
 const defPositions=()=>DEF_POS.map(([name,color,wd,we])=>({name,color,req:[we,wd,wd,wd,wd,wd,we]}));
+const safeColor=c=>/^#[0-9a-fA-F]{3,8}$/.test(String(c||''))?c:'#888888';
+const cleanPositions=a=>Array.isArray(a)? a.filter(p=>p&&typeof p.name==='string').map(p=>Object.assign({},p,{color:safeColor(p.color)})) : [];
+// 본사가 이 계정 비밀번호를 바꾼 뒤 본인이 아직 다시 안 바꿨으면 그 시각(문자열), 아니면 ''
+const pwByHqAt=u=>{ const h=u&&u.app_metadata&&u.app_metadata.pw_by_hq, m=u&&u.user_metadata&&u.user_metadata.pw_self_at; return h&&(!m||m<h)?h:''; };
 const TYPES={regular:'고정 근무',weekly:'매주 변동',spot:'단기·당일'};
 function buildD(items,storeName){
   const g=k=>items[k]||{}; const cfg=g('cfg');
   const store=Object.assign(defStore(),cfg.store||{}); if(!store.name) store.name=storeName||'';
-  return {store, positions:(cfg.positions&&cfg.positions.length)?cfg.positions:defPositions(),
+  return {store, positions:(cleanPositions(cfg.positions).length)?cleanPositions(cfg.positions):defPositions(),
     staff:g('staff'),rules:g('rule'),dc:g('dc'),spot:g('spot'),aw:g('aw'),sales:g('sales'),pay:g('pay')};
 }
 const KIND_OF={staff:'staff',rules:'rule',dc:'dc',spot:'spot',aw:'aw',sales:'sales',pay:'pay'};

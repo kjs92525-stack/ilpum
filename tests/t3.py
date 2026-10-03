@@ -6,7 +6,7 @@ async def main():
     errs=[]
     m=await b.new_page(viewport={'width':390,'height':844},device_scale_factor=2); m.on('pageerror',lambda e:errs.append(str(e)))
     await m.route('**/*', lambda r: r.abort() if 'jsdelivr' in r.request.url or 'supabase' in r.request.url else r.continue_())
-    await m.goto('file:///home/claude/fr/ilpum-schedule.html'); await m.evaluate("localStorage.clear()"); await m.reload(); await m.wait_for_timeout(600)
+    await m.goto('http://localhost:8765/ilpum-schedule.html'); await m.evaluate("localStorage.clear()"); await m.reload(); await m.wait_for_timeout(600)
     await m.screenshot(path='m1.png')
     T=await m.evaluate("todayStr"); await m.click(f'.bc[data-k="{T}"] .chip >> nth=0'); await m.wait_for_timeout(300); await m.screenshot(path='m2.png')
     await m.keyboard.press('Escape'); await m.click('#mbar [data-v="day"]'); await m.wait_for_timeout(200); await m.screenshot(path='m3.png')

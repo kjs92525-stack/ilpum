@@ -5,7 +5,7 @@ async def main():
     b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome',ignore_default_args=['--hide-scrollbars'])
     pg=await b.new_page(viewport={'width':1000,'height':760}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     await pg.route('**/*', lambda r: r.abort() if 'jsdelivr' in r.request.url or 'supabase' in r.request.url else r.continue_())
-    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(600)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(600)
     print('scrollbar thickness (px):', await pg.evaluate("(()=>{const w=document.querySelector('.boardwrap'); return [w.offsetHeight-w.clientHeight, w.scrollWidth>w.clientWidth]})()"))
     print('scrollbar bottom visible in viewport:', await pg.evaluate("(()=>{const r=document.querySelector('.boardwrap').getBoundingClientRect(); return [Math.round(r.bottom), innerHeight]})()"))
     await pg.screenshot(path='c4.png')

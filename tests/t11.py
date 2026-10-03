@@ -36,7 +36,7 @@ async def main():
         return await r.fulfill(status=200,content_type='application/json',body=json.dumps(seed))
       await r.fulfill(status=404,body='{}')
     await pg.route('**/*', route)
-    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(700)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(700)
     print('첫 화면=로그인:', await pg.is_visible('#lgEmail'))
     await pg.fill('#lgEmail','yoyo925@naver.com'); await pg.fill('#lgPw','pw'); await pg.click('[data-a="login"]'); await pg.wait_for_timeout(1200)
     print('로그인 후 role:', await pg.evaluate("role()"), '| 매장:', await pg.evaluate("APP.stores.map(s=>s.name+':'+(s.role||'-')).join(', ')"), '| 포지션:', await pg.evaluate("APP.D.positions.map(p=>p.name).join(',')"), '| sync:', await pg.inner_text('#sync'))

@@ -45,7 +45,7 @@ async def main():
           return await J({"items":c,"reservations":len(DB['res'])})
       await r.fulfill(status=404,body='{}')
     await pg.route('**/*', route)
-    await pg.goto('file:///home/claude/mig/ilpum-migrate.html'); await pg.wait_for_timeout(700)
+    await pg.goto('http://localhost:8766/ilpum-migrate.html'); await pg.wait_for_timeout(700)
     print('로그인 입력칸 없음:', await pg.evaluate("!document.getElementById('pw')&&!document.getElementById('bLogin')"), '| 창구:', (await pg.inner_text('#winMsg')).replace('\n',' '))
     print('처음 옮기기 버튼 비활성:', await pg.is_disabled('#bGo'))
     await pg.click('#bRead'); await pg.wait_for_timeout(900); print('읽기 후 옮기기 활성:', not await pg.is_disabled('#bGo'))

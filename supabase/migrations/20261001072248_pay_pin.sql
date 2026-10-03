@@ -1,5 +1,3 @@
--- 급여 계산기 비밀번호: 계정마다 자기가 정한 비밀번호(암호화해서 저장). 표는 직접 못 읽고 함수로만 확인.
--- 5번 틀리면 10분 잠김. 비밀번호 초기화는 본사만.
 create extension if not exists pgcrypto with schema extensions;
 create table if not exists public.pay_pins (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -8,7 +6,7 @@ create table if not exists public.pay_pins (
   locked_until timestamptz,
   updated_at timestamptz not null default now()
 );
-alter table public.pay_pins enable row level security;   -- 정책 없음 = 함수로만 접근
+alter table public.pay_pins enable row level security;
 
 create or replace function public.pay_pin_status() returns jsonb
  language plpgsql security definer set search_path to '' as $f$

@@ -30,7 +30,7 @@ async def main():
     nonlocal ok; ok&=bool(c); print(('OK  ' if c else 'FAIL'),n)
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome'); ctx=await b.new_context(accept_downloads=True); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
-    await pg.route('**/*',h); await pg.goto('http://localhost:8765/yucheon-import.html')
+    await pg.route('**/*',h); await pg.goto('http://localhost:8766/yucheon-import.html')
     await pg.fill('#upw','x'); await pg.click('#bLogin'); await pg.wait_for_timeout(500)
     chk('로그인 → 가맹점(유천점)만 목록에', await pg.evaluate("[...document.querySelectorAll('#store option')].map(o=>o.textContent)")==['유천점'])
     await pg.fill('#yurl','https://yc.supabase.co'); await pg.fill('#ykey','eyJkey')

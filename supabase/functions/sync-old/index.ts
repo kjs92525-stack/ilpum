@@ -8,6 +8,7 @@ const OLD_URL = "https://fmzpmekypmjuydgxpnlu.supabase.co";
 const OLD_KEY = "__OLD_KEY__";      // 예전 서버 공개(anon) 키 — 배포할 때만 채움(저장소에는 안 올림)
 const TOKEN = "__SYNC_TOKEN__";     // 부르는 쪽(pg_cron)과 같은 비밀 값 — 배포할 때만 채움
 const MAX_DAYS_PER_RUN = 60;
+const HQ_STORE = "0134d989-757a-4b60-9cb3-93245de2cac8";   // 본점 (예전 서버 자료는 본점 것)
 
 const out = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 const oldGet = async (path: string) => {
@@ -35,7 +36,7 @@ Deno.serve(async (req: Request) => {
       const sRow = await oldGet("/rest/v1/schedule_state?id=eq.main&select=data,rev");
       const data = sRow?.[0]?.data;
       if (data && Array.isArray(data.staff)) {
-        const pos = (await db.from("sch_items").select("data").eq("kind", "cfg").eq("id", "positions").eq("deleted", false).limit(1)).data?.[0]?.data || [];
+        const pos = (await db.from("sch_items").select("data").eq("store_id", HQ_STORE).eq("kind", "cfg").eq("id", "positions").eq("deleted", false).limit(1)).data?.[0]?.data || [];
         const conv = MIG.convertSchedule(data, pos);
         const rows: unknown[] = [];
         for (const kind of ["staff", "rule", "dc", "spot", "aw", "pay"]) for (const [id, d] of Object.entries(conv.items[kind])) rows.push({ kind, id, data: d, deleted: false });
@@ -50,7 +51,12 @@ Deno.serve(async (req: Request) => {
     }
 
     // 2) 예약: 날짜별 rev 만 먼저 받아 바뀐 날짜만 가져옴
-    const list: { id: string; rev: number }[] = await oldGet("/rest/v1/reservations_day?select=id,rev&order=id&limit=1000");
+    // 최근 날짜부터, 1000개씩 끝까지 넘겨 받음 (자료가 많아져도 최신 예약이 빠지지 않게)
+    const list: { id: string; rev: number }[] = [];
+    for (let off = 0; off < 20000; off += 1000) {
+      const page = await oldGet(`/rest/v1/reservations_day?select=id,rev&order=id.desc&limit=1000&offset=${off}`);
+      list.push(...page); if (page.length < 1000) break;
+    }
     const changed = list.filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.id) && st.days[x.id] !== x.rev).slice(0, MAX_DAYS_PER_RUN);
     log.daysChanged = changed.length;
     for (let i = 0; i < changed.length; i += 20) {

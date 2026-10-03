@@ -36,7 +36,7 @@ async def main():
       if '/sch_summaries' in u: return await J([])
       await r.fulfill(status=404,body='{}')
     await pg.route('**/*', route)
-    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.evaluate("localStorage.clear(); sessionStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(900)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.evaluate("localStorage.clear(); sessionStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(900)
     print('로그인 화면 없이 바로 열림:', not await pg.is_visible('#lgEmail'), '| 열린 매장:', await pg.evaluate("APP.st&&APP.st.name"), '| role:', await pg.evaluate("role()"))
     print('편집 가능(비번 없음):', await pg.evaluate("canEdit()"), '| 금액 버튼 숨김:', not await pg.is_visible('[data-a="paytog"]'), '| 잠금 버튼 없음:', not await pg.is_visible('[data-a="pinopen"]'))
     # 직원 추가 (비밀번호 묻지 않고 저장)

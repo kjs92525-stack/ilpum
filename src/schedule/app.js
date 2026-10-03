@@ -9,7 +9,7 @@ const canEdit=()=>['hq','owner','manager','open'].includes(role());
 const payAllowed=()=>!!(APP.st&&APP.st.pay);
 const canPay=()=>payAllowed()&&sessionStorage.getItem('fr-pay')==='1';
 const isHQ=()=>APP.stores.some(s=>s.role==='hq');
-const posColor=name=>(APP.D.positions.find(p=>p.name===name)||{}).color||'#888';
+const posColor=name=>(APP.D.positions.find(p=>p.name===name)||{}).color||'#888888';
 
 /* ---------- 체험용 예시 데이터 ---------- */
 function seedDemo(){
@@ -72,7 +72,7 @@ const pending=new Map(); let flushTimer=null, writing=false, flushFails=0, pollF
 const IDLE_MS=10*60*1000; let lastActive=Date.now();
 function put(kind,id,data){
   const D=APP.D;
-  if(kind==='cfg'){ if(id==='store') D.store=data; if(id==='positions') D.positions=data; }
+  if(kind==='cfg'){ if(id==='store') D.store=data; if(id==='positions') D.positions=cleanPositions(data); }
   else { const g=D[{staff:'staff',rule:'rules',dc:'dc',spot:'spot',aw:'aw',sales:'sales',pay:'pay'}[kind]]; if(data==null) delete g[id]; else g[id]=data; }
   pending.set(kind+'\u0001'+id,{sid:APP.sid,kind,id,data:data==null?null:JSON.parse(JSON.stringify(data))});
   clearTimeout(flushTimer); flushTimer=setTimeout(flush,350); schedSummary();
@@ -126,7 +126,7 @@ async function poll(force){
   if(!force&&!rtOk&&Date.now()-lastActive>IDLE_MS) return;                            // 실시간이 안 될 때만: 10분 동안 아무도 안 만졌으면 쉼
   try{ lastPollAt=Date.now(); const rows=await APP.be.since(APP.sid); pollFails=0; if(!rows||!rows.length) return;
     const D=APP.D; rows.forEach(r=>{ const data=r.deleted?null:r.data;
-      if(r.kind==='cfg'){ if(r.id==='store'&&data) D.store=Object.assign(defStore(),data); if(r.id==='positions'&&data) D.positions=data; return; }
+      if(r.kind==='cfg'){ if(r.id==='store'&&data) D.store=Object.assign(defStore(),data); if(r.id==='positions'&&data) D.positions=cleanPositions(data); return; }
       const g=D[{staff:'staff',rule:'rules',dc:'dc',spot:'spot',aw:'aw',sales:'sales',pay:'pay'}[r.kind]]; if(!g) return; if(data==null) delete g[r.id]; else g[r.id]=data; });
     render(); setSync('연결됨 · 방금 새로 받음','ok');
   }catch(e){ pollFails++; pollNextAt=Date.now()+Math.min(300000,15000*2**Math.min(pollFails,5)); setSync('연결 확인 실패','err'); }
@@ -364,11 +364,12 @@ function vHQ(){
 }
 
 /* ================= 설정 ================= */
+const fmtAt=t=>{ const d=new Date(t); return isNaN(d)?'':`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
 async function acctLoad(){ try{ const r=await APP.be.manageAccounts({action:'list'}); APP.accts=r.rows||[]; APP.acctErr=''; }catch(e){ APP.accts=[]; APP.acctErr=e.message; } if(APP.view==='set') render(); }
 function acctCard(){
   if(APP.accts===undefined){ APP.accts=null; acctLoad(); }
   const A=APP.accts, ago=t=>{ if(!t) return '아직 로그인 안 함'; const d=Math.floor((Date.now()-new Date(t))/864e5); return d<=0?'오늘 로그인':d+'일 전 로그인'; };
-  const body=APP.acctErr?`<p class="help" style="color:#C0392B">${esc(APP.acctErr)}</p>`:!A?'<p class="help">불러오는 중…</p>':A.length?A.map(a=>`<div class="row" style="align-items:center;border-top:1px solid var(--line,#E5E8EB);padding:8px 0"><div class="grow"><b>${esc(a.id)}</b>${a.hq?' <span class="muted">· 본사</span>':''}${a.banned?' <span style="color:#C0392B">· 정지됨</span>':''}<br><span class="muted" style="font-size:12px">${a.links.length?a.links.map(l=>esc(l.store)+' '+esc(roleName(l.role).split(' ')[0])).join(', '):(a.hq?'모든 매장':'연결된 매장 없음')} · ${ago(a.last)}</span></div>${a.hq||a.me?'':`<button class="btn" data-a="acctpw" data-id="${esc(a.id)}">비밀번호 바꾸기</button><button class="btn" data-a="acctban" data-id="${esc(a.id)}" data-on="${a.banned?0:1}">${a.banned?'정지 풀기':'정지'}</button><button class="btn bad" data-a="acctdel" data-id="${esc(a.id)}">삭제</button>`}</div>`).join(''):'<p class="help">계정이 없어요</p>';
+  const body=APP.acctErr?`<p class="help" style="color:#C0392B">${esc(APP.acctErr)}</p>`:!A?'<p class="help">불러오는 중…</p>':A.length?A.map(a=>`<div class="row" style="align-items:center;border-top:1px solid var(--line,#E5E8EB);padding:8px 0"><div class="grow"><b>${esc(a.id)}</b>${a.hq?' <span class="muted">· 본사</span>':''}${a.pwByHq?` <span class="muted">· ${esc(fmtAt(a.pwByHq))} 본사가 비밀번호 바꿈</span>`:''}${a.banned?' <span style="color:#C0392B">· 정지됨</span>':''}<br><span class="muted" style="font-size:12px">${a.links.length?a.links.map(l=>esc(l.store)+' '+esc(roleName(l.role).split(' ')[0])).join(', '):(a.hq?'모든 매장':'연결된 매장 없음')} · ${ago(a.last)}</span></div>${a.hq||a.me?'':`<button class="btn" data-a="acctpw" data-id="${esc(a.id)}">비밀번호 바꾸기</button><button class="btn" data-a="acctban" data-id="${esc(a.id)}" data-on="${a.banned?0:1}">${a.banned?'정지 풀기':'정지'}</button><button class="btn bad" data-a="acctdel" data-id="${esc(a.id)}">삭제</button>`}</div>`).join(''):'<p class="help">계정이 없어요</p>';
   return `<div class="card"><h2>계정 목록 · 관리${isHQ()?' (본사만)':''}</h2><p class="help">만든 아이디를 보고, 비밀번호를 새로 정하거나 정지·삭제할 수 있어요. 지금 비밀번호는 누구도 볼 수 없어요.${isHQ()?' 본사 계정은 여기서 바꾸지 못해요.':''}</p>${body}<div class="row" style="margin-top:8px"><button class="btn" data-a="acctreload">새로고침</button></div></div>`;
 }
 async function syncLoad(){ try{ APP.syncSt=await APP.be.rpcText('sync_status',{}); }catch(e){ APP.syncSt={err:e.message,last:{error:e.message}}; } if(APP.view==='set') render(); }
@@ -394,12 +395,13 @@ function vSet(){
   <div class="card"><h2>포지션</h2><p class="help">보드에 나오는 줄이에요. 이름·색·순서를 바꿀 수 있어요.</p>
     <div class="scroll"><table class="t"><thead><tr><th></th><th>포지션</th><th></th></tr></thead><tbody>${posRows}</tbody></table></div>
     <div class="row" style="margin-top:10px"><button class="btn pri" data-a="posmgr">포지션 관리 (추가·삭제·순서)</button><button class="btn" data-a="posadd">+ 포지션 추가</button>${isHQ()?'':'<button class="btn" data-a="postpl">기본 포지션으로 되돌리기</button>'}</div></div>`:''}
+  ${pwByHqAt(APP.user)?`<div class="card" style="border-color:#E5533D"><h2>⚠ 본사가 비밀번호를 바꿨어요</h2><p class="help">${esc(fmtAt(pwByHqAt(APP.user)))}에 본사가 이 계정의 비밀번호를 새로 정했어요. 직접 부탁한 게 아니라면 아래 <b>내 비밀번호 바꾸기</b>로 새로 정하세요. 바꾸면 이 알림이 사라져요.</p></div>`:''}
   <div class="card"><h2>연결 · 계정</h2>
     ${APP.be===Local?`<p class="help">지금은 <b>체험 모드</b>예요. 데이터가 이 기기에만 저장돼요. 아래 <b>연결하기</b>를 누르고 로그인하면 ilpum-franchise의 실제 데이터로 쓰고, 가맹점과도 같이 쓸 수 있어요.</p>
       <div class="row"><label class="f grow">Supabase 주소<input type="text" id="cfUrl" placeholder="https://xxxx.supabase.co" value="${esc(Conf.url||'')}"></label><label class="f grow">anon public 키<input type="text" id="cfKey" placeholder="eyJ..." value="${esc(Conf.key||'')}"></label><button class="btn pri" data-a="connect" style="align-self:flex-end">연결하기</button></div>
       <div class="row" style="margin-top:14px"><span class="muted" style="font-size:13px">체험용 역할 바꿔보기:</span><div class="seg">${['hq','owner','manager','staff'].map(x=>`<button data-a="demorole" data-v="${x}" aria-pressed="${(Local.db.demoRole||'hq')===x}">${roleName(x).split(' ')[0]}</button>`).join('')}</div></div>`
     :APP.open?`<p class="help">로그인하지 않고 <b>본점 근무표</b>만 열고 있어요. 금액(급여)과 가맹점 자료는 로그인해야 보여요.</p><div class="row"><button class="btn pri" data-a="gologin">로그인</button><button class="btn" data-a="disconnect">체험 모드로 돌아가기</button></div>`
-    :`<p class="help">로그인: <b>${esc(showId(APP.user&&APP.user.email||''))}</b> · 이 기기에서는 다시 묻지 않고 자동으로 들어와요.${Remote.keep?'':' (자동 로그인을 끄고 들어와서, 브라우저를 닫으면 다시 로그인해야 해요)'}</p><div class="row"><button class="btn" data-a="logout">로그아웃</button><button class="btn" data-a="disconnect">체험 모드로 돌아가기</button></div>`}</div>
+    :`<p class="help">로그인: <b>${esc(showId(APP.user&&APP.user.email||''))}</b> · 이 기기에서는 다시 묻지 않고 자동으로 들어와요.${Remote.keep?'':' (자동 로그인을 끄고 들어와서, 브라우저를 닫으면 다시 로그인해야 해요)'}</p><div class="row"><button class="btn" data-a="logout">로그아웃</button><button class="btn" data-a="mypw">내 비밀번호 바꾸기</button><button class="btn" data-a="disconnect">체험 모드로 돌아가기</button></div>`}</div>
   ${(r==='hq'||r==='owner')&&APP.be===Remote?`<div class="card"><h2>계정 만들기${r==='hq'?' (본사만)':''}</h2><p class="help">${r==='hq'?'가맹점·매니저·직원 계정은 본사에서만 만들 수 있어요.':'우리 매장 직원·매니저·발주 전용 계정을 만들 수 있어요.'} 아이디와 비밀번호를 정해 알려 주세요. 비밀번호는 8자 이상이고, 만든 뒤에는 본사도 다시 볼 수 없어요.</p>
     ${APP.mkNote?`<p class="help" style="background:#E6F4EA;color:#14532D;padding:10px 12px;border-radius:10px;font-weight:600">${esc(APP.mkNote)}</p>`:''}
     <form id="mkForm" autocomplete="off"><div class="row" style="align-items:flex-end">

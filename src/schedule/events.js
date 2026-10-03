@@ -370,7 +370,7 @@ document.addEventListener('click',async e=>{
       catch(err){ toast('실행하지 못했어요: '+err.message); }
       btn.disabled=false; btn.textContent=old; break; }
     case 'bkdl': { const btn=e.target.closest('button'); btn.disabled=true; const old=btn.textContent;
-      try{ const o=await APP.be.backupAll(t=>{ btn.textContent='받는 중… '+t; }); const txt=JSON.stringify(o); const day=new Date().toISOString().slice(0,10);
+      try{ const o=await APP.be.backupAll(t=>{ btn.textContent='받는 중… '+t; }); const txt=JSON.stringify(o); const day=ds(new Date());
         const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'})); a.download=`일품집백업_${day}.json`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
         try{ localStorage.setItem('ilpum-last-backup',new Date().toISOString()); }catch(er){}
         const n=Object.values(o.tables).reduce((s,x)=>s+x.length,0); toast(`백업 완료: ${n.toLocaleString('ko-KR')}건 (${Math.round(txt.length/1024).toLocaleString('ko-KR')}KB)`); render(); }
@@ -385,7 +385,9 @@ document.addEventListener('click',async e=>{
       btn.disabled=false; break; }
     case 'acctreload': APP.accts=undefined; APP.acctErr=''; render(); break;
     case 'acctpw': { const pw=(prompt(`‘${d.id}’ 의 새 비밀번호 (8자 이상)`)||''); if(!pw) return; if(pw.length<8) return toast('비밀번호는 8자 이상이에요');
-      try{ await APP.be.manageAccounts({action:'setpw',id:d.id,password:pw}); APP.mkNote=`✅ ‘${d.id}’ 비밀번호를 바꿨어요 — 새 비밀번호: ${pw}`; render(); toast('비밀번호를 바꿨어요'); }catch(err){ toast(err.message); } break; }
+      try{ const r=await APP.be.manageAccounts({action:'setpw',id:d.id,password:pw}); APP.accts=undefined; APP.mkNote=`✅ ‘${d.id}’ 비밀번호를 바꿨어요 — 새 비밀번호: ${pw}${r&&r.ownerNotified?' (점주 계정이라 점주 화면에 "본사가 바꿨다"는 알림이 떠요)':''}`; render(); toast('비밀번호를 바꿨어요'); }catch(err){ toast(err.message); } break; }
+    case 'mypw': { const pw=prompt('새 비밀번호 (8자 이상)')||''; if(!pw) return; if(pw.length<8) return toast('비밀번호는 8자 이상이에요'); if((prompt('한 번 더 입력하세요')||'')!==pw) return toast('두 번 입력한 비밀번호가 달라요');
+      try{ const u=await Remote.changeMyPassword(pw); if(u&&u.id) APP.user=u; render(); toast('비밀번호를 바꿨어요. 다음부터 새 비밀번호로 로그인하세요'); }catch(err){ toast('바꾸지 못했어요: '+err.message); } break; }
     case 'acctban': { const on=d.on==='1'; if(!confirm(on?`‘${d.id}’ 를 정지할까요? 로그인이 막혀요(자료는 그대로).`:`‘${d.id}’ 정지를 풀까요?`)) return;
       try{ await APP.be.manageAccounts({action:'ban',id:d.id,on}); APP.accts=undefined; APP.mkNote=`✅ ‘${d.id}’ ${on?'정지했어요':'정지를 풀었어요'}`; render(); }catch(err){ toast(err.message); } break; }
     case 'acctdel': { if(!confirm(`‘${d.id}’ 계정을 삭제할까요? 되돌릴 수 없어요.`)) return;

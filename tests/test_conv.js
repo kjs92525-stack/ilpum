@@ -6,7 +6,7 @@ const r=MIG.convertSchedule(old,existing);
 console.log('변환:', Object.fromEntries(Object.entries(r.items).map(([k,v])=>[k,Object.keys(v).length])), '| 추가된 포지션', r.added);
 // 새 앱 엔진으로 10월 전체를 돌려 엑셀 스케줄과 비교
 const ctx={console,localStorage:{getItem(){return null},setItem(){}},sessionStorage:{getItem(){return null}},document:{querySelector(){return null}},navigator:{},window:{},setTimeout,clearTimeout,Date,Math,JSON,Object,Array,Set,Map};
-vm.createContext(ctx); vm.runInContext(fs.readFileSync('/home/claude/fr/core.js','utf8')+';globalThis.__api={buildD,resolve,pd};',ctx);
+vm.createContext(ctx); vm.runInContext(fs.readFileSync(require('path').join(__dirname,'..','src','schedule','core.js'),'utf8')+';globalThis.__api={buildD,resolve,pd};',ctx);
 const {buildD,resolve,pd}=ctx.__api; const expected=JSON.parse(fs.readFileSync('/home/claude/imp/expected.json','utf8'));
 const D=buildD({cfg:{store:{name:'x'},positions:r.positions},staff:r.items.staff,dc:r.items.dc,spot:r.items.spot,aw:r.items.aw,pay:r.items.pay,rule:r.items.rule,sales:{}},'x');
 let bad=0,total=0;

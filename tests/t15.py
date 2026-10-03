@@ -31,7 +31,7 @@ async def main():
     b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
     ctx=await b.new_context(viewport={'width':420,'height':800}); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     await pg.route('**/*', handler)
-    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.wait_for_timeout(800)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.wait_for_timeout(800)
     print('1) 처음엔 로그인 화면:', await pg.is_visible('#lgForm'), '| 자동 로그인 기본 체크:', await pg.is_checked('#lgKeep'), '| 입력칸 autocomplete:', await pg.get_attribute('#lgEmail','autocomplete'), '/', await pg.get_attribute('#lgPw','autocomplete'))
     await pg.fill('#lgEmail','yoyo925@naver.com'); await pg.fill('#lgPw','wrong'); await pg.press('#lgPw','Enter'); await pg.wait_for_timeout(500); print('2) 틀린 비번:', await pg.inner_text('#toast'))
     await pg.fill('#lgPw','good'); await pg.press('#lgPw','Enter'); await pg.wait_for_timeout(1300)
@@ -53,7 +53,7 @@ async def main():
     # 자동 로그인 끄고 로그인 → 같은 탭에선 유지, 새 창에선 다시 로그인
     await pg.fill('#lgPw','good'); await pg.uncheck('#lgKeep'); await pg.press('#lgPw','Enter'); await pg.wait_for_timeout(1200)
     await pg.reload(); await pg.wait_for_timeout(900); print('10) 자동 로그인 끔: 같은 탭 새로고침은 유지:', not await pg.is_visible('#lgForm'), '| 기기 저장소엔 토큰 없음:', not (await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-fr-conf')).ses")))
-    pg2=await ctx.new_page(); await pg2.route('**/*',handler); await pg2.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg2.wait_for_timeout(900); print('11) 새 탭에선 다시 로그인 요구:', await pg2.is_visible('#lgForm'))
+    pg2=await ctx.new_page(); await pg2.route('**/*',handler); await pg2.goto('http://localhost:8765/ilpum-schedule.html'); await pg2.wait_for_timeout(900); print('11) 새 탭에선 다시 로그인 요구:', await pg2.is_visible('#lgForm'))
     # 로그인 없이 보기 / 다시 로그인
     await pg2.click('[data-a="openmode"]'); await pg2.wait_for_timeout(1000); print('12) 로그인 없이 보기:', await pg2.evaluate("role()"), '| 금액 버튼 숨김:', not await pg2.is_visible('[data-a="paytog"]'), '| 로그인 버튼:', await pg2.is_visible('[data-a="gologin"]'))
     await pg2.click('#mbar [data-v="set"]'); await pg2.wait_for_timeout(300); await pg2.click('#main [data-a="gologin"]'); await pg2.wait_for_timeout(800); print('13) 로그인 버튼 → 로그인 화면:', await pg2.is_visible('#lgForm'))

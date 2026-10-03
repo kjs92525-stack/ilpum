@@ -74,8 +74,18 @@
 - **계정 목록·관리(2026-10-02 사용자 요청):** 설정 → "계정 목록 · 관리 (본사만)" 카드(`acctCard`/`acctLoad`, 서버 함수 `manage-accounts` = list/setpw/ban/delete, 본사만, 본사 계정·본인은 못 건드림). 비밀번호 바꾸기(새 값 입력창, 바꾼 뒤 안내 상자에 새 비밀번호 표시)·정지/해제·삭제(남긴 기록 때문에 못 지우면 로그인만 막음). 계정 만들기·바꾸기·삭제 뒤 초록 안내 상자(`APP.mkNote`). 현재 비밀번호는 누구도 못 봄. 테스트 `tests/t42.py`.
 - **예약 화면 임시 기록 보호(2026-10-02, 유천점 PC):** 이 기기에 저장된 날짜별 임시 기록(`ilpum-res-<매장>-<날짜>`)에 `items` 가 없으면 화면이 "연결 실패(reading length)"로 멈추던 것을 `dayDoc` 에서 형식을 바로잡도록 고침. 테스트 `tests/t43.py`.
 - **점주도 자기 매장 계정 만들기·관리(2026-10-02 사용자 요청):** 점주(`profiles.role=franchise`)는 설정에서 **자기 매장의 매니저·직원·발주 전용** 계정만 만들고(`create-account`, 점주·다른 매장은 서버에서 거부), 목록·비밀번호 바꾸기·정지·삭제도 그 매장에만 연결된 계정에 한해 가능(`manage-accounts`). 점주·본사 계정은 못 건드림. 가맹점(점주)에게는 본점 자료용 **"데이터" 카드(예전 서버 가져오기·매장 백업)·백업 카드·급여 비밀번호 초기화를 숨김**(데이터 카드는 본점 화면에서만). 테스트 `tests/t44.py`.
-- **유천점 예약 멈춤 원인(2026-10-02):** 예약의 테이블이 배치에 없는 룸(`R5-1` 등, 룸 1~4만 `ROOM_SUBS` 에 있음)이면 `tablesText` 가 `ROOM_SUBS[r].length` 에서 터져 화면이 "연결 실패(reading length)"로 멈춤 → 없는 룸은 `룸5-1` 로 표시. 테스트 `tests/t43.py`(유천점 실제 배치·예약 모양). **미적용:** 점주가 매니저·직원의 급여 비밀번호를 초기화하게 하는 DB 함수 변경 `supabase/migrations/20261002_pay_pin_reset_owner.sql` — 적용 시도가 취소됨, 사용자가 직접 적용하거나 허용해야 함(적용 전에는 점주 화면에 초기화 칸을 안 보임).
+- **유천점 예약 멈춤 원인(2026-10-02):** 예약의 테이블이 배치에 없는 룸(`R5-1` 등, 룸 1~4만 `ROOM_SUBS` 에 있음)이면 `tablesText` 가 `ROOM_SUBS[r].length` 에서 터져 화면이 "연결 실패(reading length)"로 멈춤 → 없는 룸은 `룸5-1` 로 표시. 테스트 `tests/t43.py`(유천점 실제 배치·예약 모양). **미적용:** 점주가 매니저·직원의 급여 비밀번호를 초기화하게 하는 DB 함수 변경 `supabase/migrations/pending_pay_pin_reset_owner.sql` — 적용 시도가 취소됨, 사용자가 직접 적용하거나 허용해야 함(적용 전에는 점주 화면에 초기화 칸을 안 보임).
 - **계정(아이디) 만들기는 본사 + (위 항목) 점주.** 설정 → "계정 만들기"(서버 함수 `create-account`). 가맹점은 자기 매장만 보임. 가맹점 계정에는 예약·급여·발주 메뉴를 숨김(예약·급여가 새 서버로 옮겨지기 전까지, 예전 서버에 매장 구분이 없어서).
+
+- **외부 검토 반영(2026-10-03):** 대화 맥락 없는 검토자가 코드만 보고 찾은 것들을 고침.
+  ① 예약 현황판 층·구역 이름이 그대로 화면에 들어가 점주가 본사 로그인을 훔칠 수 있던 구멍 → `esc()` + 불러온 배치 형식 검사(`validLayout`·`validTid`), 근무표 포지션 색은 `cleanPositions`(#16진수만). 테스트 `tests/t45.py`(고치기 전엔 실제로 코드가 실행됨을 확인).
+  ② 실서버에 적용된 마이그레이션 28개를 **원본 그대로** `supabase/migrations/<버전>_<이름>.sql` 로 받음(md5 대조). 아직 적용 안 된 것은 `pending_*.sql`. `supabase/README.md`. 역할별 권한 검사 SQL `tests/rls_check.sql`(실서버에서 전부 OK, 끝에서 취소돼 흔적 없음).
+  ③ 본사가 점주 비밀번호를 바꾸면 `app_metadata.pw_by_hq` 기록 → 점주의 설정·오늘 현황에 경고, 점주는 설정 → **"내 비밀번호 바꾸기"**(누구나, `/auth/v1/user` PUT, `user_metadata.pw_self_at`)로 새로 정하면 경고 사라짐. 본사 계정 목록에도 표시. 계정 바꾸기·정지·삭제는 `audit_log`(tbl `accounts`)에 남김. `manage-accounts` v3 배포. 테스트 `tests/t46.py`.
+  ④ **급여 계산기 기록 서버 보관:** `sch_items` kind `pay`, id `calc:cfg`(시급·계좌·주기 등) / `calc:m:YYYY-MM`(달별). 급여 권한자만 읽고 씀(RLS 그대로). 바뀐 줄만 올리고(해시 비교), 열 때는 고친 시각만 먼저 받아 새로운 줄만 받음. 실패하면 점점 느리게 재시도·빨간 안내. 이 기기 localStorage 는 캐시로 남김. 처음 열면 이 기기 기록을 서버에 올림. 근무표·통합 틀은 `id=not.like.calc:*` 로 이 줄들을 안 받음. 사람 구분은 아직 **이름 기준**(이름 바꾸면 따로 잡힘). 테스트 `tests/t47.py`.
+  ⑤ `sync-old` 버그: 포지션을 본점 것만 읽게(`HQ_STORE`), 예약 날짜 목록을 최근부터 1000개씩 끝까지. v2 배포, 미리보기(dry) 실행 정상.
+  ⑥ 빌드가 일회성 도구(`ilpum-migrate`·`yc-check`·`yucheon-import`)를 `dist-tools/` 로 따로 만들고 `out/ilpum-deploy.zip` 을 자동으로 만듦.
+  ⑦ 예약 저장이 4번 연속 겹치면 조용히 멈추던 것 → 점점 느리게 다시 시도. 백업 파일 날짜를 한국 날짜로. 테스트 경로를 `http://localhost:8765`(dist)·`:8766`(dist-tools)로, 실행은 `sh tests/run.sh`.
+  **미적용(적용 시도가 취소됨):** `pending_audit_deletes.sql`(발주·품목·공지 삭제 때 지우기 전 내용을 `audit_log` 에 남김), `pending_pay_pin_reset_owner.sql`.
 
 ## 3. 근무표 데이터 모델 (새 서버 `sch_items`)
 
@@ -129,7 +139,7 @@
 
 ## 5. 프론트 코드 구조 · 빌드
 
-**빌드:** `sh build_all.sh` → `dist/` (Python3 + Node 필요).
+**빌드:** `sh build_all.sh` → `dist/`(배포용 7개) + `dist-tools/`(일회성 도구, 올리지 말 것) + `out/ilpum-deploy.zip` (Python3 + Node 필요).
 
 **키와 저장소(git):** 공개(anon) 키는 저장소에 올리지 않아요. 소스에는 `/*OLDKEY*/`·`/*NEWKEY*/` 자리 표시만 있고, 빌드가 `keys.json` 에서 채워 넣어요. `keys.json`·`dist/`·`legacy/` 는 `.gitignore` 로 빠져 있어서 **새 환경에서는 사용자에게 받은 zip(또는 Supabase 대시보드의 anon 키)으로 `keys.json` 과 `legacy/` 를 다시 놓아야** 빌드가 돼요(급여 화면이 `legacy/patched/` 에서 복사되기 때문). 소스에서 다시 만든 결과가 채팅에서 전달한 파일과 **해시까지 동일**함을 확인해 둠.
 

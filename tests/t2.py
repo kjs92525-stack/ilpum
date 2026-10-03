@@ -6,7 +6,7 @@ async def main():
     pg=await b.new_page(viewport={'width':1440,'height':950}); errs=[]
     pg.on('pageerror',lambda e:errs.append(str(e)))
     await pg.route('**/*', lambda r: r.abort() if 'jsdelivr' in r.request.url or 'supabase' in r.request.url else r.continue_())
-    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(600)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(600)
     await pg.click('[data-a="paytog"]')
     T=await pg.evaluate("todayStr"); print('today',T)
     kim=await pg.evaluate("Object.values(APP.D.staff).find(s=>s.name==='김지수').id")

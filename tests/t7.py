@@ -6,7 +6,7 @@ async def main():
     ctx=await b.new_context(viewport={'width':1440,'height':900},accept_downloads=True); await ctx.grant_permissions(['clipboard-read','clipboard-write'])
     pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('console',lambda m: errs.append('console:'+m.text) if m.type=='error' and 'net::' not in m.text else None)
     await pg.route('**/*', lambda r: r.abort() if 'jsdelivr' in r.request.url or 'supabase' in r.request.url else r.continue_())
-    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(600)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(600)
     txt=await pg.inner_text('#main'); print('week: 총 근무시간 gone:', '총 근무시간' not in txt, '| 확인할 것 gone:', '확인할 것' not in txt, '| 합계 gone:', '합계' not in txt)
     await pg.click('[data-a="paytog"]'); await pg.wait_for_timeout(150)
     txt=await pg.inner_text('#main'); print('pay on: 인건비 shown:', '인건비' in txt, '| 총 근무시간 gone:', '총 근무시간' not in txt); await pg.click('[data-a="paytog"]')

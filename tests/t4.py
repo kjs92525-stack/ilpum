@@ -32,7 +32,7 @@ async def main():
         return await r.fulfill(status=200,content_type='application/json',body=json.dumps([]))
       await r.fulfill(status=404,body='{}')
     await pg.route('**/*', route)
-    await pg.goto('file:///home/claude/fr/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(400)
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(400)
     await pg.click('#nav [data-v="set"]'); await pg.fill('#cfUrl',URL); await pg.fill('#cfKey','eyJtest'); await pg.click('[data-a="connect"]'); await pg.wait_for_timeout(700)
     print('login screen:', await pg.is_visible('#lgEmail'))
     await pg.fill('#lgEmail','boss@ilpum.kr'); await pg.fill('#lgPw','pw'); await pg.click('[data-a="login"]'); await pg.wait_for_timeout(900)
