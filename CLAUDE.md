@@ -85,7 +85,8 @@
   ⑤ `sync-old` 버그: 포지션을 본점 것만 읽게(`HQ_STORE`), 예약 날짜 목록을 최근부터 1000개씩 끝까지. v2 배포, 미리보기(dry) 실행 정상.
   ⑥ 빌드가 일회성 도구(`ilpum-migrate`·`yc-check`·`yucheon-import`)를 `dist-tools/` 로 따로 만들고 `out/ilpum-deploy.zip` 을 자동으로 만듦.
   ⑦ 예약 저장이 4번 연속 겹치면 조용히 멈추던 것 → 점점 느리게 다시 시도. 백업 파일 날짜를 한국 날짜로. 테스트 경로를 `http://localhost:8765`(dist)·`:8766`(dist-tools)로, 실행은 `sh tests/run.sh`.
-  **미적용(적용 시도가 취소됨):** `pending_audit_deletes.sql`(발주·품목·공지 삭제 때 지우기 전 내용을 `audit_log` 에 남김), `pending_pay_pin_reset_owner.sql`.
+  ⑧ **급여 권한(2026-10-03 사용자 지시):** 직원·발주 전용은 급여를 절대 못 봄(서버 `sch_can_pay` 가 이미 false). 급여는 점주, 점주가 권한을 준 매니저(`sch_members.can_pay`), 본점 한정 본사(finance)만. 계정 만들 때 급여 권한은 매니저에게만 보냄(`create-account` v4). 점주는 설정 → 계정 목록에서 우리 매장 매니저의 **"급여 보기 켜기/끄기"**(`manage-accounts` v4 `setpay`, 기록 남김), 본사는 본점 매니저에게만. 테스트 `tests/t48.py`.
+  **미적용(적용 시도가 취소됨 — 서버 구조(DDL) 변경은 이 환경에서 반복해서 취소됨. 사용자가 SQL Editor 에서 직접 실행하거나 도구 허용 필요):** `pending_staff_no_pay.sql`(직원엔 can_pay 값 자체를 못 붙이게), 위 ⑧의 급여 비밀번호 초기화 판 `pending_pay_pin_reset_owner.sql`(점주는 급여 권한 있는 우리 매장 매니저만), `pending_audit_deletes.sql`(발주·품목·공지 삭제 때 지우기 전 내용을 `audit_log` 에 남김), `pending_pay_pin_reset_owner.sql`.
 
 ## 3. 근무표 데이터 모델 (새 서버 `sch_items`)
 

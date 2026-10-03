@@ -104,6 +104,19 @@ Deno.serve(async (req: Request) => {
     return out(200, { ok: true, id, ownerNotified: ownerByHq });
   }
 
+  // 급여 보기 권한 주기/빼기: 점주는 우리 매장 매니저에게만, 본사는 본점 매니저에게만 (직원·발주 전용은 급여를 볼 수 없어요)
+  if (action === "setpay") {
+    const on = b.on !== false;
+    const { data: ms } = await admin.from("sch_members").select("store_id,role").eq("user_id", target.id);
+    const hqStore = (await admin.from("stores").select("id").eq("is_hq", true).maybeSingle()).data?.id;
+    const ok = (ms || []).filter((x: { store_id: string; role: string }) => x.role === "manager" && (isOwner ? x.store_id === myStore : x.store_id === hqStore));
+    if (!ok.length) return out(403, { error: "급여 보기 권한은 우리 매장 매니저에게만 줄 수 있어요 (직원은 급여를 볼 수 없어요)" });
+    const { error } = await admin.from("sch_members").update({ can_pay: on }).eq("user_id", target.id).in("store_id", ok.map((x: { store_id: string }) => x.store_id));
+    if (error) return out(400, { error: "바꾸지 못했어요: " + error.message });
+    await audit(on ? "pay_on" : "pay_off");
+    return out(200, { ok: true, id, pay: on });
+  }
+
   if (action === "ban") {
     const on = b.on !== false;
     const { error } = await admin.auth.admin.updateUserById(target.id, { ban_duration: on ? "876000h" : "none" });

@@ -40,7 +40,7 @@ Deno.serve(async (req: Request) => {
   const password = String(b.password ?? "");
   const store = String(b.store ?? "");
   const role = String(b.role ?? "");
-  const pay = b.pay === true && role !== "order";
+  const pay = b.pay === true && role === "manager";   // 급여는 점주가 정한 매니저만. 직원·발주 전용은 절대 못 봄
   if (!/^[a-z0-9][a-z0-9._-]{2,19}$/.test(id)) return out(400, { error: "아이디는 영문 소문자·숫자·._- 로 3~20자예요" });
   if (password.length < 8 || password.length > 72) return out(400, { error: "비밀번호는 8자 이상이어야 해요" });
   if (!["owner", "manager", "staff", "order"].includes(role)) return out(400, { error: "역할이 올바르지 않아요" });

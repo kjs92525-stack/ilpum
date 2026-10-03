@@ -380,7 +380,7 @@ document.addEventListener('click',async e=>{
     case 'mkaccount': { const id=$('#mkId').value.trim().toLowerCase(), pw=$('#mkPw').value; if(!id||!pw) return toast('아이디와 비밀번호를 넣으세요'); if(pw.length<8) return toast('비밀번호는 8자 이상이에요');
       const btn=e.target.closest('button'); btn.disabled=true;
       try{ const sel=$('#mkStore'), rs=$('#mkRole'); const where=sel.options[sel.selectedIndex].text, rn=rs.options[rs.selectedIndex].text.split(' ')[0];
-        await APP.be.createAccount({id,password:pw,store:sel.value,role:rs.value,pay:$('#mkPay').checked});
+        await APP.be.createAccount({id,password:pw,store:sel.value,role:rs.value,pay:rs.value==='manager'&&$('#mkPay').checked});
         APP.mkNote=`✅ 계정을 만들었어요 — 아이디 ${id} · ${where} ${rn} · 비밀번호는 방금 입력한 값`; APP.accts=undefined; render(); toast(`‘${id}’ 계정을 만들었어요`); }catch(err){ toast(err.message); }
       btn.disabled=false; break; }
     case 'acctreload': APP.accts=undefined; APP.acctErr=''; render(); break;
@@ -388,6 +388,8 @@ document.addEventListener('click',async e=>{
       try{ const r=await APP.be.manageAccounts({action:'setpw',id:d.id,password:pw}); APP.accts=undefined; APP.mkNote=`✅ ‘${d.id}’ 비밀번호를 바꿨어요 — 새 비밀번호: ${pw}${r&&r.ownerNotified?' (점주 계정이라 점주 화면에 "본사가 바꿨다"는 알림이 떠요)':''}`; render(); toast('비밀번호를 바꿨어요'); }catch(err){ toast(err.message); } break; }
     case 'mypw': { const pw=prompt('새 비밀번호 (8자 이상)')||''; if(!pw) return; if(pw.length<8) return toast('비밀번호는 8자 이상이에요'); if((prompt('한 번 더 입력하세요')||'')!==pw) return toast('두 번 입력한 비밀번호가 달라요');
       try{ const u=await Remote.changeMyPassword(pw); if(u&&u.id) APP.user=u; render(); toast('비밀번호를 바꿨어요. 다음부터 새 비밀번호로 로그인하세요'); }catch(err){ toast('바꾸지 못했어요: '+err.message); } break; }
+    case 'acctpay': { const on=d.on==='1'; if(!confirm(on?`‘${d.id}’ 매니저가 급여(금액)를 볼 수 있게 할까요?`:`‘${d.id}’ 매니저의 급여 보기를 끌까요?`)) return;
+      try{ await APP.be.manageAccounts({action:'setpay',id:d.id,on}); APP.accts=undefined; APP.mkNote=`✅ ‘${d.id}’ 급여 보기를 ${on?'켰어요':'껐어요'} (다시 로그인하면 반영돼요)`; render(); }catch(err){ toast(err.message); } break; }
     case 'acctban': { const on=d.on==='1'; if(!confirm(on?`‘${d.id}’ 를 정지할까요? 로그인이 막혀요(자료는 그대로).`:`‘${d.id}’ 정지를 풀까요?`)) return;
       try{ await APP.be.manageAccounts({action:'ban',id:d.id,on}); APP.accts=undefined; APP.mkNote=`✅ ‘${d.id}’ ${on?'정지했어요':'정지를 풀었어요'}`; render(); }catch(err){ toast(err.message); } break; }
     case 'acctdel': { if(!confirm(`‘${d.id}’ 계정을 삭제할까요? 되돌릴 수 없어요.`)) return;
