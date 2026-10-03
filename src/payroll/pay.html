@@ -601,7 +601,9 @@ function dailyPayoutRows(dateStr){
     }
   });
   out.forEach(r=>{ const c=cashRec(dateStr,r.name); r.paid=!!c.paid; r.memo=c.memo||''; r.acctSaved=pay.accts[r.name]||''; r.acct=pay.showAcct? r.acctSaved : ''; });
-  return out.sort((a,b)=>a.name.localeCompare(b,'ko'));
+  // 일당 화면에서 직접 추가한 사람(예: 3일치를 한 번에 지급) — 근무표와 상관없이 그날 목록에 들어감
+  ((mon.extra||{})[dateStr]||[]).forEach(x=>{ out.push({name:x.name,hours:0,amount:+x.amount||0,tag:(x.days>1?x.days+'일치':'직접 추가'),eid:x.id,paid:!!x.paid,memo:x.memo||'',acctSaved:pay.accts[x.name]||'',acct:pay.showAcct?(pay.accts[x.name]||''):''}); });
+  return out.sort((a,b)=>a.name.localeCompare(b.name,'ko')||(a.eid?1:0)-(b.eid?1:0));
 }
 function cashRec(dateStr,name){ const mon=pay.months[pay.cur]; const c=(mon.cash||{})[dateStr]||{}; return c[name]||{}; }
 function setCash(dateStr,name,patch){ const mon=pay.months[pay.cur]; mon.cash=mon.cash||{}; const c=mon.cash[dateStr]=mon.cash[dateStr]||{};
@@ -626,11 +628,30 @@ function dailyView(dateStr){
     </div>
     <p class="help" style="margin:10px 0 0">근무표 <b>메모에 일당(숫자만, 예: 6.5)</b>이 적힌 사람, 또는 근무표에서 <b>그날 현금</b>으로 정한 사람만 나와요. 메모에 일당이 없는 사람은 여기 안 나오고, 월급·주급 계산에만 들어가요.</p>
   </div>
+  <div class="card noprint" style="margin-bottom:14px" id="xAddCard">
+    <h3 style="margin:0 0 6px;font-size:16px">사람 추가 <span class="muted" style="font-size:13px;font-weight:500">이 날(${dd.getMonth()+1}/${dd.getDate()}) 일당 목록에 직접 넣기 · 며칠치를 한 번에 줄 때도 써요</span></h3>
+    <div class="row" style="align-items:flex-end">
+      <label>이름<input type="text" id="xName" list="xNames" placeholder="이름" autocomplete="off" style="width:130px"></label>
+      <datalist id="xNames">${Object.keys((pay.months[pay.cur]||{people:{}}).people).sort((a,b)=>a.localeCompare(b,'ko')).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+      <label>며칠치<input type="number" id="xDays" min="1" step="1" value="1" style="width:70px"></label>
+      <label>하루 금액<input type="text" inputmode="numeric" id="xPer" class="rate" placeholder="예: 110,000"></label>
+      <label>합계 금액<input type="text" inputmode="numeric" id="xTotal" class="rate" placeholder="며칠치 × 하루 금액"></label>
+      <label style="flex:1;min-width:150px">비고<input type="text" id="xMemo" placeholder="예: 10/1~10/3 3일치"></label>
+      <button class="btn primary" data-act="xadd">+ 추가</button>
+    </div>
+    <div class="row" style="align-items:flex-end;margin-top:8px">
+      <span class="muted" style="font-size:13px;padding-bottom:8px">근무표에서 계산 →</span>
+      <label>시작<input type="date" id="xFrom" value="${addD(dateStr,-2)}"></label><label>끝<input type="date" id="xTo" value="${dateStr}"></label>
+      <button class="btn" data-act="xcalc">이름의 그 기간 근무 합계 불러오기</button>
+    </div>
+    <p class="help" style="margin:8px 0 0">① 이름·며칠치·하루 금액을 넣으면 합계가 자동으로 계산돼요(합계를 직접 고쳐도 돼요). ② 이름이 근무표에 있으면 <b>기간을 정해 합계를 불러올</b> 수도 있어요. 추가한 줄은 아래 목록에 들어가고 이미지·텍스트 복사에도 나와요.</p>
+  </div>
   <div class="daily-card">
     <div class="daily-head"><div class="dt">${dd.getMonth()+1}월 ${dd.getDate()}일 (${DOW[dd.getDay()]}) 일당 지급</div><div class="sub">${rows.length}명 · 지급완료 ${rows.filter(r=>r.paid).length}명${rows.length?` · 미지급 ${won(tot-paidSum)}`:''}</div></div>
-    <div class="daily-rows">${rows.length? rows.map(r=>`<div class="daily-row${r.paid?' paid':''}"><div class="top"><label class="pchk"><input type="checkbox" data-cashpaid="${esc(r.name)}" ${r.paid?'checked':''}><span>${r.paid?'지급완료':'미지급'}</span></label><div class="nm">${esc(r.name)}${r.hours?`<span class="hh">${fmtH(r.hours)}시간</span>`:''}${r.tag?`<span class="hh">${esc(r.tag)}</span>`:''}</div><div class="amt">${won(r.amount)}</div></div>
+    <div class="daily-rows">${rows.length? rows.map(r=>`<div class="daily-row${r.paid?' paid':''}"><div class="top"><label class="pchk"><input type="checkbox" ${r.eid?`data-xpaid="${esc(r.eid)}"`:`data-cashpaid="${esc(r.name)}"`} ${r.paid?'checked':''}><span>${r.paid?'지급완료':'미지급'}</span></label><div class="nm">${esc(r.name)}${r.hours?`<span class="hh">${fmtH(r.hours)}시간</span>`:''}${r.tag?`<span class="hh">${esc(r.tag)}</span>`:''}</div><div class="amt">${won(r.amount)}</div></div>
       ${pay.showAcct?`${r.acctSaved?`<button class="btn sm" data-copyacct="${esc(r.name)}" style="margin-top:7px;float:right;margin-left:6px">계좌 복사</button>`:''}<input type="text" class="cmemo" data-acct="${esc(r.name)}" value="${esc(r.acctSaved)}" style="${r.acctSaved?'width:calc(100% - 90px)':''}"`:'<input type="hidden"'} placeholder="계좌 (예: 국민 123-456-789 홍길동) · 한 번 넣으면 저장돼요">
-      <input type="text" class="cmemo" data-cashmemo="${esc(r.name)}" value="${esc(r.memo)}" placeholder="비고 (예: 계좌이체, 내일 지급)"></div>`).join('')
+      <input type="text" class="cmemo" ${r.eid?`data-xmemo="${esc(r.eid)}"`:`data-cashmemo="${esc(r.name)}"`} value="${esc(r.memo)}" placeholder="비고 (예: 계좌이체, 내일 지급)">
+      ${r.eid?`<div class="row noprint" style="margin-top:6px;align-items:center"><label>금액<input type="text" inputmode="numeric" class="rate" data-xamt="${esc(r.eid)}" value="${r.amount.toLocaleString('ko-KR')}"></label><button class="btn sm danger" data-xdel="${esc(r.eid)}">이 줄 삭제</button></div>`:''}</div>`).join('')
       : `<div class="daily-empty">이 날 지급할 일당 근무자가 없어요.</div>`}</div>
     ${rows.length?`<div class="daily-total"><div class="k">합계</div><div class="v">${won(tot)}</div></div>`:''}
   </div>
@@ -961,8 +982,22 @@ app.addEventListener('click',e=>{
   const P=()=>pay.months[pay.cur].people[view.person];
   if(d.remove){ const x=P().days[d.remove]; if(x.base) x.removed=true; else delete P().days[d.remove]; save(); render(); return; }
   if(d.restore){ delete P().days[d.restore].removed; save(); render(); return; }
+  if(d.xdel){ const mon=pay.months[pay.cur]; const L=(mon.extra||{})[view.daily]||[]; const i=L.findIndex(x=>x.id===d.xdel); if(i>=0&&confirm(`‘${L[i].name}’ ${won(L[i].amount)} 줄을 지울까요?`)){ L.splice(i,1); if(!L.length) delete mon.extra[view.daily]; save(); render(); } return; }
   if(d.reset){ const x=P().days[d.reset]; delete x.type; delete x.hours; delete x.rate; delete x.amount; delete x.bonusOv; save(); render(); return; }
   switch(d.act){
+    case 'xadd': { const name=(document.getElementById('xName').value||'').trim(); if(!name) return toast('이름을 넣어 주세요');
+      const days=Math.max(1,Math.round(+document.getElementById('xDays').value||1)); const per=num(document.getElementById('xPer').value); let total=num(document.getElementById('xTotal').value);
+      if(total==null&&per!=null) total=per*days; if(total==null||!(total>0)) return toast('금액을 넣어 주세요 (하루 금액 × 며칠치, 또는 합계)');
+      const mon=pay.months[pay.cur]; mon.extra=mon.extra||{}; const L=mon.extra[view.daily]=mon.extra[view.daily]||[];
+      let memo=(document.getElementById('xMemo').value||'').trim(); if(!memo&&days>1) memo=`${days}일치`;
+      L.push({id:'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name,amount:Math.round(total),days,memo}); save(); render(); toast(`${name}님을 추가했어요`); break; }
+    case 'xcalc': { const name=(document.getElementById('xName').value||'').trim(); const f=document.getElementById('xFrom').value, t=document.getElementById('xTo').value;
+      if(!name) return toast('이름을 먼저 넣어 주세요'); if(!f||!t||f>t) return toast('시작·끝 날짜를 확인해 주세요');
+      const need=ymsBetween(f,t).slice(0,14).filter(ym=>!pay.months[ym]);
+      (async()=>{ if(need.length){ try{ await syncMonths(need,false); save(); }catch(e){ return toast('근무표를 받지 못했어요: '+(e.message||e)); } }
+        const R=personRange(name,f,t); if(!R.days.length) return toast(`${name}님 근무가 그 기간에 없어요 (이름을 확인하세요)`);
+        document.getElementById('xDays').value=R.tot.days||1; document.getElementById('xTotal').value=R.tot.sum.toLocaleString('ko-KR'); document.getElementById('xPer').value='';
+        document.getElementById('xMemo').value=`${fmtMD(f)}~${fmtMD(t)} ${R.tot.days}일치`+(R.tot.miss?' (일부 금액 미입력)':''); toast(`${R.tot.days}일 · ${won(R.tot.sum)} 불러왔어요. 확인하고 [+ 추가]`); })(); break; }
     case 'addDay': { const dt=document.getElementById('addDate').value; if(!dt) return; const p=P();
       if(p.days[dt] && !p.days[dt].removed){ toast('이미 있는 날짜예요'); return; }
       p.days[dt]=p.days[dt]||{}; delete p.days[dt].removed; if(!p.days[dt].base) p.days[dt].type=document.getElementById('addType').value;
@@ -993,6 +1028,11 @@ app.addEventListener('change',e=>{
   if(d.rate!==undefined){ setRate(d.rate,t.value); render(); return; }
   if(d.drate!==undefined){ const x=num(t.value); if(x==null) delete pay.drates[d.drate]; else pay.drates[d.drate]=x; save(); render(); return; }
   if(d.cashpaid!==undefined){ setCash(view.daily,d.cashpaid,{paid:t.checked}); render(); return; }
+  const xo=id=>((pay.months[pay.cur].extra||{})[view.daily]||[]).find(x=>x.id===id);
+  if(d.xpaid!==undefined){ const x=xo(d.xpaid); if(x){ x.paid=t.checked; if(!x.paid) delete x.paid; save(); } render(); return; }
+  if(d.xmemo!==undefined){ const x=xo(d.xmemo); if(x){ x.memo=t.value.trim(); if(!x.memo) delete x.memo; save(); } render(); return; }
+  if(d.xamt!==undefined){ const x=xo(d.xamt); const v=num(t.value); if(x&&v!=null&&v>=0){ x.amount=Math.round(v); save(); } render(); return; }
+  if(t.id==='xDays'||t.id==='xPer'){ const days=Math.max(1,Math.round(+document.getElementById('xDays').value||1)); const per=num(document.getElementById('xPer').value); if(per!=null) document.getElementById('xTotal').value=(per*days).toLocaleString('ko-KR'); return; }
   if(d.showacct!==undefined){ pay.showAcct=t.checked; save(); render(); return; }
   if(d.acct!==undefined){ const v=t.value.trim(); if(v) pay.accts[d.acct]=v; else delete pay.accts[d.acct]; save(); render(); return; }
   if(d.cashmemo!==undefined){ setCash(view.daily,d.cashmemo,{memo:t.value.trim()}); render(); return; }
