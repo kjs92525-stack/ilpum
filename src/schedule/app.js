@@ -194,7 +194,7 @@ function vCards(){
   return `<div class="vh"><div><h1>${title}</h1><div class="sub">이름을 누르면 시간·금액·휴무, 끌어서(폰은 꾹) 옮기기·복사</div></div>
     <div class="row"><button class="btn ic" data-a="cnav" data-n="-1" aria-label="이전">‹</button><button class="btn" data-a="cnav" data-n="0">${mode==='month'?'이번 달':'오늘'}</button><button class="btn ic" data-a="cnav" data-n="1" aria-label="다음">›</button></div>
     <div class="seg" role="group" aria-label="기간"><button data-a="cmode" data-v="week7" aria-pressed="${mode!=='month'}">오늘부터 7일</button><button data-a="cmode" data-v="month" aria-pressed="${mode==='month'}">한 달</button></div>${viewSeg()}<span class="sp"></span>
-    <button class="btn" data-a="lmode">${APP.listMode?'번호 끄기':'번호 붙여 보기'}</button>
+    <button class="btn" data-a="lmode">${APP.listMode?'여러 명씩 보기':'한 줄에 한 명'}</button>
     ${hiddenN>0||APP.showEmpty?`<button class="btn" data-a="empty">${APP.showEmpty?'빈 포지션 숨기기':`빈 포지션 ${hiddenN}개 보기`}</button>`:''}
     ${ed?'<button class="btn" data-a="posmgr">포지션 관리</button>':''}
     ${ed&&hasWeekly?`<button class="btn ${missingAw?'pri':''}" data-a="weekly" data-k="${ds(ws)}">매주 변동 입력${missingAw?` (${missingAw}명 미입력)`:''}</button>`:''}
