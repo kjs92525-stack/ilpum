@@ -376,3 +376,18 @@ body.dragging-now .bl.empty,body.dragging-now .bc.empty{display:flex;opacity:.55
 /* 이름 옆 표기 */
 .nl2{font-style:normal;font-size:.9em;font-weight:800;color:var(--ink);background:var(--warn-soft);box-shadow:inset 0 0 0 1px var(--warn);border-radius:5px;padding:0 5px;margin-left:3px;white-space:nowrap;vertical-align:1px}
 .chip .nl2{font-size:.85em}
+
+/* 카드: 한 줄에 한 명 + 번호 (인원 놓침 방지, 2026-10-04) */
+.cards.lst .cr .bc{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:2px;padding:4px 8px 4px 0}
+.cards.lst .lrow{display:flex;align-items:center;gap:6px;min-height:26px}
+.cards.lst .lno{flex:0 0 22px;text-align:right;font-size:12px;font-weight:800;color:var(--ink2);font-variant-numeric:tabular-nums}
+.cards.lst .lrow .chip{flex:1;justify-content:flex-start;text-align:left;font-size:14.5px;padding:3px 8px}
+.cards.lst .cr .bc .add{align-self:flex-start;margin-left:28px;padding:0 8px;font-size:12px;line-height:1.3}
+.cards.lst .cr .bc{min-height:0}
+.cards.lst .cr{grid-template-columns:64px minmax(0,1fr)}
+.cards.lst .cl{font-size:13.5px;padding-top:6px}
+.cards.lst .cl .cn{font-size:13px;font-weight:900;color:var(--ink);margin-top:2px}
+.cards.lst .ch .cn{font-size:14px} .cards.lst .ch .cn b{font-size:17px;font-weight:900;color:var(--ink)}
+.cards.lst .cf{font-size:13px;color:var(--ink2);background:color-mix(in srgb,var(--bad-soft) 55%,var(--bg))}
+.cards.lst .cf button{font-size:13px;font-weight:600}
+.cards.lst .cf b{color:var(--bad)}

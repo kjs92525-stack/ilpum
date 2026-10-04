@@ -277,6 +277,7 @@ document.addEventListener('click',async e=>{
     case 'view': APP.view=d.v; closeDrawer(); render(); window.scrollTo(0,0); break;
     case 'wk': APP.anchor=d.n==='0'?new Date():addDays(weekStart(APP.anchor),7*+d.n); render(); break;
     case 'cnav': { const a=APP.anchor; if(d.n==='0') APP.anchor=new Date(); else if((APP.cardMode||'month')==='month') APP.anchor=new Date(a.getFullYear(),a.getMonth()+(+d.n),1); else APP.anchor=addDays(a,7*(+d.n)); render(); break; }
+    case 'lmode': APP.listMode=!APP.listMode; try{ localStorage.setItem('ilpum-card-list',APP.listMode?'1':'0'); }catch(e){} render(); break;
     case 'cmode': APP.cardMode=d.v; APP.anchor=new Date(); render(); break;
     case 'mon': { const a=APP.anchor; APP.anchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }
     case 'dayn': APP.day=d.n==='0'?todayStr:ds(addDays(pd(APP.day),+d.n)); render(); break;
