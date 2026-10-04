@@ -275,7 +275,6 @@ document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]'); if(!b) return; const d=b.dataset; const D=APP.D;
   switch(d.a){
     case 'view': APP.view=d.v; closeDrawer(); render(); window.scrollTo(0,0); break;
-    case 'pnav': { const t=new Date(), b=APP.pStart||new Date(t.getFullYear(),t.getMonth(),t.getDate()); APP.pStart=d.n==='0'?null:addDays(b,7*+d.n); render(); break; }
     case 'wk': APP.anchor=d.n==='0'?new Date():addDays(weekStart(APP.anchor),7*+d.n); render(); break;
     case 'cnav': { const a=APP.anchor; if(d.n==='0') APP.anchor=new Date(); else if((APP.cardMode||'month')==='month') APP.anchor=new Date(a.getFullYear(),a.getMonth()+(+d.n),1); else APP.anchor=addDays(a,7*(+d.n)); render(); break; }
     case 'cmode': APP.cardMode=d.v; APP.anchor=new Date(); render(); break;
