@@ -1,6 +1,6 @@
 /* ================= 앱 상태 ================= */
 const QS=new URLSearchParams(location.search);
-const VIEWS=['cards','week','day','staff','rules','me','hq','set','acct'];
+const VIEWS=['cards','people','week','day','staff','rules','me','hq','set','acct'];
 const EMBED=QS.get('embed')==='1';                       // 통합관리 화면 안에 들어갈 때: 자기 왼쪽 메뉴는 숨김
 if(EMBED) document.documentElement.classList.add('embed');
 const APP={be:null,user:null,stores:[],sid:null,st:null,D:null,view:VIEWS.includes(QS.get('view'))?QS.get('view'):'cards',cardMode:'week7',anchor:new Date(),day:todayStr,sum:null,me:null,pf:'',q:''};
@@ -145,8 +145,8 @@ async function summaryFor(sid,silent){
 }
 
 /* ================= 화면 틀 ================= */
-const NAV=[['cards','▦','스케줄'],['week','▤','주간 표'],['day','◫','하루 타임라인'],['staff','◉','직원'],['rules','⟷','기간 설정'],['me','☺','내 스케줄'],['hq','◆','본사 현황'],['acct','⚿','계정 · 권한'],['set','⚙','설정']];
-function navAllowed(v){ if(v==='hq') return isHQ(); if(v==='acct') return APP.be===Remote&&(isHQ()||role()==='owner'); if(!canEdit()) return v==='me'||((v==='cards'||v==='week')&&APP.D.store.vis==='week'); return true; }
+const NAV=[['cards','▦','스케줄'],['people','☰','사람별 표'],['week','▤','주간 표'],['day','◫','하루 타임라인'],['staff','◉','직원'],['rules','⟷','기간 설정'],['me','☺','내 스케줄'],['hq','◆','본사 현황'],['acct','⚿','계정 · 권한'],['set','⚙','설정']];
+function navAllowed(v){ if(v==='hq') return isHQ(); if(v==='acct') return APP.be===Remote&&(isHQ()||role()==='owner'); if(!canEdit()) return v==='me'||((v==='cards'||v==='week'||v==='people')&&APP.D.store.vis==='week'); return true; }
 function renderShell(){
   const st=APP.st, r=role();
   $('#app').innerHTML=`<aside class="side">
@@ -156,7 +156,7 @@ function renderShell(){
     <div class="foot"><span class="sync" id="sync"></span>
       <div class="who"><span>${APP.open?'':esc(showId(APP.user&&APP.user.email||''))}</span>${APP.be===Remote?(APP.open?'<button class="btn sm ghost" data-a="gologin">로그인</button>':'<button class="btn sm ghost" data-a="logout">로그아웃</button>'):''}</div></div>
   </aside><main class="main" id="main"></main>
-  <nav class="mbar" id="mbar">${st?NAV.filter(n=>navAllowed(n[0])&&['cards','day','staff','me','set','hq'].includes(n[0])).map(n=>`<button data-a="view" data-v="${n[0]}"><span class="ic">${n[1]}</span>${n[2].replace(' 타임라인','').replace(' 보드','').replace(' 현황','')}</button>`).join(''):''}</nav>`;
+  <nav class="mbar" id="mbar">${st?NAV.filter(n=>navAllowed(n[0])&&['cards','people','day','staff','me','set','hq'].includes(n[0])).map(n=>`<button data-a="view" data-v="${n[0]}"><span class="ic">${n[1]}</span>${n[2].replace(' 타임라인','').replace('사람별 표','사람별').replace(' 보드','').replace(' 현황','')}</button>`).join(''):''}</nav>`;
 }
 function afterShell(){ if(APP.sync) setSync(APP.sync[0],APP.sync[1]); }
 const roleName=r=>({hq:'본사 · 본점 관리',owner:'점주',manager:'매니저',staff:'직원',order:'발주 전용',open:'바로 저장'}[r]||'보기 전용');
@@ -164,13 +164,13 @@ function render(){
   if(!APP.st) return; afterShell();
   if(!navAllowed(APP.view)) APP.view=canEdit()?'cards':'me';
   $$('#nav button,#mbar button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===APP.view?'page':'false'));
-  const V={cards:vCards,week:vWeek,month:vMonth,day:vDay,staff:vStaff,rules:vRules,me:vMe,hq:vHQ,set:vSet,acct:vAcct}[APP.view]||vCards;
+  const V={cards:vCards,people:vPeople,week:vWeek,month:vMonth,day:vDay,staff:vStaff,rules:vRules,me:vMe,hq:vHQ,set:vSet,acct:vAcct}[APP.view]||vCards;
   $('#main').innerHTML=V();
   if(EMBED&&window.parent!==window){ try{ window.parent.postMessage({type:'fr-state',view:APP.view,hq:isHQ(),edit:canEdit(),role:role()},'*'); }catch(e){} }
   if(APP.view==='hq'&&!APP.sum) loadSum();
 }
 function payToggle(){ return payAllowed()?`<button class="btn ${canPay()?'ink':''}" data-a="paytog" title="금액은 권한 있는 사람만, 켰을 때만 보여요">${canPay()?'₩ 금액 숨기기':'₩ 금액 보기'}</button>`:''; }
-function viewSeg(){ return `<div class="seg" role="group" aria-label="보기">${[['cards','카드'],['week','주간표'],['day','하루']].map(([v,t])=>`<button data-a="view" data-v="${v}" aria-pressed="${APP.view===v}">${t}</button>`).join('')}</div>`; }
+function viewSeg(){ return `<div class="seg" role="group" aria-label="보기">${[['people','사람별'],['cards','카드'],['week','주간표'],['day','하루']].map(([v,t])=>`<button data-a="view" data-v="${v}" aria-pressed="${APP.view===v}">${t}</button>`).join('')}</div>`; }
 
 /* ================= 스케줄 카드 (날짜마다 포지션 줄이 다 보이는 화면) ================= */
 function vCards(){
@@ -199,6 +199,46 @@ function vCards(){
     ${payToggle()}${EMBED&&window.parent!==window?'<button class="btn" data-a="tores">예약 보기 ›</button>':''}<button class="btn" data-a="print">인쇄</button></div>
     <div class="cards">${cards}</div>
     <div class="legend"><span><span class="chip">이름</span> 기본</span><span><span class="chip g-add">이름</span> 추가 출근</span><span><span class="chip g-chg">이름</span> 포지션 변경</span><span><span class="chip t-spot">이름</span> 단기·당일</span><span><span class="chip t-weekly">이름</span> 매주 변동</span><span><span class="chip">이름<i class="pmb">오후</i></span><span class="chip">이름<i class="tm soft">11시</i></span> 출근 시간</span></div>`;
+}
+
+
+/* ================= 사람별 표 (엑셀처럼: 세로 = 사람 고정 순서, 가로 = 날짜) ================= */
+// 같은 사람은 항상 같은 줄 → 가로로 따라가면 한 주가 보이고, 빈칸(쉬는 날)이 바로 보임. 맨 아래 날짜별 인원.
+function vPeople(){
+  const D=APP.D, st=D.store, ed=canEdit(); const rules=rulesSorted(D); const t0=new Date(); const ws=APP.pStart||new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()); const we=addDays(ws,6);
+  const days=[]; for(let i=0;i<7;i++){ const d=addDays(ws,i); const R=resolve(D,d,{rules}); days.push({d,key:R.key,wd:R.wd,R}); }
+  const posOrder=D.positions.map(p=>p.name); const posColor=n=>(D.positions.find(p=>p.name===n)||{}).color||'#888';
+  // 줄: 직원(포지션 순 → 직원 순서) + 이번 주에 들어온 단기·당일 알바(이름별 한 줄)
+  const staff=staffList(D).filter(s=>days.some(dd=>dd.R.list.some(x=>x.sid===s.id)||dd.R.offs.some(o=>o.sid===s.id)));
+  const rows=[]; posOrder.concat(['__']).forEach(pn=>{
+    staff.filter(s=>(pn==='__'?!posOrder.includes(s.pos):s.pos===pn)).forEach(s=>rows.push({kind:'s',id:s.id,name:s.name,pos:s.pos,nl:s.note||''})); });
+  const spotNames=[]; days.forEach(dd=>dd.R.list.filter(x=>x.type==='spot').forEach(x=>{ if(!spotNames.includes(x.name)) spotNames.push(x.name); }));
+  spotNames.forEach(n=>rows.push({kind:'p',name:n}));
+  const cell=(r,dd)=>{
+    const x=r.kind==='s'?dd.R.list.find(y=>y.sid===r.id):dd.R.list.find(y=>y.type==='spot'&&y.name===r.name);
+    const past=dd.key<todayStr?' past':'', td=dd.key===todayStr?' today':'';
+    if(!x){ const o=r.kind==='s'&&dd.R.offs.find(y=>y.sid===r.id);
+      const rs=o?(o.missing?'미입력':(o.reason==='고정휴무'||o.reason==='주간휴무'?'':o.reason)):'';
+      return `<td class="pc off${past}${td}">${o&&ed?`<button data-a="${o.missing?'weekly':'edit'}" data-sid="${r.id}" data-k="${dd.key}" ${o.missing?`data-k2="${ds(ws)}"`:''}>${rs?`<span class="rs">${esc(rs)}</span>`:'·'}</button>`:(rs?`<span class="rs">${esc(rs)}</span>`:'')}</td>`; }
+    const l=shLbl(x.sh,st); const chg=r.kind==='s'&&x.pos!==r.pos;
+    const txt=(chg?x.pos:(r.kind==='p'?x.pos:'출근'))+(l?' · '+l:'');
+    return `<td class="pc on${past}${td}" style="--pc:${posColor(x.pos)}"><button data-a="edit" data-sid="${x.sid||''}" data-spot="${x.spotId||''}" data-k="${dd.key}" data-pos="${esc(x.pos)}" ${ed?'':'disabled'}><b>${esc(txt)}</b>${x.nl&&r.kind==='p'?`<em class="nl2">${esc(x.nl)}</em>`:''}${x.memo?'<i class="mm">✎</i>':''}</button></td>`;
+  };
+  let lastPos=null;
+  const body=rows.map(r=>{ let sep='';
+    const grp=r.kind==='p'?'단기·당일':(posOrder.includes(r.pos)?r.pos:'기타');
+    if(grp!==lastPos){ lastPos=grp; sep=`<tr class="pg"><th colspan="9" style="--pc:${r.kind==='p'?'#C9862B':posColor(r.pos)}">${esc(grp)}</th></tr>`; }
+    const cnt=days.filter(dd=>r.kind==='s'?dd.R.list.some(y=>y.sid===r.id):dd.R.list.some(y=>y.type==='spot'&&y.name===r.name)).length;
+    return sep+`<tr><th class="pn" style="--pc:${r.kind==='p'?'#C9862B':posColor(r.pos)}">${esc(r.name)}${r.nl?`<em class="nl2">${esc(r.nl)}</em>`:''}</th>${days.map(dd=>cell(r,dd)).join('')}<td class="pt">${cnt}일</td></tr>`; }).join('');
+  const head=`<tr><th class="pn corner">이름</th>${days.map(dd=>`<th class="ph ${dd.wd===0?'sun':dd.wd===6?'sat':''} ${dd.key===todayStr?'today':''}"><button data-a="gday" data-k="${dd.key}"><b>${dd.d.getMonth()+1}/${dd.d.getDate()}</b> ${DOW[dd.wd]}</button></th>`).join('')}<th class="pt">일수</th></tr>`;
+  const usedPos=D.positions.filter(p=>days.some(dd=>dd.R.list.some(x=>x.pos===p.name)));
+  const foot=`<tr class="ptot"><th class="pn">총 인원</th>${days.map(dd=>`<td class="${dd.key===todayStr?'today':''}"><b>${dd.R.list.length}</b>명</td>`).join('')}<td></td></tr>`+
+    usedPos.map(p=>`<tr class="ppos"><th class="pn" style="--pc:${p.color}">${esc(p.name)}</th>${days.map(dd=>{ const n=dd.R.list.filter(x=>x.pos===p.name).length; return `<td class="${dd.key===todayStr?'today':''}">${n||'<span class="z">0</span>'}</td>`; }).join('')}<td></td></tr>`).join('');
+  return `<div class="vh"><div><h1>사람별 표</h1><div class="sub num">${mdw(ds(ws))} ~ ${mdw(ds(we))} · 같은 사람은 항상 같은 줄 · 빈칸 = 쉬는 날</div></div>
+    <div class="row"><button class="btn ic" data-a="pnav" data-n="-1" aria-label="이전 7일">‹</button><button class="btn" data-a="pnav" data-n="0">오늘부터</button><button class="btn ic" data-a="pnav" data-n="1" aria-label="다음 7일">›</button></div>
+    ${viewSeg()}<span class="sp"></span><button class="btn" data-a="print">인쇄</button></div>
+    <div class="ptwrap"><table class="ptab"><colgroup><col class="cn">${days.map(()=>"<col>").join("")}<col class="ct"></colgroup><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>
+    <div class="legend"><span><span class="pcx on">출근</span> 기본 포지션에서 근무</span><span><span class="pcx on">홀</span> 그날만 다른 포지션</span><span><span class="pcx on">출근 · 오후</span> 출근 시간</span><span><span class="pcx">·</span> 쉬는 날${ed?' (누르면 출근으로)':''}</span></div>`;
 }
 
 /* ================= 주간 보드 ================= */
