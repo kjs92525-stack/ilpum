@@ -191,7 +191,7 @@ tools/import-oct 엑셀(예전 근무표 10월 내보내기)을 새 서버 형�
 - 정적 호스팅(Netlify 등)에 **`dist/` 안의 파일을 한 폴더에** 올림: `index.html`, `reserve.html`, `ilpum-schedule.html`, `order.html`, `pay.html`(+ 일회성 `ilpum-migrate.html`). 파일 이름은 한글 없이 영문으로(배포 도구가 한글 이름에서 실패하는 일을 피함).
 - 같은 주소 아래여야 iframe/postMessage/localStorage 공유(자동 로그인)가 동작. 파일 이름을 바꾸면 `src/portal/shell.html` 의 `FILES` 만 고치면 됨.
 - 사용자가 지금 운영하는 사이트(예전 세트: `index.html` 탭 + `reserve.html` + `schedule.html`)를 덮어쓰면 예전 화면이 새 틀로 바뀜. 예전 것을 유지하고 싶으면 별도 경로에 올릴 것.
-- 사용자가 써 온 Netlify 사이트 이름/주소는 **확인하지 못함.** 배포 전에 물어볼 것.
+- 운영 사이트 주소: **`https://ilpum.yoyo925.workers.dev`** (Cloudflare Workers, 2026-10-05 사용자가 카카오 앱 등록 화면에서 알려 줌). 카카오 앱 회사명 `일품수산`.
 
 ## 8. 남은 일 (우선순위)
 
