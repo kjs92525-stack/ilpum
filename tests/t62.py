@@ -48,8 +48,9 @@ async def handler(r):
   u=r.request.url
   if 'localhost' in u: return await r.continue_()
   if 'dapi.kakao.com/v2/maps/sdk.js' in u:
-    if MODE['sdk']=='fail': return await r.fulfill(status=404,body='')
-    assert 'appkey=1aaf38e9a5c0669aad33526fced00618' in u and 'libraries=services' in u
+    if MODE['sdk']=='fail': return await r.fulfill(status=401,body='')
+    if MODE['sdk']=='firstfail' and 'appkey=7ed6cf4a57f04e78dab3bf66a095dcd2' in u: return await r.fulfill(status=401,body='')
+    assert ('appkey=7ed6cf4a57f04e78dab3bf66a095dcd2' in u or 'appkey=1aaf38e9a5c0669aad33526fced00618' in u) and 'libraries=services' in u
     return await r.fulfill(status=200,content_type='application/javascript',body=STUB)
   EXT.append(u); return await r.fulfill(status=404,body='')
 FAILS=[]
@@ -153,7 +154,11 @@ async def main():
     ok('    오류 없음', not errs, errs); await ctx.close()
     MODE['sdk']='fail'; ctx=await b.new_context(); pg=await ctx.new_page(); await pg.route('**/*',handler)
     await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(800)
-    ok('13) 카카오 못 열면 안내', '카카오 지도를 열지 못했어요' in await pg.inner_text('#map')); await ctx.close()
+    ok('13) 두 키 다 막히면 안내(지금 주소 표시)', '카카오 지도를 열지 못했어요' in await pg.inner_text('#map') and 'localhost:8765' in await pg.inner_text('#map')); await ctx.close()
+    MODE['sdk']='firstfail'; ctx=await b.new_context(); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e))); await pg.route('**/*',handler)
+    await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(1200)
+    await pg.fill('#q','대구 수성구 범어동 177'); await pg.click('[data-act=find]'); await pg.wait_for_timeout(300)
+    ok('14b) 첫 키가 막히면 둘째 키로 자동 연결', await pg.evaluate("document.querySelectorAll('[data-cand]').length")==2 and await pg.evaluate("localStorage.getItem('ilpum-sk-key')")=='1aaf38e9a5c0669aad33526fced00618' and not errs, errs); await ctx.close()
     await b.close()
   print('모두 통과' if not FAILS else '실패 있음: '+', '.join(FAILS))
 asyncio.run(main())

@@ -182,7 +182,9 @@ details summary{cursor:pointer}
    - 후보지 기록은 이 브라우저(localStorage)에 저장, 설정 → 백업 파일로 옮김
    - 점수 = 대구 "기준 상권"(설정에서 편집) 측정값과 비교한 백분위. 자료는 카카오 지도 등록 기준
    ===================================================================== */
-const KAKAO_JS_KEY='1aaf38e9a5c0669aad33526fced00618';
+// 카카오 JavaScript 키 (등록한 사이트 주소에서만 동작하는 공개용). 앱/키가 둘이라 둘 다 넣고, 막히면 다음 키로 자동 시도
+// 7ed6… = 키 이름 "Default JS Key"(sangkwon.yoyo925.workers.dev 등록) / 1aaf… = 다른 JS 키(ancient-morning-30ee 등록)
+const KAKAO_KEYS=['7ed6cf4a57f04e78dab3bf66a095dcd2','1aaf38e9a5c0669aad33526fced00618'];
 const STORE_KEY='ilpum-sk-v1';
 const STATUSES=['검토 중','현장 확인','보류','탈락','계약'];
 const DEF_BENCH=['동성로','반월당역','범어역','수성못','들안길','동대구역','칠곡3지구','상인역','월배역','계명대역','죽전역','두류역','신매역','대곡역','경북대학교 북문','침산동','앞산카페거리','율하역','대구혁신도시','대실역'];
@@ -254,14 +256,24 @@ function save(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(DB)); }catch
 
 /* ---------------- 카카오 SDK ---------------- */
 let K=null;
-function loadSdk(){
+function loadSdkWith(key){
   return new Promise(res=>{
+    let done=false; const fin=v=>{ if(!done){ done=true; res(v); } };
     const s=document.createElement('script');
-    s.src='https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&libraries=services&appkey='+KAKAO_JS_KEY;
-    s.onload=()=>{ try{ kakao.maps.load(()=>{ K={ps:new kakao.maps.services.Places(),geo:new kakao.maps.services.Geocoder()}; res(true); }); }catch(e){ res(false); } };
-    s.onerror=()=>res(false); document.head.appendChild(s);
-    setTimeout(()=>res(!!K),10000);
+    s.src='https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&libraries=services&appkey='+key;
+    s.onload=()=>{ try{ kakao.maps.load(()=>{ K={ps:new kakao.maps.services.Places(),geo:new kakao.maps.services.Geocoder()}; fin(true); }); }catch(e){ fin(false); } };
+    s.onerror=()=>{ s.remove(); fin(false); }; document.head.appendChild(s);
+    setTimeout(()=>{ if(!K) s.remove(); fin(!!K); },8000);
   });
+}
+async function loadSdk(){
+  let order=KAKAO_KEYS.slice();
+  try{ const last=localStorage.getItem('ilpum-sk-key'); if(last&&order.includes(last)) order=[last,...order.filter(k=>k!==last)]; }catch(e){}
+  for(const k of order){
+    if(await loadSdkWith(k)){ try{ localStorage.setItem('ilpum-sk-key',k); }catch(e){} return true; }
+    try{ delete window.kakao; }catch(e){ window.kakao=undefined; }
+  }
+  return false;
 }
 function kcall(fn){
   return new Promise((res,rej)=>{ fn((data,status,pg)=>{ const S=kakao.maps.services.Status;
@@ -808,7 +820,7 @@ load(); render();
 $('#sdk').textContent='카카오 지도 여는 중…';
 loadSdk().then(ok=>{
   $('#sdk').textContent=ok?'':'카카오 지도 연결 실패';
-  if(!ok){ $('#map').innerHTML=`<div class="empty">카카오 지도를 열지 못했어요.<br>카카오 개발자 사이트(JavaScript 키 → 사이트 도메인)에 지금 열고 있는 주소 ${esc(location.origin)} 를 등록했는지, 카카오맵 사용 설정이 켜져 있는지 확인해 주세요.</div>`; }
+  if(!ok){ $('#map').innerHTML=`<div class="empty">카카오 지도를 열지 못했어요.<br>프로그램에 들어 있는 JavaScript 키 2개(7ed6…, 1aaf…) 모두 이 주소에서 거부됐어요.<br>카카오 개발자 → 플랫폼 키 → JavaScript 키 → <b>JavaScript SDK 도메인</b>에 <b>${esc(location.origin)}</b> 를 넣고 저장했는지, 그 앱의 <b>카카오맵 사용 설정</b>이 켜져 있는지 확인해 주세요. 저장 후 1~2분 뒤 새로고침하세요.</div>`; }
   render();
 });
 </script>
