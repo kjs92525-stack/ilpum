@@ -5,133 +5,173 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&display=swap">
 <style>
-:root{--bg:#f3f5f3;--panel:#fff;--ink:#17201b;--sub:#66726b;--line:#e3e8e4;--accent:#14524a;--accent2:#1d7a6d;--accent-ink:#fff;--warn:#c0392b;--ok:#2e7d4f;--soft:#eef3ef;--gold:#b88a2a;--shadow:0 1px 2px rgba(20,40,30,.06),0 4px 14px rgba(20,40,30,.05);
-  --gA:#2e7d4f;--gB:#2b6cb0;--gC:#d9822b;--gD:#b83a3a;--r:14px}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1512;--panel:#18211d;--ink:#e8ede9;--sub:#98a69e;--line:#2a3630;--accent:#34a393;--accent2:#34a393;--soft:#202b26;--warn:#ff7a6b;--ok:#6fcf97;--shadow:none}}
+/* 보고서형 디자인: 네이비 한 색 + 회색, 제목·큰 숫자는 명조 */
+:root{--bg:#f3f4f6;--paper:#fff;--ink:#141a26;--ink2:#2b3445;--sub:#6b7383;--faint:#9aa1ad;--line:#e2e5ea;--line2:#cfd4dc;
+  --navy:#1c3557;--navy2:#2d5282;--navyT:rgba(28,53,87,.07);--gold:#a8822e;--warn:#a13a32;--ok:#2f6b4f;--soft:#f1f3f6;
+  --gA:#2f6b4f;--gB:#2d5282;--gC:#a8822e;--gD:#a13a32;
+  --serif:"Noto Serif KR","Nanum Myeongjo",serif;--sans:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
-button,input,select,textarea{font:inherit;color:inherit}
-header{background:linear-gradient(135deg,#0e3d37,#14524a 60%,#1d7a6d);color:#fff;padding:10px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
-header h1{margin:0;font-size:17px;letter-spacing:-.2px}
-header .tag{font-size:11.5px;opacity:.9;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:1px 9px}
-nav{display:flex;gap:2px;flex-wrap:wrap;margin-left:6px}
-nav button{background:transparent;border:0;color:#fff;opacity:.72;padding:7px 13px;border-radius:999px;cursor:pointer;font-weight:700}
-nav button:hover{opacity:1}
-nav button[aria-current]{opacity:1;background:rgba(255,255,255,.2)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);letter-spacing:-.01em;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+header{background:var(--paper);border-bottom:1px solid var(--line);padding:0 24px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;position:sticky;top:0;z-index:50;min-height:58px}
+header h1{margin:0;font:700 17px/1 var(--serif);color:var(--navy);letter-spacing:-.02em}
+header .tag{font-size:11px;color:var(--sub);border-left:1px solid var(--line2);padding-left:12px;letter-spacing:.04em}
+nav{display:flex;gap:2px;align-self:stretch}
+nav button{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--sub);padding:0 14px;cursor:pointer;font-weight:600;font-size:14.5px}
+nav button:hover{color:var(--ink)}
+nav button[aria-current]{color:var(--navy);border-bottom-color:var(--navy)}
 .sp{flex:1}
-main{max-width:1320px;margin:0 auto;padding:14px 14px 90px}
-.wrap{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.85fr);gap:14px;align-items:start}
-@media (max-width:1000px){.wrap{grid-template-columns:1fr}.mapbox{order:-1;position:static!important}#map{height:260px!important;min-height:0!important}}
-.mapbox{position:sticky;top:66px}
-#map{height:calc(100vh - 118px);min-height:380px;border-radius:var(--r);background:var(--soft);border:1px solid var(--line);overflow:hidden}
-.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin-top:6px}
-.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:baseline}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
-.card h2{margin:0 0 4px;font-size:16.5px;letter-spacing:-.2px}
-.card h3{margin:0 0 8px;font-size:14.5px}
-.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:700;text-decoration:none;display:inline-block;color:var(--ink)}
-.btn:hover{border-color:var(--accent)}
-.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn.bad{color:var(--warn)}.btn.sm{padding:4px 11px;font-size:13px}.btn:disabled{opacity:.45;cursor:default}
+main{max-width:1340px;margin:0 auto;padding:22px 20px 100px}
+.wrap{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(320px,.8fr);gap:22px;align-items:start}
+@media (max-width:1000px){.wrap{grid-template-columns:1fr}.mapbox{order:-1;position:static!important}#map{height:250px!important;min-height:0!important}header{padding:6px 14px;gap:10px}nav button{padding:10px 10px}main{padding:14px 12px 90px}}
+.mapbox{position:sticky;top:80px}
+#map{height:calc(100vh - 130px);min-height:380px;border:1px solid var(--line);background:var(--soft);overflow:hidden}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin-top:8px}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+/* 종이 */
+.card{background:var(--paper);border:1px solid var(--line);padding:24px 26px;margin-bottom:16px}
+@media (max-width:640px){.card{padding:18px 16px}}
+.card h2{margin:0;font:700 18px/1.35 var(--serif);color:var(--ink);letter-spacing:-.02em}
+.card h3{margin:18px 0 8px;font-size:14px;font-weight:700;color:var(--ink2)}
+.sh{display:flex;align-items:baseline;gap:12px;padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid var(--ink)}
+.sh .no{font:700 13px/1 var(--serif);color:var(--gold);letter-spacing:.06em}
+.sh .aside{margin-left:auto;font-size:13px;color:var(--sub)}
+.eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.14em;color:var(--gold)}
+.btn{border:1px solid var(--line2);background:var(--paper);padding:8px 16px;cursor:pointer;font-weight:600;font-size:14px;text-decoration:none;display:inline-block;color:var(--ink2);border-radius:4px}
+.btn:hover{border-color:var(--navy);color:var(--navy)}
+.btn.pri{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.pri:hover{background:var(--navy2);color:#fff}
+.btn.bad{color:var(--warn)}.btn.sm{padding:5px 12px;font-size:13px}.btn:disabled{opacity:.4;cursor:default}
 .note{color:var(--sub);font-size:13px}
-.empty{color:var(--sub);text-align:center;padding:30px 10px}
-input[type=text],input[type=number],select,textarea{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel);min-width:0}
-input:focus,select:focus,textarea:focus{outline:2px solid var(--accent2);outline-offset:-1px}
-textarea{width:100%;min-height:70px;resize:vertical}
+.empty{color:var(--sub);text-align:center;padding:36px 10px}
+input[type=text],input[type=number],select,textarea{border:1px solid var(--line2);border-radius:4px;padding:8px 10px;background:var(--paper);min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--navy2);outline-offset:-1px}
+textarea{width:100%;min-height:76px;resize:vertical}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .sb{justify-content:space-between}
-.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
-.grid2 label{font-size:12.5px;color:var(--sub);font-weight:700;display:flex;flex-direction:column;gap:3px}
-.cands button{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 12px;margin-top:6px;cursor:pointer}
-.cands button:hover{border-color:var(--accent)}.cands small{color:var(--sub)}
-.gr{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:24px;border-radius:8px;color:#fff;font-weight:800;padding:0 7px;font-size:13px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.grid2 label{font-size:12px;color:var(--sub);font-weight:600;display:flex;flex-direction:column;gap:4px}
+.cands button{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--paper);padding:10px 14px;margin-top:6px;cursor:pointer}
+.cands button:hover{border-color:var(--navy)}.cands small{color:var(--sub)}
+.gr{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;color:#fff;font:700 13px/1 var(--serif);padding:0 6px;border-radius:3px}
 .gA{background:var(--gA)}.gB{background:var(--gB)}.gC{background:var(--gC)}.gD{background:var(--gD)}
-.st{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700;background:var(--soft);color:var(--sub)}
-.st[data-s="계약"]{background:var(--ok);color:#fff}.st[data-s="탈락"]{text-decoration:line-through}.st[data-s="현장 확인"]{background:#dbeafe;color:#1e4f8f}
-.cc{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;margin-top:8px;cursor:pointer;background:var(--panel)}
-.cc:hover{border-color:var(--accent);box-shadow:var(--shadow)}
-.cc .sc{width:54px;height:54px;border-radius:14px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;line-height:1.05;text-align:center}
-.cc .sc small{font-size:11px;font-weight:700;opacity:.9}.cc .sc b{font-size:20px}
-.cc .sc.none{background:var(--soft);color:var(--sub)}
-.mini{display:flex;gap:3px;margin-top:6px}.mini i{display:block;width:34px;height:5px;border-radius:3px;background:var(--soft);position:relative;overflow:hidden}.mini i b{position:absolute;left:0;top:0;bottom:0;background:var(--accent2)}
-.chk{width:18px;height:18px}
-.hero{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
-@media (max-width:640px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}.hero .chips{justify-content:center}}
-.gauge{position:relative}
-.gauge svg{transform:rotate(-90deg)}
-.gauge .gn{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.gauge .gn b{line-height:1;font-weight:800}
-.verdict{font-size:16px;font-weight:800;letter-spacing:-.3px}
-.radar{display:block;margin:0 auto;max-width:400px;width:100%}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media (max-width:640px){.two{grid-template-columns:1fr}}
-.sw{border-radius:12px;padding:10px 12px}
-.sw.g{background:rgba(46,125,79,.09)}.sw.b{background:rgba(192,57,43,.08)}
-.sw h4{margin:0 0 6px;font-size:13.5px}.sw ul{margin:0;padding-left:18px;font-size:13.5px}.sw li{margin:3px 0}
-.dm{border-top:1px solid var(--line);padding:12px 0}
-.dm:first-of-type{border-top:0}
-.dm-h{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
-.dm-h b{font-size:15px}.dm-h .w{font-size:12px;color:var(--sub)}
-.dm-sc{margin-left:auto;font-weight:800;font-size:15px}
-.bar{height:6px;background:var(--soft);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent2);border-radius:4px}
-.sr{display:grid;grid-template-columns:minmax(110px,1.1fr) minmax(70px,.7fr) minmax(90px,1.3fr) 74px;gap:8px;align-items:center;padding:5px 0;font-size:13.5px}
-@media (max-width:640px){.sr{grid-template-columns:1fr auto;gap:2px 8px}.sr .strip{grid-column:1/-1;order:5}}
-.sr .v{font-weight:700;text-align:right;white-space:nowrap}
-.sr .lb{color:var(--sub)}
-.pill{justify-self:end;font-size:12px;font-weight:800;border-radius:999px;padding:1px 8px;background:var(--soft);color:var(--sub);white-space:nowrap}
-.pill.hi{background:rgba(46,125,79,.14);color:var(--ok)}.pill.lo{background:rgba(192,57,43,.12);color:var(--warn)}
-.strip{position:relative;height:16px}
-.strip::before{content:"";position:absolute;left:0;right:0;top:7px;height:2px;background:var(--line);border-radius:2px}
-.strip i{position:absolute;top:5px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#aab5ae;opacity:.8}
-.strip b{position:absolute;top:1px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);box-shadow:0 0 0 1.5px var(--accent)}
-.strip u{position:absolute;top:2px;bottom:2px;width:0;border-left:2px dashed var(--gold)}
+.st{display:inline-block;padding:1px 8px;font-size:11.5px;font-weight:600;border:1px solid var(--line2);color:var(--sub);border-radius:3px;vertical-align:2px}
+.st[data-s="계약"]{background:var(--ok);border-color:var(--ok);color:#fff}.st[data-s="탈락"]{text-decoration:line-through}.st[data-s="현장 확인"]{border-color:var(--navy2);color:var(--navy2)}
+/* 목록 */
+.cc{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.cc:last-child{border-bottom:0}
+.cc:hover{background:var(--soft)}
+.cc .sc{width:56px;text-align:center}
+.cc .sc b{display:block;font:700 26px/1 var(--serif);color:var(--ink)}
+.cc .sc small{display:block;font-size:11px;color:var(--sub);margin-top:4px}
+.cc .sc.none b{color:var(--faint);font-size:14px;font-family:var(--sans)}
+.cc .nm{font-weight:700;font-size:15.5px}
+.mini{display:flex;gap:3px;margin-top:7px}.mini i{display:block;width:30px;height:4px;background:var(--line);position:relative;overflow:hidden}.mini i b{position:absolute;left:0;top:0;bottom:0;background:var(--navy)}
+.chk{width:18px;height:18px;accent-color:var(--navy)}
+.warnmark{color:var(--warn);font-size:12px;font-weight:700;margin-left:6px}
+/* 표지 */
+.cover{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;padding-bottom:20px;border-bottom:3px double var(--ink)}
+@media (max-width:640px){.cover{grid-template-columns:1fr}}
+.cover h1{margin:8px 0 6px;font:700 26px/1.3 var(--serif);letter-spacing:-.03em}
+.cover .meta{font-size:13px;color:var(--sub)}
+.scorebox{border:1px solid var(--ink);min-width:200px;text-align:center}
+.scorebox .lab{font-size:11px;letter-spacing:.14em;color:var(--sub);padding:8px 0 0}
+.scorebox .num{font:700 54px/1.05 var(--serif);color:var(--ink);padding:2px 0}
+.scorebox .num small{font-size:16px;color:var(--faint);margin-left:2px}
+.scorebox .dec{border-top:1px solid var(--ink);padding:9px 12px;font-weight:700;font-size:14px;display:flex;gap:8px;align-items:center;justify-content:center}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.mix{font-size:12.5px;color:var(--sub);margin-top:6px}
+/* 결론 요약 */
+.exec{margin:18px 0 0;padding:0;list-style:none;counter-reset:ex}
+.exec li{counter-increment:ex;position:relative;padding:10px 0 10px 34px;border-bottom:1px solid var(--line);font-size:15px;line-height:1.65}
+.exec li::before{content:counter(ex,decimal-leading-zero);position:absolute;left:0;top:11px;font:700 13px/1.4 var(--serif);color:var(--gold)}
+.exec li.w{color:var(--warn);font-weight:600}
+/* 사실 표 */
+.facts{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-left:1px solid var(--line);margin:4px 0 18px}
+@media (max-width:640px){.facts{grid-template-columns:repeat(2,1fr)}}
+.facts div{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:11px 13px}
+.facts span{display:block;font-size:11.5px;color:var(--sub);letter-spacing:.02em}
+.facts b{display:block;font-size:15px;margin-top:3px;font-weight:700}
+.typeline{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.type{font:700 20px/1.3 var(--serif);color:var(--navy)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid var(--line2);padding:1px 9px;font-size:12.5px;color:var(--ink2);border-radius:3px}
+.op p{margin:10px 0;line-height:1.85;font-size:14.5px;color:var(--ink2)}
+.op p b{color:var(--ink)}
+/* 영역 평가 */
+.evgrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(240px,.8fr);gap:20px;align-items:center}
+@media (max-width:760px){.evgrid{grid-template-columns:1fr}}
+.ev{display:grid;grid-template-columns:110px 1fr 44px 46px;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.ev .nm{font-weight:700}.ev .w{font-size:11.5px;color:var(--faint)}
+.ev .sc{font:700 18px/1 var(--serif);text-align:right}
+.ev .lv{font-size:12px;font-weight:700;text-align:right}
+.lv.hi{color:var(--ok)}.lv.lo{color:var(--warn)}.lv.md{color:var(--sub)}
+.hbar{height:8px;background:var(--soft);position:relative}.hbar i{position:absolute;left:0;top:0;bottom:0;background:var(--navy)}
+.hbar u{position:absolute;left:50%;top:-3px;bottom:-3px;border-left:1px dashed var(--gold)}
+.radar{display:block;margin:0 auto;max-width:360px;width:100%}
+/* 세부 지표 표 */
+.dt{width:100%;border-collapse:collapse;font-size:13.5px}
+.dt th{font-size:11.5px;color:var(--sub);font-weight:600;text-align:left;padding:8px 6px;border-bottom:1px solid var(--ink);letter-spacing:.02em}
+.dt td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.dt tr.grp td{padding-top:16px;font-weight:700;color:var(--navy);border-bottom:1px solid var(--line2);font-size:13px}
+.dt td.v{text-align:right;font-weight:700;white-space:nowrap}
+.dt td.rk{text-align:right;white-space:nowrap;font-weight:600}
+.rk.hi{color:var(--ok)}.rk.lo{color:var(--warn)}
+.dt td.sb{width:38%}
+@media (max-width:640px){.dt td.sb{display:none}.dt th.sbh{display:none}}
+.strip{position:relative;height:14px}
+.strip::before{content:"";position:absolute;left:0;right:0;top:6px;height:1px;background:var(--line2)}
+.strip i{position:absolute;top:4px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#b7bdc7}
+.strip b{position:absolute;top:1px;width:11px;height:11px;margin-left:-5.5px;border-radius:50%;background:var(--navy);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--navy)}
+.strip u{position:absolute;top:1px;bottom:1px;border-left:1px dashed var(--gold)}
+/* 공용 표 */
 table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{border-bottom:1px solid var(--line);padding:7px 6px;text-align:left;vertical-align:top}
-th{color:var(--sub);font-weight:700;font-size:12.5px;white-space:nowrap}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+th{color:var(--sub);font-weight:600;font-size:12px;white-space:nowrap}
 td.num,th.num{text-align:right;white-space:nowrap}
 .tw{overflow-x:auto}
-.best{background:rgba(46,125,79,.13);font-weight:800}
-.ring{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 10px}
-.ring div{background:var(--soft);border-radius:12px;text-align:center;padding:9px 4px}
-.ring b{display:block;font-size:22px;line-height:1.1}.ring span{font-size:12px;color:var(--sub)}
-.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{background:var(--soft);border-radius:999px;padding:3px 11px;font-size:13px}
-.warnbox{border:1px solid var(--warn);background:rgba(192,57,43,.07);color:var(--warn);border-radius:12px;padding:9px 12px;margin:8px 0;font-weight:700;font-size:14px}
-.okbox{border:1px solid var(--ok);background:rgba(46,125,79,.07);color:var(--ok);border-radius:12px;padding:9px 12px;margin:8px 0;font-size:14px}
-.infobox{border:1px solid var(--line);background:var(--soft);border-radius:12px;padding:10px 13px;margin:8px 0;font-size:13.5px}
-.prog{height:7px;background:var(--soft);border-radius:4px;overflow:hidden;margin:6px 0}.prog i{display:block;height:100%;background:var(--gold);transition:width .2s}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;border-radius:12px;padding:10px 18px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:100;max-width:90vw}
-.toast.on{opacity:1}
-.mk{display:inline-block;font:700 12px/1 sans-serif;color:#fff;border:2px solid #fff;border-radius:999px;padding:4px 8px;box-shadow:0 1px 5px rgba(0,0,0,.45);white-space:nowrap;transform:translateY(-4px)}
-.mk.dot{padding:0;width:11px;height:11px}
-.disc{font-size:12.5px;color:var(--sub);border-top:1px dashed var(--line);margin-top:12px;padding-top:9px}
-.ponly{display:none}
-details summary{cursor:pointer}
-.secnav{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:56px;z-index:20;background:var(--bg);padding:6px 0 8px;margin:-6px 0 4px}
-.secnav a{text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700}
-.secnav a:hover{border-color:var(--accent)}
+.best{background:var(--navyT);font-weight:700;color:var(--navy)}
+.ring{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);margin:0 0 14px}
+.ring div{text-align:center;padding:12px 4px;border-right:1px solid var(--line)}.ring div:last-child{border-right:0}
+.ring b{display:block;font:700 28px/1.1 var(--serif)}.ring span{font-size:12px;color:var(--sub)}
+.warnbox{border-left:3px solid var(--warn);background:rgba(161,58,50,.05);color:var(--warn);padding:9px 14px;margin:10px 0;font-weight:600;font-size:14px}
+.okbox{border-left:3px solid var(--ok);background:rgba(47,107,79,.05);color:var(--ok);padding:9px 14px;margin:10px 0;font-size:14px}
+.infobox{border:1px solid var(--line);border-left:3px solid var(--navy);background:var(--paper);padding:12px 16px;margin:0 0 16px;font-size:14px;line-height:1.7}
+.prog{height:3px;background:var(--line);overflow:hidden;margin:8px 0}.prog i{display:block;height:100%;background:var(--navy);transition:width .2s}
+.todo{margin:0;padding:0;list-style:none}.todo li{position:relative;padding:9px 0 9px 28px;font-size:14px;border-bottom:1px solid var(--line);line-height:1.6}
+.todo li::before{content:"";position:absolute;left:2px;top:13px;width:12px;height:12px;border:1.5px solid var(--ink2)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:1px solid var(--line);border-left:1px solid var(--line);margin:10px 0}
+.kpi{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 14px}.kpi span{display:block;font-size:11.5px;color:var(--sub)}.kpi b{display:block;font:700 22px/1.3 var(--serif);margin-top:2px}.kpi small{color:var(--faint);font-size:11.5px}
+.kpi.bad b{color:var(--warn)}
+.fr{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.fr b{font-weight:700;font-size:14px}
+.stars{display:flex;gap:0;border:1px solid var(--line2);border-radius:4px;overflow:hidden}.stars button{width:36px;height:32px;border:0;border-right:1px solid var(--line2);background:var(--paper);cursor:pointer;font-weight:600;color:var(--sub)}
+.stars button:last-child{border-right:0}.stars button.on{background:var(--navy);color:#fff}
+.secnav{display:flex;gap:0;flex-wrap:wrap;position:sticky;top:58px;z-index:20;background:var(--bg);padding:8px 0 10px;margin:-10px 0 6px;border-bottom:1px solid var(--line)}
+.secnav a{text-decoration:none;color:var(--sub);padding:3px 12px;font-size:13px;font-weight:600;border-right:1px solid var(--line2)}
+.secnav a:last-child{border-right:0}.secnav a:hover{color:var(--navy)}
 @media (max-width:1000px){.secnav{position:static}}
 .card[id^="s-"]{scroll-margin-top:110px}
-.type{display:inline-block;background:var(--accent);color:#fff;border-radius:10px;padding:4px 12px;font-weight:800;font-size:15px}
-.op p{margin:8px 0;line-height:1.7;font-size:14.5px}
-.todo{margin:6px 0 0;padding-left:0;list-style:none}.todo li{position:relative;padding:5px 0 5px 26px;font-size:14px;border-bottom:1px dashed var(--line)}
-.todo li::before{content:"";position:absolute;left:2px;top:8px;width:14px;height:14px;border:2px solid var(--accent2);border-radius:4px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0}
-.kpi{background:var(--soft);border-radius:12px;padding:10px 12px}.kpi span{display:block;font-size:12px;color:var(--sub);font-weight:700}.kpi b{display:block;font-size:20px;margin-top:2px;letter-spacing:-.3px}.kpi small{color:var(--sub);font-size:11.5px}
-.kpi.bad b{color:var(--warn)}
-.fr{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
-.stars{display:flex;gap:4px}.stars button{width:34px;height:32px;border:1px solid var(--line);background:var(--panel);border-radius:8px;cursor:pointer;font-weight:800;color:var(--sub)}
-.stars button.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.mix{font-size:13px;color:var(--sub);margin-top:4px}
-@media print{header,.noprint,.mapbox,nav{display:none!important}.wrap{display:block}main{max-width:none;padding:0}.card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}.ponly{display:block}body{background:#fff;color:#000}.sr{grid-template-columns:1.1fr .7fr 1.3fr 74px}}
+.dm-sc{font:700 18px/1 var(--serif);color:var(--ink)}
+.disc{font-size:12px;color:var(--sub);border-top:1px solid var(--line);margin-top:18px;padding-top:12px;line-height:1.7}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:100;max-width:90vw}
+.toast.on{opacity:1}
+.mk{display:inline-block;font:600 12px/1 var(--sans);color:#fff;border:1.5px solid #fff;border-radius:3px;padding:4px 7px;box-shadow:0 1px 4px rgba(0,0,0,.35);white-space:nowrap;transform:translateY(-4px)}
+.mk.dot{padding:0;width:10px;height:10px;border-radius:50%}
+.ponly{display:none}
+details summary{cursor:pointer}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1116;--paper:#161b23;--ink:#e6e9ee;--ink2:#c7ccd5;--sub:#8d95a3;--faint:#6c7480;--line:#262d38;--line2:#323a47;--navy:#7fa6d8;--navy2:#9bbbe4;--navyT:rgba(127,166,216,.12);--soft:#1c222c;--gold:#c9a24e;--warn:#e07a70;--ok:#6cbf94}.btn.pri{color:#0e1116}.stars button.on{color:#0e1116}}
+@media print{header,.noprint,.mapbox,nav,.secnav{display:none!important}.wrap{display:block}main{max-width:none;padding:0}body{background:#fff}.card{border:0;border-bottom:1px solid #ccc;padding:14px 0;break-inside:avoid}.ponly{display:block}}
 </style>
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag">대구 · 본사 내부용</span>
+  <h1>일품집 상권분석</h1><span class="tag">대구 · 본사 내부 자료</span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
-  <span class="sp"></span><span id="sdk" style="font-size:12px;opacity:.85"></span>
+  <span class="sp"></span><span id="sdk" class="note"></span>
 </header>
 <main><div class="wrap"><div id="pane"></div><div class="mapbox"><div id="map"></div><div class="legend" id="legend"></div></div></div></main>
 <div class="toast" id="toast" role="status"></div>
@@ -315,14 +355,9 @@ function scoreOf(m){
   return Object.assign(e,{d,has,grade:gradeOf(e.total),rank,of:bt.length});
 }
 function verdict(g){
-  return g==='A'?'대구 기준 상권 중 상위권이에요':g==='B'?'무난한 편이에요. 약한 항목을 확인하세요':g==='C'?'평균 아래예요. 신중하게 보세요':'대구 기준 상권보다 약해요 (참고용)';
+  return g==='A'?'출점 적극 검토':g==='B'?'조건부 검토':g==='C'?'신중 검토':'보류 권장';
 }
 function fv(x){ if(x.v==null) return '-'; return x.fmt?x.fmt(x.v):fmtN(x.v)+x.u; }
-function swList(s){
-  const all=s.dims.flatMap(dm=>dm.subs).filter(x=>x.p!=null);
-  const txt=x=>`${esc(x.t)}${x.r?' '+x.r:''} <b>${esc(fv(x))}</b> — 기준 ${x.of}곳 중 ${x.rank}위`;
-  return {good:all.filter(x=>x.p>=70).sort((a,b)=>b.p-a.p).slice(0,4).map(txt), bad:all.filter(x=>x.p<=30).sort((a,b)=>a.p-b.p).slice(0,4).map(txt)};
-}
 function nearStores(p){ return DB.stores.filter(s=>s.x).map(s=>({name:s.name,d:distM(p,s)})).sort((a,b)=>a.d-b.d); }
 function warnings(c,s){
   const out=[]; const zone=(+DB.zoneKm||2)*1000;
@@ -440,20 +475,16 @@ async function buildBench(){
 function setProg(label,f){ const el=$('#prog'); if(!el) return; el.hidden=!label; el.querySelector('span').textContent=label; el.querySelector('i').style.width=Math.round(f*100)+'%'; }
 
 /* ---------------- 그림: 게이지 · 레이더 · 분포 ---------------- */
-const GC={A:'#2e7d4f',B:'#2b6cb0',C:'#d9822b',D:'#b83a3a'};
-function gauge(score,grade,size){
-  const r=size*0.41, C=2*Math.PI*r, c=GC[grade]||'#999', sw=size*0.085;
-  return `<div class="gauge" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--soft)" stroke-width="${sw}"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${c}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${(score/100*C).toFixed(1)} ${C.toFixed(1)}"/></svg><div class="gn"><b style="font-size:${size*0.26}px">${score}</b><span class="gr g${grade}" style="margin-top:4px;height:20px;font-size:12px">${grade}</span></div></div>`;
-}
-const PAL=['#14524a','#d9822b','#2b6cb0','#b83a3a'];
+const GC={A:'#2f6b4f',B:'#2d5282',C:'#a8822e',D:'#a13a32'};
+const PAL=['#1c3557','#a8822e','#5b8bc4','#a13a32'];
 function radar(series){
   const n=DIMS.length, W=380, H=300, cx=W/2, cy=H/2+6, R=96, ang=i=>-Math.PI/2+i*2*Math.PI/n;
   const pt=(i,v)=>[cx+R*v/100*Math.cos(ang(i)), cy+R*v/100*Math.sin(ang(i))];
   const ring=v=>DIMS.map((_,i)=>pt(i,v).map(x=>x.toFixed(1)).join(',')).join(' ');
   let g=`<polygon points="${ring(100)}" fill="none" stroke="var(--line)"/><polygon points="${ring(75)}" fill="none" stroke="var(--line)"/><polygon points="${ring(50)}" fill="none" stroke="var(--gold)" stroke-dasharray="3 3"/><polygon points="${ring(25)}" fill="none" stroke="var(--line)"/>`;
-  DIMS.forEach((dm,i)=>{ const [x,y]=pt(i,100), [lx,ly]=pt(i,118); g+=`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--line)"/><text x="${lx.toFixed(1)}" y="${(ly+4).toFixed(1)}" text-anchor="${lx<cx-4?'end':lx>cx+4?'start':'middle'}" font-size="12" font-weight="700" fill="var(--ink)">${esc(dm.t)}</text>`; });
-  series.forEach((s,k)=>{ const pts=s.map((v,i)=>pt(i,v==null?0:v)); g+=`<polygon points="${pts.map(p=>p.map(x=>x.toFixed(1)).join(',')).join(' ')}" fill="${PAL[k]}" fill-opacity="${series.length>1?.14:.22}" stroke="${PAL[k]}" stroke-width="2"/>`+pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="${PAL[k]}"/>`).join(''); });
-  return `<svg class="radar" viewBox="0 0 ${W} ${H}" role="img" aria-label="영역별 점수 레이더 차트">${g}</svg><div class="note" style="text-align:center">점선 = 대구 기준 상권의 중간(50점)</div>`;
+  DIMS.forEach((dm,i)=>{ const [x,y]=pt(i,100), [lx,ly]=pt(i,118); g+=`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--line)"/><text x="${lx.toFixed(1)}" y="${(ly+4).toFixed(1)}" text-anchor="${lx<cx-4?'end':lx>cx+4?'start':'middle'}" font-size="12" font-weight="600" fill="var(--ink2)">${esc(dm.t)}</text>`; });
+  series.forEach((s,k)=>{ const pts=s.map((v,i)=>pt(i,v==null?0:v)); g+=`<polygon points="${pts.map(p=>p.map(x=>x.toFixed(1)).join(',')).join(' ')}" fill="${PAL[k]}" fill-opacity="${series.length>1?.10:.12}" stroke="${PAL[k]}" stroke-width="1.6"/>`+pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="${PAL[k]}"/>`).join(''); });
+  return `<svg class="radar" viewBox="0 0 ${W} ${H}" role="img" aria-label="영역별 점수 레이더 차트">${g}</svg><div class="note" style="text-align:center;font-size:12px">점선 = 대구 기준 상권 중간(50점)</div>`;
 }
 function strip(x){
   if(x.v==null||!x.arr.length) return '<div class="strip"></div>';
@@ -472,100 +503,113 @@ function render(){
 }
 const benchOk=()=>!!DB.bench&&benchCache().list.length>=5;
 function progHtml(){ return `<div id="prog" ${benchBusy?'':'hidden'}><div class="note"><span></span></div><div class="prog"><i style="width:0"></i></div></div>`; }
-function needBench(){ return benchOk()?'':`<div class="infobox"><b>점수를 보려면 "대구 기준 상권"을 한 번 만들어 주세요.</b><br>동성로·범어역 같은 대구 주요 상권 ${DB.benchNames.length}곳을 같은 방법으로 측정해 두고, 후보지가 그 안에서 어느 정도인지로 점수를 매겨요. (약 3~5분, 한 번만 하면 돼요)<div style="margin-top:8px"><button class="btn pri" data-act="bench" ${benchBusy||!K?'disabled':''}>${benchBusy?'만드는 중…':'대구 기준 상권 만들기'}</button></div>${progHtml()}</div>`; }
+function needBench(){ return benchOk()?'':`<div class="infobox"><b>먼저 "대구 기준 상권"을 한 번 만들어 주세요.</b><br>동성로·범어역 같은 대구 주요 상권 ${DB.benchNames.length}곳을 같은 방법으로 측정해 두고, 후보지가 그 안에서 어느 정도인지로 점수를 매겨요. (약 3~5분, 한 번만 하면 돼요)<div style="margin-top:8px"><button class="btn pri" data-act="bench" ${benchBusy||!K?'disabled':''}>${benchBusy?'만드는 중…':'대구 기준 상권 만들기'}</button></div>${progHtml()}</div>`; }
 const stale=c=>c.m&&c.m.v!==2;
 
 function listHtml(){
   const L=DB.cands.filter(c=>!FILTER||c.status===FILTER).map(c=>({c,s:c.m?scoreOf(c.m):null})).sort((a,b)=>(finalOf(b.c,b.s).tot??-1)-(finalOf(a.c,a.s).tot??-1));
   return `${needBench()}
-  <div class="card noprint"><h2>후보지 추가</h2><div class="note" style="margin-bottom:8px">주소나 장소 이름을 찾거나 지도에서 직접 찍으면 바로 분석해요</div>
+  <div class="card noprint"><div class="sh"><h2>후보지 추가</h2><span class="aside">주소 · 장소 이름 검색 또는 지도에서 찍기</span></div>
     <div class="row"><input type="text" id="q" placeholder="예: 대구 수성구 범어동 177 / 범어역 / 동성로" style="flex:1;min-width:200px" autocomplete="off">
       <button class="btn pri" data-act="find">찾기</button><button class="btn${PICK?' pri':''}" data-act="pick">${PICK?'지도를 누르세요…':'지도에서 찍기'}</button></div>
     <div class="cands" id="cands">${CANDS.map((c,i)=>`<button data-cand="${i}"><b>${esc(c.name)}</b><br><small>${esc(c.addr)}</small></button>`).join('')}</div></div>
-  <div class="card"><div class="row sb"><h2 style="margin:0">후보지 ${DB.cands.length}곳</h2>
-    <div class="row"><select id="filter"><option value="">전체 상태</option>${STATUSES.map(s=>`<option${FILTER===s?' selected':''}>${s}</option>`).join('')}</select>
-    <button class="btn sm" data-act="cmpSel" ${SEL.size<2?'disabled':''}>선택 ${SEL.size}곳 비교</button></div></div>
+  <div class="card"><div class="sh" style="flex-wrap:wrap"><h2>후보지 ${DB.cands.length}곳</h2><span class="aside" style="display:flex;gap:8px">
+    <select id="filter"><option value="">전체 상태</option>${STATUSES.map(s=>`<option${FILTER===s?' selected':''}>${s}</option>`).join('')}</select>
+    <button class="btn sm" data-act="cmpSel" ${SEL.size<2?'disabled':''}>선택 ${SEL.size}곳 비교</button></span></div>
     ${L.length?L.map(({c,s})=>{ const w=warnings(c,s), F=finalOf(c,s); return `<div class="cc" data-open="${esc(c.id)}">
-      <div class="sc ${F.tot!=null?'':'none'}" style="${F.tot!=null?'background:'+GC[F.grade]:''}">${F.tot!=null?`<small>${F.grade}${F.fs!=null?' · 현장':''}</small><b>${F.tot}</b>`:'<small>'+(stale(c)?'재분석':c.m?'기준 필요':'분석 전')+'</small>'}</div>
-      <div style="min-width:0"><b>${esc(c.name)}</b> <span class="st" data-s="${esc(c.status)}">${esc(c.status)}</span>${w.length?` <span style="color:var(--warn)" title="${esc(w.join(' / ').replace(/<[^>]+>/g,''))}">⚠ ${w.length}</span>`:''}
+      <div class="sc ${F.tot!=null?'':'none'}">${F.tot!=null?`<b>${F.tot}</b><small><span class="gr g${F.grade}" style="height:18px;font-size:11px">${F.grade}</span>${F.fs!=null?' 현장':''}</small>`:'<b>'+(stale(c)?'재분석':c.m?'기준 필요':'분석 전')+'</b>'}</div>
+      <div style="min-width:0"><span class="nm">${esc(c.name)}</span> <span class="st" data-s="${esc(c.status)}">${esc(c.status)}</span>${w.length?`<span class="warnmark" title="${esc(w.join(' / ').replace(/<[^>]+>/g,''))}">주의 ${w.length}</span>`:''}
         <div class="note" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.addr)}${c.floor?' · '+esc(c.floor):''}${c.area?' · '+esc(c.area)+'평':''}${c.rent?' · 월세 '+fmtN(c.rent)+'만':''}</div>
         ${s&&s.total!=null&&s.has?`<div class="mini">${s.dims.map(x=>`<i title="${esc(x.t)} ${x.score??'-'}"><b style="width:${x.score||0}%"></b></i>`).join('')}</div>`:''}</div>
       <input class="chk" type="checkbox" data-sel="${esc(c.id)}" ${SEL.has(c.id)?'checked':''} title="비교에 넣기"></div>`; }).join(''):'<div class="empty">위에서 주소를 찾아 후보지를 추가하세요</div>'}
   </div>`;
 }
 
-function diagHtml(c,s,fin){
-  const t=typeOf(s), P=opinion(c,s,fin), sp=satP(s.d);
-  return `<div class="card" id="s-diag"><h2>상권 진단</h2>
-    <div class="row" style="margin:8px 0 2px"><span class="type">${esc(t.name)}</span>${t.tags.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}${sp!=null?`<span class="chip">음식점 포화도 ${sp>=65?'낮음':sp<=35?'높음':'보통'}</span>`:''}</div>
-    <div class="op">${P.map(p=>`<p>${p}</p>`).join('')}</div>
-    <h3 style="margin-top:14px">현장에서 꼭 확인할 것</h3><ul class="todo">${todoList(s).map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
-}
 function fieldHtml(c){
   const f=c.field||{}, fs=fieldScore(c);
-  return `<div class="card" id="s-field"><div class="row sb"><h2 style="margin:0">현장 실사</h2>${fs!=null?`<span class="dm-sc">${fs}점</span>`:'<span class="note">3개 이상 매기면 점수가 나와요</span>'}</div>
-    <div class="note" style="margin:4px 0 6px">직접 가 보고 1(나쁨) ~ 5(좋음)로 매기세요. 종합 점수에 40% 반영돼요. 같은 숫자를 한 번 더 누르면 지워져요.</div>
+  return `<div class="card" id="s-field"><div class="sh"><span class="no">06</span><h2>현장 실사</h2><span class="aside">${fs!=null?`<span class="dm-sc">${fs}</span><span class="note"> / 100</span>`:'3개 이상 매기면 점수가 나와요'}</span></div>
+    <div class="note" style="margin-bottom:6px">직접 가 보고 1(나쁨)~5(좋음)로 매기세요. 종합 점수에 40% 반영되고, 같은 숫자를 다시 누르면 지워져요.</div>
     ${FIELD.map(x=>`<div class="fr"><div><b>${x.t}</b><div class="note">${x.h}</div></div><div class="stars">${[1,2,3,4,5].map(n=>`<button data-fs="${x.k}" data-v="${n}" class="${f[x.k]===n?'on':''}" aria-label="${x.t} ${n}점">${n}</button>`).join('')}</div></div>`).join('')}
-    <div class="row" style="margin-top:10px"><label class="note" style="font-weight:700">방문 메모 <input type="text" data-f="visit" value="${esc(c.visit||'')}" placeholder="예: 10/7(화) 저녁 7시, 비 옴" maxlength="40" style="width:220px"></label></div></div>`;
+    <div class="row" style="margin-top:12px"><label class="note" style="font-weight:600">방문 기록 <input type="text" data-f="visit" value="${esc(c.visit||'')}" placeholder="예: 10/7(화) 저녁 7시, 비 옴" maxlength="40" style="width:240px"></label></div></div>`;
 }
-function dimsHtml(s){
-  return s.dims.map(dm=>`<div class="dm"><div class="dm-h"><b>${esc(dm.t)}</b><span class="w">×${dm.w} · ${esc(dm.why)}</span>${dm.score!=null?`<span class="dm-sc">${dm.score}점</span>`:''}</div>
-    ${dm.score!=null?`<div class="bar"><i style="width:${dm.score}%"></i></div>`:''}
-    ${dm.subs.map(x=>`<div class="sr"><span class="lb">${esc(x.t)}${x.r?' <span class="note">'+x.r+'</span>':''}${x.low?' <span class="note">↓좋음</span>':''}</span><span class="v">${esc(fv(x))}</span>${s.has?strip(x):'<span></span>'}${x.p!=null?`<span class="pill ${x.p>=70?'hi':x.p<=30?'lo':''}">상위 ${100-x.p}%</span>`:'<span></span>'}</div>`).join('')}</div>`).join('');
+function execList(c,s,F,fin){
+  const t=typeOf(s), d=s.d, ds=s.dims.filter(x=>x.score!=null).sort((a,b)=>b.score-a.score), L=[];
+  L.push(`<b>${esc(t.name)}</b> — ${esc(t.desc.split('. ')[0].replace(/\.$/,''))}.`);
+  if(ds.length) L.push(`강점은 <b>${esc(ds[0].t)}</b>(${ds[0].score}점)${ds[1]&&ds[1].score>=60?`·<b>${esc(ds[1].t)}</b>(${ds[1].score}점)`:''}, 약점은 <b>${esc(ds.at(-1).t)}</b>(${ds.at(-1).score}점)이에요.`);
+  if(d.n1k!=null) L.push(d.n1k===0?'반경 1km 안에 장어집이 없는 경쟁 공백 지역이에요.':`장어집은 300m 안 ${d.n300}곳 · 500m 안 ${d.n500}곳 · 1km 안 ${d.n1k}곳${c.m.compMore?' 이상':''}이에요.`);
+  if(fin) L.push(`월세 ${fmtN(c.rent)}만원 기준 손익분기 월매출 약 ${fmtN(Math.round(fin.need))}만원(하루 손님 약 ${Math.ceil(fin.guests)}명)이 필요해요.`);
+  const out=L.map(x=>`<li>${x}</li>`);
+  nearStores(c).filter(n=>n.d<(+DB.zoneKm||2)*1000).forEach(n=>out.push(`<li class="w">우리 매장 ${esc(n.name)}과 ${fmtM(n.d)} — 영업지역(${DB.zoneKm}km)이 겹쳐요.</li>`));
+  return out.join('');
+}
+function evalRows(s){
+  return s.dims.map(dm=>{ const sc=dm.score; const lv=sc==null?'':sc>=65?'<span class="lv hi">강함</span>':sc<=35?'<span class="lv lo">약함</span>':'<span class="lv md">보통</span>';
+    return `<div class="ev"><div><div class="nm">${esc(dm.t)}</div><div class="w">비중 ${dm.w}</div></div><div class="hbar"><i style="width:${sc||0}%"></i><u></u></div><div class="sc">${sc??'-'}</div>${lv||'<span></span>'}</div>`; }).join('');
+}
+function detailTable(s){
+  return `<div class="tw"><table class="dt"><thead><tr><th>지표</th><th style="text-align:right">값</th><th class="sbh">대구 기준 상권 분포</th><th style="text-align:right">순위</th></tr></thead><tbody>
+    ${s.dims.map(dm=>`<tr class="grp"><td colspan="4">${esc(dm.t)}</td></tr>`+dm.subs.map(x=>`<tr class="sr"><td>${esc(x.t)}${x.r?` <span class="note">${x.r}</span>`:''}${x.low?' <span class="note">· 적을수록 좋음</span>':''}</td><td class="v">${esc(fv(x))}</td><td class="sb">${s.has?strip(x):''}</td><td class="rk ${x.p!=null?(x.p>=70?'hi':x.p<=30?'lo':''):''}">${x.p!=null?`${x.rank}위 / ${x.of}`:'-'}</td></tr>`).join('')).join('')}
+  </tbody></table></div>`;
 }
 function detailHtml(){
   const c=DB.cands.find(x=>x.id===CUR);
-  if(!c) return `<div class="card empty">후보지 목록에서 하나를 눌러 주세요</div>`;
-  const s=c.m?scoreOf(c.m):null, w=warnings(c,s), near=nearStores(c);
+  if(!c) return `<div class="card empty">후보지 목록에서 하나를 골라 주세요</div>`;
+  const s=c.m?scoreOf(c.m):null, w=warnings(c,s), near=nearStores(c), fin=finCalc(c);
   const ext=`https://map.kakao.com/link/map/${encodeURIComponent(c.name)},${c.y},${c.x}`;
-  let body='';
-  if(!c.m||stale(c)) body=`<div class="infobox">${stale(c)?'예전 형식의 분석이에요. ':''}"분석하기"를 누르면 반경 안 자료를 모아요 (약 10초)</div>`;
-  else if(s.has&&s.total!=null){ const sw=swList(s), F=finalOf(c,s);
-    body=`<div class="hero">${gauge(F.tot,F.grade,132)}<div><div class="verdict">${esc(verdict(F.grade))}</div>
-      <div class="note" style="margin-top:3px">데이터 점수 ${s.total}점 · 대구 기준 상권 ${s.of}곳 중 ${s.rank}위 수준 · ${esc(c.m.at)} 기준</div>
-      <div class="mix">${F.fs!=null?`종합 ${F.tot} = 데이터 ${s.total} × 60% + 현장 실사 ${F.fs} × 40%`:'현장 실사를 매기면 종합 점수에 40% 반영돼요'}</div>
-      <div class="chips" style="margin-top:8px">${c.m.region?`<span class="chip">📍 ${esc(c.m.region)}</span>`:''}${s.d.subway&&s.d.subway[0]?`<span class="chip">🚇 ${esc(s.d.subway[0].name)} ${fmtM(s.d.subD)}</span>`:'<span class="chip">🚇 2km 안에 역 없음</span>'}${near[0]?`<span class="chip">🏠 ${esc(near[0].name)} ${fmtM(near[0].d)}</span>`:''}</div></div></div>
-      ${radar([s.dims.map(x=>x.score)])}
-      ${w.map(x=>`<div class="warnbox">⚠ ${x}</div>`).join('')}
-      ${!w.length&&near.length?`<div class="okbox">가장 가까운 우리 매장: ${esc(near[0].name)} ${fmtM(near[0].d)} (영업지역 ${DB.zoneKm}km 밖)</div>`:''}
-      <div class="two" style="margin-top:10px"><div class="sw g"><h4>👍 강점</h4><ul>${sw.good.map(x=>`<li>${x}</li>`).join('')||'<li class="note">뚜렷한 강점이 없어요</li>'}</ul></div>
-      <div class="sw b"><h4>⚠ 약점</h4><ul>${sw.bad.map(x=>`<li>${x}</li>`).join('')||'<li class="note">뚜렷한 약점이 없어요</li>'}</ul></div></div>`; }
-  else body=`${needBench()}${w.map(x=>`<div class="warnbox">⚠ ${x}</div>`).join('')}`;
-  const rings=s?`<div class="ring"><div><b>${s.d.n300??'-'}</b><span>300m 안</span></div><div><b>${s.d.n500??'-'}</b><span>500m 안</span></div><div><b>${s.d.n1k??'-'}${c.m.compMore?'+':''}</b><span>1km 안</span></div></div>`:'';
-  const full=s&&!stale(c)&&s.has&&s.total!=null, fin=finCalc(c);
-  const nav=`<div class="secnav noprint"><a href="#s-sum">요약</a>${full?'<a href="#s-diag">진단</a>':''}${s&&!stale(c)?'<a href="#s-items">항목별</a><a href="#s-comp">경쟁</a>':''}<a href="#s-field">현장 실사</a><a href="#s-prop">매물</a><a href="#s-fin">손익분기</a></div>`;
-  return `${nav}<div class="card" id="rcard"><span id="s-sum"></span>
-    <div class="ponly note">일품집 본사 내부용 · 외부 제공 금지 · 출력 ${today()}</div>
-    <div class="row sb" style="align-items:flex-start"><div style="min-width:0"><h2 style="font-size:19px">${esc(c.name)} <span class="st" data-s="${esc(c.status)}">${esc(c.status)}</span></h2>
-      <div class="note">${esc(c.addr)}</div></div>
-      <div class="row noprint"><button class="btn sm" data-act="redo" ${busy||!K?'disabled':''}>${c.m&&!stale(c)?'다시 분석':'분석하기'}</button><button class="btn sm" data-act="print">인쇄·PDF</button><a class="btn sm" href="${esc(ext)}" target="_blank" rel="noopener">카카오맵</a></div></div>
-    <div id="anaProg" hidden style="margin-top:8px"><div class="note"><span></span></div><div class="prog"><i style="width:0"></i></div></div>
-    <div style="margin-top:12px">${body}</div></div>
-  ${full?diagHtml(c,s,fin):''}
-  ${s&&!stale(c)?`<div class="card" id="s-items"><h2>항목별 분석</h2><div class="note" style="margin-bottom:6px">${s.has?'작은 회색 점 = 대구 기준 상권 하나하나 · 큰 점 = 이 후보지 · 노란 점선 = 기준 중간값':'기준 상권을 만들면 점수와 비교가 붙어요. 지금은 모은 수치만 보여요'}</div>${dimsHtml(s)}</div>
-  <div class="card" id="s-comp"><h2>경쟁 장어집</h2>${rings}
-    ${c.m.comp&&c.m.comp.length?`<div class="tw"><table id="comp"><thead><tr><th>이름</th><th class="num">거리</th><th>주소</th></tr></thead><tbody>${c.m.comp.map(p=>{ const u=safeUrl(p.url); return `<tr><td>${u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(p.name)}</a>`:esc(p.name)}${p.tel?`<div class="note">${esc(p.tel)}</div>`:''}</td><td class="num">${fmtM(p.dist)}</td><td class="note">${esc(p.addr)}</td></tr>`; }).join('')}</tbody></table></div>${c.m.compMore?'<div class="note" style="margin-top:4px">1km 안에 45곳이 넘어 가까운 순 45곳만 보여요</div>':''}`:'<div class="note">반경 1km 안에 장어집이 없어요</div>'}</div>`:''}
+  const ok=s&&!stale(c), full=ok&&s.has&&s.total!=null, F=full?finalOf(c,s):null;
+  const nav=`<div class="secnav noprint"><a href="#s-sum">결론</a>${full?'<a href="#s-diag">상권 개요</a><a href="#s-eval">영역 평가</a>':''}${ok?'<a href="#s-items">세부 지표</a><a href="#s-comp">경쟁</a>':''}<a href="#s-field">현장 실사</a><a href="#s-fin">매물·손익</a>${full?'<a href="#s-todo">확인 사항</a>':''}</div>`;
+  const cover=`<div class="cover"><div><div class="eyebrow">출점 검토 보고서</div><h1>${esc(c.name)}</h1>
+      <div class="meta">${esc(c.addr)}${c.m&&c.m.region?' · '+esc(c.m.region):''}</div>
+      <div class="meta" style="margin-top:4px"><span class="st" data-s="${esc(c.status)}">${esc(c.status)}</span>${c.m?` &nbsp;자료 기준 ${esc(c.m.at)}`:''}</div></div>
+    ${full?`<div class="scorebox"><div class="lab">종합 점수</div><div class="num">${F.tot}<small>/100</small></div><div class="dec"><span class="gr g${F.grade}">${F.grade}</span>${esc(verdict(F.grade))}</div></div>`:''}</div>`;
+  let sum='';
+  if(!c.m||stale(c)) sum=`<div class="infobox" style="margin-top:18px">${stale(c)?'예전 형식의 분석이에요. ':''}"분석하기"를 누르면 반경 1km 안 자료를 모아요 (약 10초).</div>`;
+  else if(full) sum=`<div class="mix">${F.fs!=null?`종합 ${F.tot} = 데이터 ${s.total} × 60% + 현장 실사 ${F.fs} × 40%`:`데이터 점수 ${s.total} · 현장 실사를 매기면 종합에 40% 반영`} · 대구 기준 상권 ${s.of}곳 중 ${s.rank}위 수준</div>
+      <ul class="exec">${execList(c,s,F,fin)}</ul>
+      ${w.filter(x=>!x.startsWith('영업지역')).map(x=>`<div class="warnbox">${x}</div>`).join('')}`;
+  else sum=`<div style="margin-top:18px">${needBench()}</div>${w.map(x=>`<div class="warnbox">${x}</div>`).join('')}`;
+  const t=full?typeOf(s):null, sp=full?satP(s.d):null;
+  return `${nav}
+  <div class="card" id="rcard"><span id="s-sum"></span><div class="ponly note">일품집 본사 내부 자료 · 외부 제공 금지 · 출력 ${today()}</div>
+    ${cover}
+    <div class="toolbar noprint"><button class="btn sm${!c.m||stale(c)?' pri':''}" data-act="redo" ${busy||!K?'disabled':''}>${ok?'다시 분석':'분석하기'}</button><button class="btn sm" data-act="print">인쇄 · PDF</button><a class="btn sm" href="${esc(ext)}" target="_blank" rel="noopener">카카오맵</a></div>
+    <div id="anaProg" hidden style="margin-top:10px"><div class="note"><span></span></div><div class="prog"><i style="width:0"></i></div></div>
+    ${full?`<div class="sh" style="margin-top:22px"><span class="no">01</span><h2>결론 요약</h2></div>`:''}${sum}</div>
+  ${full?`<div class="card" id="s-diag"><div class="sh"><span class="no">02</span><h2>상권 개요</h2></div>
+    <div class="typeline"><span class="type">${esc(t.name)}</span><div class="chips">${t.tags.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></div>
+    <div class="facts">
+      <div><span>행정동</span><b>${esc((c.m.region||'-').replace('대구광역시 ',''))}</b></div>
+      <div><span>가까운 지하철역</span><b>${s.d.subway&&s.d.subway[0]?esc(s.d.subway[0].name)+' '+fmtM(s.d.subD):'2km 안 없음'}</b></div>
+      <div><span>주차장 (500m)</span><b>${fmtN(s.d.park500)}곳</b></div>
+      <div><span>장어집 (300m / 500m / 1km)</span><b>${s.d.n300??'-'} / ${s.d.n500??'-'} / ${s.d.n1k??'-'}${c.m.compMore?'+':''}</b></div>
+      <div><span>가까운 우리 매장</span><b>${near[0]?esc(near[0].name)+' '+fmtM(near[0].d):'-'}</b></div>
+      <div><span>음식점 포화도</span><b>${sp==null?'-':sp>=65?'낮음':sp<=35?'높음':'보통'}</b></div></div>
+    <h3>진단 의견</h3><div class="op">${opinion(c,s,fin).map(p=>`<p>${p}</p>`).join('')}</div></div>
+  <div class="card" id="s-eval"><div class="sh"><span class="no">03</span><h2>영역별 평가</h2><span class="aside">대구 기준 상권 ${s.of}곳 대비 · 50 = 중간</span></div>
+    <div class="evgrid"><div>${evalRows(s)}</div><div>${radar([s.dims.map(x=>x.score)])}</div></div></div>`:''}
+  ${ok?`<div class="card" id="s-items"><div class="sh"><span class="no">04</span><h2>세부 지표</h2><span class="aside">${s.has?'회색 점 = 기준 상권 · 남색 점 = 후보지 · 점선 = 중간값':'기준 상권을 만들면 순위가 붙어요'}</span></div>${detailTable(s)}</div>
+  <div class="card" id="s-comp"><div class="sh"><span class="no">05</span><h2>경쟁 현황</h2><span class="aside">장어 · 민물장어 음식점</span></div>
+    <div class="ring"><div><b>${s.d.n300??'-'}</b><span>300m 안</span></div><div><b>${s.d.n500??'-'}</b><span>500m 안</span></div><div><b>${s.d.n1k??'-'}${c.m.compMore?'+':''}</b><span>1km 안</span></div></div>
+    ${c.m.comp&&c.m.comp.length?`<div class="tw"><table id="comp"><thead><tr><th>상호</th><th class="num">거리</th><th>주소</th></tr></thead><tbody>${c.m.comp.map(p=>{ const u=safeUrl(p.url); return `<tr><td>${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:var(--navy)">${esc(p.name)}</a>`:esc(p.name)}${p.tel?`<div class="note">${esc(p.tel)}</div>`:''}</td><td class="num">${fmtM(p.dist)}</td><td class="note">${esc(p.addr)}</td></tr>`; }).join('')}</tbody></table></div>${c.m.compMore?'<div class="note" style="margin-top:6px">1km 안에 45곳이 넘어 가까운 순 45곳만 보여요</div>':''}`:'<div class="note">반경 1km 안에 장어집이 없어요</div>'}</div>`:''}
   ${fieldHtml(c)}
-  <div class="card" id="s-prop"><h2>매물 정보</h2>
-    <div class="grid2" style="margin-top:8px">
+  <div class="card" id="s-fin"><div class="sh"><span class="no">07</span><h2>매물 조건 · 손익분기</h2></div>
+    <div class="grid2">
       <label>이름<input type="text" data-f="name" value="${esc(c.name)}" maxlength="40"></label>
       <label>상태<select data-f="status">${STATUSES.map(x=>`<option${c.status===x?' selected':''}>${x}</option>`).join('')}</select></label>
       <label>층<input type="text" data-f="floor" value="${esc(c.floor||'')}" placeholder="1층" maxlength="20"></label>
-      <label>면적(평)<input type="number" data-f="area" value="${esc(c.area||'')}" min="0"></label>
-      <label>보증금(만원)<input type="number" data-f="deposit" value="${esc(c.deposit||'')}" min="0"></label>
-      <label>월세(만원)<input type="number" data-f="rent" value="${esc(c.rent||'')}" min="0"></label>
-      <label>권리금(만원)<input type="number" data-f="premium" value="${esc(c.premium||'')}" min="0"></label>
-      <label>문의한 사람<input type="text" data-f="contact" value="${esc(c.contact||'')}" maxlength="40"></label></div>
-    ${c.rent&&c.area?`<div class="chips" style="margin-top:8px"><span class="chip">평당 월세 ${(c.rent/c.area).toFixed(1)}만원</span>${c.deposit?`<span class="chip">보증금+권리금 ${fmtN((+c.deposit||0)+(+c.premium||0))}만</span>`:''}</div>`:''}
-    <label class="note" style="display:block;margin-top:10px;font-weight:700">메모 (현장 느낌 · 주차 · 저녁 7시 유동 · 건물 상태 등)</label>
-    <textarea data-f="memo" maxlength="3000">${esc(c.memo||'')}</textarea>
-    <div class="row sb noprint" style="margin-top:10px"><span class="note">고친 내용은 바로 저장돼요</span><button class="btn sm bad" data-act="del">후보지 삭제</button></div></div>
-  <div class="card" id="s-fin"><h2>손익분기 계산</h2><div class="note" style="margin-bottom:6px">매물 조건으로 "본전이 되려면 얼마나 팔아야 하는지" 계산해요</div>
-    <div class="row"><label class="note" style="font-weight:700">목표 월매출(만원) <input type="number" data-f="target" value="${esc(c.target||'')}" min="0" style="width:130px"></label><span class="note">월세·면적·권리금은 매물 정보에서</span></div>
-    <div id="finres">${finRes(c)}</div>
-    <div class="disc">카카오 지도에 등록된 장소 수로 계산한 참고 점수예요. 인구 · 유동인구 · 매출은 포함되지 않았고, 영역 비중은 설정에서 바꿀 수 있어요. <b>본사 내부 판단용이며 가맹 희망자에게 예상 매출처럼 보여 주지 마세요.</b></div></div>`;
+      <label>면적 (평)<input type="number" data-f="area" value="${esc(c.area||'')}" min="0"></label>
+      <label>보증금 (만원)<input type="number" data-f="deposit" value="${esc(c.deposit||'')}" min="0"></label>
+      <label>월세 (만원)<input type="number" data-f="rent" value="${esc(c.rent||'')}" min="0"></label>
+      <label>권리금 (만원)<input type="number" data-f="premium" value="${esc(c.premium||'')}" min="0"></label>
+      <label>문의한 사람<input type="text" data-f="contact" value="${esc(c.contact||'')}" maxlength="40"></label>
+      <label>목표 월매출 (만원)<input type="number" data-f="target" value="${esc(c.target||'')}" min="0"></label></div>
+    ${c.rent&&c.area?`<div class="note" style="margin-top:8px">평당 월세 ${(c.rent/c.area).toFixed(1)}만원</div>`:''}
+    <h3>손익분기</h3><div id="finres">${finRes(c)}</div>
+    <h3>메모</h3><textarea data-f="memo" maxlength="3000" placeholder="현장 느낌 · 건물 상태 · 협상 내용 등">${esc(c.memo||'')}</textarea>
+    <div class="row sb noprint" style="margin-top:12px"><span class="note">고친 내용은 바로 저장돼요</span><button class="btn sm bad" data-act="del">후보지 삭제</button></div></div>
+  ${full?`<div class="card" id="s-todo"><div class="sh"><span class="no">08</span><h2>현장에서 확인할 사항</h2></div><ul class="todo">${todoList(s).map(x=>`<li>${x}</li>`).join('')}</ul>
+    <div class="disc">이 보고서는 카카오 지도에 등록된 장소 수를 대구 기준 상권과 비교해 만든 참고 자료예요. 인구 · 유동인구 · 매출은 포함되지 않았어요. 손익분기는 예상 매출이 아니라 비용으로 계산한 본전 기준이에요. <b>본사 내부 판단용이며 가맹 희망자에게 예상 매출처럼 보여 주지 마세요.</b></div></div>`:''}`;
 }
-
 function cmpHtml(){
   const L=DB.cands.filter(c=>SEL.has(c.id)).slice(0,4);
   if(L.length<2) return `<div class="card empty">후보지 목록에서 2곳 이상 체크하고 "비교"를 누르세요 (최대 4곳)</div>`;
@@ -573,8 +617,8 @@ function cmpHtml(){
   const maxIdx=vs=>{ let b=-1,bv=-Infinity; vs.forEach((v,i)=>{ if(v.v!=null&&v.v>bv){ bv=v.v; b=i; } }); return b; };
   const minIdx=vs=>{ let b=-1,bv=Infinity; vs.forEach((v,i)=>{ if(v.v!=null&&v.v<bv){ bv=v.v; b=i; } }); return b; };
   const row=(label,vals,best)=>{ const b=best?best(vals):-1; return `<tr><th>${label}</th>${vals.map((v,i)=>`<td class="num${i===b?' best':''}">${v.t}</td>`).join('')}</tr>`; };
-  return `<div class="card"><h2>후보지 비교 (${L.length}곳)</h2>
-    ${okAll?radar(S.map(s=>s.dims.map(x=>x.score)))+`<div class="legend" style="justify-content:center;margin-bottom:8px">${L.map((c,i)=>`<span><i style="background:${PAL[i]}"></i>${esc(c.name)}</span>`).join('')}</div>`:'<div class="infobox">모든 후보지가 분석되고 대구 기준 상권이 있어야 점수 비교가 나와요</div>'}
+  return `<div class="card"><div class="sh"><h2>후보지 비교</h2><span class="aside">${L.length}곳 · 초록 칸 = 가장 좋은 값</span></div>
+    ${okAll?radar(S.map(s=>s.dims.map(x=>x.score)))+`<div class="legend" style="justify-content:center;margin:4px 0 14px">${L.map((c,i)=>`<span><i style="background:${PAL[i]}"></i>${esc(c.name)}</span>`).join('')}</div>`:'<div class="infobox">모든 후보지가 분석되고 대구 기준 상권이 있어야 점수 비교가 나와요</div>'}
     <div class="tw"><table class="cmpt"><thead><tr><th></th>${L.map(c=>`<th class="num">${esc(c.name)}</th>`).join('')}</tr></thead><tbody>
     ${row('종합 점수',L.map((c,i)=>{ const F=finalOf(c,S[i]); return F.tot!=null?{v:F.tot,t:`<span class="gr g${F.grade}">${F.grade}</span> ${F.tot}`}:{v:null,t:'-'}; }),maxIdx)}
     ${row('데이터 점수',S.map(s=>s&&s.total!=null?{v:s.total,t:s.total+'점'}:{v:null,t:'-'}),maxIdx)}
@@ -601,26 +645,26 @@ function cmpHtml(){
 
 function setHtml(){
   const br=benchCache().list;
-  return `<div class="card"><h2>우리 매장 위치 · 영업지역</h2>
+  return `<div class="card"><div class="sh"><h2>우리 매장 위치 · 영업지역</h2></div>
     <div class="note">후보지가 영업지역 안이면 빨갛게 알려 줘요. 반경은 가맹계약서와 같게 맞추세요.</div>
     <div class="row" style="margin:8px 0">영업지역 반경 <select id="zone">${[0.5,1,1.5,2,3,5].map(k=>`<option value="${k}"${+DB.zoneKm===k?' selected':''}>${k}km</option>`).join('')}</select></div>
     <table><tbody>${DB.stores.map((s,i)=>`<tr><td><b>${esc(s.name)}</b><div class="note">${esc(s.addr||'')}</div></td><td style="white-space:nowrap;text-align:right"><button class="btn sm bad" data-sdel="${i}">지우기</button></td></tr>`).join('')||'<tr><td class="note">아직 없어요</td></tr>'}</tbody></table>
     <div class="row" style="margin-top:8px"><input type="text" id="sname" placeholder="매장 이름 (예: 본점)" style="width:140px" maxlength="20"><input type="text" id="saddr" placeholder="주소" style="flex:1;min-width:180px"><button class="btn" data-act="sadd">추가</button></div>
     <div class="cands" id="scands"></div></div>
-  <div class="card"><h2>대구 기준 상권</h2>
+  <div class="card"><div class="sh"><h2>대구 기준 상권</h2></div>
     <div class="note">점수는 이 상권들과 비교한 위치예요. 한 줄에 하나씩 (앞에 "대구"를 붙여 검색해요). 우리 매장 근처와 "잘 되는 자리"를 넣어 두면 비교가 정확해져요. 최대 40곳.</div>
     <textarea id="benchNames" style="min-height:140px;margin-top:6px">${esc(DB.benchNames.join('\n'))}</textarea>
     <div class="row" style="margin-top:8px"><button class="btn pri" data-act="bench" ${benchBusy||!K?'disabled':''}>${benchBusy?'만드는 중…':DB.bench?'기준 다시 만들기':'기준 만들기'}</button><span class="note">상권 1곳당 약 10초 (25번 검색)</span></div>
     ${progHtml()}
     ${DB.bench?`<div class="note" style="margin-top:6px">${DB.bench.at} 기준 · ${br.length}곳 측정${DB.bench.points.length-br.length?` · ${DB.bench.points.length-br.length}곳 실패`:''}</div>
     <details style="margin-top:6px"><summary class="note">기준 상권 점수 보기</summary><table><tbody>${DB.bench.points.map(b=>{ if(!b.m||b.m.v!==2) return `<tr><td>${esc(b.name)}</td><td class="note">${esc(b.err||'')}</td></tr>`; const e=evalD(derive(b.m)); return `<tr><td>${esc(b.name)}<div class="note">${esc(b.place||'')}</div></td><td class="num"><span class="gr g${gradeOf(e.total)}">${gradeOf(e.total)}</span> ${e.total??'-'}</td></tr>`; }).join('')}</tbody></table></details>`:''}</div>
-  <div class="card"><h2>영역 비중</h2><div class="note">영역별 중요도. 합이 100이 아니어도 비율로 계산해요. 바꾸면 저장된 후보지 점수도 바로 다시 계산돼요.</div>
+  <div class="card"><div class="sh"><h2>영역 비중</h2></div><div class="note">영역별 중요도. 합이 100이 아니어도 비율로 계산해요. 바꾸면 저장된 후보지 점수도 바로 다시 계산돼요.</div>
     <div class="grid2" style="margin-top:8px">${DIMS.map(i=>`<label>${esc(i.t)}<input type="number" data-w="${i.k}" value="${esc(DB.weights[i.k])}" min="0" max="100"></label>`).join('')}</div>
     <button class="btn sm" data-act="wreset" style="margin-top:10px">처음 값으로</button></div>
-  <div class="card"><h2>손익분기 가정</h2><div class="note">모든 후보지의 손익분기 계산에 쓰여요. 우리 매장 실제 수치로 맞추면 정확해져요.</div>
+  <div class="card"><div class="sh"><h2>손익분기 가정</h2></div><div class="note">모든 후보지의 손익분기 계산에 쓰여요. 우리 매장 실제 수치로 맞추면 정확해져요.</div>
     <div class="grid2" style="margin-top:8px">${[['cost','원가율(%)'],['labor','인건비 비율(%)'],['var','기타 변동비(%) 카드수수료·소모품'],['other','월세 외 고정비(만원/월) 관리비·공과금'],['ticket','객단가(만원)'],['days','월 영업일'],['interior','인테리어 평당(만원)']].map(([k,l])=>`<label>${l}<input type="number" data-fin="${k}" value="${esc(DB.fin[k])}" min="0" step="any"></label>`).join('')}</div>
     <button class="btn sm" data-act="finreset" style="margin-top:10px">처음 값으로</button></div>
-  <div class="card"><h2>백업</h2><div class="note">기록은 이 컴퓨터 브라우저에만 있어요. 다른 컴퓨터로 옮기거나 지워질 때를 대비해 가끔 파일로 받아 두세요.</div>
+  <div class="card"><div class="sh"><h2>백업</h2></div><div class="note">기록은 이 컴퓨터 브라우저에만 있어요. 다른 컴퓨터로 옮기거나 지워질 때를 대비해 가끔 파일로 받아 두세요.</div>
     <div class="row" style="margin-top:8px"><button class="btn" data-act="export">백업 파일 받기</button><label class="btn">백업 불러오기<input type="file" id="imp" accept=".json,application/json" hidden></label></div></div>`;
 }
 
