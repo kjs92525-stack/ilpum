@@ -49,7 +49,7 @@ async def handler(r):
   if 'localhost' in u: return await r.continue_()
   if 'dapi.kakao.com/v2/maps/sdk.js' in u:
     if MODE['sdk']=='fail': return await r.fulfill(status=404,body='')
-    assert 'appkey=7ed6cf4a57f04e78dab3bf66a095dcd2' in u and 'libraries=services' in u
+    assert 'appkey=1aaf38e9a5c0669aad33526fced00618' in u and 'libraries=services' in u
     return await r.fulfill(status=200,content_type='application/javascript',body=STUB)
   EXT.append(u); return await r.fulfill(status=404,body='')
 FAILS=[]
