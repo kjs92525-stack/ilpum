@@ -11,6 +11,8 @@ const API = {
   apt: { url: 'https://apis.data.go.kr/1613000/RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade', keys: ['LAWD_CD', 'DEAL_YMD', 'numOfRows', 'pageNo'], ttl: 86400 },
   // 소상공인시장진흥공단 상가(상권)정보 — 반경 안 상가
   store: { url: 'https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInRadius', keys: ['radius', 'cx', 'cy', 'numOfRows', 'pageNo', 'type', 'indsLclsCd'], ttl: 86400 },
+  // 행정안전부 행정동별(통반단위) 성/연령별 주민등록 인구수 — 행정동 코드 10자리(admmCd), 기준연월 srchFrYm~srchToYm
+  pop: { url: 'https://apis.data.go.kr/1741000/admmSexdAgePpltn/selectAdmmSexdAgePpltn', keys: ['admmCd', 'srchFrYm', 'srchToYm', 'lv', 'regSeCd', 'type', 'numOfRows', 'pageNo'], ttl: 86400 },
 };
 export default {
   async fetch(req, env, ctx) {

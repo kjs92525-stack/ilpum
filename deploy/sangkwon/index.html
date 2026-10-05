@@ -204,7 +204,10 @@ const DIMS=[
     {k:'apt1k',t:'아파트',u:'건',r:'1km',get:d=>d.apt1k},
     {k:'school1k',t:'학교',u:'곳',r:'1km',get:d=>d.school1k},
     {k:'acad1k',t:'학원',u:'곳',r:'1km',get:d=>d.acad1k},
-    {k:'aptPy',t:'아파트 평당가 (구매력)',u:'만',r:'동 · 1년',get:d=>d.aptPy}]},
+    {k:'aptPy',t:'아파트 평당가 (구매력)',u:'만',r:'동 · 1년',get:d=>d.aptPy},
+    {k:'popTot',t:'주민등록 인구',u:'명',r:'행정동',get:d=>d.popTot},
+    {k:'pCore',t:'30~50대 비율 (주 고객층)',u:'%',r:'행정동',get:d=>d.pCore},
+    {k:'pOld',t:'60세 이상 비율',u:'%',r:'행정동',low:true,get:d=>d.pOld}]},
   {k:'biz',t:'회식·집객 수요',w:15,why:'회식, 병원·관공서 방문객, 하객·조문객·골프 모임',subs:[
     {k:'gov1k',t:'관공서',u:'곳',r:'1km',get:d=>d.gov1k},
     {k:'bank1k',t:'은행',u:'곳',r:'1km',get:d=>d.bank1k},
@@ -344,6 +347,25 @@ async function aptStats(lawd,dong){
   for(const ym of yms){ const mo=await aptMonth(lawd,ym); Object.entries(mo).forEach(([k,v])=>{ guA.push(...v); if(k===dong) dongA.push(...v); }); }
   return {aptPy:dongA.length>=3?Math.round(med(dongA)):null, aptN:dongA.length, aptGu:guA.length?Math.round(med(guA)):null, aptGuN:guA.length};
 }
+// 행정동 인구: 행안부 통반 단위 자료를 동 전체로 합침 (동 합계 줄이 따로 있어도 겹쳐 세지 않게 큰 쪽 사용). 최근 3개월 중 있는 달
+async function popStats(hcode){
+  const d=new Date(); let last='';
+  for(let i=1;i<=3;i++){
+    const x=new Date(d.getFullYear(),d.getMonth()-i,1), ym=`${x.getFullYear()}${String(x.getMonth()+1).padStart(2,'0')}`;
+    const rows=[]; let page=1, total=0;
+    do{ const t=await relay('pop',{admmCd:hcode,srchFrYm:ym,srchToYm:ym,lv:4,regSeCd:1,type:'JSON',numOfRows:1000,pageNo:page}); const er=apiErr(t); if(er) throw new Error(er);
+      let j; try{ j=JSON.parse(t); }catch(e){ throw new Error('인구 자료 응답 형식이 달라요'); }
+      const R=j.Response||{}; total=+((R.head||{}).totalCount)||0; let it=(R.items||{}).item||[]; if(!Array.isArray(it)) it=[it]; rows.push(...it); page++;
+    }while(rows.length<total&&page<=5);
+    const mine=rows.filter(r=>String(r.admmCd)===String(hcode)); if(!mine.length){ last=ym; continue; }
+    const sum=L=>{ const o={tot:0}; for(let a=0;a<=100;a+=10) o['a'+a]=0; L.forEach(r=>{ o.tot+=+r.totNmprCnt||0; for(let a=0;a<=100;a+=10) o['a'+a]+=(+r['male'+a+'AgeNmprCnt']||0)+(+r['feml'+a+'AgeNmprCnt']||0); }); return o; };
+    const A=sum(mine.filter(r=>!r.tong&&!r.ban)), B=sum(mine.filter(r=>r.tong||r.ban)), S=B.tot>A.tot?B:A;
+    if(S.tot<50){ last=ym; continue; }
+    let core=0,old=0; for(let a=30;a<=50;a+=10) core+=S['a'+a]; for(let a=60;a<=100;a+=10) old+=S['a'+a];
+    return {popTot:S.tot, pCore:Math.round(core/S.tot*100), pOld:Math.round(old/S.tot*100), pKid:Math.round((S.a0+S.a10)/S.tot*100), popYm:ym};
+  }
+  throw new Error('이 동의 인구 자료가 아직 없어요'+(last?' ('+last+')':''));
+}
 async function storeStats(p){
   const t=await relay('store',{radius:500,cx:p.x,cy:p.y,numOfRows:1000,pageNo:1,type:'json'}); const er=apiErr(t); if(er) throw new Error(er);
   let j; try{ j=JSON.parse(t); }catch(e){ throw new Error('상가정보 응답 형식이 달라요'); }
@@ -387,9 +409,10 @@ async function measure(p,onStep){
   }else m.comp=null;
   m.subway=res.subway?res.subway.list.map(x=>({name:x.place_name,x:+x.x,y:+x.y,dist:x.distance===''||x.distance==null?Math.round(distM(p,{x:+x.x,y:+x.y})):+x.distance})):null;
   const h=res.region&&(res.region.list.find(x=>x.region_type==='H')||res.region.list[0]); m.region=h?h.address_name:'';
-  const bR=res.region&&res.region.list.find(x=>x.region_type==='B'); if(bR){ m.bcode=bR.code; m.bdong=bR.region_3depth_name; }
+  if(h) m.hcode=h.code; const bR=res.region&&res.region.list.find(x=>x.region_type==='B'); if(bR){ m.bcode=bR.code; m.bdong=bR.region_3depth_name; }
   if(DB.relay){ m.pub={};
     try{ Object.assign(m,await storeStats(p)); }catch(e){ m.pub.store=e.message; fail.push('store'); }
+    if(m.hcode){ try{ Object.assign(m,await popStats(m.hcode)); }catch(e){ m.pub.pop=e.message; fail.push('pop'); } }
     if(m.bcode){ try{ Object.assign(m,await aptStats(String(m.bcode).slice(0,5),m.bdong)); }catch(e){ m.pub.apt=e.message; fail.push('apt'); } }
   }
   return m;
@@ -523,6 +546,7 @@ function opinion(c,s,fin){
   const draw=[['ghosp2k','종합병원 방문객·보호자'],['wed2k','예식장 하객'],['fun2k','장례식장 조문객'],['golf1k','골프 모임'],['univ2k','대학 교직원·모임']].filter(([k])=>{ const pp=subP(s,k); return pp!=null&&pp>=70&&(d[k]||0)>0; });
   if(draw.length) P.push(`주변 집객시설이 강해요: ${draw.map(([k,t])=>`${t}(${fmtN(d[k])}곳)`).join(', ')}. 장어집은 이런 행사·방문 뒤 식사 수요가 커서, 주말·저녁 매출에 도움이 돼요.`);
   if(d.aptPy!=null&&d.aptGu){ const r=d.aptPy/d.aptGu*100; P.push(`최근 1년 ${esc(d.bdong)} 아파트 평당가는 약 ${fmtN(d.aptPy)}만원으로 구 전체(${fmtN(d.aptGu)}만원)의 ${Math.round(r)}% 수준이에요. ${r>=115?'구매력이 높은 동네라 장어 같은 고단가 외식에 유리해요.':r<=85?'구매력이 구 평균보다 낮은 편이라 가격 저항을 고려해야 해요.':'구매력은 구 평균 수준이에요.'}`); }
+  if(d.popTot!=null) P.push(`${esc(d.bdong||'이 동')} 주민등록 인구는 ${fmtN(d.popTot)}명이고, 장어 주 고객층인 30~50대가 ${d.pCore}%, 60세 이상이 ${d.pOld}%예요.`);
   if(d.store500!=null&&d.foodRatio!=null) P.push(`소상공인 상가 자료로 500m 안 상가는 ${fmtN(d.store500)}곳이고 그중 음식업이 ${d.foodRatio}%예요.`);
   const sp=satP(d); if(sp!=null) P.push(sp<=35?'배후 수요(아파트·관공서·병원)에 비해 음식점이 많은 편이라 외식 경쟁이 치열해요.':sp>=65?'배후 수요에 비해 음식점이 적은 편이라 외식 수요를 흡수할 여지가 있어요.':'배후 수요와 음식점 수는 대구 기준 상권과 비슷한 수준이에요.');
   if(fin) P.push(`월세 ${fmtN(c.rent)}만원 기준 손익분기 월매출은 약 <b>${fmtN(Math.round(fin.need))}만원</b>, 하루 손님 약 <b>${Math.ceil(fin.guests)}명</b>이 필요해요.${fin.target?(fin.rentRatio>12?` 목표 매출 대비 임대료 비율이 ${fin.rentRatio.toFixed(1)}%로 높은 편이에요(10% 이하 권장).`:` 목표 매출 대비 임대료 비율은 ${fin.rentRatio.toFixed(1)}%로 적정해요.`):''}`);
