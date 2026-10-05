@@ -492,7 +492,7 @@ function warnings(c,s){
   if(f&&f.turns!=null&&f.turns>2.5) out.push(`본전을 맞추려면 테이블당 하루 ${f.turns.toFixed(1)}회전이 필요해요 — 장어집 저녁 장사로는 빠듯해요`);
   if(+c.area>0&&+c.area<15) out.push(`${c.area}평은 장어집에 작은 편이에요 — 회식 단체석을 두기 어려워요`);
   if(!isDaegu(c)) out.push('대구 밖 주소예요 — 점수는 대구 기준 상권과 비교한 값이라 맞지 않아요');
-  if(s&&s.d.pub&&(s.d.pub.apt||s.d.pub.store)) out.push('공공데이터를 못 받았어요: '+esc(s.d.pub.apt||s.d.pub.store)+' (설정 → 공공데이터 연결)');
+  if(s&&s.d.pub){ const P=s.d.pub, lbl={store:'상가',pop:'인구·연령',rest:'음식점 인허가',apt:'아파트 실거래가'}; const bad=Object.keys(lbl).filter(k=>P[k]); if(bad.length) out.push('공공데이터를 못 받았어요: '+bad.map(k=>lbl[k]+' — '+esc(P[k])).join(' / ')+' (설정 → 공공데이터 연결)'); }
   else if(s&&s.d.fail&&s.d.fail.length) out.push('일부 항목을 못 받아 그 항목은 점수에서 뺐어요. "다시 분석"을 눌러 보세요');
   return out;
 }
