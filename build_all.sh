@@ -27,6 +27,8 @@ open('dist-tools/yucheon-import.html','w',encoding='utf-8').write(t.replace('/*M
 print('yucheon-import.html')
 PY
 mv dist/ilpum-migrate.html dist-tools/
+# 상권분석은 따로 배포: 저장소에도 올려 두어 GitHub 에서 바로 받을 수 있게 (이름 index.html)
+mkdir -p deploy/sangkwon out/sangkwon-upload && cp dist/sangkwon.html deploy/sangkwon/index.html && cp dist/sangkwon.html out/sangkwon-upload/index.html
 rm -f out/ilpum-deploy.zip
 (cd dist && zip -q ../out/ilpum-deploy.zip *.html)
 echo "완료: dist/ 의 파일(또는 out/ilpum-deploy.zip)을 배포하세요. dist-tools/ 는 올리지 마세요"
