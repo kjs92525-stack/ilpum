@@ -172,6 +172,23 @@ async def main():
     await pg.click('[data-fs=duct][data-v="3"]'); await pg.wait_for_timeout(100)
     ok('    같은 숫자 다시 누르면 지움 → 점수 없음', int((await pg.inner_text('.scorebox .num')).split('/')[0])==base)
     await pg.click('[data-fs=duct][data-v="3"]'); await pg.wait_for_timeout(100)
+    # 유사 점포 · 경쟁점 실력 · 시세 · 직접 세기
+    await pg.click('[data-tab=set]'); await pg.fill('[data-ss="0"]','3000'); await pg.click('[data-act=storeMeasure]')
+    await pg.wait_for_function("(JSON.parse(localStorage.getItem('ilpum-sk-v1')).stores[0]||{}).m",timeout=60000); await pg.wait_for_timeout(300)
+    st=(await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))"))['stores'][0]
+    ok('16) 우리 매장 자리 분석·월매출 저장', st.get('sales')==3000 and st['m']['v']==2)
+    await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300)
+    an=await pg.inner_text('#s-analog')
+    ok('    유사 점포: 본점과 닮은 정도 %·참고 월매출(내부)·비교표', '본점' in an and '%' in an and '참고 월매출' in an and '매출 예측이 아니고' in an and await pg.evaluate("document.querySelectorAll('#s-analog tbody tr').length")>=8, an[:200])
+    await pg.fill('[data-cq="e1"][data-k=r]','4.7'); await pg.fill('[data-cq="e1"][data-k=n]','1500'); await pg.select_option('[data-cq="e1"][data-k=z]','3'); await pg.wait_for_timeout(300)
+    cp=await pg.inner_text('#s-comp'); await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300); sw=await pg.inner_text('#s-swot')
+    ok('17) 경쟁점 실력: 평점 4.7·리뷰 1500·대형 → 강한 경쟁점 1곳·SWOT 위협', '강한 경쟁점 (700m 안)' in cp and '1곳' in cp and '강한 장어집(' in sw, cp[-300:])
+    c=(await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))"))['cands'][0]
+    ok('    입력값 저장', c['compQ']['e1']=={'r':4.7,'n':1500,'z':3}, c.get('compQ'))
+    await pg.fill('[data-f=mkRent]','6'); await pg.wait_for_timeout(200); rf=await pg.inner_text('#s-fin'); await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300)
+    ok('18) 시세 6만 대비 평당 7.5만 → +25% 비쌈·SWOT 약점', '+25%' in rf and '주변 시세보다 25% 비싸요' in await pg.inner_text('#s-swot'))
+    await pg.fill('[data-f=cntWk]','200'); await pg.fill('[data-f=cntWe]','100'); await pg.dispatch_event('[data-f=cntWe]','change'); await pg.wait_for_timeout(300)
+    ok('19) 직접 세기: 10분 평균 150명 → 시간당 900명·많음', '시간당 약 900명' in await pg.inner_text('#s-field') and '많음' in await pg.inner_text('#s-field'))
     await pg.fill('#nope','') if False else None
     await pg.click('[data-tab=list]'); await pg.fill('#q','범어역'); await pg.click('[data-act=find]'); await pg.wait_for_function("document.querySelectorAll('.scorebox').length&&document.querySelector('#rcard').innerText.includes('범어역 2호선')",timeout=20000)
     ok('9) 주소 아니면 장소 이름으로, 1곳이면 바로 분석', '범어역 2호선' in await pg.inner_text('#rcard'))
