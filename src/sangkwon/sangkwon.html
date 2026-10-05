@@ -293,6 +293,7 @@ function detailHtml(){
       ${ITEMS.map(i=>`<tr><td><b>${i.t}</b> <span class="note">×${DB.weights[i.k]}</span><div class="note">${i.why}</div></td><td>${itemText(i.k,c.m,s.r)}</td><td class="num" style="min-width:110px"><b>${s.p[i.k]}</b> / 100<div class="bar"><i style="width:${s.p[i.k]}%"></i></div></td></tr>`).join('')}
       <tr><td><b>구매력</b><div class="note">아파트 실거래가</div></td><td class="note" colspan="2">2단계에서 공공데이터로 추가 예정</td></tr>
     </tbody></table></div>`:''}
+    ${c.m&&!s?`<div class="infobox"><b>점수를 보려면 "대구 기준 상권"이 필요해요.</b> 지금은 모은 수치만 보여요.</div><div class="tw"><table><thead><tr><th>항목</th><th>값</th></tr></thead><tbody>${ITEMS.map(i=>`<tr><td><b>${i.t}</b><div class="note">${i.why}</div></td><td>${itemText(i.k,c.m,raw(c.m))}</td></tr>`).join('')}</tbody></table></div>`:''}
     ${c.m?`<h3>반경 안 장어집 ${c.m.comp.length}곳${c.m.compMore?' (45곳이 넘어 일부만)':''}</h3>
       ${c.m.comp.length?`<div class="tw"><table><thead><tr><th>이름</th><th class="num">거리</th><th>주소</th></tr></thead><tbody>${c.m.comp.map(p=>{ const u=safeUrl(p.url); return `<tr><td>${u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(p.name)}</a>`:esc(p.name)}${p.tel?`<div class="note">${esc(p.tel)}</div>`:''}</td><td class="num">${fmtM(p.dist)}</td><td class="note">${esc(p.addr)}</td></tr>`; }).join('')}</tbody></table></div>`:'<div class="note">반경 안에 장어집이 없어요</div>'}`:''}
     <h3>매물 정보</h3>
