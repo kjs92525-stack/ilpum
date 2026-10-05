@@ -27,7 +27,7 @@ nav button[aria-current]{color:var(--navy);border-bottom-color:var(--navy)}
 .sp{flex:1}
 main{max-width:1340px;margin:0 auto;padding:22px 20px 100px}
 .wrap{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(320px,.8fr);gap:22px;align-items:start}
-@media (max-width:1000px){.wrap{grid-template-columns:1fr}.mapbox{order:-1;position:static!important}#map{height:250px!important;min-height:0!important}header{padding:6px 14px;gap:10px}nav button{padding:10px 10px}main{padding:14px 12px 90px}}
+@media (max-width:1000px){.wrap{grid-template-columns:minmax(0,1fr)}.mapbox{order:-1;position:static!important}#map{height:250px!important;min-height:0!important}header{padding:6px 14px;gap:10px}nav button{padding:10px 10px}main{padding:14px 12px 90px}}
 .mapbox{position:sticky;top:80px}
 #map{height:calc(100vh - 130px);min-height:380px;border:1px solid var(--line);background:var(--soft);overflow:hidden}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin-top:8px}
@@ -135,6 +135,7 @@ textarea{width:100%;min-height:76px;resize:vertical}
 .gl-b.hi .bar i{background:var(--ok)}.gl-b.lo .bar i{background:var(--warn)}.gl-b b{text-align:right;font-family:var(--serif)}
 .gl-l{margin-bottom:10px;padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.55}.gl-l b{display:block;margin-bottom:2px;font-size:12px;letter-spacing:.04em}.gl-l p{margin:3px 0}.gl-l p.n{color:var(--sub)}
 .gl-l.ok{background:rgba(47,107,79,.07)}.gl-l.ok b{color:var(--ok)}.gl-l.no{background:rgba(161,58,50,.07)}.gl-l.no b{color:var(--warn)}
+
 /* 표지 */
 .cover{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;padding-bottom:20px;border-bottom:3px double var(--ink)}
 @media (max-width:640px){.cover{grid-template-columns:1fr}}
@@ -227,13 +228,47 @@ td.num,th.num{text-align:right;white-space:nowrap}
 details summary{cursor:pointer}
 @media (prefers-color-scheme:dark){:root{--bg:#0e1116;--paper:#161b23;--ink:#e6e9ee;--ink2:#c7ccd5;--sub:#8d95a3;--faint:#6c7480;--line:#262d38;--line2:#323a47;--navy:#7fa6d8;--navy2:#9bbbe4;--navyT:rgba(127,166,216,.12);--soft:#1c222c;--gold:#c9a24e;--warn:#e07a70;--ok:#6cbf94}.btn.pri{color:#0e1116}.stars button.on{color:#0e1116}}
 @media print{header,.noprint,.mapbox,nav,.secnav{display:none!important}.wrap{display:block}main{max-width:none;padding:0}body{background:#fff}.card{border:0;border-bottom:1px solid #ccc;padding:14px 0;break-inside:avoid}.ponly{display:block}}
+
+/* ---- 폰 전용: 구역 접기·가로 스크롤 메뉴·표를 카드로·지도 접기 ---- */
+.mobonly{display:none}
+@media (max-width:700px){
+  .mobonly{display:inline-block}
+  header{flex-wrap:nowrap;gap:6px;padding:0 10px}header h1{font-size:14px;white-space:nowrap}header .tag,#sdk{display:none}header .sp{display:none}
+  main{padding:10px 10px 90px}
+  .card{padding:14px 14px;margin-bottom:10px;border-radius:12px}
+  .card h2{font-size:17px}
+  .cover{gap:14px}.cover h1{font-size:22px}
+  .scorebox{flex-direction:row;justify-content:center;gap:16px;padding:6px 0;border:0!important}
+  .donut{width:112px;height:112px}.donut>div{width:88px;height:88px}.donut .num{font-size:30px}
+  .tiles{gap:8px}.tile{padding:10px 11px}.tile b{font-size:21px}
+  .btn{min-height:40px}.btn.sm{min-height:38px}
+  #pane{min-width:0}.secnav{max-width:100%;position:static;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 0 8px;margin:0 0 8px;gap:6px}
+  .secnav a,.secnav button{flex:0 0 auto;border:1px solid var(--line2);border-radius:999px;background:var(--paper);padding:6px 13px;font-size:13px;white-space:nowrap}
+  .secnav a:last-child{border-right:1px solid var(--line2)}
+  .card[id^="s-"] > .sh{cursor:pointer;margin-bottom:0;padding-bottom:0;border-bottom:0;align-items:center}
+  .card[id^="s-"] > .sh::after{content:"▾";margin-left:auto;font-size:16px;color:var(--sub);transition:transform .15s}
+  .card[id^="s-"] > .sh .aside{display:none}
+  .card[id^="s-"].open > .sh{padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--ink)}
+  .card[id^="s-"].open > .sh::after{transform:rotate(180deg)}
+  .card[id^="s-"]:not(.open) > :not(.sh){display:none}
+  .dt.dm thead{display:none}
+  .dt.dm tr{display:grid;grid-template-columns:1fr auto auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--line);align-items:baseline}
+  .dt.dm td{border:0;padding:0}.dt.dm td:nth-child(1){font-weight:600}.dt.dm td:nth-child(3){display:none}
+  .dt.dm td:nth-child(5){grid-column:1/-1;font-size:12.5px}
+  .rkrow{font-size:13px;height:22px}.dv{font-size:13px}
+  .vizrow{gap:10px}.viz{padding:12px 12px}
+  .gl-b{grid-template-columns:92px 1fr 26px}
+  .glance{padding:13px 13px}
+  body:not(.showmap) .mapbox{display:none}
+  nav button{padding:10px 9px}
+}
 </style>
 </head>
 <body>
 <header>
   <h1>일품집 상권분석</h1><span class="tag">대구 · 본사 내부 자료</span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
-  <span class="sp"></span><span id="sdk" class="note"></span>
+  <span class="sp"></span><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px">지도</button><span id="sdk" class="note"></span>
 </header>
 <main><div class="wrap"><div id="pane"></div><div class="mapbox"><div id="map"></div><div class="legend" id="legend"></div></div></div></main>
 <div class="toast" id="toast" role="status"></div>
@@ -788,7 +823,7 @@ function demandHtml(s,c){
     <div style="margin-top:8px;font-size:14px"><b>${gap>=12?'수요가 경쟁보다 우세해요. 시장에 비집고 들어갈 여지가 있어요.':gap<=-12?'경쟁 부담이 수요보다 커요. 차별점 없이는 어려운 시장이에요.':'수요와 경쟁이 비슷한 수준이에요. 입지·가격·운영 차별화가 승부처예요.'}</b></div></div>`:'';
   const ta=d.corePop!=null?`<p class="note" style="margin:10px 0 0">잠재 고객 풀: 동 전체 30~59세 주민은 약 ${fmtN(d.corePop)}명이고, 1km 안 장어집은 ${d.n1k??'-'}곳이에요. 이 수치는 <b>매출 예측이 아니라</b> 시장 크기를 가늠하는 참고 지표예요 (동 경계와 반경이 달라 정확하지 않아요).</p>`:'';
   return `<div class="card" id="s-demand"><div class="sh"><span class="no">04</span><h2>수요 · 공급 · 타깃 분석</h2><span class="aside">${s.has?'중간값·점수 = 대구 기준 상권 대비':'기준 상권을 만들면 비교가 붙어요'}</span></div>
-    ${bars}${R.length?`<div class="tw"><table class="dt"><thead><tr><th>지표</th><th style="text-align:right">후보지</th><th style="text-align:right">기준 중간</th><th style="text-align:right">점수</th><th>해석</th></tr></thead><tbody>${R.join('')}</tbody></table></div>`:'<div class="note">인구·음식점 인허가 자료가 있어야 표가 채워져요 (설정 → 공공데이터 연결).</div>'}${ta}</div>`;
+    ${bars}${R.length?`<div class="tw"><table class="dt dm"><thead><tr><th>지표</th><th style="text-align:right">후보지</th><th style="text-align:right">기준 중간</th><th style="text-align:right">점수</th><th>해석</th></tr></thead><tbody>${R.join('')}</tbody></table></div>`:'<div class="note">인구·음식점 인허가 자료가 있어야 표가 채워져요 (설정 → 공공데이터 연결).</div>'}${ta}</div>`;
 }
 function swotData(s,c){
   const d=s.d, S=[],W=[],O=[],T=[]; const q=k=>{ const x=s.dims.find(y=>y.k===k); return x&&x.score!=null?x.score:null; };
@@ -870,9 +905,13 @@ function glanceHtml(s,c,F){
 /* ---------------- 화면 ---------------- */
 let TAB='list', CUR=null, CANDS=[], SEL=new Set(), FILTER='', PICK=false, busy=false;
 function go(tab,id){ TAB=tab; if(id!==undefined) CUR=id; render(); window.scrollTo(0,0); }
+const OPENSET=new Set(), isMob=()=>window.matchMedia&&window.matchMedia('(max-width:700px)').matches;
+function applyFold(){ $$('.card[id^="s-"]').forEach(c=>c.classList.toggle('open',OPENSET.has(c.id))); }
+function openSec(id){ OPENSET.add(id); applyFold(); }
 function render(){
   $$('#nav button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.tab===TAB));
   $('#pane').innerHTML={list:listHtml,detail:detailHtml,cmp:cmpHtml,set:setHtml}[TAB]();
+  applyFold();
   drawMap();
 }
 const benchOk=()=>!!DB.bench&&benchCache().list.length>=5;
@@ -932,7 +971,7 @@ function detailHtml(){
   const s=c.m?scoreOf(c.m,c):null, w=warnings(c,s), near=nearStores(c), fin=finCalc(c);
   const ext=`https://map.kakao.com/link/map/${encodeURIComponent(c.name)},${c.y},${c.x}`;
   const ok=s&&!stale(c), full=ok&&s.has&&s.total!=null, F=full?finalOf(c,s):null;
-  const nav=`<div class="secnav noprint"><a href="#s-sum">결론</a>${full?'<a href="#s-diag">상권 개요</a><a href="#s-eval">영역 평가</a><a href="#s-demand">수요·공급</a><a href="#s-swot">SWOT</a>':''}${ok?'<a href="#s-items">세부 지표</a><a href="#s-comp">경쟁</a>':''}<a href="#s-field">현장 실사</a><a href="#s-fin">매물·손익</a>${full?'<a href="#s-todo">확인 사항</a>':''}</div>`;
+  const nav=`<div class="secnav noprint"><a href="#s-sum">결론</a>${full?'<a href="#s-diag">상권 개요</a><a href="#s-eval">영역 평가</a><a href="#s-demand">수요·공급</a><a href="#s-swot">SWOT</a>':''}${ok?'<a href="#s-items">세부 지표</a><a href="#s-comp">경쟁</a>':''}<a href="#s-field">현장 실사</a><a href="#s-fin">매물·손익</a>${full?'<a href="#s-todo">확인 사항</a>':''}<button type="button" class="mobonly" data-act="foldall">모두 펴기·접기</button></div>`;
   const cover=`<div class="cover"><div><div class="eyebrow">출점 검토 보고서</div><h1>${esc(c.name)}</h1>
       <div class="meta">${esc(c.addr)}${c.m&&c.m.region?' · '+esc(c.m.region):''}</div>
       <div class="meta" style="margin-top:4px"><span class="st" data-s="${esc(c.status)}">${esc(c.status)}</span>${c.m?` &nbsp;자료 기준 ${esc(c.m.at)}`:''}</div></div>
@@ -1130,6 +1169,12 @@ function importFile(f){
 }
 document.addEventListener('click',async e=>{
   const nb=e.target.closest('#nav button'); if(nb) return go(nb.dataset.tab);
+  if(isMob()){
+    const sh=e.target.closest('.card[id^="s-"] > .sh'); if(sh){ const c=sh.parentElement; if(OPENSET.has(c.id)) OPENSET.delete(c.id); else OPENSET.add(c.id); applyFold(); return; }
+    const na=e.target.closest('.secnav a'); if(na){ const id=(na.getAttribute('href')||'').slice(1); if(id&&id.startsWith('s-')&&id!=='s-sum'){ e.preventDefault(); openSec(id); const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); return; } }
+  }
+  if(e.target.closest('[data-act=maptoggle]')){ document.body.classList.toggle('showmap'); drawMap(); return; }
+  if(e.target.closest('[data-act=foldall]')){ const ids=$$('.card[id^="s-"]').map(c=>c.id); if(ids.every(i=>OPENSET.has(i))) OPENSET.clear(); else ids.forEach(i=>OPENSET.add(i)); applyFold(); return; }
   if(e.target.matches('[data-sel]')){ const id=e.target.dataset.sel; e.target.checked?SEL.add(id):SEL.delete(id); const b=$('[data-act=cmpSel]'); if(b){ b.disabled=SEL.size<2; b.textContent=`선택 ${SEL.size}곳 비교`; } e.stopPropagation(); return; }
   const cc=e.target.closest('[data-open]'); if(cc&&!e.target.closest('input')) return go('detail',cc.dataset.open);
   const t=e.target.closest('button,[data-act]'); if(!t) return;
