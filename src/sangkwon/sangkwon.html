@@ -729,7 +729,9 @@ function detailHtml(){
       <div><span>가까운 우리 매장</span><b>${near[0]?esc(near[0].name)+' '+fmtM(near[0].d):'-'}</b></div>
       <div><span>음식점 포화도</span><b>${sp==null?'-':sp>=65?'낮음':sp<=35?'높음':'보통'}</b></div>
       ${s.d.aptGu!=null?`<div><span>아파트 평당가 (${esc(s.d.bdong||'동')} / 구 전체, 1년)</span><b>${s.d.aptPy!=null?fmtN(s.d.aptPy)+'만':'거래 적음'} / ${fmtN(s.d.aptGu)}만</b></div>`:''}
-      ${s.d.store500!=null?`<div><span>상가 수 500m (음식업 비율)</span><b>${fmtN(s.d.store500)}곳${s.d.foodRatio!=null?` (${s.d.foodRatio}%)`:''}</b></div>`:''}</div>
+      ${s.d.store500!=null?`<div><span>상가 수 500m (음식업 비율)</span><b>${fmtN(s.d.store500)}곳${s.d.foodRatio!=null?` (${s.d.foodRatio}%)`:''}</b></div>`:''}
+      ${s.d.popTot!=null?`<div><span>${esc(s.d.bdong||'행정동')} 주민등록 인구 (${esc(s.d.popYm||'')})</span><b>${fmtN(s.d.popTot)}명</b></div><div><span>연령 구성 (0~19세 / 30~50대 / 60세↑)</span><b>${s.d.pKid}% / ${s.d.pCore}% / ${s.d.pOld}%</b></div>`:''}
+      ${s.d.restOn!=null?`<div><span>일반음식점 (영업 / 1년 개업 / 1년 폐업)</span><b>${fmtN(s.d.restOn)} / ${fmtN(s.d.restOpen12)} / ${s.d.restClose12!=null?fmtN(s.d.restClose12):'-'}곳</b></div>`:''}</div>
     <h3>진단 의견</h3><div class="op">${opinion(c,s,fin).map(p=>`<p>${p}</p>`).join('')}</div></div>
   <div class="card" id="s-eval"><div class="sh"><span class="no">03</span><h2>영역별 평가</h2><span class="aside">상권 5개 영역 = 대구 기준 상권 ${s.of}곳 대비 (50 = 중간) · 매물 조건 = 기준표</span></div>
     <div class="evgrid"><div>${evalRows(s)}</div><div>${radar([s.dims.filter(x=>!x.prop).map(x=>x.score)])}</div></div></div>`:''}
