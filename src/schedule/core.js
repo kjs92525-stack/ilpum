@@ -135,9 +135,9 @@ const Remote={
     const rows=await this.fetchJ('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'});
     return rows.map(r=>({id:r.id,name:r.name,isHq:!!r.is_hq,role:r.role||null,pay:!!r.can_pay,staffId:r.staff_id||null}));
   },
-  async items(sid){ const rows=await this.fetchJ(`/rest/v1/sch_items?select=kind,id,data,deleted,updated_at&store_id=eq.${encodeURIComponent(sid)}&deleted=eq.false&id=not.like.calc:*`);
+  async items(sid){ const rows=await this.fetchJ(`/rest/v1/sch_items?select=kind,id,data,deleted,updated_at&store_id=eq.${encodeURIComponent(sid)}&deleted=eq.false&id=not.like.calc:*&kind=neq.site`);
     const out={}; let last=''; rows.forEach(r=>{ (out[r.kind]=out[r.kind]||{})[r.id]=r.data; if(r.updated_at>last) last=r.updated_at; }); this.last=last||new Date(0).toISOString(); return out; },
-  async since(sid){ const rows=await this.fetchJ(`/rest/v1/sch_items?select=kind,id,data,deleted,updated_at&store_id=eq.${encodeURIComponent(sid)}&id=not.like.calc:*&updated_at=gt.${encodeURIComponent(this.last)}&order=updated_at`);
+  async since(sid){ const rows=await this.fetchJ(`/rest/v1/sch_items?select=kind,id,data,deleted,updated_at&store_id=eq.${encodeURIComponent(sid)}&id=not.like.calc:*&kind=neq.site&updated_at=gt.${encodeURIComponent(this.last)}&order=updated_at`);
     rows.forEach(r=>{ if(r.updated_at>this.last) this.last=r.updated_at; }); return rows; },
   async putMany(batch){
     const by={}; batch.forEach(w=>(by[w.sid]=by[w.sid]||[]).push(w));

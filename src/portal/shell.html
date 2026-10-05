@@ -143,7 +143,7 @@ select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var
 
 /* ================= 설정 (파일 이름이 다르면 여기만 고치세요) ================= */
 const FILES={ res:'reserve.html', sch:'ilpum-schedule.html', pay:'pay.html',
-              ord:'order.html', notice:'notice.html', board:'board.html' };
+              ord:'order.html', notice:'notice.html', board:'board.html', site:'site.html' };
 const NEW={url:'https://bdqcrbnbuoujozlpttbe.supabase.co',key:'/*NEWKEY*/'};   // 근무표 · 예약 (둘 다 새 서버, 매장별로 나뉨)
 
 /* ================= 메뉴 ================= */
@@ -158,6 +158,7 @@ const ICON={
   cart:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>',
   car:'<polyline points="9 18 15 12 9 6"/>',
   bell:'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  map:'<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
   chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
 };
 const ic=n=>`<svg class="i" viewBox="0 0 24 24">${ICON[n]}</svg>`;
@@ -168,7 +169,7 @@ const ROUTES={
   cards:{t:'근무 스케줄',frame:'sch',view:'cards'}, week:{t:'근무 스케줄 · 주간표',frame:'sch',view:'week'}, day:{t:'근무 스케줄 · 하루',frame:'sch',view:'day'},
   rules:{t:'근무 스케줄 · 기간 설정',frame:'sch',view:'rules'}, me:{t:'근무 스케줄 · 내 스케줄',frame:'sch',view:'me'},
   pay:{t:'급여 관리',frame:'pay'}, hq:{t:'매장 관리',frame:'sch',view:'hq'}, acct:{t:'계정 · 권한',frame:'sch',view:'acct'}, set:{t:'설정',frame:'sch',view:'set'},
-  ord:{t:'발주 관리',frame:'ord'}, notice:{t:'공지사항',frame:'notice'}, board:{t:'게시판 · 본사와 1:1 상담',frame:'board'}
+  ord:{t:'발주 관리',frame:'ord'}, notice:{t:'공지사항',frame:'notice'}, board:{t:'게시판 · 본사와 1:1 상담',frame:'board'}, site:{t:'상권 분석',frame:'site'}
 };
 // 왼쪽 메뉴 (테이블 현황은 예약 관리 안에 있어서 넣지 않았어요)
 const MENU=[
@@ -180,6 +181,7 @@ const MENU=[
   {id:'pay',label:'급여 관리',icon:'card',payOnly:true},
   {id:'board',label:'게시판',icon:'chat',boardOnly:true},
   {id:'hq',label:'매장 관리',icon:'home',needHq:true},
+  {id:'site',label:'상권 분석',icon:'map',hqOnly:true},
   {id:'acct',label:'계정 · 권한',icon:'user',needAcct:true},
   {id:'set',label:'설정',icon:'gear',needEdit:true},
   {id:'ord',label:'발주 관리',icon:'cart'}
@@ -196,7 +198,7 @@ function buildMenu(){
 // 본사 계정: 모든 기능 / 가맹점 계정: 자기 매장의 근무표만 (예약·급여·발주 메뉴는 숨김)
 let ME={mode:'none',hq:false,store:null,token:'',email:''};
 // 급여 메뉴는 금액을 볼 수 있는 계정(본사=본점 / 점주 / 허용된 매니저)에게만 보여요
-const allowed=id=>ME.orderOnly?id==='ord':!(ME.mode==='in'&&((id==='pay'&&!ME.canPay)||(id==='board'&&!ME.board)||(id==='acct'&&!ME.acct)));
+const allowed=id=>ME.orderOnly?id==='ord':!(ME.mode==='in'&&((id==='pay'&&!ME.canPay)||(id==='board'&&!ME.board)||(id==='acct'&&!ME.acct)||(id==='site'&&!ME.hq)));
 function readConf(){ try{ return JSON.parse(localStorage.getItem('ilpum-fr-conf'))||{}; }catch(e){ return {}; } }
 function readSes(){ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; }
 async function refreshSes(ses){
@@ -316,7 +318,7 @@ async function loadDash(manual){
         if(!st) throw new Error('매장을 찾지 못했어요');
         let items;
         if(!manual&&dashItems&&dashItems.sid===st.id&&Date.now()-dashItems.at<1800000) items=dashItems.items;
-        else{ const rows=await sget(NEW,`/rest/v1/sch_items?store_id=eq.${st.id}&deleted=eq.false&id=not.like.calc:*&select=kind,id,data`,{token:tk}); items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data); dashItems={sid:st.id,at:Date.now(),items}; }
+        else{ const rows=await sget(NEW,`/rest/v1/sch_items?store_id=eq.${st.id}&deleted=eq.false&id=not.like.calc:*&kind=neq.site&select=kind,id,data`,{token:tk}); items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data); dashItems={sid:st.id,at:Date.now(),items}; }
         const D=buildD(items,st.name); out.staff={D,R:resolve(D,now),name:st.name};
       }catch(e){ out.staffErr=e.message; } })()
   ]);
