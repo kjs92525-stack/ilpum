@@ -197,12 +197,14 @@ const DIMS=[
     {k:'meat500',t:'고깃집',u:'곳',r:'500m',get:d=>d.meat500},
     {k:'pub500',t:'술집',u:'곳',r:'500m',get:d=>d.pub500},
     {k:'cafe500',t:'카페',u:'곳',r:'500m',get:d=>d.cafe500},
-    {k:'cvs500',t:'편의점 (유동 대용)',u:'곳',r:'500m',get:d=>d.cvs500}]},
+    {k:'cvs500',t:'편의점 (유동 대용)',u:'곳',r:'500m',get:d=>d.cvs500},
+    {k:'store500',t:'상가 수 (소상공인 자료)',u:'곳',r:'500m',get:d=>d.store500}]},
   {k:'fam',t:'가족·주거',w:20,why:'가족 손님과 동네 단골',subs:[
     {k:'apt500',t:'아파트',u:'건',r:'500m',get:d=>d.apt500},
     {k:'apt1k',t:'아파트',u:'건',r:'1km',get:d=>d.apt1k},
     {k:'school1k',t:'학교',u:'곳',r:'1km',get:d=>d.school1k},
-    {k:'acad1k',t:'학원',u:'곳',r:'1km',get:d=>d.acad1k}]},
+    {k:'acad1k',t:'학원',u:'곳',r:'1km',get:d=>d.acad1k},
+    {k:'aptPy',t:'아파트 평당가 (구매력)',u:'만',r:'동 · 1년',get:d=>d.aptPy}]},
   {k:'biz',t:'회식·집객 수요',w:15,why:'회식, 병원·관공서 방문객, 하객·조문객·골프 모임',subs:[
     {k:'gov1k',t:'관공서',u:'곳',r:'1km',get:d=>d.gov1k},
     {k:'bank1k',t:'은행',u:'곳',r:'1km',get:d=>d.bank1k},
@@ -246,7 +248,8 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 /* ---------------- 저장 ---------------- */
 const defW=()=>Object.fromEntries(DIMS.map(i=>[i.k,i.w]));
 const defFin=()=>({cost:40,labor:25,var:8,other:200,ticket:4,days:26,interior:250,party:3,pyPerTable:3.3});
-const defDB=()=>({v:2,stores:[],zoneKm:2,weights:defW(),fin:defFin(),benchNames:DEF_BENCH.slice(),bench:null,cands:[]});
+const DEF_RELAY='https://ilpum-data.yoyo925.workers.dev';
+const defDB=()=>({v:2,relay:DEF_RELAY,stores:[],zoneKm:2,weights:defW(),fin:defFin(),benchNames:DEF_BENCH.slice(),bench:null,cands:[]});
 let DB=defDB();
 // 예전(v1) 기록: 후보지·매장·설정은 살리고, 분석값은 새 형식이 아니라 다시 분석하도록 비움
 function migrate(j){
@@ -306,6 +309,49 @@ async function geocode(q){
 }
 const isDaegu=p=>p.x>128.3&&p.x<128.95&&p.y>35.6&&p.y<36.35;
 
+/* ---------------- 공공데이터 (중계 서버 경유) ---------------- */
+async function relay(path,params){
+  const base=String(DB.relay||'').trim().replace(/\/+$/,''); if(!base) throw new Error('중계 서버 주소가 없어요');
+  const u=base+'/'+path+'?'+new URLSearchParams(params).toString();
+  const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),15000);
+  try{ const r=await fetch(u,{signal:ctl.signal}); const t=await r.text(); if(!r.ok){ let m='HTTP '+r.status; try{ m=JSON.parse(t).error||m; }catch(e){} throw new Error(m); } return t; }
+  catch(e){ throw new Error(e.name==='AbortError'?'공공데이터 응답이 늦어요':e.message); }
+  finally{ clearTimeout(tm); }
+}
+function apiErr(t){ const m=t.match(/<returnAuthMsg>([^<]+)|<resultMsg>([^<]+)|"resultMsg"\s*:\s*"([^"]+)"/); const code=t.match(/<resultCode>([^<]+)|"resultCode"\s*:\s*"([^"]+)"/); const c=code&&(code[1]||code[2]); const msg=m&&(m[1]||m[2]||m[3]);
+  if(/SERVICE_KEY|NOT_REGISTERED/i.test(t)) return '공공데이터 인증키가 아직 등록 안 됐어요 (신청 후 1~2시간 걸릴 수 있어요)';
+  if(c&&!/^0+$/.test(c)&&!/^INFO-?0+$/i.test(c)) return '공공데이터 오류: '+(msg||c); return null; }
+const med=a=>{ if(!a.length) return null; const b=[...a].sort((x,y)=>x-y), h=b.length>>1; return b.length%2?b[h]:(b[h-1]+b[h])/2; };
+// 아파트 실거래가: 그 구(시군구)의 최근 12개월 거래를 받아 동별 평당가(만원/3.3㎡)로 정리, 달별로 이 기기에 저장
+async function aptMonth(lawd,ym){
+  const ck=`ilpum-sk-apt-${lawd}-${ym}`; const now=new Date(); const curYm=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
+  if(ym!==curYm){ try{ const c=JSON.parse(localStorage.getItem(ck)); if(c) return c; }catch(e){} }
+  const out={}; let page=1, total=0, got=0;
+  do{ const t=await relay('apt',{LAWD_CD:lawd,DEAL_YMD:ym,numOfRows:1000,pageNo:page}); const er=apiErr(t); if(er) throw new Error(er);
+    const x=new DOMParser().parseFromString(t,'text/xml'); const tc=x.querySelector('totalCount'); total=tc?+tc.textContent:0;
+    const items=[...x.querySelectorAll('item')]; got+=items.length;
+    const g=(it,names)=>{ for(const n of names){ const e=it.getElementsByTagName(n)[0]; if(e&&e.textContent.trim()) return e.textContent.trim(); } return ''; };
+    items.forEach(it=>{ if(/^O$/i.test(g(it,['cdealType','해제여부']))) return; const amt=+g(it,['dealAmount','거래금액']).replace(/[^0-9]/g,''), ar=+g(it,['excluUseAr','전용면적']), dong=g(it,['umdNm','법정동']).trim();
+      if(amt>0&&ar>0&&dong) (out[dong]=out[dong]||[]).push(Math.round(amt/(ar/3.3058))); });
+    page++;
+  }while(got<total&&page<=4);
+  if(ym!==curYm){ try{ localStorage.setItem(ck,JSON.stringify(out)); }catch(e){} }
+  return out;
+}
+async function aptStats(lawd,dong){
+  const d=new Date(), yms=[]; for(let i=1;i<=12;i++){ const x=new Date(d.getFullYear(),d.getMonth()-i,1); yms.push(`${x.getFullYear()}${String(x.getMonth()+1).padStart(2,'0')}`); }
+  const dongA=[], guA=[];
+  for(const ym of yms){ const mo=await aptMonth(lawd,ym); Object.entries(mo).forEach(([k,v])=>{ guA.push(...v); if(k===dong) dongA.push(...v); }); }
+  return {aptPy:dongA.length>=3?Math.round(med(dongA)):null, aptN:dongA.length, aptGu:guA.length?Math.round(med(guA)):null, aptGuN:guA.length};
+}
+async function storeStats(p){
+  const t=await relay('store',{radius:500,cx:p.x,cy:p.y,numOfRows:1000,pageNo:1,type:'json'}); const er=apiErr(t); if(er) throw new Error(er);
+  let j; try{ j=JSON.parse(t); }catch(e){ throw new Error('상가정보 응답 형식이 달라요'); }
+  const b=j.body||(j.response&&j.response.body)||{}; let items=b.items||[]; if(items&&items.item) items=items.item; if(!Array.isArray(items)) items=[];
+  const total=+b.totalCount||items.length; const food=items.filter(x=>/음식/.test(x.indsLclsNm||'')).length;
+  return {store500:total, foodRatio:items.length?Math.round(food/items.length*100):null};
+}
+
 /* ---------------- 한 지점 측정 (25번 검색, 4개씩 동시에) ---------------- */
 function taskList(p){
   const d=(k,f)=>[k,f];
@@ -341,6 +387,11 @@ async function measure(p,onStep){
   }else m.comp=null;
   m.subway=res.subway?res.subway.list.map(x=>({name:x.place_name,x:+x.x,y:+x.y,dist:x.distance===''||x.distance==null?Math.round(distM(p,{x:+x.x,y:+x.y})):+x.distance})):null;
   const h=res.region&&(res.region.list.find(x=>x.region_type==='H')||res.region.list[0]); m.region=h?h.address_name:'';
+  const bR=res.region&&res.region.list.find(x=>x.region_type==='B'); if(bR){ m.bcode=bR.code; m.bdong=bR.region_3depth_name; }
+  if(DB.relay){ m.pub={};
+    try{ Object.assign(m,await storeStats(p)); }catch(e){ m.pub.store=e.message; fail.push('store'); }
+    if(m.bcode){ try{ Object.assign(m,await aptStats(String(m.bcode).slice(0,5),m.bdong)); }catch(e){ m.pub.apt=e.message; fail.push('apt'); } }
+  }
   return m;
 }
 const STEPS=30;
@@ -400,7 +451,8 @@ function warnings(c,s){
   if(f&&f.turns!=null&&f.turns>2.5) out.push(`본전을 맞추려면 테이블당 하루 ${f.turns.toFixed(1)}회전이 필요해요 — 장어집 저녁 장사로는 빠듯해요`);
   if(+c.area>0&&+c.area<15) out.push(`${c.area}평은 장어집에 작은 편이에요 — 회식 단체석을 두기 어려워요`);
   if(!isDaegu(c)) out.push('대구 밖 주소예요 — 점수는 대구 기준 상권과 비교한 값이라 맞지 않아요');
-  if(s&&s.d.fail&&s.d.fail.length) out.push('일부 항목을 못 받아 그 항목은 점수에서 뺐어요. "다시 분석"을 눌러 보세요');
+  if(s&&s.d.pub&&(s.d.pub.apt||s.d.pub.store)) out.push('공공데이터를 못 받았어요: '+esc(s.d.pub.apt||s.d.pub.store)+' (설정 → 공공데이터 연결)');
+  else if(s&&s.d.fail&&s.d.fail.length) out.push('일부 항목을 못 받아 그 항목은 점수에서 뺐어요. "다시 분석"을 눌러 보세요');
   return out;
 }
 
@@ -470,6 +522,8 @@ function opinion(c,s,fin){
   P.push(`${sub?`가장 가까운 지하철역은 ${esc(sub.name)}(${fmtM(d.subD)})이고`:'2km 안에 지하철역이 없고'}, 500m 안 주차장은 ${fmtN(d.park500)}곳이에요.${pp!=null&&pp<=30?' 장어집은 차로 오는 가족·회식 손님이 많아 주차 대책이 꼭 필요해요.':''}`);
   const draw=[['ghosp2k','종합병원 방문객·보호자'],['wed2k','예식장 하객'],['fun2k','장례식장 조문객'],['golf1k','골프 모임'],['univ2k','대학 교직원·모임']].filter(([k])=>{ const pp=subP(s,k); return pp!=null&&pp>=70&&(d[k]||0)>0; });
   if(draw.length) P.push(`주변 집객시설이 강해요: ${draw.map(([k,t])=>`${t}(${fmtN(d[k])}곳)`).join(', ')}. 장어집은 이런 행사·방문 뒤 식사 수요가 커서, 주말·저녁 매출에 도움이 돼요.`);
+  if(d.aptPy!=null&&d.aptGu){ const r=d.aptPy/d.aptGu*100; P.push(`최근 1년 ${esc(d.bdong)} 아파트 평당가는 약 ${fmtN(d.aptPy)}만원으로 구 전체(${fmtN(d.aptGu)}만원)의 ${Math.round(r)}% 수준이에요. ${r>=115?'구매력이 높은 동네라 장어 같은 고단가 외식에 유리해요.':r<=85?'구매력이 구 평균보다 낮은 편이라 가격 저항을 고려해야 해요.':'구매력은 구 평균 수준이에요.'}`); }
+  if(d.store500!=null&&d.foodRatio!=null) P.push(`소상공인 상가 자료로 500m 안 상가는 ${fmtN(d.store500)}곳이고 그중 음식업이 ${d.foodRatio}%예요.`);
   const sp=satP(d); if(sp!=null) P.push(sp<=35?'배후 수요(아파트·관공서·병원)에 비해 음식점이 많은 편이라 외식 경쟁이 치열해요.':sp>=65?'배후 수요에 비해 음식점이 적은 편이라 외식 수요를 흡수할 여지가 있어요.':'배후 수요와 음식점 수는 대구 기준 상권과 비슷한 수준이에요.');
   if(fin) P.push(`월세 ${fmtN(c.rent)}만원 기준 손익분기 월매출은 약 <b>${fmtN(Math.round(fin.need))}만원</b>, 하루 손님 약 <b>${Math.ceil(fin.guests)}명</b>이 필요해요.${fin.target?(fin.rentRatio>12?` 목표 매출 대비 임대료 비율이 ${fin.rentRatio.toFixed(1)}%로 높은 편이에요(10% 이하 권장).`:` 목표 매출 대비 임대료 비율은 ${fin.rentRatio.toFixed(1)}%로 적정해요.`):''}`);
   if(fin&&fin.turns!=null){ const tn=fin.turns, txt=tn<=1?'여유 있는 편이에요':tn<=2?'보통 수준이에요':'빠듯해요. 월세에 비해 가게가 작거나 월세가 높은 편이에요';
@@ -630,7 +684,9 @@ function detailHtml(){
       <div><span>주차장 (500m)</span><b>${fmtN(s.d.park500)}곳</b></div>
       <div><span>장어집 (300m / 500m / 1km)</span><b>${s.d.n300??'-'} / ${s.d.n500??'-'} / ${s.d.n1k??'-'}${c.m.compMore?'+':''}</b></div>
       <div><span>가까운 우리 매장</span><b>${near[0]?esc(near[0].name)+' '+fmtM(near[0].d):'-'}</b></div>
-      <div><span>음식점 포화도</span><b>${sp==null?'-':sp>=65?'낮음':sp<=35?'높음':'보통'}</b></div></div>
+      <div><span>음식점 포화도</span><b>${sp==null?'-':sp>=65?'낮음':sp<=35?'높음':'보통'}</b></div>
+      ${s.d.aptGu!=null?`<div><span>아파트 평당가 (${esc(s.d.bdong||'동')} / 구 전체, 1년)</span><b>${s.d.aptPy!=null?fmtN(s.d.aptPy)+'만':'거래 적음'} / ${fmtN(s.d.aptGu)}만</b></div>`:''}
+      ${s.d.store500!=null?`<div><span>상가 수 500m (음식업 비율)</span><b>${fmtN(s.d.store500)}곳${s.d.foodRatio!=null?` (${s.d.foodRatio}%)`:''}</b></div>`:''}</div>
     <h3>진단 의견</h3><div class="op">${opinion(c,s,fin).map(p=>`<p>${p}</p>`).join('')}</div></div>
   <div class="card" id="s-eval"><div class="sh"><span class="no">03</span><h2>영역별 평가</h2><span class="aside">상권 5개 영역 = 대구 기준 상권 ${s.of}곳 대비 (50 = 중간) · 매물 조건 = 기준표</span></div>
     <div class="evgrid"><div>${evalRows(s)}</div><div>${radar([s.dims.filter(x=>!x.prop).map(x=>x.score)])}</div></div></div>`:''}
@@ -709,6 +765,10 @@ function setHtml(){
   <div class="card"><div class="sh"><h2>영역 비중</h2></div><div class="note">영역별 중요도. 합이 100이 아니어도 비율로 계산해요. 바꾸면 저장된 후보지 점수도 바로 다시 계산돼요.</div>
     <div class="grid2" style="margin-top:8px">${DIMS.map(i=>`<label>${esc(i.t)}<input type="number" data-w="${i.k}" value="${esc(DB.weights[i.k])}" min="0" max="100"></label>`).join('')}</div>
     <button class="btn sm" data-act="wreset" style="margin-top:10px">처음 값으로</button></div>
+  <div class="card"><div class="sh"><h2>공공데이터 연결</h2><span class="aside">아파트 실거래가 · 소상공인 상가정보</span></div>
+    <div class="note">중계 서버(Cloudflare Worker)를 거쳐 공공데이터포털에서 자동으로 받아요. 키는 중계 서버에만 있고 이 화면에는 없어요. 비우면 공공데이터 없이 분석해요.</div>
+    <div class="row" style="margin-top:8px"><input type="text" id="relay" value="${esc(DB.relay||'')}" placeholder="${DEF_RELAY}" style="flex:1;min-width:240px"><button class="btn" data-act="ping">연결 확인</button></div>
+    <div id="pingres" class="note" style="margin-top:6px"></div></div>
   <div class="card"><div class="sh"><h2>손익분기 가정</h2></div><div class="note">모든 후보지의 손익분기 계산에 쓰여요. 우리 매장 실제 수치로 맞추면 정확해져요.</div>
     <div class="grid2" style="margin-top:8px">${[['cost','원가율(%)'],['labor','인건비 비율(%)'],['var','기타 변동비(%) 카드수수료·소모품'],['other','월세 외 고정비(만원/월) 관리비·공과금'],['ticket','객단가(만원)'],['days','월 영업일'],['interior','인테리어 평당(만원)'],['party','한 테이블 평균 일행(명)'],['pyPerTable','테이블 1개당 평수 (추정용)']].map(([k,l])=>`<label>${l}<input type="number" data-fin="${k}" value="${esc(DB.fin[k])}" min="0" step="any"></label>`).join('')}</div>
     <button class="btn sm" data-act="finreset" style="margin-top:10px">처음 값으로</button></div>
@@ -810,6 +870,9 @@ document.addEventListener('click',async e=>{
       if(L.length===1){ DB.stores.push({name:n,addr:L[0].addr,x:L[0].x,y:L[0].y}); save(); render(); return; }
       window._sc=L; window._scName=n; $('#scands').innerHTML='<div class="note">어느 곳인가요?</div>'+L.map((p,i)=>`<button data-sc="${i}"><b>${esc(p.name)}</b><br><small>${esc(p.addr)}</small></button>`).join(''); }catch(err){ toast(err.message); } return; }
   if(a==='wreset'){ DB.weights=defW(); save(); render(); return; }
+  if(a==='ping'){ const el=$('#pingres'); el.textContent='확인 중…';
+    try{ const j=JSON.parse(await relay('ping',{})); el.innerHTML=!j.allowed?`<span style="color:var(--warn)">중계 서버가 이 주소(${esc(location.origin)})를 허용 안 해요 — worker.js 의 ALLOW 목록에 추가</span>`:j.hasKey?'<span style="color:var(--ok)">연결됨 · 인증키 있음. "다시 분석"하면 공공데이터가 붙어요 (기준 상권도 다시 만들기)</span>':'<span style="color:var(--warn)">중계 서버는 연결됐는데 인증키(DATA_KEY)가 없어요</span>'; }
+    catch(e){ el.innerHTML=`<span style="color:var(--warn)">연결 실패: ${esc(e.message)} — 주소가 맞는지, Worker 를 배포했는지 확인</span>`; } return; }
   if(a==='finreset'){ DB.fin=defFin(); save(); render(); return; }
   if(a==='export') return exportFile();
 });
@@ -823,6 +886,7 @@ document.addEventListener('change',e=>{
   if(e.target.dataset.f==='status'||e.target.dataset.w) return render();
   if(id==='filter'){ FILTER=e.target.value; render(); }
   if(id==='zone'){ DB.zoneKm=+e.target.value; save(); render(); }
+  if(id==='relay'){ DB.relay=e.target.value.trim(); save(); }
   if(id==='benchNames'){ DB.benchNames=e.target.value.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,40); save(); }
   if(id==='imp'&&e.target.files[0]) importFile(e.target.files[0]);
 });

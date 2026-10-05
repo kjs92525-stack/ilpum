@@ -33,7 +33,7 @@ Geocoder.prototype.addressSearch=function(q,cb){ setTimeout(()=>{
   if(q.includes('범어동')) return cb([{address_name:'대구 수성구 범어동 177',x:'128.6300',y:'35.8600',road_address:{address_name:'대구 수성구 달구벌대로 2400'}},{address_name:'대구 수성구 범어동 178',x:'128.6310',y:'35.8610',road_address:null}],S.OK);
   if(q.includes('들안로')) return cb([{address_name:'대구 수성구 두산동 1',x:'128.6350',y:'35.8500',road_address:{address_name:'대구 수성구 들안로 1'}}],S.OK);
   cb([],S.ZERO_RESULT); },5); };
-Geocoder.prototype.coord2RegionCode=function(x,y,cb){ setTimeout(()=>cb([{region_type:'B',address_name:'법정동'},{region_type:'H',address_name:'대구광역시 수성구 범어1동'}],S.OK),5); };
+Geocoder.prototype.coord2RegionCode=function(x,y,cb){ setTimeout(()=>cb([{region_type:'B',address_name:'대구 수성구 범어동',code:'2726010500',region_3depth_name:'범어동'},{region_type:'H',address_name:'대구광역시 수성구 범어1동'}],S.OK),5); };
 Geocoder.prototype.coord2Address=function(x,y,cb){ setTimeout(()=>cb([{address:{address_name:'대구 중구 동성로2가 1'},road_address:null}],S.OK),5); };
 function LatLng(lat,lng){ this.getLat=()=>lat; this.getLng=()=>lng; }
 function Map(el){ this.el=el; window.__map=this; this.setLevel=()=>{}; this.setCenter=()=>{}; this.relayout=()=>{}; }
@@ -43,7 +43,12 @@ window.kakao={maps:{load:f=>setTimeout(f,0),LatLng,Map,CustomOverlay,Circle,even
   services:{Places,Geocoder,Status:S,SortBy:{DISTANCE:'distance',ACCURACY:'accuracy'}}}};
 })();
 """
-MODE={'sdk':'ok'}; EXT=[]
+MODE={'sdk':'ok','relay':'ok'}; EXT=[]; RELAY=[]
+def apt_xml():
+  it=lambda d,a,ar: f"<item><aptNm>A</aptNm><umdNm>{d}</umdNm><dealAmount>{a}</dealAmount><excluUseAr>{ar}</excluUseAr><cdealType> </cdealType></item>"
+  items=it('범어동','120,000','84.9')*2+it('범어동','100,000','84.9')+it('만촌동','80,000','84.9')*3
+  return f"<?xml version='1.0' encoding='UTF-8'?><response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items>{items}</items><numOfRows>1000</numOfRows><pageNo>1</pageNo><totalCount>6</totalCount></body></response>"
+STORE={"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"},"body":{"items":[{"indsLclsNm":"음식"}]*6+[{"indsLclsNm":"소매"}]*4,"totalCount":345}}
 async def handler(r):
   u=r.request.url
   if 'localhost' in u: return await r.continue_()
@@ -52,6 +57,12 @@ async def handler(r):
     if MODE['sdk']=='firstfail' and 'appkey=7ed6cf4a57f04e78dab3bf66a095dcd2' in u: return await r.fulfill(status=401,body='')
     assert ('appkey=7ed6cf4a57f04e78dab3bf66a095dcd2' in u or 'appkey=1aaf38e9a5c0669aad33526fced00618' in u) and 'libraries=services' in u
     return await r.fulfill(status=200,content_type='application/javascript',body=STUB)
+  if 'ilpum-data.yoyo925.workers.dev' in u:
+    RELAY.append(u); H={'Access-Control-Allow-Origin':'*'}
+    if '/ping' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps({"ok":True,"hasKey":MODE['relay']!='nokey',"allowed":True}))
+    if MODE['relay']=='nokey': return await r.fulfill(status=200,headers=H,content_type='text/xml',body="<OpenAPI_ServiceResponse><cmmMsgHeader><returnAuthMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</returnAuthMsg><returnReasonCode>30</returnReasonCode></cmmMsgHeader></OpenAPI_ServiceResponse>")
+    if '/apt?' in u: return await r.fulfill(status=200,headers=H,content_type='text/xml',body=apt_xml())
+    if '/store?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps(STORE))
   EXT.append(u); return await r.fulfill(status=404,body='')
 FAILS=[]
 def ok(name,cond,extra=''):
@@ -82,7 +93,7 @@ async def main():
     ok('5) 점수·등급 표지 상자', 0<=sc<=100 and g==('A' if sc>=70 else 'B' if sc>=55 else 'C' if sc>=40 else 'D'), (sc,g))
     dec=await pg.inner_text('.scorebox .dec'); ok('   기준 상권 중 순위·판정 문구', '20곳 중' in await pg.inner_text('.mix') and any(x in dec for x in ['출점 적극 검토','조건부 검토','신중 검토','보류 권장']), dec)
     ok('   레이더 차트(5개 영역)', await pg.evaluate("document.querySelectorAll('#s-eval svg.radar text').length")==5)
-    ok('   영역 6개(상권 5 + 매물 조건)·상권 지표 26개 분포 줄', await pg.evaluate("document.querySelectorAll('.ev').length")==6 and await pg.evaluate("document.querySelectorAll('.sr').length")==26 and await pg.evaluate("document.querySelectorAll('.sr .strip b').length")==26)
+    ok('   영역 6개(상권 5 + 매물 조건)·상권 지표 28개 분포 줄', await pg.evaluate("document.querySelectorAll('.ev').length")==6 and await pg.evaluate("document.querySelectorAll('.sr').length")==28 and await pg.evaluate("document.querySelectorAll('.sr .strip b').length")==28)
     ok('   결론 요약 문장', await pg.evaluate("document.querySelectorAll('.exec li').length")>=4)
     ok('   거리별 장어집 수 (300/500/1km)', await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')")=='0,1,2' , await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')"))
     mx=await pg.inner_text('.mix'); ok('5b) 월세·평수 없으면 매물 조건 빼고 분석', '매물 조건 입력 없음' in mx and '월세·평수·테이블 수를 넣으면 반영돼요' in await pg.inner_text('#s-eval'), mx)
@@ -97,6 +108,10 @@ async def main():
     ok('8) 매물 정보 바로 저장', c['rent']==300 and c['area']==40 and c['memo']=='주차 10대' and c['status']=='현장 확인' and c['m']['food500']>0, {k:c[k] for k in ('rent','area','status')})
     ok('   평당 월세', '평당 월세 7.5만원' in await pg.inner_text('#pane'))
     dg=await pg.inner_text('#s-diag')
+    ok('8p) 공공데이터: 아파트 평당가 동 4,673만 / 구 3,505만 · 상가 345곳(음식 60%)', '4,673만 / 3,505만' in dg and '345곳 (60%)' in dg, dg[:900])
+    ok('    의견: 구 평균의 133% → 구매력 높음', '133%' in dg and '구매력이 높은' in dg)
+    ok('    실거래가는 12개월 · 상가는 반경 500m 로 요청', len([x for x in RELAY if '/apt?' in x and 'LAWD_CD=27260' in x])>=12 and any('/store?' in x and 'radius=500' in x for x in RELAY))
+    ok('    세부 지표에 구매력·상가 수', '아파트 평당가 (구매력)' in await pg.inner_text('#s-items') and '상가 수 (소상공인 자료)' in await pg.inner_text('#s-items'))
     ok('8b) 상권 진단: 유형·의견·확인 목록', any(x in dg for x in ['먹자·외식 상권','주거 배후 상권','업무·방문 상권','복합 상권','근린 소규모 상권']) and await pg.evaluate("document.querySelectorAll('#s-diag .op p').length")>=4 and await pg.evaluate("document.querySelectorAll('#s-todo .todo li').length")>=5 and '배기·덕트' in await pg.inner_text('#s-todo'), dg[:120])
     ok('    진단에 영업지역 겹침 경고', '영업지역(2km)이 겹쳐요' in dg)
     await pg.wait_for_timeout(400)
@@ -158,6 +173,13 @@ async def main():
     MODE['sdk']='firstfail'; ctx=await b.new_context(); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e))); await pg.route('**/*',handler)
     await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(1200)
     await pg.fill('#q','대구 수성구 범어동 177'); await pg.click('[data-act=find]'); await pg.wait_for_timeout(300)
+    MODE['sdk']='ok'; MODE['relay']='nokey'; ctx2=await b.new_context(); pg2=await ctx2.new_page(); pg2.on('dialog',lambda d: asyncio.ensure_future(d.accept())); await pg2.route('**/*',handler)
+    await pg2.goto('http://localhost:8765/sangkwon.html'); await pg2.wait_for_timeout(800)
+    await pg2.click('[data-tab=set]'); await pg2.click('[data-act=ping]'); await pg2.wait_for_timeout(300)
+    ok('15) 연결 확인: 키 없으면 안내', '인증키(DATA_KEY)가 없어요' in await pg2.inner_text('#pingres'))
+    await pg2.click('[data-tab=list]'); await pg2.fill('#q','범어역'); await pg2.click('[data-act=find]'); await pg2.wait_for_function("document.querySelector('#s-comp')",timeout=20000)
+    ok('    키 미등록이면 분석은 되고 경고만', '인증키가 아직 등록 안 됐어요' in await pg2.inner_text('#pane') and '경쟁 현황' in await pg2.inner_text('#pane'))
+    await ctx2.close(); MODE['relay']='ok'
     ok('14b) 첫 키가 막히면 둘째 키로 자동 연결', await pg.evaluate("document.querySelectorAll('[data-cand]').length")==2 and await pg.evaluate("localStorage.getItem('ilpum-sk-key')")=='1aaf38e9a5c0669aad33526fced00618' and not errs, errs); await ctx.close()
     await b.close()
   print('모두 통과' if not FAILS else '실패 있음: '+', '.join(FAILS))
