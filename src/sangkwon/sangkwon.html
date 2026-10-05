@@ -461,7 +461,7 @@ load(); render();
 $('#sdk').textContent='카카오 지도 여는 중…';
 loadSdk().then(ok=>{
   $('#sdk').textContent=ok?'':'카카오 지도 연결 실패';
-  if(!ok){ $('#map').innerHTML=`<div class="empty">카카오 지도를 열지 못했어요.<br>카카오 개발자 사이트에 등록한 주소(https://ilpum.yoyo925.workers.dev)에서 열었는지, 카카오맵 사용 설정이 켜져 있는지 확인해 주세요.</div>`; }
+  if(!ok){ $('#map').innerHTML=`<div class="empty">카카오 지도를 열지 못했어요.<br>카카오 개발자 사이트(JavaScript 키 → 사이트 도메인)에 지금 열고 있는 주소 ${esc(location.origin)} 를 등록했는지, 카카오맵 사용 설정이 켜져 있는지 확인해 주세요.</div>`; }
   render();
 });
 </script>
