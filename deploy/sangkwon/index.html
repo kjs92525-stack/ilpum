@@ -198,7 +198,9 @@ const DIMS=[
     {k:'pub500',t:'술집',u:'곳',r:'500m',get:d=>d.pub500},
     {k:'cafe500',t:'카페',u:'곳',r:'500m',get:d=>d.cafe500},
     {k:'cvs500',t:'편의점 (유동 대용)',u:'곳',r:'500m',get:d=>d.cvs500},
-    {k:'store500',t:'상가 수 (소상공인 자료)',u:'곳',r:'500m',get:d=>d.store500}]},
+    {k:'store500',t:'상가 수 (소상공인 자료)',u:'곳',r:'500m',get:d=>d.store500},
+    {k:'restOn',t:'영업 중 일반음식점 (인허가 자료)',u:'곳',r:'행정동',get:d=>d.restOn},
+    {k:'restOpen12',t:'신규 개업 (최근 1년)',u:'곳',r:'행정동',get:d=>d.restOpen12}]},
   {k:'fam',t:'가족·주거',w:20,why:'가족 손님과 동네 단골',subs:[
     {k:'apt500',t:'아파트',u:'건',r:'500m',get:d=>d.apt500},
     {k:'apt1k',t:'아파트',u:'건',r:'1km',get:d=>d.apt1k},
@@ -227,7 +229,8 @@ const DIMS=[
   {k:'comp',t:'경쟁',w:25,why:'가까운 장어집이 적을수록 유리',subs:[
     {k:'compIdx',t:'경쟁 지수 (거리 가중)',u:'',r:'',low:true,get:d=>d.compIdx,fmt:v=>v==null?'-':(+v).toFixed(1)},
     {k:'n500',t:'장어집',u:'곳',r:'500m',low:true,get:d=>d.n500},
-    {k:'alt1k',t:'대체 보양식 (오리·백숙 등)',u:'곳',r:'1km',low:true,get:d=>d.alt1k}]},
+    {k:'alt1k',t:'대체 보양식 (오리·백숙 등)',u:'곳',r:'1km',low:true,get:d=>d.alt1k},
+    {k:'restChurn',t:'폐업 비율 (최근 1년 폐업 ÷ 영업+폐업)',u:'%',r:'행정동',low:true,get:d=>d.restChurn}]},
   // 매물 조건: 후보지마다 넣은 월세·평수·테이블 수로 계산. 대구 기준 상권과 비교하지 않고 기준표로 점수. 입력이 없으면 이 영역은 빠짐
   {k:'prop',t:'매물 조건',w:15,prop:true,why:'월세·규모로 본 수익 구조 (넣은 것만 반영)',subs:[
     {k:'turns',t:'본전 회전수 (테이블당 하루)',u:'',r:'',low:true,hint:'1회 이하 여유 · 2회 넘으면 빠듯',abs:v=>band(v,[[0.5,100],[1,90],[1.5,70],[2,50],[2.5,30],[3,15],[4,0]]),get:d=>d.turns,fmt:v=>(+v).toFixed(1)+'회'},
@@ -366,6 +369,20 @@ async function popStats(hcode){
   }
   throw new Error('이 동의 인구 자료가 아직 없어요'+(last?' ('+last+')':''));
 }
+// 음식점 인허가(행안부): 구 코드를 먼저 알아낸 뒤(같은 동 이름이 다른 시에도 있어서) 그 구 + 동 이름으로 영업 수·최근 1년 개업·폐업을 셈. 도로명주소 기준이라 주소 없는 옛 기록은 빠짐
+async function restStats(sido,gu,dong){
+  const q=(o,n=1,pg=1)=>relay('rest',Object.assign({pageNo:pg,numOfRows:n,returnType:'json'},o));
+  const body=t=>{ const er=apiErr(t); if(er) throw new Error(er); let j; try{ j=JSON.parse(t); }catch(e){ throw new Error('음식점 인허가 응답 형식이 달라요'); } const b=(j.response||{}).body||{}; let it=(b.items||{}).item||[]; if(!Array.isArray(it)) it=[it]; return {n:+b.totalCount||0, it}; };
+  const g=body(await q({'cond[ROAD_NM_ADDR::LIKE]':sido+' '+gu})); const code=g.it[0]&&g.it[0].OPN_ATMY_GRP_CD; if(!code) throw new Error('이 구의 음식점 인허가 자료를 못 찾았어요');
+  const base={'cond[OPN_ATMY_GRP_CD::EQ]':code,'cond[ROAD_NM_ADDR::LIKE]':dong};
+  const d=new Date(), ago=new Date(d.getFullYear()-1,d.getMonth(),d.getDate()), iso=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`, cut=iso(ago);
+  const on=body(await q(Object.assign({'cond[SALS_STTS_CD::EQ]':'01'},base)));
+  const opened=body(await q(Object.assign({'cond[LCPMT_YMD::GTE]':cut},base)));
+  let closed=0, total=0, got=0, page=1;
+  do{ const r=body(await q(Object.assign({'cond[SALS_STTS_CD::EQ]':'03'},base),1000,page)); total=r.n; got+=r.it.length; closed+=r.it.filter(x=>String(x.CLSBIZ_YMD||'')>=cut).length; page++; if(!r.it.length) break; }while(got<total&&page<=4);
+  if(total>got) throw new Error('이 동은 폐업 기록이 너무 많아 폐업 수는 건너뛰었어요');
+  return {restOn:on.n, restOpen12:opened.n, restClose12:closed, restChurn:(on.n+closed)?Math.round(closed/(on.n+closed)*1000)/10:null};
+}
 async function storeStats(p){
   const t=await relay('store',{radius:500,cx:p.x,cy:p.y,numOfRows:1000,pageNo:1,type:'json'}); const er=apiErr(t); if(er) throw new Error(er);
   let j; try{ j=JSON.parse(t); }catch(e){ throw new Error('상가정보 응답 형식이 달라요'); }
@@ -409,10 +426,11 @@ async function measure(p,onStep){
   }else m.comp=null;
   m.subway=res.subway?res.subway.list.map(x=>({name:x.place_name,x:+x.x,y:+x.y,dist:x.distance===''||x.distance==null?Math.round(distM(p,{x:+x.x,y:+x.y})):+x.distance})):null;
   const h=res.region&&(res.region.list.find(x=>x.region_type==='H')||res.region.list[0]); m.region=h?h.address_name:'';
-  if(h) m.hcode=h.code; const bR=res.region&&res.region.list.find(x=>x.region_type==='B'); if(bR){ m.bcode=bR.code; m.bdong=bR.region_3depth_name; }
+  if(h) m.hcode=h.code; const bR=res.region&&res.region.list.find(x=>x.region_type==='B'); if(bR){ m.bcode=bR.code; m.bdong=bR.region_3depth_name; const ad=String(bR.address_name||'').split(' '); m.bsido=bR.region_1depth_name||'대구광역시'; m.bgu=bR.region_2depth_name||ad[1]||''; }
   if(DB.relay){ m.pub={};
     try{ Object.assign(m,await storeStats(p)); }catch(e){ m.pub.store=e.message; fail.push('store'); }
     if(m.hcode){ try{ Object.assign(m,await popStats(m.hcode)); }catch(e){ m.pub.pop=e.message; fail.push('pop'); } }
+    if(m.bdong&&m.bgu){ try{ Object.assign(m,await restStats(m.bsido,m.bgu,m.bdong)); }catch(e){ m.pub.rest=e.message; fail.push('rest'); } }
     if(m.bcode){ try{ Object.assign(m,await aptStats(String(m.bcode).slice(0,5),m.bdong)); }catch(e){ m.pub.apt=e.message; fail.push('apt'); } }
   }
   return m;
@@ -546,6 +564,7 @@ function opinion(c,s,fin){
   const draw=[['ghosp2k','종합병원 방문객·보호자'],['wed2k','예식장 하객'],['fun2k','장례식장 조문객'],['golf1k','골프 모임'],['univ2k','대학 교직원·모임']].filter(([k])=>{ const pp=subP(s,k); return pp!=null&&pp>=70&&(d[k]||0)>0; });
   if(draw.length) P.push(`주변 집객시설이 강해요: ${draw.map(([k,t])=>`${t}(${fmtN(d[k])}곳)`).join(', ')}. 장어집은 이런 행사·방문 뒤 식사 수요가 커서, 주말·저녁 매출에 도움이 돼요.`);
   if(d.aptPy!=null&&d.aptGu){ const r=d.aptPy/d.aptGu*100; P.push(`최근 1년 ${esc(d.bdong)} 아파트 평당가는 약 ${fmtN(d.aptPy)}만원으로 구 전체(${fmtN(d.aptGu)}만원)의 ${Math.round(r)}% 수준이에요. ${r>=115?'구매력이 높은 동네라 장어 같은 고단가 외식에 유리해요.':r<=85?'구매력이 구 평균보다 낮은 편이라 가격 저항을 고려해야 해요.':'구매력은 구 평균 수준이에요.'}`); }
+  if(d.restOn!=null&&d.restClose12!=null) P.push(`${esc(d.bdong||'이 동')}의 영업 중 일반음식점은 ${fmtN(d.restOn)}곳이고, 최근 1년 새로 인허가 난 곳 ${fmtN(d.restOpen12)}곳·폐업한 곳 ${fmtN(d.restClose12)}곳이에요(폐업 비율 ${d.restChurn}%). ${d.restChurn>=15?'가게가 자주 바뀌는 동네라 임대료·권리금을 보수적으로 보세요.':d.restChurn<=6?'가게가 오래 가는 안정적인 동네예요.':'가게 교체 속도는 보통이에요.'}`);
   if(d.popTot!=null) P.push(`${esc(d.bdong||'이 동')} 주민등록 인구는 ${fmtN(d.popTot)}명이고, 장어 주 고객층인 30~50대가 ${d.pCore}%, 60세 이상이 ${d.pOld}%예요.`);
   if(d.store500!=null&&d.foodRatio!=null) P.push(`소상공인 상가 자료로 500m 안 상가는 ${fmtN(d.store500)}곳이고 그중 음식업이 ${d.foodRatio}%예요.`);
   const sp=satP(d); if(sp!=null) P.push(sp<=35?'배후 수요(아파트·관공서·병원)에 비해 음식점이 많은 편이라 외식 경쟁이 치열해요.':sp>=65?'배후 수요에 비해 음식점이 적은 편이라 외식 수요를 흡수할 여지가 있어요.':'배후 수요와 음식점 수는 대구 기준 상권과 비슷한 수준이에요.');

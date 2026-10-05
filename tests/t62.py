@@ -55,6 +55,15 @@ def pop_json():
     r["male30AgeNmprCnt"]=str(m30); r["feml30AgeNmprCnt"]=str(m30); r["male60AgeNmprCnt"]=str(m60); return r
   items=[row("","",2000,1000),row("1","1",1000,500),row("2","1",1000,500)]   # 동 합계 줄 + 통반 줄 (겹쳐 세면 안 됨)
   return {"Response":{"head":{"totalCount":"3","resultCode":"0","resultMsg":"NORMAL_SERVICE"},"items":{"item":items}}}
+import datetime
+def rest_json(qs):
+  t=datetime.date.today(); fmt=lambda d:d.isoformat()
+  R=lambda items,n:json.dumps({"response":{"body":{"dataType":"JSON","items":{"item":items},"numOfRows":len(items),"pageNo":1,"totalCount":n},"header":{"resultCode":"0","resultMsg":"정상"}}})
+  if 'cond%5BOPN_ATMY_GRP_CD%3A%3AEQ%5D' not in qs: return R([{"OPN_ATMY_GRP_CD":"3460000","BPLC_NM":"가"}],4471)
+  if 'SALS_STTS_CD%3A%3AEQ%5D=01' in qs: return R([{"BPLC_NM":"가"}],200)
+  if 'LCPMT_YMD' in qs: return R([{"BPLC_NM":"가"}],40)
+  recent=fmt(t-datetime.timedelta(days=30)); old=fmt(t-datetime.timedelta(days=500))
+  return R([{"CLSBIZ_YMD":recent},{"CLSBIZ_YMD":recent},{"CLSBIZ_YMD":recent},{"CLSBIZ_YMD":old},{"CLSBIZ_YMD":old}],5)
 STORE={"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"},"body":{"items":[{"indsLclsNm":"음식"}]*6+[{"indsLclsNm":"소매"}]*4,"totalCount":345}}
 async def handler(r):
   u=r.request.url
@@ -70,6 +79,7 @@ async def handler(r):
     if MODE['relay']=='nokey': return await r.fulfill(status=200,headers=H,content_type='text/xml',body="<OpenAPI_ServiceResponse><cmmMsgHeader><returnAuthMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</returnAuthMsg><returnReasonCode>30</returnReasonCode></cmmMsgHeader></OpenAPI_ServiceResponse>")
     if '/apt?' in u: return await r.fulfill(status=200,headers=H,content_type='text/xml',body=apt_xml())
     if '/pop?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps(pop_json()))
+    if '/rest?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=rest_json(u))
     if '/store?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps(STORE))
   EXT.append(u); return await r.fulfill(status=404,body='')
 FAILS=[]
@@ -101,7 +111,7 @@ async def main():
     ok('5) 점수·등급 표지 상자', 0<=sc<=100 and g==('A' if sc>=70 else 'B' if sc>=55 else 'C' if sc>=40 else 'D'), (sc,g))
     dec=await pg.inner_text('.scorebox .dec'); ok('   기준 상권 중 순위·판정 문구', '20곳 중' in await pg.inner_text('.mix') and any(x in dec for x in ['출점 적극 검토','조건부 검토','신중 검토','보류 권장']), dec)
     ok('   레이더 차트(5개 영역)', await pg.evaluate("document.querySelectorAll('#s-eval svg.radar text').length")==5)
-    ok('   영역 6개(상권 5 + 매물 조건)·상권 지표 31개 분포 줄', await pg.evaluate("document.querySelectorAll('.ev').length")==6 and await pg.evaluate("document.querySelectorAll('.sr').length")==31 and await pg.evaluate("document.querySelectorAll('.sr .strip b').length")==31)
+    ok('   영역 6개(상권 5 + 매물 조건)·상권 지표 34개 분포 줄', await pg.evaluate("document.querySelectorAll('.ev').length")==6 and await pg.evaluate("document.querySelectorAll('.sr').length")==34 and await pg.evaluate("document.querySelectorAll('.sr .strip b').length")==34)
     ok('   결론 요약 문장', await pg.evaluate("document.querySelectorAll('.exec li').length")>=4)
     ok('   거리별 장어집 수 (300/500/1km)', await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')")=='0,1,2' , await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')"))
     mx=await pg.inner_text('.mix'); ok('5b) 월세·평수 없으면 매물 조건 빼고 분석', '매물 조건 입력 없음' in mx and '월세·평수·테이블 수를 넣으면 반영돼요' in await pg.inner_text('#s-eval'), mx)
@@ -120,6 +130,7 @@ async def main():
     ok('    의견: 구 평균의 133% → 구매력 높음', '133%' in dg and '구매력이 높은' in dg)
     ok('    실거래가는 12개월 · 상가는 반경 500m 로 요청', len([x for x in RELAY if '/apt?' in x and 'LAWD_CD=27260' in x])>=12 and any('/store?' in x and 'radius=500' in x for x in RELAY))
     ok('    인구: 동 합계 5,000명(겹치지 않음)·30~50대 80%·60세↑ 20%', '5,000명' in dg and '30~50대가 80%' in dg and '60세 이상이 20%' in dg and any('/pop?' in x and 'admmCd=2726053000' in x for x in RELAY), dg[:300])
+    ok('    음식점 인허가: 영업 200·신규 40·폐업 3(최근 1년만)·폐업비율 1.5%', '영업 중 일반음식점은 200곳' in dg and '인허가 난 곳 40곳' in dg and '폐업한 곳 3곳' in dg and '폐업 비율 1.5%' in dg and any('/rest?' in x and '3460000' in x for x in RELAY), dg[:400])
     ok('    세부 지표에 구매력·상가 수', '아파트 평당가 (구매력)' in await pg.inner_text('#s-items') and '상가 수 (소상공인 자료)' in await pg.inner_text('#s-items'))
     ok('8b) 상권 진단: 유형·의견·확인 목록', any(x in dg for x in ['먹자·외식 상권','주거 배후 상권','업무·방문 상권','복합 상권','근린 소규모 상권']) and await pg.evaluate("document.querySelectorAll('#s-diag .op p').length")>=4 and await pg.evaluate("document.querySelectorAll('#s-todo .todo li').length")>=5 and '배기·덕트' in await pg.inner_text('#s-todo'), dg[:120])
     ok('    진단에 영업지역 겹침 경고', '영업지역(2km)이 겹쳐요' in dg)
