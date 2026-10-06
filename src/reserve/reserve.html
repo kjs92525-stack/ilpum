@@ -376,7 +376,10 @@ const tablesOf=F=>{ const out=[]; F.forEach(f=>floorTables(f).forEach(t=>out.pus
 let ALL_TABLES = tablesOf(FLOORS);
 const DEFAULT_FLOORS = JSON.parse(JSON.stringify(FLOORS));
 const tLabel = t=> /^R/.test(t)? '룸'+t.slice(1) : t;
-const ROOM_SUBS={1:[1,2],2:[1,2],3:[1,2],4:[1,2,3,4]};
+// 룸 안의 작은 테이블(R2-1·R2-2·R2-3 …)은 그 매장 현황판 배치에 있는 것만큼 — 매장마다 다름 (유천점 룸2 는 3개)
+let ROOM_SUBS={};
+function rebuildRoomSubs(){ const o={}; ALL_TABLES.forEach(t=>{ const m=/^R(\d+)-(\d+)$/.exec(t); if(m) (o[+m[1]]=o[+m[1]]||[]).push(+m[2]); }); Object.keys(o).forEach(r=>o[r].sort((a,b)=>a-b)); ROOM_SUBS=o; }
+rebuildRoomSubs();
 // "33 34" → 33,34번 / "r1,2" → 룸1·룸2 전체 / "r4-1,2" → 룸4-1·4-2 / "r4" → 룸4 전체 / "R3-1, R3-2"(시트 표기)도 인식
 function parseTables(s){
   const out=[];
@@ -384,7 +387,7 @@ function parseTables(s){
     let mode='table', room=null;
     group.split(/[,/·]+/).forEach(tok=>{
       tok=tok.trim(); if(!tok) return;
-      let m=tok.match(/^r\s*(\d)(?:\s*-\s*(\d))?$/i);
+      let m=tok.match(/^r\s*(\d{1,2})(?:\s*-\s*(\d{1,2}))?$/i);
       if(m){ const r=+m[1];
         if(!m[2]&&ALL_TABLES.includes('R'+r)){ out.push('R'+r); mode='table'; return; }   // 배치에 "R1" 처럼 통째로 만든 룸
         if(!ROOM_SUBS[r]) return;
@@ -409,7 +412,7 @@ function tablesText(ts){
 }
 // 표시용 → 다시 입력칸에 넣을 때 쓰는 짧은 표기
 function tablesInput(ts){
-  return tablesText(ts).map(x=>x.replace(/^룸(\d)$/,'r$1').replace(/^룸(\d)-(.+)$/,(m,r,xs)=>`r${r}-${xs.replace(/·/g,',')}`)).join(' ');
+  return tablesText(ts).map(x=>x.replace(/^룸(\d+)$/,'r$1').replace(/^룸(\d+)-(.+)$/,(m,r,xs)=>`r${r}-${xs.replace(/·/g,',')}`)).join(' ');
 }
 function normTime(v){
   const s=String(v||'').trim(); if(!s) return '';
@@ -688,7 +691,6 @@ function cellHtml(t,map){
 }
 const BIG6={ '1층':['6','7','8','9','10'], '2층':['42','43','44','45','51','52','53'] };
 const BIG8=[['29','30'],['31','32'],['33','34']];
-const ROOMS=[1,2,3,4];
 function freeBig(T){
   const busy=new Set(); active(ui.date).forEach(x=>{ const m=toMin(x.time); if(m!=null && Math.abs(m-T)<WIN) (x.tables||[]).forEach(t=>busy.add(t)); });
   const seatRows=[]; const hasSeats=Object.keys(SEATS).length>0, legacy=!hasSeats&&!!(STORES.find(x=>x.id===SID)||{}).is_hq;
@@ -696,7 +698,7 @@ function freeBig(T){
     caps.forEach(c=>{ const byFloor=[]; FLOORS.forEach(fl=>{ const ts=floorTables(fl).filter(t=>seatOf(t)===c&&!busy.has(t)); const all=floorTables(fl).filter(t=>seatOf(t)===c).length; if(all) byFloor.push({name:fl.name,ts}); }); seatRows.push({cap:c,byFloor}); }); }
   const six={}; Object.keys(BIG6).forEach(f=>six[f]=BIG6[f].filter(t=>!busy.has(t)&&ALL_TABLES.includes(t)));
   const eight=BIG8.filter(p=>p.every(t=>!busy.has(t)&&ALL_TABLES.includes(t)));
-  const rooms=[]; ROOMS.forEach(r=>{ const subs=ROOM_SUBS[r].map(x=>R(r,x)).filter(t=>ALL_TABLES.includes(t)); if(!subs.length) return; const free=subs.filter(t=>!busy.has(t));
+  const rooms=[]; Object.keys(ROOM_SUBS).map(Number).sort((a,b)=>a-b).forEach(r=>{ const subs=ROOM_SUBS[r].map(x=>R(r,x)).filter(t=>ALL_TABLES.includes(t)); if(!subs.length) return; const free=subs.filter(t=>!busy.has(t));
     if(free.length===subs.length) rooms.push({label:`룸${r}`,tables:subs});
     else if(r===4){ [[1,2],[3,4]].forEach(pr=>{ const ts=pr.map(x=>R(4,x)); if(ts.every(t=>!busy.has(t))) rooms.push({label:`룸4-${pr.join('·')}`,tables:ts}); }); }
     else if(free.length) rooms.push({label:`룸${r} 일부(${free.map(tLabel).join(',')})`,tables:free}); });
@@ -770,7 +772,7 @@ function layoutError(F){
 }
 // 테이블 번호 입력: 숫자(1~99) 또는 룸(R1, R1-2, 룸1)
 function normTid(v){ v=String(v||'').trim().toUpperCase().replace(/^룸/,'R').replace(/\s+/g,''); if(/^\d{1,2}$/.test(v)&&+v>=1) return String(+v); if(/^R\d{1,2}(-\d{1,2})?$/.test(v)) return v; return ''; }
-function rebuildTables(){ ALL_TABLES=tablesOf(FLOORS); if(!FLOORS.some(f=>f.key===ui.floor)) ui.floor=FLOORS[0].key; }
+function rebuildTables(){ ALL_TABLES=tablesOf(FLOORS); rebuildRoomSubs(); if(!FLOORS.some(f=>f.key===ui.floor)) ui.floor=FLOORS[0].key; }
 async function loadLayout(){
   try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.tables&deleted=eq.false&select=data`); if(!r.ok) return;
     const rows=await r.json(); const d=rows[0]&&rows[0].data; if(d&&validLayout(d.floors)&&!layoutError(d.floors)){ FLOORS=d.floors; SEATS=(d.seats&&typeof d.seats==='object')?d.seats:{}; rebuildTables(); } }catch(e){}
