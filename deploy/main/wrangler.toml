@@ -1,0 +1,7 @@
+# 통합관리 테스트 사이트 (정적 파일). 이름은 Cloudflare 에서 만든 워커 이름과 같아야 함.
+# public/ 은 `sh build_all.sh` 가 만든 완성본(공개 anon 키 포함). 이 저장소 지정 브랜치에 올라오면 자동 배포됨.
+name = "ilpum-test"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./public"

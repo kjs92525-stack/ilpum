@@ -29,6 +29,8 @@ PY
 mv dist/ilpum-migrate.html dist-tools/
 # 상권분석은 따로 배포: 저장소에도 올려 두어 GitHub 에서 바로 받을 수 있게 (이름 index.html)
 mkdir -p deploy/sangkwon out/sangkwon-upload && mkdir -p deploy/sangkwon/public && cp dist/sangkwon.html deploy/sangkwon/public/index.html && cp dist/sangkwon.html out/sangkwon-upload/index.html
+# 통합관리 테스트·자동 배포용 완성본 (공개 anon 키가 들어감 — service_role 키는 절대 아님). 상권분석은 따로 배포하므로 뺌
+rm -rf deploy/main/public && mkdir -p deploy/main/public && for f in dist/*.html; do [ "$(basename $f)" = "sangkwon.html" ] || cp "$f" deploy/main/public/; done
 rm -f out/ilpum-deploy.zip
 (cd dist && zip -q ../out/ilpum-deploy.zip *.html)
 echo "완료: dist/ 의 파일(또는 out/ilpum-deploy.zip)을 배포하세요. dist-tools/ 는 올리지 마세요"
