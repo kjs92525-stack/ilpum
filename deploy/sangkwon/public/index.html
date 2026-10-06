@@ -300,7 +300,17 @@ details summary{cursor:pointer}
 const KAKAO_KEYS=['7ed6cf4a57f04e78dab3bf66a095dcd2','1aaf38e9a5c0669aad33526fced00618'];
 const STORE_KEY='ilpum-sk-v1';
 const STATUSES=['검토 중','현장 확인','보류','탈락','계약'];
-const DEF_BENCH=['동성로','반월당역','범어역','수성못','들안길','동대구역','칠곡3지구','상인역','월배역','계명대역','죽전역','두류역','신매역','대곡역','경북대학교 북문','침산동','앞산카페거리','율하역','대구혁신도시','대실역'];
+const OLD_BENCH=['동성로','반월당역','범어역','수성못','들안길','동대구역','칠곡3지구','상인역','월배역','계명대역','죽전역','두류역','신매역','대곡역','경북대학교 북문','침산동','앞산카페거리','율하역','대구혁신도시','대실역'];
+// 기준 상권 = 대구에서 후보지가 될 만한 "자리 유형"을 골고루 (2026-10-06). 유형마다 같은 무게로 섞이게 6~8곳씩
+const BENCH_GROUPS=[
+  ['번화가·상업 중심',['동성로','반월당역','중앙로역','서문시장','칠성시장','대구시청']],
+  ['먹자·회식 상권',['범어역','황금동','들안길','수성구청역','만촌역','두류역','동대구역','앞산카페거리']],
+  ['주거 대단지 배후',['수성못','상인역','월배역','죽전역','신매역','대곡역','칠곡3지구','율하역']],
+  ['신도시·개발 지구',['대구혁신도시','대실역','테크노폴리스','다사읍']],
+  ['업무·산단·행사',['성서산업단지','엑스코']],
+  ['대학가',['경북대학교 북문','계명대역']],
+  ['교외·드라이브 (보양식·목적형)',['팔공산','가창','화원읍','현풍읍']]];
+const DEF_BENCH=BENCH_GROUPS.flatMap(g=>g[1]);
 
 /* ---- 분석 영역과 지표 (d = 한 지점에서 모은 값과 거기서 계산한 값) ---- */
 const fm=v=>v==null?'-':v<1000?Math.round(v)+'m':(v/1000).toFixed(1)+'km';
@@ -379,6 +389,7 @@ let DB=defDB();
 function migrate(j){
   if(!j||!Array.isArray(j.cands)) return null;
   const o=Object.assign(defDB(),j,{v:2});
+  if(Array.isArray(o.benchNames)&&o.benchNames.length===OLD_BENCH.length&&o.benchNames.every((x,i)=>x===OLD_BENCH[i])) o.benchNames=DEF_BENCH.slice();
   if(j.v!==2){ o.bench=null; o.weights=defW(); o.cands=j.cands.map(c=>{ const x=Object.assign({},c); delete x.m; return x; }); }
   o.weights=Object.assign(defW(),o.weights||{}); o.fin=Object.assign(defFin(),o.fin||{});
   return o;
@@ -765,6 +776,9 @@ async function buildBench(){
       try{ const m=await measure(p,(n,t)=>setProg(`기준 상권 ${i+1}/${names.length} · ${names[i]}`,(i+n/t)/names.length)); pts.push({name:names[i],place:x.place_name,x:p.x,y:p.y,m}); }
       catch(e){ pts.push({name:names[i],err:'측정 실패'}); }
     }
+    if(DB.benchStores!==false){ const S=DB.stores.filter(x=>x.x);
+      for(let i=0;i<S.length;i++){ setProg(`우리 매장 ${i+1}/${S.length} · ${S[i].name}`,0.98);
+        try{ const m=S[i].m&&S[i].m.v===2?S[i].m:await measure({x:S[i].x,y:S[i].y},()=>{}); S[i].m=m; S[i].at=S[i].at||today(); pts.push({name:'[우리] '+S[i].name,place:S[i].addr,x:S[i].x,y:S[i].y,m,ours:true}); }catch(e){ pts.push({name:'[우리] '+S[i].name,err:'측정 실패'}); } } }
     DB.bench={at:today(),points:pts}; _bc=null; save();
     toast(`대구 기준 상권 ${pts.filter(b=>b.m).length}곳을 만들었어요`);
   }catch(e){ toast(e.message); }
@@ -1268,7 +1282,9 @@ function setHtml(){
     <div class="cands" id="scands"></div></div>
   ${sysSetHtml()}
   <div class="card"><div class="sh"><h2>대구 기준 상권</h2></div>
-    <div class="note">점수는 이 상권들과 비교한 위치예요. 한 줄에 하나씩 (앞에 "대구"를 붙여 검색해요). 우리 매장 근처와 "잘 되는 자리"를 넣어 두면 비교가 정확해져요. 최대 40곳.</div>
+    <div class="note">점수는 이 상권들과 비교한 위치예요. 한 줄에 하나씩 (앞에 "대구"를 붙여 검색해요), 최대 40곳. 기본 목록은 후보지가 될 만한 <b>자리 유형을 골고루</b> 담았어요: ${BENCH_GROUPS.map(g=>`${g[0]} ${g[1].length}곳`).join(' · ')}. 못 찾은 이름은 "못 찾음"으로 빠지니 지도에서 검색되는 이름으로 고치세요.</div>
+    <label class="row note" style="margin:6px 0"><input type="checkbox" class="chk" data-bs="1"${DB.benchStores!==false?' checked':''}> 우리 매장 자리도 기준에 함께 넣기 ("잘되는 자리" 기준이 돼요)</label>
+    <button class="btn sm" data-act="benchdef" style="margin-bottom:6px">기본 목록으로 되돌리기</button>
     <textarea id="benchNames" style="min-height:140px;margin-top:6px">${esc(DB.benchNames.join('\n'))}</textarea>
     <div class="row" style="margin-top:8px"><button class="btn pri" data-act="bench" ${benchBusy||!K?'disabled':''}>${benchBusy?'만드는 중…':DB.bench?'기준 다시 만들기':'기준 만들기'}</button><span class="note">상권 1곳당 약 10초 (25번 검색)</span></div>
     ${progHtml()}
@@ -1380,6 +1396,7 @@ document.addEventListener('click',async e=>{
   if(a==='pick'){ PICK=!PICK; render(); if(PICK) toast('지도에서 후보지 위치를 누르세요'); return; }
   if(a==='bench') return buildBench();
   if(a==='storeMeasure') return measureStores();
+  if(a==='benchdef'){ DB.benchNames=DEF_BENCH.slice(); save(); render(); return; }
   if(a==='sysreset'){ DB.sys=defSys(); save(); render(); return; }
   if(a==='cmpSel') return go('cmp');
   if(a==='redo') return analyze(CUR);
@@ -1402,6 +1419,7 @@ document.addEventListener('input',e=>{
     if(['cntWk','cntWe','cntWait','sbizFlow'].includes(f)){ const el=$('#flowres'); if(el) el.innerHTML=flowTxt(c); } if(['rent','area','premium','target','tables'].includes(f)){ clearTimeout(softT); softT=setTimeout(softRender,250); } return; }
   const rv=e.target.dataset.rv; if(rv){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c.review=c.review||{}; c.review[rv]=e.target.value;
     if(rv==='dec'){ if(!c.review.at) c.review.at=today(); const s=c.m?scoreOf(c.m,c):null, F=s?finalOf(c,s):null; c.review.score=F?F.tot:null; } save(); return; }
+  if(e.target.dataset.bs){ DB.benchStores=e.target.checked; save(); return; }
   const sy=e.target.dataset.sys; if(sy){ DB.sys=SYS(); const v=e.target.type==='checkbox'?e.target.checked:+e.target.value||0; const [a,b,k]=sy.split('.');
     if(a==='parts'||a==='grades') DB.sys[a][b]=Math.max(0,v); else if(a==='minDone') DB.sys.minDone=Math.max(0,Math.min(100,v)); else if(a==='ko'){ if(k) DB.sys.ko[b][k]=v; else DB.sys.ko[b]=v; } save(); return; }
   const cqid=e.target.dataset.cq; if(cqid){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c.compQ=c.compQ||{}; const o=c.compQ[cqid]=c.compQ[cqid]||{}; o[e.target.dataset.k]=e.target.value===''?'':+e.target.value; save();
