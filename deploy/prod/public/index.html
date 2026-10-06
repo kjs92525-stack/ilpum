@@ -51,6 +51,13 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .main{position:fixed;inset:0 0 0 var(--w);display:flex;flex-direction:column;transition:left .22s ease,inset .22s ease}
 body.nav-hidden .nav{transform:translateX(-102%)}
 body.nav-hidden .main{inset:0}
+.bellw{position:relative}
+#bell{position:relative} #bell .bn{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:#E5484D;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--card)}
+.npanel{position:absolute;right:0;top:44px;width:min(360px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.16);z-index:60}
+.npanel .nh{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px 8px;border-bottom:1px solid var(--line)} .npanel .nh small{color:var(--sub);font-size:11.5px}
+.npanel .ni{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;padding:11px 14px;border-bottom:1px solid var(--line);color:var(--ink);font:inherit;cursor:pointer}
+.npanel .ni:hover{background:var(--brand-soft)} .npanel .ni .em{font-size:18px;line-height:1.2} .npanel .ni b{display:block;font-size:14px} .npanel .ni small{display:block;color:var(--sub);font-size:12px;margin-top:2px}
+.npanel .ni.bad b{color:#C8333A} .npanel .none{padding:22px 14px;text-align:center;color:var(--sub);font-size:13px}
 .bar{height:54px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px;flex:0 0 auto}
 .ib{display:inline-grid;place-items:center;width:36px;height:36px;border:1px solid var(--line);background:var(--card);border-radius:10px;color:var(--ink)}
 .ib:hover{border-color:var(--brand);color:var(--brand)}
@@ -130,6 +137,8 @@ select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var
     <button class="ib" id="tog" aria-label="메뉴 숨기기 / 보이기" title="메뉴 숨기기 / 보이기"><svg class="i" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <div class="crumb"><small>일품집 통합관리</small><b id="ttl">오늘 현황</b></div>
     <span class="sp"></span>
+    <div class="bellw"><button class="ib" id="bell" hidden aria-label="알림" title="알림"><svg class="i" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bn" id="bellN" hidden></span></button>
+      <div class="npanel" id="npanel" hidden><div class="nh"><b>알림</b><small id="nAt"></small></div><div id="nList"></div></div></div>
     <button class="lk" id="acct" hidden></button>
     <button class="lk" id="reload" title="새로고침"><svg class="i" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>새로고침</span></button>
     <a class="lk" id="solo" target="_blank" rel="noopener" title="이 화면만 새 창으로"><svg class="i" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>새 창</span></a>
@@ -208,6 +217,13 @@ const cleanPositions=a=>Array.isArray(a)? a.filter(p=>p&&typeof p.name==='string
 const pwByHqAt=u=>{ const h=u&&u.app_metadata&&u.app_metadata.pw_by_hq, m=u&&u.user_metadata&&u.user_metadata.pw_self_at; return h&&(!m||m<h)?h:''; };
 const CLOSED_MARK=' (사용 중지)', isClosedName=n=>String(n||'').endsWith(CLOSED_MARK);
 const TYPES={regular:'고정 근무',weekly:'매주 변동',spot:'단기·당일'};
+// 보건증(건강진단결과서): 발급일 hcIss · 만료일 hcExp (만료일을 비우면 발급일 + 1년). 만료 30일 전부터 알림
+// 입사 1년 되는 날 (같은 날짜 다음 해, 2/29 입사는 3/1)
+function oneYear(k){ const m=String(k||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return ''; return ds(new Date(+m[1]+1,+m[2]-1,+m[3])); }
+function hcExpOf(s){ if(!s) return ''; if(s.hcExp) return s.hcExp; if(!s.hcIss) return ''; const m=s.hcIss.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return ''; const d=new Date(+m[1]+1,+m[2]-1,+m[3]); d.setDate(d.getDate()-1); return ds(d); }
+function hcState(s,today){ const exp=hcExpOf(s); if(!exp) return {exp:'',days:null,lv:'none'};
+  const t=today||ds(new Date()); const days=Math.round((new Date(exp+'T00:00')-new Date(t+'T00:00'))/86400000);
+  return {exp,days,lv:days<0?'over':days<=30?'soon':'ok'}; }
 function buildD(items,storeName){
   const g=k=>items[k]||{}; const cfg=g('cfg');
   const store=Object.assign(defStore(),cfg.store||{}); if(!store.name) store.name=storeName||'';
@@ -376,10 +392,10 @@ async function whoami(){
   let rows;
   try{ try{ rows=await ask(ses.access_token); }catch(e){ if(e.status!==401||!ses.refresh_token) throw e; ses=await refreshSes(ses); rows=await ask(ses.access_token); } }
   catch(e){ ME={mode:(e.status===401||e.message==='refresh')?'none':'in',hq:false,store:null,token:ses.access_token,email:'',err:e.message}; if(ME.mode==='in'){ ME.err=e.message; } return; }
-  const mine=rows.filter(r=>r.role); const hq=mine.some(r=>r.role==='hq');
+  const mine=rows.filter(r=>r.role); const hq=mine.some(r=>r.role==='hq'); MYSTORES=mine;
   ME={mode:'in',orderOnly:mine.length>0&&mine.every(r=>r.role==='order'),hq,canPay:mine.some(r=>r.can_pay),board:mine.some(r=>['hq','owner','manager'].includes(r.role)),acct:mine.some(r=>['hq','owner'].includes(r.role)),store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||'',pwWarn:pwByHqAt(ses.user),names:Object.fromEntries(mine.map(r=>[r.id,r.name]))};
 }
-let gateFr=null;
+let gateFr=null, MYSTORES=[];
 function showGate(){ gateFr=document.createElement('iframe'); gateFr.id='gate'; gateFr.title='로그인'; gateFr.src='ilpum-schedule.html?embed=1&view=cards';
   gateFr.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:99;background:#fff'; document.body.appendChild(gateFr); }
 function applyMe(){ $$('#menu [data-acct]').forEach(b=>{ if(ME.mode==='in'&&!ME.acct) b.hidden=true; }); if(ME.orderOnly){ $$('#menu .mi').forEach(b=>b.hidden=b.dataset.m!=='ord'); $$('#menu .subm').forEach(b=>b.hidden=true); } else $$('#menu .subm').forEach(b=>b.hidden=false); $$('#menu [data-hqonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.hq)); $$('#menu [data-payonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.canPay)); $$('#menu [data-boardonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.board));
@@ -501,11 +517,35 @@ async function refreshBadges(){ if(ME.orderOnly) return;
     ME.hq?null:get('/rest/v1/board_notices?select=id,created_at&order=created_at.desc&limit=30'),
     ME.board?get(ME.hq?'/rest/v1/board_msgs?from_hq=eq.false&hq_read=eq.false&select=id&limit=200':'/rest/v1/board_msgs?from_hq=eq.true&store_read=eq.false&select=id&limit=200'):null]);
   if(od) orderOpen=od; paintOrderBadge();
-  if(nt){ let seen=''; try{ seen=localStorage.getItem('ilpum-notice-seen')||''; }catch(e){} paintBadge('notice',nt.filter(n=>!seen||n.created_at>seen).length,'새 공지'); }
+  let ntN=0; if(nt){ let seen=''; try{ seen=localStorage.getItem('ilpum-notice-seen')||''; }catch(e){} ntN=nt.filter(n=>!seen||n.created_at>seen).length; paintBadge('notice',ntN,'새 공지'); }
   if(bd) paintBadge('board',bd.length,ME.hq?'안 읽은 점주 글':'본사 답글');
+  const hc=ME.board?await hcList(tk):[];
+  const N=[]; const sname=id=>{ const s=MYSTORES.find(x=>x.id===id); return s?s.name:''; }; const multi=new Set(orderOpen.map(o=>o.store_id)).size>1||ME.hq;
+  hc.filter(x=>x.lv==='over').forEach(x=>N.push({em:'🩺',bad:1,t:`${x.name} 보건증 만료됨`,s:`${md(x.exp)} 만료${multi&&sname(x.sid)?' · '+sname(x.sid):''} · 직원 관리에서 새 날짜를 넣어 주세요`,go:'staff'}));
+  hc.filter(x=>x.lv==='soon').forEach(x=>N.push({em:'🩺',t:`${x.name} 보건증 ${x.days===0?'오늘 만료':x.days+'일 뒤 만료'}`,s:`${md(x.exp)} 만료${multi&&sname(x.sid)?' · '+sname(x.sid):''}`,go:'staff'}));
+  if(orderOpen.length) N.push({em:'📦',t:`진행 중인 발주 ${orderOpen.length}건`,s:'가장 최근 '+ago(orderOpen[0].created_at),go:'ord'});
+  if(ntN) N.push({em:'📢',t:`새 공지 ${ntN}건`,s:'공지사항에서 확인',go:'notice'});
+  if(bd&&bd.length) N.push({em:'💬',t:`${ME.hq?'안 읽은 점주 글':'본사 답글'} ${bd.length}건`,s:'게시판에서 확인',go:'board'});
+  NOTI=N; paintBell();
   if(cur==='dash'&&dashData) renderDash();
 }
 async function refreshOrders(){ return refreshBadges(); }
+// ---- 종 알림: 보건증 만료(30일 전부터)·발주·공지·게시판을 한곳에. 보건증은 직원 목록을 30분에 한 번만 받아요(전송량 절약) ----
+let NOTI=[], hcCache=null;
+async function hcList(tk){
+  const ids=(ME.hq?MYSTORES:MYSTORES.filter(s=>['owner','manager'].includes(s.role))).map(s=>s.id); if(!ids.length) return [];
+  if(!hcCache||Date.now()-hcCache.at>1800000){ try{
+      const rows=await sget(NEW,`/rest/v1/sch_items?kind=eq.staff&deleted=eq.false&store_id=in.(${ids.join(',')})&select=store_id,id,data`,{token:tk});
+      hcCache={at:Date.now(),rows}; }catch(e){ if(!hcCache) return []; } }
+  const today=ds(new Date());
+  return hcCache.rows.map(r=>{ const s=r.data||{}; if(s.active===false||(s.last&&s.last<today)) return null; const h=hcState(s,today); return (h.lv==='over'||h.lv==='soon')?{sid:r.store_id,name:s.name||'',exp:h.exp,days:h.days,lv:h.lv}:null; }).filter(Boolean).sort((a,b)=>a.days-b.days);
+}
+function paintBell(){ const b=$('#bell'); b.hidden=ME.mode!=='in'; const n=NOTI.length, e=$('#bellN'); e.hidden=!n; e.textContent=n>99?'99+':n;
+  b.title=n?`알림 ${n}개`:'알림 없음'; if(!$('#npanel').hidden) paintNoti(); }
+function paintNoti(){ $('#nAt').textContent=new Date().toTimeString().slice(0,5)+' 기준';
+  $('#nList').innerHTML=NOTI.length?NOTI.map((x,i)=>`<button class="ni ${x.bad?'bad':''}" data-ni="${i}"><span class="em">${x.em}</span><span><b>${esc(x.t)}</b><small>${esc(x.s||'')}</small></span></button>`).join(''):'<div class="none">새 알림이 없어요</div>'; }
+$('#bell').onclick=e=>{ e.stopPropagation(); const p=$('#npanel'); p.hidden=!p.hidden; if(!p.hidden){ paintNoti(); hcCache=null; refreshBadges(); } };
+document.addEventListener('click',e=>{ const p=$('#npanel'); if(p.hidden) return; const it=e.target.closest('[data-ni]'); if(it){ const x=NOTI[+it.dataset.ni]; p.hidden=true; if(x&&ROUTES[x.go]&&allowed(x.go)) go(x.go); return; } if(!e.target.closest('.bellw')) p.hidden=true; });
 function orderPanel(){
   if(ME.mode!=='in') return '';
   const by={}; orderOpen.forEach(o=>(by[o.store_id]=by[o.store_id]||[]).push(o)); const ids=Object.keys(by);

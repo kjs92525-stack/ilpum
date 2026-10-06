@@ -599,6 +599,13 @@ const cleanPositions=a=>Array.isArray(a)? a.filter(p=>p&&typeof p.name==='string
 const pwByHqAt=u=>{ const h=u&&u.app_metadata&&u.app_metadata.pw_by_hq, m=u&&u.user_metadata&&u.user_metadata.pw_self_at; return h&&(!m||m<h)?h:''; };
 const CLOSED_MARK=' (사용 중지)', isClosedName=n=>String(n||'').endsWith(CLOSED_MARK);
 const TYPES={regular:'고정 근무',weekly:'매주 변동',spot:'단기·당일'};
+// 보건증(건강진단결과서): 발급일 hcIss · 만료일 hcExp (만료일을 비우면 발급일 + 1년). 만료 30일 전부터 알림
+// 입사 1년 되는 날 (같은 날짜 다음 해, 2/29 입사는 3/1)
+function oneYear(k){ const m=String(k||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return ''; return ds(new Date(+m[1]+1,+m[2]-1,+m[3])); }
+function hcExpOf(s){ if(!s) return ''; if(s.hcExp) return s.hcExp; if(!s.hcIss) return ''; const m=s.hcIss.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return ''; const d=new Date(+m[1]+1,+m[2]-1,+m[3]); d.setDate(d.getDate()-1); return ds(d); }
+function hcState(s,today){ const exp=hcExpOf(s); if(!exp) return {exp:'',days:null,lv:'none'};
+  const t=today||ds(new Date()); const days=Math.round((new Date(exp+'T00:00')-new Date(t+'T00:00'))/86400000);
+  return {exp,days,lv:days<0?'over':days<=30?'soon':'ok'}; }
 function buildD(items,storeName){
   const g=k=>items[k]||{}; const cfg=g('cfg');
   const store=Object.assign(defStore(),cfg.store||{}); if(!store.name) store.name=storeName||'';
@@ -993,17 +1000,24 @@ function dayText(key){
 /* ================= 직원 ================= */
 function pat7(s){ return `<span class="pat7">${WD_MON.map(wd=>{ const off=s.type==='regular'&&(s.off||[]).includes(wd); const c=(s.wk||{})[wd]; const k=off?'off':c&&c.sh?(c.sh.k==='pm'?'pm':c.sh.k==='am'?'pm':c.sh.k==='t'?'t':''):(s.type!=='regular'?'wk':'');
   return `<i class="${k}" title="${DOW[wd]}">${off?'휴':DOW[wd]}</i>`; }).join('')}</span>`; }
+const ymd2=k=>{ const m=String(k||'').match(/^\d{2}(\d{2})-(\d{2})-(\d{2})$/); return m?`${m[1]}.${+m[2]}.${+m[3]}`:''; };
+function hcCell(s){ const h=hcState(s,todayStr); if(h.lv==='none') return '<span class="muted">-</span>';
+  return `<span class="tag ${h.lv==='over'?'bad':h.lv==='soon'?'warn':''}" title="${s.hcIss?'발급 '+esc(s.hcIss)+' · ':''}만료 ${esc(h.exp)}">${md(h.exp)}${h.lv==='over'?' 지남':h.lv==='soon'?` · ${h.days}일 남음`:''}</span>`; }
 function vStaff(){
   const D=APP.D, ed=canEdit(), cp=canPay(); const all=staffList(D,true); const ws=weekStart(APP.anchor); const W=weekCalc(D,ws,cp);
+  const hcWarn=all.filter(s=>s.active!==false&&!(s.last&&s.last<todayStr)).map(s=>({s,h:hcState(s,todayStr)})).filter(x=>x.h.lv==='over'||x.h.lv==='soon').sort((x,y)=>x.h.days-y.h.days);
   const q=APP.q.trim(); const list=all.filter(s=>(!APP.pf||s.pos===APP.pf)&&(!q||s.name.includes(q)));
   return `<div class="vh"><div><h1>직원</h1><div class="sub">${all.filter(s=>s.active!==false).length}명 · 이름을 누르면 요일 패턴·급여를 바꿀 수 있어요</div></div><span class="sp"></span>${payToggle()}${ed?'<button class="btn pri" data-a="staffnew">+ 직원 추가</button>':''}</div>
     <div class="row" style="margin-bottom:12px"><div class="seg" style="overflow-x:auto;max-width:100%">${['',...D.positions.map(p=>p.name)].map(p=>`<button data-a="pf" data-v="${esc(p)}" aria-pressed="${APP.pf===p}">${esc(p||'전체')}</button>`).join('')}</div>
       <input type="text" id="staffQ" placeholder="이름 찾기" value="${esc(APP.q)}" style="width:140px"></div>
-    <div class="card" style="padding:6px 8px"><div class="scroll"><table class="t"><thead><tr><th>이름</th><th>종류</th><th>포지션</th><th>요일 패턴 (월~일)</th><th>이번 주</th>${cp?'<th>기본 급여</th>':''}</tr></thead><tbody>
+    ${hcWarn.length?`<div class="card" style="border-color:var(--warn);background:var(--warn-soft);margin-bottom:10px"><b>🩺 보건증 확인</b> · ${hcWarn.map(x=>`<button class="lnk" data-a="staff" data-sid="${x.s.id}">${esc(x.s.name)} (${x.h.lv==='over'?'만료 지남':x.h.days+'일 남음'})</button>`).join(' · ')}</div>`:''}
+    <div class="card" style="padding:6px 8px"><div class="scroll"><table class="t"><thead><tr><th>이름</th><th>종류</th><th>포지션</th><th>요일 패턴 (월~일)</th><th>이번 주</th><th>입사일 · 1년</th><th>보건증 만료</th>${cp?'<th>기본 급여</th>':''}</tr></thead><tbody>
     ${list.map(s=>{ const p=W.per[s.id]; const b=(D.pay||{})['staff:'+s.id];
       return `<tr class="click" data-a="staff" data-sid="${s.id}" style="${s.active===false||(s.last&&s.last<todayStr)?'opacity:.45':''}"><td><b>${esc(s.name)}</b>${s.note?` <em class="nl2">${esc(s.note)}</em>`:''}${s.active===false?' <span class="tag">그만둠</span>':''}${s.last?` <span class="tag ${s.last<todayStr?'':'amber'}">${md(s.last)}까지</span>`:''}</td><td><span class="tag ${s.type==='weekly'?'amber':s.type==='spot'?'warn':''}">${TYPES[s.type]}</span></td>
         <td><span style="color:${posColor(s.pos)};font-weight:700">${esc(s.pos)}</span></td><td>${pat7(s)}</td><td class="num">${p?fmtH(p.h)+'시간 · '+p.days.length+'일':'-'}${p&&p.h>=13&&p.h<15?' <span class="tag warn">주휴 경계</span>':''}</td>
-        ${cp?`<td class="num">${b?esc(payLbl(b)):'<span class="muted">미입력</span>'}</td>`:''}</tr>`; }).join('')||`<tr><td colspan="6" class="empty">조건에 맞는 직원이 없어요</td></tr>`}
+        <td class="num">${s.join?`${ymd2(s.join)} <span class="muted">→ 1년 ${ymd2(oneYear(s.join))}</span>`:'<span class="muted">-</span>'}</td>
+        <td class="num">${hcCell(s)}</td>
+        ${cp?`<td class="num">${b?esc(payLbl(b)):'<span class="muted">미입력</span>'}</td>`:''}</tr>`; }).join('')||`<tr><td colspan="8" class="empty">조건에 맞는 직원이 없어요</td></tr>`}
     </tbody></table></div></div>`;
 }
 
@@ -1455,6 +1469,8 @@ function dStaff(sid){
     <p class="help" style="margin:-4px 0 8px">스케줄에서 이름 옆에 작게 보여요. 화면에만 표시되고, 날짜별 메모나 급여 계산과는 상관없어요.</p>
     <div class="row"><label class="f grow">종류<select id="sfType">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${s.type===k?'selected':''}>${t}</option>`).join('')}</select></label>
       <label class="f grow">기본 포지션<select id="sfPos">${D.positions.map(p=>`<option ${s.pos===p.name?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label></div>
+    <div class="row"><label class="f grow">입사일 <small class="muted" id="sfJoin1">${s.join?'1년 되는 날 '+esc(oneYear(s.join)):''}</small><input type="date" id="sfJoin" value="${esc(s.join||'')}"></label></div>
+    <div class="row"><label class="f grow">보건증 발급일<input type="date" id="sfHcIss" value="${esc(s.hcIss||'')}"></label><label class="f grow">보건증 만료일 <small class="muted">(비우면 발급일+1년)</small><input type="date" id="sfHcExp" value="${esc(s.hcExp||'')}"></label></div>
     <div class="row"><label class="f grow">마지막 근무일 <small class="muted">(그만두는 날 · 이 날까지만 근무로 나와요 · 비우면 계속)</small><input type="date" id="sfLast" value="${esc(s.last||'')}"></label></div>
     <p class="hint" style="margin:-6px 0 0">고정 근무: 쉬는 요일만 빼고 매주 자동 · 매주 변동: 주마다 입력 · 단기·당일: 넣은 날만</p>
     <div class="sect"><div class="lb"><span>요일 패턴 (매주 기본)</span>${cp&&sid?'<button class="lnk" data-a="patpay">요일별 금액도 정하기</button>':''}</div>${WD_MON.map(pr).join('')}
@@ -1467,7 +1483,7 @@ function dStaff(sid){
 function saveStaff(sid){
   const D=APP.D; const name=$('#sfName').value.trim(); if(!name) return toast('이름을 넣어주세요');
   const id=sid||uid(); const s=Object.assign({},D.staff[id]||{id,active:true,order:Object.keys(D.staff).length});
-  s.name=name; s.tel=$('#sfTel').value.trim(); { const nt=($('#sfNote').value||'').trim().slice(0,12); if(nt) s.note=nt; else delete s.note; } { const lv=($('#sfLast').value||'').trim(); if(lv) s.last=lv; else delete s.last; } s.type=$('#sfType').value; s.pos=$('#sfPos').value; s.off=[]; s.wk={};
+  s.name=name; s.tel=$('#sfTel').value.trim(); { const nt=($('#sfNote').value||'').trim().slice(0,12); if(nt) s.note=nt; else delete s.note; } { const lv=($('#sfLast').value||'').trim(); if(lv) s.last=lv; else delete s.last; } ['join','hcIss','hcExp'].forEach(k=>{ const el=$('#sf'+k[0].toUpperCase()+k.slice(1)); const v=el?(el.value||'').trim():''; if(v) s[k]=v; else delete s[k]; }); s.type=$('#sfType').value; s.pos=$('#sfPos').value; s.off=[]; s.wk={};
   for(const sel of $$('[data-pat]')){ const wd=+sel.dataset.pat, v=sel.value;
     if(v==='off') s.off.push(wd); else if(v==='pm'||v==='am') s.wk[wd]={sh:{k:v}};
     else if(v==='t'){ const raw=$(`[data-patt="${wd}"]`).value.trim(); const [a,b]=raw.split(/[~\-]/); const st=parseT(a,false), en=b?parseT(b,true):'';
@@ -1566,7 +1582,7 @@ function dStoreNew(){ openDrawer('매장 추가','본사만 할 수 있어요',`
   <p class="hint">매장을 만든 뒤 설정 → 계정 만들기에서 이 매장의 점주 계정을 만드세요.</p>`,`<button class="btn pri grow" data-a="storecreate">만들기</button>`); }
 
 /* ================= 기존 근무표 가져오기 ================= */
-const OLD_URL='https://fmzpmekypmjuydgxpnlu.supabase.co', OLD_KEY='OLDK';
+const OLD_URL='https://fmzpmekypmjuydgxpnlu.supabase.co', OLD_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtenBtZWt5cG1qdXlkZ3hwbmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MTM1ODIsImV4cCI6MjEwNTI4OTU4Mn0.UXfmpVtGxOaVUY96M-tM55d2s-utxGnBr24sUnIjAGM';
 function importOld(o){
   if(!o||!Array.isArray(o.staff)) throw new Error('근무표 데이터가 아니에요');
   const D=APP.D; let n=0;
@@ -1737,7 +1753,7 @@ document.addEventListener('submit',async e=>{
   try{ Remote.url=(Conf.url||'').replace(/\/$/,''); Remote.key=Conf.key; await Remote.login(email,pw,keep); Conf.email=idTyped; Conf.openOnly=false; saveConf(); location.reload(); }
   catch(err){ toast(/fetch|network|load failed/i.test(err.message)?'서버에 연결하지 못했어요. 인터넷이 되는 실제 주소에서 열어주세요':err.message); btn.disabled=false; btn.textContent='로그인'; $('#lgPw').focus(); }
 });
-document.addEventListener('input',e=>{ const t=e.target, id=t.id||'';
+document.addEventListener('input',e=>{ const t=e.target, id=t.id||''; if(id==='sfJoin'){ const h=$('#sfJoin1'); if(h) h.textContent=t.value?'1년 되는 날 '+oneYear(t.value):''; }
   const m=id.match(/^([a-z])(S|E|Pv)$/); if(m) updHints(m[1]);
   if(id==='rQ'){ const q=t.value.trim(); $$('#rPick label').forEach(l=>l.hidden=!!q&&!l.dataset.rn.includes(q)); }
   if(t.closest&&t.closest('#dBody')&&$('#rPrev')) rulePrev();

@@ -209,6 +209,13 @@ const cleanPositions=a=>Array.isArray(a)? a.filter(p=>p&&typeof p.name==='string
 const pwByHqAt=u=>{ const h=u&&u.app_metadata&&u.app_metadata.pw_by_hq, m=u&&u.user_metadata&&u.user_metadata.pw_self_at; return h&&(!m||m<h)?h:''; };
 const CLOSED_MARK=' (사용 중지)', isClosedName=n=>String(n||'').endsWith(CLOSED_MARK);
 const TYPES={regular:'고정 근무',weekly:'매주 변동',spot:'단기·당일'};
+// 보건증(건강진단결과서): 발급일 hcIss · 만료일 hcExp (만료일을 비우면 발급일 + 1년). 만료 30일 전부터 알림
+// 입사 1년 되는 날 (같은 날짜 다음 해, 2/29 입사는 3/1)
+function oneYear(k){ const m=String(k||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return ''; return ds(new Date(+m[1]+1,+m[2]-1,+m[3])); }
+function hcExpOf(s){ if(!s) return ''; if(s.hcExp) return s.hcExp; if(!s.hcIss) return ''; const m=s.hcIss.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return ''; const d=new Date(+m[1]+1,+m[2]-1,+m[3]); d.setDate(d.getDate()-1); return ds(d); }
+function hcState(s,today){ const exp=hcExpOf(s); if(!exp) return {exp:'',days:null,lv:'none'};
+  const t=today||ds(new Date()); const days=Math.round((new Date(exp+'T00:00')-new Date(t+'T00:00'))/86400000);
+  return {exp,days,lv:days<0?'over':days<=30?'soon':'ok'}; }
 function buildD(items,storeName){
   const g=k=>items[k]||{}; const cfg=g('cfg');
   const store=Object.assign(defStore(),cfg.store||{}); if(!store.name) store.name=storeName||'';
