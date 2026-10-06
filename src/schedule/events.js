@@ -139,6 +139,7 @@ function dStaff(sid){
       <label class="f grow">기본 포지션<select id="sfPos">${D.positions.map(p=>`<option ${s.pos===p.name?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label></div>
     <div class="row"><label class="f grow">입사일 <small class="muted" id="sfJoin1">${s.join?'1년 되는 날 '+esc(oneYear(s.join)):''}</small><input type="date" id="sfJoin" value="${esc(s.join||'')}"></label></div>
     <div class="row"><label class="f grow">보건증 발급일<input type="date" id="sfHcIss" value="${esc(s.hcIss||'')}"></label><label class="f grow">보건증 만료일 <small class="muted">(비우면 발급일+1년)</small><input type="date" id="sfHcExp" value="${esc(s.hcExp||'')}"></label></div>
+    <div class="row"><label class="f grow">근로계약서 작성<select id="sfContract">${[['','미정'],['O','O (작성함)'],['X','X (안 함)']].map(([k,t])=>`<option value="${k}" ${(s.contract||'')===k?'selected':''}>${t}</option>`).join('')}</select></label><label class="f grow">연차 대상<select id="sfAnnual">${[['','미정'],['O','O (대상)'],['X','X (아님)']].map(([k,t])=>`<option value="${k}" ${(s.annual||'')===k?'selected':''}>${t}</option>`).join('')}</select></label></div>
     <div class="row"><label class="f grow">마지막 근무일 <small class="muted">(그만두는 날 · 이 날까지만 근무로 나와요 · 비우면 계속)</small><input type="date" id="sfLast" value="${esc(s.last||'')}"></label></div>
     <p class="hint" style="margin:-6px 0 0">고정 근무: 쉬는 요일만 빼고 매주 자동 · 매주 변동: 주마다 입력 · 단기·당일: 넣은 날만</p>
     <div class="sect"><div class="lb"><span>요일 패턴 (매주 기본)</span>${cp&&sid?'<button class="lnk" data-a="patpay">요일별 금액도 정하기</button>':''}</div>${WD_MON.map(pr).join('')}
@@ -151,7 +152,7 @@ function dStaff(sid){
 function saveStaff(sid){
   const D=APP.D; const name=$('#sfName').value.trim(); if(!name) return toast('이름을 넣어주세요');
   const id=sid||uid(); const s=Object.assign({},D.staff[id]||{id,active:true,order:Object.keys(D.staff).length});
-  s.name=name; s.tel=$('#sfTel').value.trim(); { const nt=($('#sfNote').value||'').trim().slice(0,12); if(nt) s.note=nt; else delete s.note; } { const lv=($('#sfLast').value||'').trim(); if(lv) s.last=lv; else delete s.last; } ['join','hcIss','hcExp'].forEach(k=>{ const el=$('#sf'+k[0].toUpperCase()+k.slice(1)); const v=el?(el.value||'').trim():''; if(v) s[k]=v; else delete s[k]; }); s.type=$('#sfType').value; s.pos=$('#sfPos').value; s.off=[]; s.wk={};
+  s.name=name; s.tel=$('#sfTel').value.trim(); { const nt=($('#sfNote').value||'').trim().slice(0,12); if(nt) s.note=nt; else delete s.note; } { const lv=($('#sfLast').value||'').trim(); if(lv) s.last=lv; else delete s.last; } ['join','hcIss','hcExp'].forEach(k=>{ const el=$('#sf'+k[0].toUpperCase()+k.slice(1)); const v=el?(el.value||'').trim():''; if(v) s[k]=v; else delete s[k]; }); [['contract','sfContract'],['annual','sfAnnual']].forEach(([k,i])=>{ const v=($('#'+i).value||'').trim(); if(v) s[k]=v; else delete s[k]; }); s.type=$('#sfType').value; s.pos=$('#sfPos').value; s.off=[]; s.wk={};
   for(const sel of $$('[data-pat]')){ const wd=+sel.dataset.pat, v=sel.value;
     if(v==='off') s.off.push(wd); else if(v==='pm'||v==='am') s.wk[wd]={sh:{k:v}};
     else if(v==='t'){ const raw=$(`[data-patt="${wd}"]`).value.trim(); const [a,b]=raw.split(/[~\-]/); const st=parseT(a,false), en=b?parseT(b,true):'';

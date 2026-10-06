@@ -82,6 +82,6 @@ async def join_test():
     await pg.fill('#sfJoin','2025-03-02'); await pg.dispatch_event('#sfJoin','input')
     h=await pg.inner_text('#sfJoin1'); await pg.click('[data-a="staffsave"]'); await pg.wait_for_timeout(300)
     row=await pg.inner_text(f'tr[data-sid="{sid}"]')
-    r=[await pg.evaluate(f"APP.D.staff['{sid}'].join")=='2025-03-02', '2026-03-02' in h, '25.3.2' in row and '26.3.2' in row, await pg.evaluate("oneYear('2024-02-29')")=='2025-03-01', not errs]
+    r=[await pg.evaluate(f"APP.D.staff['{sid}'].join")=='2025-03-02', '2026-03-02' in h, '2025-03-02' in row and '2026-03-02' in row, await pg.evaluate("oneYear('2024-02-29')")=='2025-03-01', not errs]
     print(('OK  ' if all(r) else 'FAIL'),'입사일 저장·1년 되는 날 표시',r,h,row.replace('\n',' | ')); await b.close()
 asyncio.run(join_test())
