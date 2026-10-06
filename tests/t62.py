@@ -59,6 +59,12 @@ import datetime
 def rest_json(qs):
   t=datetime.date.today(); fmt=lambda d:d.isoformat()
   R=lambda items,n:json.dumps({"response":{"body":{"dataType":"JSON","items":{"item":items},"numOfRows":len(items),"pageNo":1,"totalCount":n},"header":{"resultCode":"0","resultMsg":"정상"}}})
+  if 'BPLC_NM' in qs:
+    Y=lambda y,dd=0: fmt(t-datetime.timedelta(days=int(365.25*y)+dd))
+    E=[("풍천장어",Y(8),"","01","대구광역시 수성구 범어로 1 (범어동)"),("장어나라",Y(6),Y(5),"03","대구광역시 수성구 들안로 2 (두산동)"),
+       ("민물장어촌",Y(5),"","01","대구광역시 수성구 동대구로 3 (범어동)"),("장어명가",Y(4),"","01","대구광역시 수성구 4 (만촌동)"),
+       ("장어골",Y(7),Y(2),"03","대구광역시 수성구 5 (황금동)"),("새장어",Y(1),"","01","대구광역시 수성구 6 (범어동)")]
+    return R([{"BPLC_NM":n,"LCPMT_YMD":o,"CLSBIZ_YMD":c,"SALS_STTS_CD":st,"ROAD_NM_ADDR":ad} for n,o,c,st,ad in E],len(E))
   if 'cond%5BOPN_ATMY_GRP_CD%3A%3AEQ%5D' not in qs: return R([{"OPN_ATMY_GRP_CD":"3460000","BPLC_NM":"가"}],4471)
   if 'SALS_STTS_CD%3A%3AEQ%5D=01' in qs: return R([{"BPLC_NM":"가"}],200)
   if 'LCPMT_YMD' in qs: return R([{"BPLC_NM":"가"}],40)
@@ -113,8 +119,8 @@ async def main():
     sc=int((await pg.inner_text('.scorebox .num')).split('/')[0]); g=await pg.inner_text('.scorebox .gr')
     ok('5) 점수·등급 표지 상자', 0<=sc<=100 and g==('A' if sc>=70 else 'B' if sc>=55 else 'C' if sc>=40 else 'D'), (sc,g))
     dec=await pg.inner_text('.scorebox .dec'); ok('   기준 상권 중 순위·판정 문구', '20곳 중' in await pg.inner_text('.mix') and any(x in dec for x in ['출점 적극 검토','조건부 검토','신중 검토','보류 권장','출점 불가']), dec)
-    ok('   레이더 차트(5개 영역)', await pg.evaluate("document.querySelectorAll('#s-eval svg.radar text').length")==5)
-    ok('   영역 6개(상권 5 + 매물 조건)·상권 지표 34개 분포 줄', await pg.evaluate("document.querySelectorAll('.ev').length")==6 and await pg.evaluate("document.querySelectorAll('.sr').length")==34 and await pg.evaluate("document.querySelectorAll('.sr .strip b').length")==34)
+    ok('   레이더 차트(5개 영역)', await pg.evaluate("document.querySelectorAll('#s-eval svg.radar text').length")==6)
+    ev=await pg.evaluate("document.querySelectorAll('.ev').length"); sr=await pg.evaluate("document.querySelectorAll('.sr').length"); sb=await pg.evaluate("document.querySelectorAll('.sr .strip b').length"); ok('   영역 7개(상권 6 + 매물 조건)·상권 지표 분포 줄', ev==7 and sr==39 and sb==39, (ev,sr,sb))
     ok('   결론 요약 문장', await pg.evaluate("document.querySelectorAll('.exec li').length")>=4)
     ok('   거리별 장어집 수 (300/500/1km)', await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')")=='0,1,2' , await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')"))
     mx=await pg.inner_text('.mix'); ok('5b) 월세·평수 없으면 매물 조건 빼고 분석', '매물 조건 입력 없음' in mx and '월세·평수·테이블 수를 넣으면 반영돼요' in await pg.inner_text('#s-eval'), mx)
@@ -232,9 +238,9 @@ async def main():
     dump=await pg.evaluate("localStorage.getItem('ilpum-sk-v1')")
     # 영역 비중을 바꾸면 점수가 바로 다시 계산되는지
     await pg.click('[data-tab=set]'); sc_before=await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1')).weights.comp")
-    await pg.fill('[data-w=comp]','100'); await pg.fill('[data-w=hub]','0'); await pg.fill('[data-w=fam]','0'); await pg.fill('[data-w=biz]','0'); await pg.fill('[data-w=acc]','0'); await pg.wait_for_timeout(100)
+    await pg.fill('[data-w=comp]','100'); await pg.fill('[data-w=hub]','0'); await pg.fill('[data-w=fam]','0'); await pg.fill('[data-w=biz]','0'); await pg.fill('[data-w=acc]','0'); await pg.fill('[data-w=trade]','0'); await pg.wait_for_timeout(100)
     await pg.click('[data-tab=list]'); await pg.wait_for_timeout(100)
-    ok('12) 비중 바꾸면 점수 다시 계산', sc_before==25 and (await pg.evaluate("[...document.querySelectorAll('.cc .sc b')].map(b=>b.innerText).join(',')"))!='' )
+    ok('12) 비중 바꾸면 점수 다시 계산', sc_before==20 and (await pg.evaluate("[...document.querySelectorAll('.cc .sc b')].map(b=>b.innerText).join(',')"))!='' )
     await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(500)
     ok('13) 지우면 빈 목록', '후보지 0곳' in await pg.inner_text('#pane'))
     open('/tmp/claude-0/-home-user-ilpum/84939bee-6935-52c6-a313-b33888ccf60e/scratchpad/bk.json','w').write(dump)

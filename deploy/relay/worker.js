@@ -14,7 +14,7 @@ const API = {
   // 행정안전부 행정동별(통반단위) 성/연령별 주민등록 인구수 — 행정동 코드 10자리(admmCd), 기준연월 srchFrYm~srchToYm
   pop: { url: 'https://apis.data.go.kr/1741000/admmSexdAgePpltn/selectAdmmSexdAgePpltn', keys: ['admmCd', 'srchFrYm', 'srchToYm', 'lv', 'regSeCd', 'type', 'numOfRows', 'pageNo'], ttl: 86400 },
   // 행정안전부 식품 일반음식점 조회서비스 — 인허가·폐업 (도로명주소 글자 LIKE, 인허가일자, 영업상태 01=영업·03=폐업, 지자체 코드로 거름)
-  rest: { url: 'https://apis.data.go.kr/1741000/general_restaurants/info', keys: ['pageNo', 'numOfRows', 'returnType', 'cond[ROAD_NM_ADDR::LIKE]', 'cond[LCPMT_YMD::GTE]', 'cond[SALS_STTS_CD::EQ]', 'cond[OPN_ATMY_GRP_CD::EQ]'], ttl: 86400 },
+  rest: { url: 'https://apis.data.go.kr/1741000/general_restaurants/info', keys: ['pageNo', 'numOfRows', 'returnType', 'cond[ROAD_NM_ADDR::LIKE]', 'cond[BPLC_NM::LIKE]', 'cond[LCPMT_YMD::GTE]', 'cond[SALS_STTS_CD::EQ]', 'cond[OPN_ATMY_GRP_CD::EQ]'], ttl: 86400 },
 };
 export default {
   async fetch(req, env, ctx) {
