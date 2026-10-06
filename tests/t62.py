@@ -83,6 +83,10 @@ async def handler(r):
     return await r.fulfill(status=200,content_type='application/javascript',body=STUB)
   if 'ilpum-data.yoyo925.workers.dev' in u:
     RELAY.append(u); H={'Access-Control-Allow-Origin':'*'}
+    if '/blog?' in u:
+      if MODE.get('blog')=='nokey': return await r.fulfill(status=503,headers=H,content_type='application/json',body=json.dumps({"error":"NAVER_ID·NAVER_SECRET(네이버 검색 API 키)가 아직 없어요"}))
+      from urllib.parse import unquote_plus; q=unquote_plus(u.split('query=')[1]) if 'query=' in u else ''
+      return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps({"total":900 if q.endswith('장어20') else 500 if q.endswith('장어11') else 10}))
     if '/ping' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps({"ok":True,"hasKey":MODE['relay']!='nokey',"allowed":True}))
     if MODE['relay']=='nokey': return await r.fulfill(status=200,headers=H,content_type='text/xml',body="<OpenAPI_ServiceResponse><cmmMsgHeader><returnAuthMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</returnAuthMsg><returnReasonCode>30</returnReasonCode></cmmMsgHeader></OpenAPI_ServiceResponse>")
     if '/apt?' in u: return await r.fulfill(status=200,headers=H,content_type='text/xml',body=apt_xml())

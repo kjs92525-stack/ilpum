@@ -1,6 +1,7 @@
 // 일품집 상권분석 — 공공데이터 중계 서버 (Cloudflare Worker)
 // 화면(sangkwon)이 이 서버에 물어보면, 이 서버가 공공데이터포털 키를 붙여 대신 받아 와서 돌려줌.
 // 키는 코드에 넣지 않고 Cloudflare → 이 Worker → Settings → Variables and Secrets 에 DATA_KEY(공공데이터포털 "일반 인증키(Decoding)")로 넣기.
+// 네이버 블로그 글 수(장어집 인기도): NAVER_ID / NAVER_SECRET (네이버 개발자센터 → 애플리케이션 → 검색 API 의 Client ID / Client Secret) 도 Secret 으로.
 const ALLOW = [
   'https://sangkwon.yoyo925.workers.dev',
   'https://ancient-morning-30ee.yoyo925.workers.dev',
@@ -24,8 +25,21 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     const u = new URL(req.url), name = u.pathname.replace(/^\/+/, '');
     const out = (status, obj) => new Response(JSON.stringify(obj), { status, headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8' } });
-    if (name === 'ping') return out(200, { ok: true, hasKey: !!env.DATA_KEY, origin, allowed: ok });
+    if (name === 'ping') return out(200, { ok: true, hasKey: !!env.DATA_KEY, hasNaver: !!(env.NAVER_ID && env.NAVER_SECRET), origin, allowed: ok });
     if (!ok) return out(403, { error: '허용되지 않은 주소에서 온 요청이에요 (' + origin + ')' });
+    // 네이버 블로그 검색 — 글 수(total)만 돌려줌. 7일 캐시
+    if (name === 'blog') {
+      if (!env.NAVER_ID || !env.NAVER_SECRET) return out(503, { error: 'NAVER_ID·NAVER_SECRET(네이버 검색 API 키)가 아직 없어요' });
+      const q = (u.searchParams.get('query') || '').slice(0, 60); if (!q) return out(400, { error: 'query 없음' });
+      const ck = new Request('https://cache.local/blog?q=' + encodeURIComponent(q)), hit = await caches.default.match(ck);
+      if (hit) { const h = new Response(hit.body, hit); Object.entries(cors).forEach(([k, v]) => h.headers.set(k, v)); return h; }
+      let r; try { r = await fetch('https://openapi.naver.com/v1/search/blog.json?display=1&query=' + encodeURIComponent(q), { headers: { 'X-Naver-Client-Id': env.NAVER_ID, 'X-Naver-Client-Secret': env.NAVER_SECRET } }); }
+      catch (e) { return out(502, { error: '네이버에 연결하지 못했어요: ' + e.message }); }
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) return out(r.status, { error: '네이버 검색 오류: ' + (j.errorMessage || r.status) });
+      const res = new Response(JSON.stringify({ total: +j.total || 0 }), { headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'max-age=604800' } });
+      ctx.waitUntil(caches.default.put(ck, res.clone())); return res;
+    }
     if (!env.DATA_KEY) return out(503, { error: 'DATA_KEY(공공데이터포털 인증키)가 아직 없어요' });
     const a = API[name]; if (!a) return out(404, { error: '모르는 요청: ' + name });
     const t = new URL(a.url);

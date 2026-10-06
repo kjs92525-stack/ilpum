@@ -16,7 +16,15 @@ async def main():
     bench=await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1')).bench")
     names=[x['name'] for x in bench['points']]
     ok('1) 장어집 자리 기준: 일식(스시) 빼고 3개 구 장어집 6곳', bench['mode']=='eel' and len(names)==6 and not any('스시' in n for n in names) and all(x.get('selfId') for x in bench['points']), names)
-    ok('   구마다 번갈아 고름(앞 3곳이 서로 다른 구)', len({n[2] for n in names[:3]})==3, names)
+    ok('   인기 순으로 골라도 여러 구가 섞임(앞 3곳이 서로 다른 구)', len({n[2] for n in names[:3]})==3, names)
+    pick=await pg.evaluate("eelPick(2).map(x=>x.name)")
+    ok('   인기도(블로그 글 수) 높은 순: 장어20(900)·장어11(500)', pick==['장어20','장어11'], pick)
+    q=await pg.evaluate("blogQ(DB.eelPool.list[0])"); ok('   블로그 검색어 = 구 + 상호', q.startswith('중구 ') or q.startswith('동구 ') or q.startswith('수성구 '), q)
+    await pg.select_option('[data-ei=eel20]','out'); await pg.wait_for_timeout(200)
+    await pg.fill('[data-er=eel01]','400'); await pg.press('[data-er=eel01]','Tab'); await pg.wait_for_timeout(200)
+    pick=await pg.evaluate("eelPick(2).map(x=>x.name)")
+    ok('   "빼기" 한 집은 빠지고, 네이버 리뷰 400 넣은 집(×3=1200)이 1등', pick==['장어01','장어11'], pick)
+    await pg.select_option('[data-ei=eel22]','in') if await pg.query_selector('[data-ei=eel22]') else None
     t=await pg.inner_text('#pane'); ok('   설정에 "장어집 3곳 중"이 아니라 찾은 수 표시', '장어집 6곳 중 6곳 측정' in t, t[:0])
     await pg.click('[data-tab=list]'); await pg.fill('#q','대구 수성구 범어동 177'); await pg.click('[data-act=find]'); await pg.wait_for_timeout(300)
     await pg.click('[data-cand="0"]'); await pg.wait_for_function("document.querySelector('.scorebox')",timeout=60000); await pg.wait_for_timeout(300)
@@ -48,6 +56,10 @@ async def main():
     async with pg.expect_download(): await pg.click('.infobox [data-act=export]')
     await pg.wait_for_timeout(300)
     ok('   백업 받으면 경고 사라짐', '백업 파일을 받은 적이 없어요' not in await pg.inner_text('#pane'))
+    G['MODE']['blog']='nokey'; await pg.evaluate("DB.eelPool=null; eelFind()"); await pg.wait_for_function("DB.eelPool&&DB.eelPool.list.length",timeout=30000)
+    be=await pg.evaluate("[DB.eelPool.blogErr, eelPick(3).map(x=>x.name)]")
+    ok('10) 네이버 키 없으면 안내 + 카카오 검색 순서(구마다 번갈아)로 고름', 'NAVER' in be[0] and be[1]==['장어00','장어10','장어20'], be)
+    G['MODE']['blog']=''
     ok('   오류 없음', not errs, errs)
     await b.close()
   print('모두 통과' if not FAILS else '실패 있음: '+', '.join(FAILS))

@@ -331,7 +331,7 @@ const sidoKey=t=>{ t=String(t||''); const M={'경상북도':'경북','경상남�
 function inCity(o,city){ city=city||CT(); const m=o.m||{}, txt=(m.region||'')+' '+(o.addr||''); if(txt.includes(city)) return true; if(m.bsido&&sidoKey(m.bsido)===city) return true; const b=(CITIES[city]||{}).box; return !!(b&&o.x>b[0]&&o.x<b[1]&&o.y>b[2]&&o.y<b[3]); }
 const BMODE=()=>(DB.bench&&DB.bench.mode)||DB.benchMode||'eel', BL=()=>BMODE()==='eel'?'장어집 자리':'기준 상권';
 const ct=h=>String(h).replace(/대구 기준 상권/g,CT()+' '+BL()).replace(/기준 상권/g,BL()).replace(/대구 기준/g,CT()+' 기준').replace(/"대구"/g,'"'+CT()+'"').replace(/대구 주요 상권/g,CT()+' 주요 상권');
-function switchCity(n){ if(!n||n===DB.city) return; DB.cityData=DB.cityData||{}; DB.cityData[DB.city]={benchNames:DB.benchNames,bench:DB.bench,benchMode:DB.benchMode}; const d=DB.cityData[n]; DB.city=n; DB.benchNames=d?d.benchNames:cityDef(n); DB.bench=d?d.bench:null; DB.benchMode=d&&d.benchMode||'eel'; _bc=null; save(); fillCity(); render(); }
+function switchCity(n){ if(!n||n===DB.city) return; DB.cityData=DB.cityData||{}; DB.cityData[DB.city]={benchNames:DB.benchNames,bench:DB.bench,benchMode:DB.benchMode,eelPool:DB.eelPool}; const d=DB.cityData[n]; DB.city=n; DB.benchNames=d?d.benchNames:cityDef(n); DB.bench=d?d.bench:null; DB.benchMode=d&&d.benchMode||'eel'; DB.eelPool=d&&d.eelPool||null; _bc=null; save(); fillCity(); render(); }
 function fillCity(){ const el=$('#city'); if(!el) return; if(!DB.cityList.includes(DB.city)) DB.cityList.push(DB.city); el.innerHTML=DB.cityList.map(x=>`<option${x===DB.city?' selected':''}>${esc(x)}</option>`).join('')+'<option value="__add">+ 도시 추가…</option>'; }
 
 /* ---- 분석 영역과 지표 (d = 한 지점에서 모은 값과 거기서 계산한 값) ---- */
@@ -851,14 +851,31 @@ async function eelPlaces(city,N){
       j.list.filter(isEelPlace).forEach(x=>{ const ad=x.road_address_name||x.address_name||''; if(!seen.has(x.id)&&inCity({addr:ad,x:+x.x,y:+x.y},city)) seen.set(x.id,{id:x.id,name:x.place_name,addr:ad,x:+x.x,y:+x.y,gu:gus[gi]||ad.split(' ')[1]||''}); });
       if(!j.pg||!j.pg.hasNextPage) break; } }
   const by={}; [...seen.values()].forEach(x=>(by[x.gu]=by[x.gu]||[]).push(x)); const keys=Object.keys(by), out=[];
-  for(let i=0;out.length<N&&keys.some(k=>by[k].length);i++){ const k=keys[i%keys.length]; if(by[k].length) out.push(by[k].shift()); }
+  N=N||1e9; for(let i=0;out.length<N&&keys.some(k=>by[k].length);i++){ const k=keys[i%keys.length]; if(by[k].length) out.push(by[k].shift()); }
   return {list:out,found:seen.size};
+}
+// 장어집 후보 전체 + 인기도(네이버 블로그 글 수 · 직접 넣은 네이버 리뷰 수) → 인기 높은 순으로 기준 N곳. 사장님이 포함/제외로 고칠 수 있음
+const blogQ=(x)=>`${x.gu||''} ${String(x.name).replace(/\s*(본점|직영점)$/,'')}`.trim();
+async function blogCount(q){ const t=await relay('blog',{query:q}); let j; try{ j=JSON.parse(t); }catch(e){ throw new Error('블로그 응답 형식이 달라요'); } if(j.error) throw new Error(j.error); return +j.total||0; }
+async function eelFind(){
+  const r=await eelPlaces(CT()); const old=Object.fromEntries(((DB.eelPool||{}).list||[]).map(x=>[x.id,x]));
+  const list=r.list.map((x,i)=>Object.assign(x,{ord:i,blog:old[x.id]?old[x.id].blog:null,rev:old[x.id]?old[x.id].rev:'',inc:old[x.id]?old[x.id].inc:''}));
+  let err=''; if(DB.relay){ let i=0, done=0; await Promise.all(Array.from({length:4},async()=>{ while(i<list.length&&!err){ const x=list[i++];
+      try{ x.blog=await blogCount(blogQ(x)); }catch(e){ err=e.message; } setProg(`블로그 글 수 확인 ${++done}/${list.length}`,0.15+0.1*done/list.length); } })); }
+  DB.eelPool={at:today(),list,blogErr:err||(DB.relay?'':'중계 서버 주소가 없어요')}; save(); return DB.eelPool;
+}
+const popOf=x=>+x.rev>0?+x.rev*3:x.blog!=null?x.blog:null;   // 네이버 리뷰를 넣었으면 그 값(블로그보다 3배 무게), 없으면 블로그 글 수
+function eelPick(N){
+  const L=((DB.eelPool||{}).list||[]); N=N||Math.max(10,Math.min(60,+DB.eelN||30));
+  const fixed=L.filter(x=>x.inc==='in'), rest=L.filter(x=>x.inc!=='in'&&x.inc!=='out'), hasPop=rest.some(x=>popOf(x)!=null);
+  const sorted=hasPop?[...rest].sort((a,b)=>(popOf(b)??-1)-(popOf(a)??-1)||a.ord-b.ord):[...rest].sort((a,b)=>a.ord-b.ord);
+  return [...fixed,...sorted].slice(0,Math.max(N,fixed.length));
 }
 async function buildBench(){
   if(!K) return toast('카카오 지도가 아직 안 열렸어요');
   if(benchBusy) return; benchBusy=true; render();
   const mode=DB.benchMode||'eel', pts=[]; let names=DB.benchNames.filter(Boolean), eels=null, found=0;
-  if(mode==='eel'){ try{ const r=await eelPlaces(CT(),Math.max(10,Math.min(60,+DB.eelN||30))); eels=r.list; found=r.found; names=eels.map(x=>x.name); }catch(e){ eels=[]; names=[]; }
+  if(mode==='eel'){ try{ if(!DB.eelPool||!(DB.eelPool.list||[]).length) await eelFind(); eels=eelPick(); found=DB.eelPool.list.length; names=eels.map(x=>x.name); }catch(e){ eels=[]; names=[]; }
     if(!eels.length){ benchBusy=false; setProg('',0); render(); return toast(`${CT()}에서 장어집을 찾지 못했어요`); } }
   try{
     for(let i=0;i<names.length;i++){
@@ -866,7 +883,7 @@ async function buildBench(){
       let x; if(eels){ const e=eels[i]; x={place_name:e.addr,x:e.x,y:e.y,id:e.id}; } else { const k=await retry(()=>kcall(cb=>K.ps.keywordSearch(CT()+' '+names[i],cb,{size:1}))); x=k.list[0]; }
       if(!x){ pts.push({name:names[i],err:'못 찾음'}); continue; }
       const p={x:+x.x,y:+x.y};
-      try{ const m=await measure(p,(n,t)=>setProg(`기준 ${i+1}/${names.length} · ${names[i]}`,(i+n/t)/names.length)); pts.push(Object.assign({name:names[i],place:x.place_name,x:p.x,y:p.y,m},eels?{selfId:x.id,eel:true}:{})); }
+      try{ const m=await measure(p,(n,t)=>setProg(`기준 ${i+1}/${names.length} · ${names[i]}`,(i+n/t)/names.length)); pts.push(Object.assign({name:names[i],place:x.place_name,x:p.x,y:p.y,m},eels?{selfId:x.id,eel:true,pop:popOf(eels[i])}:{})); }
       catch(e){ pts.push({name:names[i],err:'측정 실패'}); }
     }
     if(DB.benchStores!==false){ const S=DB.stores.filter(x=>x.x&&inCity(x)&&!(eels&&eels.some(e=>distM(e,x)<40)));
@@ -1190,6 +1207,17 @@ function snapHtml(c,r){
 }
 
 
+function eelPoolHtml(){
+  const P=DB.eelPool, L=P&&P.list||[];
+  const head=`<div class="row" style="margin-top:10px"><button class="btn" data-act="eelfind" ${benchBusy||!K?'disabled':''}>${L.length?'장어집 다시 찾기':'1단계: 장어집 찾기 · 인기도 확인'}</button><span class="note">${L.length?`${esc(P.at)} · ${L.length}곳 찾음`:'구마다 장어집을 찾고 네이버 블로그 글 수로 인기도를 봐요'}</span></div>`;
+  if(!L.length) return head;
+  const pick=new Set(eelPick().map(x=>x.id)), sorted=[...L].sort((a,b)=>(pick.has(b.id)-pick.has(a.id))||((popOf(b)??-1)-(popOf(a)??-1))||a.ord-b.ord);
+  return head+`${P.blogErr?`<div class="note" style="color:var(--warn);margin-top:6px">블로그 글 수를 못 받았어요: ${esc(P.blogErr)} — 네이버 키를 넣기 전에는 카카오 검색 순서로 골라요. 아는 집은 네이버 리뷰 수를 직접 넣거나 포함/제외를 정하세요.</div>`:''}
+    <details style="margin-top:8px"${L.length<=80?' open':''}><summary class="note" style="font-weight:600">기준에 쓸 장어집 ${pick.size}곳 (진하게) · 인기 높은 순 — 펼쳐서 고치기</summary>
+    <div class="tw"><table class="dt"><thead><tr><th>상호</th><th>구</th><th style="text-align:right">블로그 글</th><th style="text-align:right">네이버 리뷰</th><th>기준에</th></tr></thead><tbody>
+    ${sorted.map(x=>`<tr style="${pick.has(x.id)?'font-weight:700':'opacity:.6'}"><td>${esc(x.name)}<div class="note" style="font-weight:400">${esc(x.addr)}</div></td><td class="note">${esc(x.gu)}</td><td class="num">${x.blog==null?'-':fmtN(x.blog)}</td><td class="num"><input type="number" data-er="${esc(x.id)}" value="${esc(x.rev||'')}" min="0" placeholder="직접" style="width:76px"></td><td><select data-ei="${esc(x.id)}"><option value=""${!x.inc?' selected':''}>자동</option><option value="in"${x.inc==='in'?' selected':''}>꼭 포함</option><option value="out"${x.inc==='out'?' selected':''}>빼기</option></select></td></tr>`).join('')}
+    </tbody></table></div><div class="note" style="margin-top:4px">인기도 = 네이버 리뷰 수(넣었으면, 블로그보다 3배 무게) 또는 블로그 글 수. "꼭 포함"은 항상 들어가고 "빼기"는 안 들어가요. 흔한 상호(○○장어 등)는 다른 지역 글이 섞여 블로그 수가 부풀 수 있어요. 고친 뒤 "기준 다시 만들기"를 눌러야 점수에 반영돼요.</div></details>`;
+}
 function sysSetHtml(){
   const S=SYS(), K=S.ko, chk=(path,on)=>`<input type="checkbox" class="chk" data-sys="${path}"${on?' checked':''}>`;
   const ver=DB.stores.filter(x=>x.m&&x.m.v===2);
@@ -1407,7 +1435,8 @@ function setHtml(){
     <div class="row" style="margin:8px 0;gap:14px"><label class="note" style="font-weight:600"><input type="radio" name="bm" data-bm="eel"${(DB.benchMode||'eel')==='eel'?' checked':''}> 장어집 자리 (추천)</label><label class="note" style="font-weight:600"><input type="radio" name="bm" data-bm="area"${DB.benchMode==='area'?' checked':''}> 대표 상권 목록</label></div>
     ${DB.bench&&DB.bench.mode!==(DB.benchMode||'eel')?`<div class="note" style="color:var(--warn);font-weight:600">지금 점수는 "${DB.bench.mode==='eel'?'장어집 자리':'대표 상권'}" 기준이에요. 바꾸려면 아래 "기준 다시 만들기"를 눌러 주세요.</div>`:''}
     ${(DB.benchMode||'eel')==='eel'?`<div class="note"><b>${esc(CT())}에 실제로 있는 장어집</b>들을 구마다 고르게 찾아 그 자리를 측정해요. 후보지 점수 = "장어집들이 자리 잡은 곳과 비교해 어느 정도인가". 각 장어집 자신은 경쟁 수에서 빼고 계산해요. 지금 영업 중인 가게만 잡히므로(살아남은 가게 기준) 생존율 지표와 같이 보세요.</div>
-    <label class="note" style="display:block;margin-top:6px;font-weight:600">측정할 장어집 수 <input type="number" data-en="1" value="${esc(DB.eelN||30)}" min="10" max="60" style="width:80px"> 곳 (많을수록 정확, 1곳당 약 10초)</label>`
+    <label class="note" style="display:block;margin-top:6px;font-weight:600">측정할 장어집 수 <input type="number" data-en="1" value="${esc(DB.eelN||30)}" min="10" max="60" style="width:80px"> 곳 (많을수록 정확, 1곳당 약 10초)</label>
+    ${eelPoolHtml()}`
     :`<div class="note">한 줄에 하나씩 (앞에 "${esc(CT())}"를 붙여 검색해요), 최대 40곳. 기본 목록은 <b>자리 유형을 골고루</b> 담았어요: ${((CITIES[CT()]||{}).groups||[]).length?((CITIES[CT()].groups).map(g=>`${g[0]} ${g[1].length}곳`).join(' · ')):'이 도시는 기본 목록이 없어요. 그 도시 대표 자리 30~40곳을 직접 넣으세요'}. 못 찾은 이름은 "못 찾음"으로 빠지니 지도에서 검색되는 이름으로 고치세요.</div>
     <button class="btn sm" data-act="benchdef" style="margin:6px 0">기본 목록으로 되돌리기</button>
     <textarea id="benchNames" style="min-height:140px;margin-top:6px">${esc(DB.benchNames.join('\n'))}</textarea>`}
@@ -1528,6 +1557,7 @@ document.addEventListener('click',async e=>{
   if(a==='find') return find();
   if(a==='pick'){ PICK=!PICK; render(); if(PICK) toast('지도에서 후보지 위치를 누르세요'); return; }
   if(a==='bench') return buildBench();
+  if(a==='eelfind'){ if(!K||benchBusy) return; benchBusy=true; render(); try{ const P=await eelFind(); toast(`장어집 ${P.list.length}곳을 찾았어요`); }catch(e){ toast(e.message); } finally{ benchBusy=false; setProg('',0); render(); } return; }
   if(a==='storeMeasure') return measureStores();
   if(a==='benchdef'){ DB.benchNames=cityDef(CT()).slice(); save(); render(); return; }
   if(a==='sysreset'){ DB.sys=defSys(); save(); render(); return; }
@@ -1541,7 +1571,7 @@ document.addEventListener('click',async e=>{
       window._sc=L; window._scName=n; $('#scands').innerHTML='<div class="note">어느 곳인가요?</div>'+L.map((p,i)=>`<button data-sc="${i}"><b>${esc(p.name)}</b><br><small>${esc(p.addr)}</small></button>`).join(''); }catch(err){ toast(err.message); } return; }
   if(a==='wreset'){ DB.weights=defW(); save(); render(); return; }
   if(a==='ping'){ const el=$('#pingres'); el.textContent='확인 중…';
-    try{ const j=JSON.parse(await relay('ping',{})); el.innerHTML=!j.allowed?`<span style="color:var(--warn)">중계 서버가 이 주소(${esc(location.origin)})를 허용 안 해요 — worker.js 의 ALLOW 목록에 추가</span>`:j.hasKey?'<span style="color:var(--ok)">연결됨 · 인증키 있음. "다시 분석"하면 공공데이터가 붙어요 (기준 상권도 다시 만들기)</span>':'<span style="color:var(--warn)">중계 서버는 연결됐는데 인증키(DATA_KEY)가 없어요</span>'; }
+    try{ const j=JSON.parse(await relay('ping',{})); el.innerHTML=!j.allowed?`<span style="color:var(--warn)">중계 서버가 이 주소(${esc(location.origin)})를 허용 안 해요 — worker.js 의 ALLOW 목록에 추가</span>`:j.hasKey?'<span style="color:var(--ok)">연결됨 · 인증키 있음. "다시 분석"하면 공공데이터가 붙어요 (기준 상권도 다시 만들기)</span>':'<span style="color:var(--warn)">중계 서버는 연결됐는데 인증키(DATA_KEY)가 없어요</span>'; if(j.allowed) el.innerHTML+=j.hasNaver?'<br><span style="color:var(--ok)">네이버 검색 키 있음 · 장어집 인기도(블로그 글 수) 사용 가능</span>':'<br><span style="color:var(--warn)">네이버 검색 키(NAVER_ID·NAVER_SECRET)가 아직 없어요 — 장어집은 카카오 검색 순서로 골라요</span>'; }
     catch(e){ el.innerHTML=`<span style="color:var(--warn)">연결 실패: ${esc(e.message)} — 주소가 맞는지, Worker 를 배포했는지 확인</span>`; } return; }
   if(a==='finreset'){ DB.fin=defFin(); save(); render(); return; }
   if(a==='export') return exportFile();
@@ -1573,6 +1603,7 @@ document.addEventListener('change',e=>{
   if(id==='city'){ if(e.target.value==='__add'){ const n=(prompt('추가할 도시 이름 (예: 서울, 창원, 대전)')||'').trim().slice(0,10); if(n&&!DB.cityList.includes(n)){ DB.cityList.push(n); } if(n) return switchCity(n); fillCity(); return; } return switchCity(e.target.value); }
   if(e.target.dataset.f==='status'||e.target.dataset.w||e.target.dataset.sys) return render();
   if(e.target.dataset.fx){ const y=window.scrollY; render(); window.scrollTo(0,y); return; }
+  if(e.target.dataset.er||e.target.dataset.ei){ const id=e.target.dataset.er||e.target.dataset.ei, x=((DB.eelPool||{}).list||[]).find(z=>z.id===id); if(!x) return; if(e.target.dataset.er) x.rev=e.target.value===''?'':+e.target.value; else x.inc=e.target.value; save(); const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(e.target.dataset.cx){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c.compEx=c.compEx||{}; if(e.target.checked) c.compEx[e.target.dataset.cx]=1; else delete c.compEx[e.target.dataset.cx]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(e.target.dataset.rv==='dec'){ const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(id==='filter'){ FILTER=e.target.value; render(); }
