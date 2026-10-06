@@ -297,6 +297,7 @@ function dayText(key){
 /* ================= 직원 ================= */
 function pat7(s){ return `<span class="pat7">${WD_MON.map(wd=>{ const off=s.type==='regular'&&(s.off||[]).includes(wd); const c=(s.wk||{})[wd]; const k=off?'off':c&&c.sh?(c.sh.k==='pm'?'pm':c.sh.k==='am'?'pm':c.sh.k==='t'?'t':''):(s.type!=='regular'?'wk':'');
   return `<i class="${k}" title="${DOW[wd]}">${off?'휴':DOW[wd]}</i>`; }).join('')}</span>`; }
+const ymd2=k=>{ const m=String(k||'').match(/^\d{2}(\d{2})-(\d{2})-(\d{2})$/); return m?`${m[1]}.${+m[2]}.${+m[3]}`:''; };
 function hcCell(s){ const h=hcState(s,todayStr); if(h.lv==='none') return '<span class="muted">-</span>';
   return `<span class="tag ${h.lv==='over'?'bad':h.lv==='soon'?'warn':''}" title="${s.hcIss?'발급 '+esc(s.hcIss)+' · ':''}만료 ${esc(h.exp)}">${md(h.exp)}${h.lv==='over'?' 지남':h.lv==='soon'?` · ${h.days}일 남음`:''}</span>`; }
 function vStaff(){
@@ -307,12 +308,13 @@ function vStaff(){
     <div class="row" style="margin-bottom:12px"><div class="seg" style="overflow-x:auto;max-width:100%">${['',...D.positions.map(p=>p.name)].map(p=>`<button data-a="pf" data-v="${esc(p)}" aria-pressed="${APP.pf===p}">${esc(p||'전체')}</button>`).join('')}</div>
       <input type="text" id="staffQ" placeholder="이름 찾기" value="${esc(APP.q)}" style="width:140px"></div>
     ${hcWarn.length?`<div class="card" style="border-color:var(--warn);background:var(--warn-soft);margin-bottom:10px"><b>🩺 보건증 확인</b> · ${hcWarn.map(x=>`<button class="lnk" data-a="staff" data-sid="${x.s.id}">${esc(x.s.name)} (${x.h.lv==='over'?'만료 지남':x.h.days+'일 남음'})</button>`).join(' · ')}</div>`:''}
-    <div class="card" style="padding:6px 8px"><div class="scroll"><table class="t"><thead><tr><th>이름</th><th>종류</th><th>포지션</th><th>요일 패턴 (월~일)</th><th>이번 주</th><th>보건증 만료</th>${cp?'<th>기본 급여</th>':''}</tr></thead><tbody>
+    <div class="card" style="padding:6px 8px"><div class="scroll"><table class="t"><thead><tr><th>이름</th><th>종류</th><th>포지션</th><th>요일 패턴 (월~일)</th><th>이번 주</th><th>입사일 · 1년</th><th>보건증 만료</th>${cp?'<th>기본 급여</th>':''}</tr></thead><tbody>
     ${list.map(s=>{ const p=W.per[s.id]; const b=(D.pay||{})['staff:'+s.id];
       return `<tr class="click" data-a="staff" data-sid="${s.id}" style="${s.active===false||(s.last&&s.last<todayStr)?'opacity:.45':''}"><td><b>${esc(s.name)}</b>${s.note?` <em class="nl2">${esc(s.note)}</em>`:''}${s.active===false?' <span class="tag">그만둠</span>':''}${s.last?` <span class="tag ${s.last<todayStr?'':'amber'}">${md(s.last)}까지</span>`:''}</td><td><span class="tag ${s.type==='weekly'?'amber':s.type==='spot'?'warn':''}">${TYPES[s.type]}</span></td>
         <td><span style="color:${posColor(s.pos)};font-weight:700">${esc(s.pos)}</span></td><td>${pat7(s)}</td><td class="num">${p?fmtH(p.h)+'시간 · '+p.days.length+'일':'-'}${p&&p.h>=13&&p.h<15?' <span class="tag warn">주휴 경계</span>':''}</td>
+        <td class="num">${s.join?`${ymd2(s.join)} <span class="muted">→ 1년 ${ymd2(oneYear(s.join))}</span>`:'<span class="muted">-</span>'}</td>
         <td class="num">${hcCell(s)}</td>
-        ${cp?`<td class="num">${b?esc(payLbl(b)):'<span class="muted">미입력</span>'}</td>`:''}</tr>`; }).join('')||`<tr><td colspan="7" class="empty">조건에 맞는 직원이 없어요</td></tr>`}
+        ${cp?`<td class="num">${b?esc(payLbl(b)):'<span class="muted">미입력</span>'}</td>`:''}</tr>`; }).join('')||`<tr><td colspan="8" class="empty">조건에 맞는 직원이 없어요</td></tr>`}
     </tbody></table></div></div>`;
 }
 
