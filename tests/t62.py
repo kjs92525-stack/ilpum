@@ -215,7 +215,7 @@ async def main():
     ok('16) 우리 매장 자리 분석·월매출 저장', st.get('sales')==3000 and st['m']['v']==2)
     await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300)
     an=await pg.inner_text('#s-analog')
-    ok('    유사 점포: 본점과 닮은 정도 %·참고 월매출(내부)·비교표', '본점' in an and '%' in an and '참고 월매출' in an and '매출 예측이 아니고' in an and await pg.evaluate("document.querySelectorAll('#s-analog tbody tr').length")>=8, an[:200])
+    ok('    유사 점포: 본점과 닮은 정도 %·비교표 · 매장 1곳이면 참고 월매출 숨김(5곳 이상만)', '본점' in an and '%' in an and '5곳 이상' in an and '닮은 정도로 가중한 참고 월매출' not in an and await pg.evaluate("document.querySelectorAll('#s-analog tbody tr').length")>=8, an[:200])
     await pg.fill('[data-cq="e1"][data-k=r]','4.7'); await pg.fill('[data-cq="e1"][data-k=n]','1500'); await pg.select_option('[data-cq="e1"][data-k=z]','3'); await pg.wait_for_timeout(300)
     cp=await pg.inner_text('#s-comp'); await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300); sw=await pg.inner_text('#s-swot')
     ok('17) 경쟁점 실력: 평점 4.7·리뷰 1500·대형 → 강한 경쟁점 1곳·SWOT 위협', '강한 경쟁점 (700m 안)' in cp and '1곳' in cp and '강한 장어집(' in sw, cp[-300:])
