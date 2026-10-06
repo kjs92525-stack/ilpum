@@ -35,7 +35,7 @@ Geocoder.prototype.addressSearch=function(q,cb){ setTimeout(()=>{
   if(q.includes('범어동')) return cb([{address_name:'대구 수성구 범어동 177',x:'128.6300',y:'35.8600',road_address:{address_name:'대구 수성구 달구벌대로 2400'}},{address_name:'대구 수성구 범어동 178',x:'128.6310',y:'35.8610',road_address:null}],S.OK);
   if(q.includes('들안로')) return cb([{address_name:'대구 수성구 두산동 1',x:'128.6350',y:'35.8500',road_address:{address_name:'대구 수성구 들안로 1'}}],S.OK);
   cb([],S.ZERO_RESULT); },5); };
-Geocoder.prototype.coord2RegionCode=function(x,y,cb){ setTimeout(()=>cb([{region_type:'B',address_name:'대구 수성구 범어동',code:'2726010500',region_3depth_name:'범어동'},{region_type:'H',address_name:'대구광역시 수성구 범어1동',code:'2726053000'}],S.OK),5); };
+Geocoder.prototype.coord2RegionCode=function(x,y,cb){ setTimeout(()=>cb([{region_type:'B',address_name:'대구 수성구 범어동',code:'2726010500',region_3depth_name:'범어동'},{region_type:'H',address_name:'대구광역시 수성구 범어1동',code:['2726054000','2726055000','2726053000'][Math.floor(x*100)%3],region_1depth_name:'대구광역시',region_2depth_name:'수성구',region_3depth_name:['범어2동','범어3동','범어1동'][Math.floor(x*100)%3]}],S.OK),5); };
 Geocoder.prototype.coord2Address=function(x,y,cb){ setTimeout(()=>cb([{address:{address_name:'대구 중구 동성로2가 1'},road_address:null}],S.OK),5); };
 function LatLng(lat,lng){ this.getLat=()=>lat; this.getLng=()=>lng; }
 function Map(el){ this.el=el; window.__map=this; this.setLevel=()=>{}; this.setCenter=()=>{}; this.relayout=()=>{}; }
@@ -50,9 +50,9 @@ def apt_xml():
   it=lambda d,a,ar: f"<item><aptNm>A</aptNm><umdNm>{d}</umdNm><dealAmount>{a}</dealAmount><excluUseAr>{ar}</excluUseAr><cdealType> </cdealType></item>"
   items=it('범어동','120,000','84.9')*2+it('범어동','100,000','84.9')+it('만촌동','80,000','84.9')*3
   return f"<?xml version='1.0' encoding='UTF-8'?><response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items>{items}</items><numOfRows>1000</numOfRows><pageNo>1</pageNo><totalCount>6</totalCount></body></response>"
-def pop_json():
+def pop_json(code='2726053000'):
   def row(tong,ban,m30,m60):
-    r={"ctpvNm":"대구광역시","sggNm":"수성구","dongNm":"범어1동","admmCd":"2726053000","tong":tong,"ban":ban,"statsYm":"202508","totNmprCnt":str(m30*2+m60)}
+    r={"ctpvNm":"대구광역시","sggNm":"수성구","dongNm":"범어1동","admmCd":code,"tong":tong,"ban":ban,"statsYm":"202508","totNmprCnt":str(m30*2+m60)}
     for a in range(0,101,10): r[f"male{a}AgeNmprCnt"]="0"; r[f"feml{a}AgeNmprCnt"]="0"
     r["male30AgeNmprCnt"]=str(m30); r["feml30AgeNmprCnt"]=str(m30); r["male60AgeNmprCnt"]=str(m60); return r
   items=[row("","",2000,1000),row("1","1",1000,500),row("2","1",1000,500)]   # 동 합계 줄 + 통반 줄 (겹쳐 세면 안 됨)
@@ -83,6 +83,12 @@ async def handler(r):
     return await r.fulfill(status=200,content_type='application/javascript',body=STUB)
   if 'ilpum-data.yoyo925.workers.dev' in u:
     RELAY.append(u); H={'Access-Control-Allow-Origin':'*'}
+    if '/sgis?' in u:
+      if MODE.get('sgis')=='nokey': return await r.fulfill(status=503,headers=H,content_type='application/json',body=json.dumps({"error":"SGIS_KEY·SGIS_SECRET(통계청 SGIS 키)가 아직 없어요"}))
+      if 'p=stage' in u and 'cd=' not in u: res=[{"cd":"22","addr_name":"대구광역시"}]
+      elif 'p=stage' in u: res=[{"cd":"22040","addr_name":"수성구"}]
+      else: res=[{"adm_cd":"22040530","adm_nm":"대구광역시 수성구 범어1동","corp_cnt":"500","tot_worker":"6000"},{"adm_nm":"대구광역시 수성구 범어2동","corp_cnt":"300","tot_worker":"4000"},{"adm_nm":"대구광역시 수성구 범어3동","corp_cnt":"200","tot_worker":"2000"}]
+      return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps({"errCd":0,"result":res}))
     if '/blog?' in u:
       if MODE.get('blog')=='nokey': return await r.fulfill(status=503,headers=H,content_type='application/json',body=json.dumps({"error":"NAVER_ID·NAVER_SECRET(네이버 검색 API 키)가 아직 없어요"}))
       from urllib.parse import unquote_plus; q=unquote_plus(u.split('query=')[1]) if 'query=' in u else ''
@@ -90,7 +96,7 @@ async def handler(r):
     if '/ping' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps({"ok":True,"hasKey":MODE['relay']!='nokey',"allowed":True}))
     if MODE['relay']=='nokey': return await r.fulfill(status=200,headers=H,content_type='text/xml',body="<OpenAPI_ServiceResponse><cmmMsgHeader><returnAuthMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</returnAuthMsg><returnReasonCode>30</returnReasonCode></cmmMsgHeader></OpenAPI_ServiceResponse>")
     if '/apt?' in u: return await r.fulfill(status=200,headers=H,content_type='text/xml',body=apt_xml())
-    if '/pop?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps(pop_json()))
+    if '/pop?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps(pop_json(u.split('admmCd=')[1].split('&')[0] if 'admmCd=' in u else '2726053000')))
     if '/rest?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=rest_json(u))
     if '/store?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps(STORE))
   EXT.append(u); return await r.fulfill(status=404,body='')
@@ -120,7 +126,7 @@ async def main():
     ok('5) 점수·등급 표지 상자', 0<=sc<=100 and g==('A' if sc>=70 else 'B' if sc>=55 else 'C' if sc>=40 else 'D'), (sc,g))
     dec=await pg.inner_text('.scorebox .dec'); ok('   판정 문구·기준표 점수 설명', '장어집 기준표' in await pg.inner_text('.mix') and any(x in dec for x in ['출점 적극 검토','조건부 검토','신중 검토','보류 권장','출점 불가']), dec)
     ok('   레이더 차트(5개 영역)', await pg.evaluate("document.querySelectorAll('#s-eval svg.radar text').length")==6)
-    ev=await pg.evaluate("document.querySelectorAll('.ev').length"); sr=await pg.evaluate("document.querySelectorAll('.sr').length"); ok('   영역 7개(상권 6 + 매물 조건)·상권 지표 39개에 점수', ev==7 and sr==39, (ev,sr))
+    ev=await pg.evaluate("document.querySelectorAll('.ev').length"); sr=await pg.evaluate("document.querySelectorAll('.sr').length"); ok('   영역 7개(상권 6 + 매물 조건)·상권 지표 38개에 점수', ev==7 and sr==38, (ev,sr))
     ok('   결론 요약 문장', await pg.evaluate("document.querySelectorAll('.exec li').length")>=4)
     ok('   거리별 장어집 수 (300/500/1km)', await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')")=='0,1,2' , await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')"))
     mx=await pg.inner_text('.mix'); ok('5b) 월세·평수 없으면 매물 조건 빼고 분석', '매물 조건 입력 없음' in mx and '월세·평수·테이블 수를 넣으면 반영돼요' in await pg.inner_text('#s-eval'), mx)

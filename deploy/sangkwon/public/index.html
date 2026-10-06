@@ -320,26 +320,25 @@ const DIMS=[
     {k:'food500',t:'음식점',u:'곳',r:'500m',get:d=>d.food500},
     {k:'meat500',t:'고깃집',u:'곳',r:'500m',w:0.7,get:d=>d.meat500},
     {k:'pub500',t:'술집',u:'곳',r:'500m',get:d=>d.pub500},
-    {k:'cafe500',t:'카페',u:'곳',r:'500m',w:0.3,get:d=>d.cafe500},
-    {k:'cvs500',t:'편의점 (유동 대용)',u:'곳',r:'500m',w:0.3,get:d=>d.cvs500},
     {k:'store500',t:'상가 수 (소상공인 자료)',u:'곳',r:'500m',w:0.5,get:d=>d.store500},
     {k:'restOn',t:'영업 중 일반음식점 (인허가 자료)',u:'곳',r:'행정동',w:0.5,get:d=>d.restOn},
     {k:'restOpen12',t:'신규 개업 (최근 1년)',u:'곳',r:'행정동',get:d=>d.restOpen12}]},
   {k:'fam',t:'가족·주거',w:15,why:'가족 손님과 동네 단골',subs:[
     {k:'apt500',t:'아파트',u:'건',r:'500m',w:0.5,get:d=>d.apt500},
     {k:'apt1k',t:'아파트',u:'건',r:'1km',w:0.5,get:d=>d.apt1k},
-    {k:'school1k',t:'학교',u:'곳',r:'1km',get:d=>d.school1k},
     {k:'acad1k',t:'학원',u:'곳',r:'1km',get:d=>d.acad1k},
     {k:'aptRel',t:'아파트 평당가 (구 평균 대비, 구매력)',u:'%',r:'동 · 1년',get:d=>d.aptRel},
-    {k:'popTot',t:'주민등록 인구',u:'명',r:'행정동',get:d=>d.popTot},
+    {k:'popTot',t:'주민등록 인구',u:'명',r:'행정동',w:0.5,get:d=>d.popTot},
     {k:'pCore',t:'30~50대 비율 (주 고객층)',u:'%',r:'행정동',get:d=>d.pCore},
     {k:'pOld',t:'60세 이상 비율',u:'%',r:'행정동',low:true,get:d=>d.pOld}]},
   {k:'biz',t:'회식·집객 수요',w:15,why:'회식, 병원·관공서 방문객, 하객·조문객·골프 모임',subs:[
+    {k:'work3k',t:'직장인 수 (사업체 종사자)',u:'명',r:'3km 동 합계',w:2,get:d=>d.work3k},
+    {k:'workDong',t:'직장인 수 (사업체 종사자)',u:'명',r:'행정동',w:1,get:d=>d.workDong},
     {k:'gov1k',t:'관공서',u:'곳',r:'1km',get:d=>d.gov1k},
-    {k:'bank1k',t:'은행',u:'곳',r:'1km',get:d=>d.bank1k},
+    {k:'bank1k',t:'은행',u:'곳',r:'1km',w:0.5,get:d=>d.bank1k},
     {k:'hosp1k',t:'병원',u:'곳',r:'1km',get:d=>d.hosp1k},
-    {k:'lodge1k',t:'숙박',u:'곳',r:'1km',get:d=>d.lodge1k},
-    {k:'mart1k',t:'대형마트',u:'곳',r:'1km',get:d=>d.mart1k},
+    {k:'lodge1k',t:'숙박',u:'곳',r:'1km',w:0.5,get:d=>d.lodge1k},
+    {k:'mart1k',t:'대형마트',u:'곳',r:'1km',w:0.5,get:d=>d.mart1k},
     {k:'ghosp2k',t:'종합병원',u:'곳',r:'2km',get:d=>d.ghosp2k},
     {k:'wed2k',t:'예식장',u:'곳',r:'2km',get:d=>d.wed2k},
     {k:'fun2k',t:'장례식장',u:'곳',r:'2km',get:d=>d.fun2k},
@@ -351,9 +350,9 @@ const DIMS=[
     {k:'subD',t:'가까운 지하철역',u:'',r:'',low:true,get:d=>d.subD,fmt:fm},
     {k:'bus300',t:'버스정류장',u:'곳',r:'300m',get:d=>d.bus300}]},
   {k:'trade',t:'차량 상권 (3km)',w:20,why:'장어는 차로 10~15분 거리에서 일부러 오는 손님이 많아요',subs:[
-    {k:'apt3k',t:'아파트',u:'건',r:'3km',get:d=>d.apt3k},
-    {k:'food3k',t:'음식점 (외식 규모)',u:'곳',r:'3km',w:0.7,get:d=>d.food3k},
-    {k:'acad3k',t:'학원 (가족 수요)',u:'곳',r:'3km',w:0.5,get:d=>d.acad3k}]},
+    {k:'pop3k',t:'주민 수',u:'명',r:'3km 동 합계',get:d=>d.pop3k},
+    {k:'core3k',t:'30~59세 주민 수 (주 고객층)',u:'명',r:'3km 동 합계',w:1.5,get:d=>d.core3k},
+    {k:'acad3k',t:'학원 (가족 수요·구매력)',u:'곳',r:'3km',w:0.5,get:d=>d.acad3k}]},
   {k:'comp',t:'경쟁',w:20,why:'가까운 장어집 부담 + 이 지역 장어집이 오래 버티는지',subs:[
     {k:'compIdx',t:'경쟁 지수 (거리 가중)',u:'',r:'',low:true,get:d=>d.compIdx,fmt:v=>v==null?'-':(+v).toFixed(1)},
     {k:'n500',t:'장어집',u:'곳',r:'500m',low:true,w:0.5,get:d=>d.n500},
@@ -370,18 +369,20 @@ const DIMS=[
     {k:'rentMk',t:'월세 시세 대비',u:'',r:'',low:true,hint:'시세 이하면 좋음',abs:v=>band(v,[[-20,100],[-10,90],[0,75],[10,55],[20,35],[40,0]]),get:d=>d.rentMk,fmt:v=>(v>0?'+':'')+v+'%'}]}
 ];
 // 장어집 기준표 (2026-10-06 사용자: 장어집 비교는 빼고 장어집에 필요한 상권 조건만 보자) — 지표값 → 0~100점, 사이 값은 직선으로 이음. 값은 내 판단으로 정한 기준이라 운영하며 조정
-const AB={food500:[[20,20],[60,50],[120,80],[200,100]],meat500:[[3,20],[10,55],[25,85],[40,100]],pub500:[[5,20],[15,55],[40,85],[70,100]],cafe500:[[5,20],[15,55],[40,85],[80,100]],cvs500:[[2,20],[5,55],[10,85],[15,100]],
-  store500:[[100,20],[300,55],[600,85],[1000,100]],restOn:[[50,20],[150,50],[300,80],[600,100]],restOpen12:[[5,20],[15,50],[30,80],[60,100]],
-  apt500:[[0,10],[2,40],[5,70],[10,100]],apt1k:[[0,10],[5,40],[15,70],[30,100]],school1k:[[0,20],[2,50],[5,80],[8,100]],acad1k:[[5,20],[20,50],[50,80],[100,100]],
+const AB={food500:[[20,25],[60,60],[120,90],[200,85],[350,60],[600,40]],meat500:[[3,20],[10,55],[25,85],[40,100]],pub500:[[5,20],[15,55],[40,85],[70,100]],cafe500:[[5,20],[15,55],[40,85],[80,100]],cvs500:[[2,20],[5,55],[10,85],[15,100]],
+  store500:[[100,25],[300,60],[600,90],[1000,80],[2000,55]],restOn:[[50,25],[150,60],[300,90],[600,80],[1200,55]],
+  pop3k:[[50000,20],[120000,45],[200000,70],[300000,90],[400000,100]],core3k:[[20000,20],[55000,45],[90000,70],[135000,90],[180000,100]],
+  work3k:[[10000,15],[40000,45],[80000,70],[150000,90],[250000,100]],workDong:[[1000,15],[3000,40],[8000,70],[15000,90],[30000,100]],restOpen12:[[5,20],[15,50],[30,80],[60,100]],
+  apt500:[[0,10],[2,40],[5,70],[10,100]],apt1k:[[0,10],[5,40],[15,70],[30,100]],acad1k:[[5,20],[20,50],[50,80],[100,100]],
   aptRel:[[70,20],[90,45],[100,60],[115,80],[140,100]],popTot:[[5000,15],[15000,45],[30000,75],[50000,100]],pCore:[[30,15],[38,45],[45,75],[52,100]],pOld:[[10,100],[18,75],[25,45],[35,10]],
   gov1k:[[0,20],[3,50],[8,80],[15,100]],bank1k:[[1,20],[5,50],[12,80],[25,100]],hosp1k:[[3,20],[15,50],[40,80],[80,100]],lodge1k:[[0,25],[3,50],[8,80],[15,100]],mart1k:[[0,35],[1,70],[2,100]],
   ghosp2k:[[0,30],[1,60],[3,100]],wed2k:[[0,30],[1,60],[3,100]],fun2k:[[0,30],[1,60],[2,100]],golf1k:[[0,40],[2,70],[5,100]],univ2k:[[0,40],[1,70],[3,100]],
   park300:[[0,10],[3,45],[8,80],[15,100]],park500:[[1,10],[5,45],[12,80],[25,100]],subD:[[300,100],[600,80],[1000,55],[1500,35],[2500,15]],bus300:[[0,10],[2,45],[5,80],[8,100]],
-  apt3k:[[10,15],[50,45],[120,75],[250,100]],food3k:[[100,20],[400,50],[900,80],[1500,100]],acad3k:[[20,20],[80,50],[200,80],[350,100]],
+  acad3k:[[20,20],[80,50],[200,80],[350,100]],
   compIdx:[[0,100],[1,80],[2,60],[4,35],[7,10]],n500:[[0,100],[1,80],[2,60],[4,30],[6,10]],eel3k:[[0,35],[2,70],[5,90],[10,80],[20,50],[40,25]],alt1k:[[2,100],[6,70],[12,40],[25,10]],
   restChurn:[[5,100],[10,75],[15,50],[22,25],[30,5]],eelSurv3:[[30,10],[45,35],[60,65],[75,90],[90,100]]};
 DIMS.forEach(dm=>dm.subs.forEach(x=>{ if(!x.abs&&AB[x.k]){ const P=AB[x.k]; x.abs=v=>band(v,P); x.hint='기준표: '+P.map(([a,b])=>a+'→'+b+'점').join(' · '); } }));
-const DP={corePop:[[3000,15],[8000,45],[15000,75],[25000,100]],restPer1k:[[8,100],[15,70],[25,40],[40,10]],corePerEel:[[300,20],[1000,50],[3000,80],[6000,100]],restNet:[[-10,10],[0,45],[10,75],[25,100]],pull:[[3,20],[15,50],[40,80],[80,100]],apt1k:AB.apt1k,sat:[[0.3,100],[0.8,75],[1.5,45],[3,15],[6,5]]};
+const DP={core3k:AB.core3k,work3k:AB.work3k,corePop:[[3000,15],[8000,45],[15000,75],[25000,100]],restPer1k:[[8,100],[15,70],[25,40],[40,10]],corePerEel:[[300,20],[1000,50],[3000,80],[6000,100]],restNet:[[-10,10],[0,45],[10,75],[25,100]],pull:[[3,20],[15,50],[40,80],[80,100]],apt1k:AB.apt1k,sat:[[0.3,100],[0.8,75],[1.5,45],[3,15],[6,5]]};
 const dP=(k,v)=>v==null||!isFinite(v)?null:band(v,DP[k]);
 const MKT=DIMS.filter(x=>!x.prop);
 function band(v,pts){ if(v<=pts[0][0]) return pts[0][1]; for(let i=1;i<pts.length;i++){ if(v<=pts[i][0]){ const [x0,y0]=pts[i-1],[x1,y1]=pts[i]; return Math.round(y0+(y1-y0)*(v-x0)/(x1-x0)); } } return pts.at(-1)[1]; }
@@ -561,6 +562,42 @@ async function eelStats(sido,gu,dong){
   return {eelGuOn:all.filter(x=>!closed(x)).length, eelGuClose5:all.filter(c5).length, eelSurv3:coh.length>=4?Math.round(surv/coh.length*100):null, eelSurvN:coh.length,
     eelDongOn:D.filter(x=>!closed(x)).length, eelDongClose5:D.filter(c5).length, eelDongList:D.sort((a,b)=>(b.o||'').localeCompare(a.o||'')).slice(0,12)};
 }
+// 3km 안 주민·직장인 (2026-10-06): 후보지 둘레 19곳(가운데·1.5km 6곳·3km 12곳)의 행정동을 카카오로 알아내 그 동들의 인구(행안부)와 사업체·종사자(통계청 SGIS)를 합침.
+// 3km 에 걸친 동 전체를 더하므로 실제 3km 안보다 다소 많게 나옴 — 기준표도 그 기준으로 정함
+const _popC={}, _sgC={};
+function ringPts(p){ const out=[{x:p.x,y:p.y}], lat=p.y*Math.PI/180; [[1500,6],[3000,12]].forEach(([r,n])=>{ for(let i=0;i<n;i++){ const a=2*Math.PI*i/n; out.push({x:p.x+r*Math.cos(a)/(111320*Math.cos(lat)),y:p.y+r*Math.sin(a)/110540}); } }); return out; }
+async function catchDongs(p){
+  const pts=ringPts(p), map=new Map(); let i=0;
+  await Promise.all(Array.from({length:4},async()=>{ while(i<pts.length){ const q=pts[i++]; try{ const r=await retry(()=>kcall(cb=>K.geo.coord2RegionCode(q.x,q.y,cb))); const h=r.list.find(x=>x.region_type==='H'); if(h&&!map.has(h.code)) map.set(h.code,{code:h.code,sido:h.region_1depth_name,gu:h.region_2depth_name,dong:h.region_3depth_name}); }catch(e){} } }));
+  return [...map.values()];
+}
+async function popOfDong(code){ if(_popC[code]) return _popC[code]; return _popC[code]=await popStats(code); }
+async function sgisGet(o){ const t=await relay('sgis',o); let j; try{ j=JSON.parse(t); }catch(e){ throw new Error('SGIS 응답 형식이 달라요'); } if(j.error) throw new Error(j.error); if(String(j.errCd)!=='0') throw new Error('SGIS: '+(j.errMsg||j.errCd)); return j.result||[]; }
+async function sgisGu(sido,gu){
+  const k=sido+' '+gu; if(_sgC[k]) return _sgC[k];
+  const S=await sgisGet({p:'stage'}), sd=S.find(x=>String(x.addr_name||'').replace(/\s/g,'')===sido.replace(/\s/g,''))||S.find(x=>sido.startsWith(String(x.addr_name||'').slice(0,2)));
+  if(!sd) throw new Error('SGIS 에서 '+sido+'를 못 찾았어요');
+  const G=await sgisGet({p:'stage',cd:sd.cd}), g=G.find(x=>String(x.addr_name||'').replace(/\s/g,'')===gu.replace(/\s/g,''))||G.find(x=>String(x.addr_name||'').endsWith(gu.split(' ').pop()));
+  if(!g) throw new Error('SGIS 에서 '+gu+'를 못 찾았어요');
+  const y0=new Date().getFullYear(); let rows=null, yr=null;
+  for(let y=y0-2;y>=y0-6&&!rows;y--){ try{ const R=await sgisGet({p:'company',adm_cd:g.cd,low_search:1,year:y}); if(R.length){ rows=R; yr=y; } }catch(e){ if(y===y0-6) throw e; } }
+  if(!rows) throw new Error('SGIS 사업체 자료가 없어요');
+  return _sgC[k]={yr,rows:rows.map(r=>({nm:String(r.adm_nm||''),corp:+r.corp_cnt||0,work:+(r.tot_worker??r.worker_cnt??0)||0}))};
+}
+async function catchStats(p,hcode){
+  const D=await catchDongs(p); if(!D.length) throw new Error('주변 행정동을 못 찾았어요');
+  const out={catchN:D.length, catchDongs:D.map(x=>x.dong)}, errs=[];
+  let pop=0, core=0, got=0, i=0;
+  await Promise.all(Array.from({length:3},async()=>{ while(i<D.length){ const x=D[i++]; try{ const r=await popOfDong(x.code); pop+=r.popTot; core+=r.popTot*r.pCore/100; got++; }catch(e){ errs.push(e.message); } } }));
+  if(got>=Math.ceil(D.length*0.7)){ out.pop3k=Math.round(pop*D.length/got); out.core3k=Math.round(core*D.length/got); } else out.popErr=errs[0]||'인구 자료 부족';
+  try{ let w=0,c=0,hit=0,me=null, yr=null; const gus=[...new Set(D.map(x=>x.sido+'|'+x.gu))];
+    for(const g of gus){ const [sd,gu]=g.split('|'); const R=await sgisGu(sd,gu); yr=R.yr;
+      D.filter(x=>x.sido===sd&&x.gu===gu).forEach(x=>{ const r=R.rows.find(z=>z.nm===x.dong||z.nm.endsWith(' '+x.dong)); if(r){ w+=r.work; c+=r.corp; hit++; if(x.code===hcode) me=r; } }); }
+    if(hit>=Math.ceil(D.length*0.6)){ out.work3k=Math.round(w*D.length/hit); out.corp3k=Math.round(c*D.length/hit); out.sgisYr=yr; } else out.sgisErr='동 이름을 SGIS 자료와 맞추지 못했어요 ('+hit+'/'+D.length+')';
+    if(me){ out.workDong=me.work; out.corpDong=me.corp; }
+  }catch(e){ out.sgisErr=e.message; }
+  return out;
+}
 async function storeStats(p){
   const t=await relay('store',{radius:500,cx:p.x,cy:p.y,numOfRows:1000,pageNo:1,type:'json'}); const er=apiErr(t); if(er) throw new Error(er);
   let j; try{ j=JSON.parse(t); }catch(e){ throw new Error('상가정보 응답 형식이 달라요'); }
@@ -580,13 +617,12 @@ function taskList(p){
   return [
     d('eelA',()=>kwAll('장어',p,1000)), d('eelB',()=>kwAll('민물장어',p,1000)),
     d('food500',()=>count('FD6',p,500)), d('meat500',()=>kwCount('고기',p,500,'FD6')), d('pub500',()=>kwCount('술집',p,500,'FD6')),
-    d('cafe500',()=>count('CE7',p,500)), d('cvs500',()=>count('CS2',p,500)),
-    d('apt500',()=>kwCount('아파트',p,500)), d('apt1k',()=>kwCount('아파트',p,1000)), d('school1k',()=>count('SC4',p,1000)), d('acad1k',()=>count('AC5',p,1000)),
+    d('apt500',()=>kwCount('아파트',p,500)), d('apt1k',()=>kwCount('아파트',p,1000)), d('acad1k',()=>count('AC5',p,1000)),
     d('gov1k',()=>count('PO3',p,1000)), d('bank1k',()=>count('BK9',p,1000)), d('hosp1k',()=>count('HP8',p,1000)), d('lodge1k',()=>count('AD5',p,1000)), d('mart1k',()=>count('MT1',p,1000)),
     d('ghosp2k',()=>kwCount('종합병원',p,2000)), d('wed2k',()=>kwCount('예식장',p,2000)), d('fun2k',()=>kwCount('장례식장',p,2000)), d('golf1k',()=>kwCount('골프',p,1000)), d('univ2k',()=>kwCount('대학교',p,2000)),
     d('park300',()=>count('PK6',p,300)), d('park500',()=>count('PK6',p,500)), d('bus300',()=>kwCount('버스정류장',p,300)),
     d('alt_duck',()=>kwCount('오리',p,1000,'FD6')), d('alt_chicken',()=>kwCount('백숙',p,1000,'FD6')), d('alt_sam',()=>kwCount('삼계탕',p,1000,'FD6')), d('alt_stew',()=>kwCount('매운탕',p,1000,'FD6')),
-    d('apt3k',()=>kwCount('아파트',p,3000)), d('food3k',()=>count('FD6',p,3000)), d('acad3k',()=>count('AC5',p,3000)), d('eel3k',()=>kwCount('장어',p,3000,'FD6')),
+    d('acad3k',()=>count('AC5',p,3000)), d('eel3k',()=>kwCount('장어',p,3000,'FD6')),
     d('subway',()=>kcall(cb=>K.ps.categorySearch('SW8',cb,{location:LL(p),radius:2000,sort:kakao.maps.services.SortBy.DISTANCE,size:3}))),
     d('region',()=>kcall(cb=>K.geo.coord2RegionCode(p.x,p.y,cb)))
   ];
@@ -597,7 +633,7 @@ async function measure(p,onStep){
     try{ res[k]=await retry(f); }catch(e){ fail.push(k); } onStep&&onStep(++done,tasks.length); await sleep(30); } }));
   if(fail.length>=tasks.length-2) throw new Error('카카오 검색이 계속 실패해요. 잠시 뒤 다시 해 주세요');
   const m={v:2,at:today(),fail};
-  ['food500','meat500','pub500','cafe500','cvs500','apt500','apt1k','school1k','acad1k','gov1k','bank1k','hosp1k','lodge1k','mart1k','ghosp2k','wed2k','fun2k','golf1k','univ2k','park300','park500','bus300','apt3k','food3k','acad3k','eel3k'].forEach(k=>{ m[k]=res[k]; });
+  ['food500','meat500','pub500','apt500','apt1k','acad1k','gov1k','bank1k','hosp1k','lodge1k','mart1k','ghosp2k','wed2k','fun2k','golf1k','univ2k','park300','park500','bus300','acad3k','eel3k'].forEach(k=>{ m[k]=res[k]; });
   const alts=['alt_duck','alt_chicken','alt_sam','alt_stew'].filter(k=>res[k]!=null); m.alt1k=alts.length?alts.reduce((a,k)=>a+res[k],0):null;
   if(res.eelA){
     const seen=new Set(); m.comp=[];
@@ -615,12 +651,13 @@ async function measure(p,onStep){
     try{ Object.assign(m,await storeStats(p)); }catch(e){ m.pub.store=e.message; fail.push('store'); }
     if(m.hcode){ try{ Object.assign(m,await popStats(m.hcode)); }catch(e){ m.pub.pop=e.message; fail.push('pop'); } }
     if(m.bdong&&m.bgu){ try{ Object.assign(m,await restStats(m.bsido,m.bgu,m.bdong)); }catch(e){ m.pub.rest=e.message; fail.push('rest'); } }
+    try{ Object.assign(m,await catchStats(p,m.hcode)); if(m.popErr) m.pub.catch=m.popErr; if(m.sgisErr) m.pub.sgis=m.sgisErr; }catch(e){ m.pub.catch=e.message; fail.push('catch'); }
     if(m.bgu){ try{ Object.assign(m,await eelStats(m.bsido,m.bgu,m.bdong)); }catch(e){ m.pub.eel=e.message; fail.push('eel'); } }
     if(m.bcode){ try{ Object.assign(m,await aptStats(String(m.bcode).slice(0,5),m.bdong)); }catch(e){ m.pub.apt=e.message; fail.push('apt'); } }
   }
   return m;
 }
-const STEPS=35;
+const STEPS=30;
 
 /* ---------------- 계산: 값 → 백분위 → 영역 점수 → 종합 ---------------- */
 function derive(m,opt){
@@ -649,8 +686,8 @@ function evalD(d,withBench=true){
       const arr=B?B.arr[s.k]:[]; const p=(v!=null&&arr.length)?pct(v,arr,s.low):null;
       let rank=null; if(p!=null) rank=arr.filter(a=>s.low?a<v:a>v).length+1;
       return Object.assign({},s,{v,p,arr,rank,of:arr.length}); });
-    const ps=subs.filter(s=>s.p!=null), sw=ps.reduce((a,s)=>a+(s.w||1),0);
-    return {k:dm.k,t:dm.t,w:+W[dm.k]||0,why:dm.why,prop:!!dm.prop,subs,score:ps.length?Math.round(ps.reduce((a,s)=>a+s.p*(s.w||1),0)/sw):null};
+    const ps=subs.filter(s=>s.p!=null), sw=ps.reduce((a,s)=>a+(s.w??1),0);
+    return {k:dm.k,t:dm.t,w:+W[dm.k]||0,why:dm.why,prop:!!dm.prop,subs,score:ps.length?Math.round(ps.reduce((a,s)=>a+s.p*(s.w??1),0)/sw):null};
   });
   const avg=L=>{ const ok=L.filter(x=>x.score!=null), ws=ok.reduce((a,x)=>a+x.w,0); return ok.length&&ws?Math.round(ok.reduce((a,x)=>a+x.w*x.score,0)/ws):null; };
   const mkt=avg(dims.filter(x=>!x.prop)), total=mkt==null?null:avg(dims);
@@ -684,7 +721,7 @@ function warnings(c,s){
   if(f&&f.turns!=null&&f.turns>2.5) out.push(`본전을 맞추려면 테이블당 하루 ${f.turns.toFixed(1)}회전이 필요해요 — 장어집 저녁 장사로는 빠듯해요`);
   if(+c.area>0&&+c.area<15) out.push(`${c.area}평은 장어집에 작은 편이에요 — 회식 단체석을 두기 어려워요`);
   { const known=c.m||CITIES[CT()]; if(known&&!inCity(c)) out.push(`${CT()} 밖 주소예요 — 점수는 ${CT()} 기준 상권과 비교한 값이라 맞지 않아요. 위 도시 선택을 바꿔 보세요`); }
-  if(s&&s.d.pub){ const P=s.d.pub, lbl={store:'상가',pop:'인구·연령',rest:'음식점 인허가',apt:'아파트 실거래가'}; const bad=Object.keys(lbl).filter(k=>P[k]); if(bad.length) out.push('공공데이터를 못 받았어요: '+bad.map(k=>lbl[k]+' — '+esc(P[k])).join(' / ')+' (설정 → 공공데이터 연결)'); }
+  if(s&&s.d.pub){ const P=s.d.pub, lbl={store:'상가',pop:'인구·연령',rest:'음식점 인허가',apt:'아파트 실거래가',eel:'장어집 생존율',catch:'3km 주민 수',sgis:'3km 직장인 수(SGIS)'}; const bad=Object.keys(lbl).filter(k=>P[k]); if(bad.length) out.push('공공데이터를 못 받았어요: '+bad.map(k=>lbl[k]+' — '+esc(P[k])).join(' / ')+' (설정 → 공공데이터 연결)'); }
   else if(s&&s.d.fail&&s.d.fail.length) out.push('일부 항목을 못 받아 그 항목은 점수에서 뺐어요. "다시 분석"을 눌러 보세요');
   return out;
 }
@@ -862,6 +899,8 @@ function kpiTiles(s){
   if(d.n500!=null) add('장어집 500m 안',d.n500,'곳',`300m 안 ${d.n300}곳 · 1km 안 ${d.n1k}${''}곳`,d.n500>=3?'bad':d.n500===0?'good':'');
   if(d.subD!=null) add('가까운 지하철역',fmtM(d.subD),'',d.subway&&d.subway[0]?esc(d.subway[0].name):'',d.subD<=500?'good':d.subD>1500?'bad':'');
   if(d.park500!=null) add('주차장 500m 안',d.park500,'곳','차로 오는 손님',d.park500>=10?'good':d.park500<=2?'bad':'');
+  if(d.core3k!=null) add('3km 안 30~59세',fmtN(d.core3k),'명',`주민 ${fmtN(d.pop3k)}명 · 동 ${d.catchN}곳`,band(d.core3k,AB.core3k)>=70?'good':band(d.core3k,AB.core3k)<=35?'bad':'');
+  if(d.work3k!=null) add('3km 안 직장인',fmtN(d.work3k),'명','회식 수요',band(d.work3k,AB.work3k)>=70?'good':band(d.work3k,AB.work3k)<=35?'bad':'');
   if(d.popTot!=null) add('주민등록 인구',fmtN(d.popTot),'명',`30~50대 ${d.pCore}% · 60세↑ ${d.pOld}%`);
   if(d.aptPy!=null) add('아파트 평당가',fmtN(d.aptPy),'만',d.aptGu?`구 평균의 ${Math.round(d.aptPy/d.aptGu*100)}%`:'',d.aptGu&&d.aptPy/d.aptGu>=1.15?'good':'');
   if(d.restOn!=null) add('영업 중 음식점',fmtN(d.restOn),'곳',d.restClose12!=null?`1년 개업 ${d.restOpen12} · 폐업 ${d.restClose12}`:'');
@@ -919,7 +958,9 @@ function demandHtml(s,c){
   const d=s.d, R=[];
   const row=(t,v,fmt,k,read)=>{ if(v==null) return; const b=bmStat(k,v); R.push(`<tr><td>${t}</td><td class="num"><b>${fmt(v)}</b></td><td class="num${b&&b.p>=65?' rk hi':b&&b.p<=35?' rk lo':''}">${b?b.p+'점':'-'}</td><td class="note">${read(v,b)}</td></tr>`); };
   const n=v=>fmtN(Math.round(v));
-  row('30~59세 주민 수',d.corePop,n,'corePop',(v,b)=>b&&b.p>=65?'주 고객층 인구가 두터워요':b&&b.p<=35?'주 고객층 인구가 적은 편이에요':'평균 수준이에요');
+  row('3km 안 30~59세 주민 (동 합계)',d.core3k,n,'core3k',(v,b)=>b&&b.p>=70?'차로 오는 주 고객층이 두터워요':b&&b.p<=35?'차로 오는 주 고객층이 적어요':'보통이에요');
+  row('3km 안 직장인 (사업체 종사자)',d.work3k,n,'work3k',(v,b)=>b&&b.p>=70?'회식 수요가 큰 지역이에요':b&&b.p<=35?'회식 수요가 약해요':'보통이에요');
+  row('30~59세 주민 수 (이 동)',d.corePop,n,'corePop',(v,b)=>b&&b.p>=65?'주 고객층 인구가 두터워요':b&&b.p<=35?'주 고객층 인구가 적은 편이에요':'평균 수준이에요');
   row('주민 1천명당 일반음식점',d.restPer1k,v=>v.toFixed(1)+'곳','restPer1k',(v,b)=>b&&b.p<=35?'음식점이 많아 공급 과잉 쪽이에요':b&&b.p>=65?'음식점이 적어 여유가 있어요':'보통이에요');
   row('장어집 1곳당 30~59세 주민 (1km 기준)',d.corePerEel,n,'corePerEel',(v,b)=>d.n1k===0?'1km 안에 장어집이 없어요':b&&b.p>=65?'장어집 1곳이 맡는 잠재 고객이 많아요':b&&b.p<=35?'장어집 1곳당 고객이 적어 나눠 먹는 구조예요':'보통이에요');
   row('최근 1년 순증 (개업 − 폐업)',d.restNet,v=>(v>0?'+':'')+v+'곳','restNet',v=>v>0?'새 가게가 더 많이 생겨 커지는 상권이에요':v<0?'폐업이 더 많아 식어 가는 상권이에요':'변화가 없어요');
@@ -945,6 +986,8 @@ function swotData(s,c){
   if(d.pCore!=null&&d.pCore>=48) S.push(`장어 주 고객층(30~50대)이 ${d.pCore}%로 두터워요`);
   if(d.pCore!=null&&d.pCore<=36) W.push(`주 고객층(30~50대) 비율이 ${d.pCore}%로 낮아요`);
   if(d.pOld!=null&&d.pOld>=25) T.push(`60세 이상이 ${d.pOld}%라 고령화된 동네예요 (고단가 외식 수요가 약할 수 있어요)`);
+  if(d.core3k!=null){ const b=band(d.core3k,AB.core3k); if(b>=70) S.push(`차로 10분(3km) 안 30~59세 주민이 약 ${fmtN(d.core3k)}명으로 많아요`); else if(b<=35) W.push(`3km 안 30~59세 주민이 약 ${fmtN(d.core3k)}명으로 적어 차로 오는 손님 풀이 작아요`); }
+  if(d.work3k!=null){ const b=band(d.work3k,AB.work3k); if(b>=70) O.push(`3km 안 직장인이 약 ${fmtN(d.work3k)}명이라 평일 회식 수요를 노릴 수 있어요`); else if(b<=35) W.push(`3km 안 직장인이 약 ${fmtN(d.work3k)}명으로 적어 평일 회식 수요가 약해요 — 주말 가족 위주로 계획`); }
   if(d.subD!=null&&d.subD<=500) S.push(`지하철역이 ${d.subD}m로 가까워요`);
   if(d.park500!=null&&d.park500>=10) S.push(`500m 안 주차장이 ${d.park500}곳이라 차로 오기 편해요`);
   if(d.park500!=null&&d.park500<=2) W.push(`500m 안 주차장이 ${d.park500}곳뿐이라 주차가 어려워요`);
@@ -1257,6 +1300,8 @@ function detailHtml(){
       <div><span>가까운 지하철역</span><b>${s.d.subway&&s.d.subway[0]?esc(s.d.subway[0].name)+' '+fmtM(s.d.subD):'2km 안 없음'}</b></div>
       <div><span>주차장 (500m)</span><b>${fmtN(s.d.park500)}곳</b></div>
       <div><span>장어집 (300m / 500m / 1km)</span><b>${s.d.n300??'-'} / ${s.d.n500??'-'} / ${s.d.n1k??'-'}${c.m.compMore?'+':''}</b></div>
+      ${s.d.pop3k!=null?`<div><span>3km 안 주민 (30~59세) · 동 ${s.d.catchN}곳 합계</span><b>${fmtN(s.d.pop3k)}명 (${fmtN(s.d.core3k)}명)</b></div>`:''}
+      ${s.d.work3k!=null?`<div><span>3km 안 직장인 · 사업체 (${s.d.sgisYr}년 통계청)</span><b>${fmtN(s.d.work3k)}명 · ${fmtN(s.d.corp3k)}곳</b></div>`:''}
       <div><span>가까운 우리 매장</span><b>${near[0]?esc(near[0].name)+' '+fmtM(near[0].d):'-'}</b></div>
       <div><span>음식점 포화도</span><b>${sp==null?'-':sp>=65?'낮음':sp<=35?'높음':'보통'}</b></div>
       ${s.d.aptGu!=null?`<div><span>아파트 평당가 (${esc(s.d.bdong||'동')} / 구 전체, 1년)</span><b>${s.d.aptPy!=null?fmtN(s.d.aptPy)+'만':'거래 적음'} / ${fmtN(s.d.aptGu)}만</b></div>`:''}
@@ -1462,7 +1507,7 @@ document.addEventListener('click',async e=>{
       window._sc=L; window._scName=n; $('#scands').innerHTML='<div class="note">어느 곳인가요?</div>'+L.map((p,i)=>`<button data-sc="${i}"><b>${esc(p.name)}</b><br><small>${esc(p.addr)}</small></button>`).join(''); }catch(err){ toast(err.message); } return; }
   if(a==='wreset'){ DB.weights=defW(); save(); render(); return; }
   if(a==='ping'){ const el=$('#pingres'); el.textContent='확인 중…';
-    try{ const j=JSON.parse(await relay('ping',{})); el.innerHTML=!j.allowed?`<span style="color:var(--warn)">중계 서버가 이 주소(${esc(location.origin)})를 허용 안 해요 — worker.js 의 ALLOW 목록에 추가</span>`:j.hasKey?'<span style="color:var(--ok)">연결됨 · 인증키 있음. "다시 분석"하면 공공데이터가 붙어요 (기준 상권도 다시 만들기)</span>':'<span style="color:var(--warn)">중계 서버는 연결됐는데 인증키(DATA_KEY)가 없어요</span>'; if(j.allowed) el.innerHTML+=j.hasNaver?'<br><span style="color:var(--ok)">네이버 검색 키 있음 · 장어집 인기도(블로그 글 수) 사용 가능</span>':'<br><span style="color:var(--warn)">네이버 검색 키(NAVER_ID·NAVER_SECRET)가 아직 없어요 — 장어집은 카카오 검색 순서로 골라요</span>'; }
+    try{ const j=JSON.parse(await relay('ping',{})); el.innerHTML=!j.allowed?`<span style="color:var(--warn)">중계 서버가 이 주소(${esc(location.origin)})를 허용 안 해요 — worker.js 의 ALLOW 목록에 추가</span>`:j.hasKey?'<span style="color:var(--ok)">연결됨 · 인증키 있음. "다시 분석"하면 공공데이터가 붙어요 (기준 상권도 다시 만들기)</span>':'<span style="color:var(--warn)">중계 서버는 연결됐는데 인증키(DATA_KEY)가 없어요</span>'; if(j.allowed) el.innerHTML+=j.hasSgis?'<br><span style="color:var(--ok)">통계청 SGIS 키 있음 · 3km 직장인 수 사용 가능</span>':'<br><span style="color:var(--warn)">통계청 SGIS 키(SGIS_KEY·SGIS_SECRET)가 아직 없어요 — 직장인 수는 빠지고 분석돼요</span>'; if(false) el.innerHTML+=j.hasNaver?'<br><span style="color:var(--ok)">네이버 검색 키 있음 · 장어집 인기도(블로그 글 수) 사용 가능</span>':'<br><span style="color:var(--warn)">네이버 검색 키(NAVER_ID·NAVER_SECRET)가 아직 없어요 — 장어집은 카카오 검색 순서로 골라요</span>'; }
     catch(e){ el.innerHTML=`<span style="color:var(--warn)">연결 실패: ${esc(e.message)} — 주소가 맞는지, Worker 를 배포했는지 확인</span>`; } return; }
   if(a==='finreset'){ DB.fin=defFin(); save(); render(); return; }
   if(a==='export') return exportFile();
