@@ -19,12 +19,20 @@ const API = {
   rest: { url: 'https://apis.data.go.kr/1741000/general_restaurants/info', keys: ['pageNo', 'numOfRows', 'returnType', 'cond[ROAD_NM_ADDR::LIKE]', 'cond[BPLC_NM::LIKE]', 'cond[LCPMT_YMD::GTE]', 'cond[SALS_STTS_CD::EQ]', 'cond[OPN_ATMY_GRP_CD::EQ]'], ttl: 86400 },
 };
 // SGIS 는 키로 먼저 accessToken 을 받아 붙여야 함 — 이 서버가 받아서 몇 시간 재사용
-let SGIS_TOKEN = '', SGIS_UNTIL = 0;
+// 통계청이 국가데이터처(mods.go.kr)로 바뀌어 주소가 둘 — 새 주소 먼저, 안 되면 옛 주소
+const SGIS_HOSTS = ['https://sgisapi.mods.go.kr', 'https://sgisapi.kostat.go.kr'];
+let SGIS_TOKEN = '', SGIS_UNTIL = 0, SGIS_HOST = '';
+async function sgisFetch(path) {
+  let last;
+  for (const h of SGIS_HOST ? [SGIS_HOST, ...SGIS_HOSTS.filter(x => x !== SGIS_HOST)] : SGIS_HOSTS) {
+    try { const r = await fetch(h + '/OpenAPI3/' + path); const j = await r.json(); SGIS_HOST = h; return j; } catch (e) { last = e; }
+  }
+  throw last || new Error('SGIS 연결 실패');
+}
 async function sgisToken(env, force) {
   if (!force && SGIS_TOKEN && Date.now() < SGIS_UNTIL) return SGIS_TOKEN;
-  const r = await fetch('https://sgisapi.kostat.go.kr/OpenAPI3/auth/authentication.json?consumer_key=' + encodeURIComponent(env.SGIS_KEY) + '&consumer_secret=' + encodeURIComponent(env.SGIS_SECRET));
-  const j = await r.json().catch(() => ({}));
-  const t = j && j.result && j.result.accessToken; if (!t) throw new Error('SGIS 인증 실패: ' + (j.errMsg || j.errCd || r.status));
+  const j = await sgisFetch('auth/authentication.json?consumer_key=' + encodeURIComponent(env.SGIS_KEY) + '&consumer_secret=' + encodeURIComponent(env.SGIS_SECRET));
+  const t = j && j.result && j.result.accessToken; if (!t) throw new Error('SGIS 인증 실패: ' + (j.errMsg || j.errCd || '응답 없음'));
   SGIS_TOKEN = t; SGIS_UNTIL = Date.now() + 3 * 3600 * 1000; return t;
 }
 const SGIS_PATHS = { stage: 'addr/stage.json', company: 'stats/company.json' };   // 시군구·읍면동 목록 / 사업체·종사자 수
@@ -49,7 +57,7 @@ export default {
       try {
         for (let tryNo = 0; tryNo < 2; tryNo++) {
           const tk = await sgisToken(env, tryNo > 0); qs.set('accessToken', tk);
-          const r = await fetch('https://sgisapi.kostat.go.kr/OpenAPI3/' + path + '?' + qs.toString()); j = await r.json().catch(() => ({ errMsg: 'HTTP ' + r.status }));
+          j = await sgisFetch(path + '?' + qs.toString());
           if (String(j.errCd) === '-401') continue;   // 토큰 만료 → 새로 받아 한 번 더
           break;
         }
