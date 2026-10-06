@@ -371,7 +371,7 @@ const defFin=()=>({cost:40,labor:25,var:8,other:200,ticket:4,days:26,interior:25
 const DEF_RELAY='https://ilpum-data.yoyo925.workers.dev';
 const defSys=()=>({parts:{mkt:35,comp:15,prop:15,field:25,analog:10},grades:{A:70,B:55,C:40},minDone:70,
   ko:{zone:true,duct:true,area:{on:true,v:25},rr:{on:true,v:15},eel500:{on:true,v:4},park:{on:true,v:2}}});
-const SYS_PARTS=[['mkt','상권 매력','대구 기준 상권 대비 외식·주거·집객·접근성'],['comp','경쟁','가까운 장어집 (평점·리뷰를 넣으면 실력 반영)'],['prop','매물·수익성','월세·평수·테이블·목표 매출·시세'],['field','현장 실사','별점 8개 + 직접 센 유동'],['analog','우리 매장과 닮은 정도','잘되는 우리 매장 자리와 비교']];
+const SYS_PARTS=[['mkt','상권 매력','대구 기준 상권 대비 외식·주거·집객·접근성'],['comp','경쟁','가까운 장어집 (평점·리뷰를 넣으면 실력 반영)'],['prop','매물·수익성','월세·평수·테이블·목표 매출·시세'],['field','현장 실사','별점 8개 + 유동 (직접 세기·상권정보시스템)'],['analog','우리 매장과 닮은 정도','잘되는 우리 매장 자리와 비교']];
 function SYS(){ const d=defSys(), x=DB.sys||{}; return {parts:Object.assign(d.parts,x.parts||{}),grades:Object.assign(d.grades,x.grades||{}),minDone:x.minDone!=null?x.minDone:d.minDone,ko:Object.assign(d.ko,x.ko||{})}; }
 const defDB=()=>({v:2,relay:DEF_RELAY,stores:[],zoneKm:2,weights:defW(),fin:defFin(),benchNames:DEF_BENCH.slice(),bench:null,cands:[]});
 let DB=defDB();
@@ -506,8 +506,13 @@ async function storeStats(p){
   const t=await relay('store',{radius:500,cx:p.x,cy:p.y,numOfRows:1000,pageNo:1,type:'json'}); const er=apiErr(t); if(er) throw new Error(er);
   let j; try{ j=JSON.parse(t); }catch(e){ throw new Error('상가정보 응답 형식이 달라요'); }
   const b=j.body||(j.response&&j.response.body)||{}; let items=b.items||[]; if(items&&items.item) items=items.item; if(!Array.isArray(items)) items=[];
-  const total=+b.totalCount||items.length; const food=items.filter(x=>/음식/.test(x.indsLclsNm||'')).length;
-  return {store500:total, foodRatio:items.length?Math.round(food/items.length*100):null};
+  const total=+b.totalCount||items.length; const foodL=items.filter(x=>/음식/.test(x.indsLclsNm||'')), food=foodL.length;
+  // 음식점 업종 구성 (중분류) · 장어집 교차 확인 (상호·소분류에 "장어"). 1000곳 넘으면 앞 1000곳 비율
+  const cnt={}; foodL.forEach(x=>{ const k=String(x.indsMclsNm||'기타').trim()||'기타'; cnt[k]=(cnt[k]||0)+1; });
+  const foodMix=food?Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([n,c])=>({n,c,p:Math.round(c/food*100)})):null;
+  const pub=foodL.filter(x=>/주점|호프|술/.test((x.indsMclsNm||'')+(x.indsSclsNm||''))).length;
+  const eelStore=items.filter(x=>/장어/.test((x.bizesNm||'')+(x.indsSclsNm||''))).length;
+  return {store500:total, foodRatio:items.length?Math.round(food/items.length*100):null, foodMix, pubPct:food?Math.round(pub/food*100):null, eelStore, storeSample:items.length<total};
 }
 
 /* ---------------- 한 지점 측정 (25번 검색, 4개씩 동시에) ---------------- */
@@ -631,7 +636,8 @@ const FIELD=[
   {k:'util',t:'설비',h:'가스·전기 용량, 급배수, 화장실'}
 ];
 function fieldScore(c){ const f=c.field||{}; const v=FIELD.map(x=>f[x.k]).filter(n=>n>=1&&n<=5); return v.length>=3?Math.round((v.reduce((a,b)=>a+b,0)/v.length-1)/4*100):null; }
-function flowScore(c){ const f=flowOf(c); return f?Math.round(band(f.avg,[[20,10],[60,40],[100,65],[150,85],[250,100]])):null; }
+function flowScore(c){ const f=flowOf(c), a=f?band(f.avg,[[20,10],[60,40],[100,65],[150,85],[250,100]]):null, b=+c.sbizFlow>0?band(+c.sbizFlow,[[2000,15],[5000,35],[10000,55],[20000,75],[40000,90],[80000,100]]):null;
+  return a!=null&&b!=null?Math.round(a*0.6+b*0.4):a!=null?Math.round(a):b!=null?Math.round(b):null; }
 function fieldAll(c){ const a=fieldScore(c), b=flowScore(c); return a!=null&&b!=null?Math.round(a*0.75+b*0.25):a!=null?a:b; }
 function compAdjScore(c,s){ const q=compQual(c), x=s.dims.find(y=>y.k==='comp'); if(!q||!q.filled) return x?x.score:null; const arr=benchCache().arr.compIdx||[]; if(arr.length<5) return x?x.score:null;
   const cp=pct(q.adj,arr,true), other=x?x.subs.filter(y=>y.k!=='compIdx'&&y.p!=null).map(y=>y.p):[]; const all=[cp,...other]; return Math.round(all.reduce((a,b)=>a+b,0)/all.length); }
@@ -896,6 +902,8 @@ function swotData(s,c){
   if(d.pull!=null){ const b=s.has?bmStat(x=>x.pull,d.pull,false):null; if(b&&b.p>=70) O.push('병원·관공서·예식장 등 집객시설이 많아 회식·모임 수요를 노릴 수 있어요'); }
   const sat=satP(d); if(sat!=null&&sat<=35) T.push('배후 수요에 비해 음식점이 많아 외식 경쟁이 치열해요');
   const f=finCalc(c); if(f){ if(f.turns!=null&&f.turns>2) W.push(`본전 맞추려면 테이블당 하루 ${f.turns.toFixed(1)}회전이 필요해 빠듯해요`); if(f.rentRatio!=null&&f.rentRatio>12) T.push(`임대료가 목표 매출의 ${f.rentRatio.toFixed(1)}%로 높아요`); if(f.rentRatio!=null&&f.rentRatio<=10) S.push(`임대료 비율 ${f.rentRatio.toFixed(1)}%로 부담이 적어요`); }
+  if(d.pubPct!=null&&d.pubPct>=25) O.push(`500m 안 음식점 중 주점이 ${d.pubPct}%라 저녁 술자리 수요가 있어요 (2차 전 1차 장어 수요)`);
+  if(d.eelStore!=null&&d.n500!=null&&d.eelStore>d.n500) T.push(`상가정보에는 500m 안 장어 관련 가게가 ${d.eelStore}곳으로 카카오(${d.n500}곳)보다 많아요 — 지도에 안 나온 경쟁점 확인`);
   const cq=compQual(c); if(cq&&cq.strong[0]){ const x=cq.strong[0]; T.push(`${fmtM(x.p.dist)} 거리에 강한 장어집(${esc(x.p.name)}${x.q.r?` 평점 ${x.q.r}`:''}${x.q.n?` · 리뷰 ${fmtN(x.q.n)}개`:''})이 있어요`); }
   if(cq&&cq.filled>=2&&!cq.strong.length) O.push('입력한 주변 장어집들의 평점·리뷰가 강하지 않아 실력으로 이길 여지가 있어요');
   const rc=rentCmp(c); if(rc&&rc.diff>15) W.push(`월세가 주변 시세보다 ${rc.diff}% 비싸요`); if(rc&&rc.diff<-10) S.push(`월세가 주변 시세보다 ${-rc.diff}% 싸요`);
@@ -1023,7 +1031,7 @@ function compQualHtml(c){
 
 /* ---------------- 임대료 시세 · 현장 유동 ---------------- */
 function rentTxt(c){ const r=rentCmp(c); return r?` · 주변 시세 ${r.mk}만원 대비 <b style="color:${r.diff>15?'var(--warn)':r.diff<-10?'var(--ok)':'var(--ink)'}">${r.diff>0?'+':''}${r.diff}%</b> ${r.diff>15?'(비싸요 · 협상 여지 확인)':r.diff<-10?'(시세보다 싸요 · 이유 확인)':'(시세 수준)'}`:' · 주변 시세를 넣으면 비싼지 알려 줘요'; }
-function flowTxt(c){ const f=flowOf(c); return f?`평균 10분 ${Math.round(f.avg)}명 → 시간당 약 ${fmtN(f.hr)}명 · <b>${f.lv}</b> (대략 기준: 10분 60명 미만 적음 · 150명 이상 많음)${+c.cntWait>0?` · 경쟁점 대기 ${c.cntWait}명 = 수요가 넘쳐요`:''}`:''; }
+function flowTxt(c){ const f=flowOf(c), sb=+c.sbizFlow>0?` · 상권정보시스템 일평균 ${fmtN(c.sbizFlow)}명`:''; if(!f) return sb?`유동 점수 ${flowScore(c)}점${sb}`:''; return f?`유동 점수 ${flowScore(c)}점 · `+`평균 10분 ${Math.round(f.avg)}명 → 시간당 약 ${fmtN(f.hr)}명 · <b>${f.lv}</b> (대략 기준: 10분 60명 미만 적음 · 150명 이상 많음)${+c.cntWait>0?` · 경쟁점 대기 ${c.cntWait}명 = 수요가 넘쳐요`:''}${sb}`:''; }
 function rentCmp(c){ if(!(c.rent>0&&c.area>0&&c.mkRent>0)) return null; const my=c.rent/c.area; return {my,mk:+c.mkRent,diff:Math.round((my/c.mkRent-1)*100)}; }
 function flowOf(c){ const v=[c.cntWk,c.cntWe].map(Number).filter(x=>x>0); if(!v.length) return null; const avg=v.reduce((a,b)=>a+b,0)/v.length; return {avg,lv:avg>=150?'많음':avg>=60?'보통':'적음',hr:Math.round(avg*6)}; }
 
@@ -1071,6 +1079,14 @@ function sysSetHtml(){
       <div class="tw"><table><thead><tr><th>매장</th><th class="num">월매출</th><th class="num">상권 매력</th><th class="num">경쟁</th></tr></thead><tbody>${ver.map(st=>{ const e=evalD(derive(st.m)); const cs=(e.dims.find(y=>y.k==='comp')||{}).score; return `<tr><td>${esc(st.name)}</td><td class="num">${st.sales?fmtN(st.sales)+'만':'-'}</td><td class="num">${e.mkt??'-'}</td><td class="num">${cs??'-'}</td></tr>`; }).join('')}</tbody></table></div>`:''}</div>`;
 }
 
+
+function mixChart(d){
+  if(!d.foodMix||!d.foodMix.length) return '';
+  const mx=Math.max(...d.foodMix.map(x=>x.p),1);
+  return `<div class="viz"><h4>500m 안 음식점 업종 구성</h4><div class="cap">소상공인 상가정보${d.storeSample?' (앞 1,000곳 기준 비율)':''} · 주점 비율 ${d.pubPct??'-'}%${d.eelStore!=null?` · 장어 상호·업종 ${d.eelStore}곳`:''}</div>
+    ${d.foodMix.map(x=>`<div class="rkrow" style="grid-template-columns:92px 1fr 40px;height:24px"><span class="nm" title="${esc(x.n)}">${esc(x.n)}</span><div class="bar" style="height:11px"><i style="width:${x.p/mx*100}%;background:${/주점/.test(x.n)?'var(--gold)':/한식/.test(x.n)?'var(--navy)':'#aab3c2'}"></i></div><span class="v">${x.p}%</span></div>`).join('')}</div>`;
+}
+
 /* ---------------- 화면 ---------------- */
 let TAB='list', CUR=null, CANDS=[], SEL=new Set(), FILTER='', PICK=false, busy=false;
 function go(tab,id){ TAB=tab; if(id!==undefined) CUR=id; render(); window.scrollTo(0,0); }
@@ -1113,7 +1129,7 @@ function fieldHtml(c){
     <div class="note" style="margin-bottom:6px">직접 가 보고 1(나쁨)~5(좋음)로 매기세요. 종합 점수에 40% 반영되고, 같은 숫자를 다시 누르면 지워져요.</div>
     ${FIELD.map(x=>`<div class="fr"><div><b>${x.t}</b><div class="note">${x.h}</div></div><div class="stars">${[1,2,3,4,5].map(n=>`<button data-fs="${x.k}" data-v="${n}" class="${f[x.k]===n?'on':''}" aria-label="${x.t} ${n}점">${n}</button>`).join('')}</div></div>`).join('')}
     <h3>직접 세기 (유동인구 대신)</h3><div class="note" style="margin-bottom:6px">가게 앞에서 10분 동안 지나간 사람·차를 세어 넣으세요. 공개된 유동인구 자료가 없어서 이게 가장 정확해요.</div>
-    <div class="grid2"><label>평일 저녁 7~8시 · 10분 통행인<input type="number" data-f="cntWk" value="${esc(c.cntWk||'')}" min="0"></label><label>주말 저녁 · 10분 통행인<input type="number" data-f="cntWe" value="${esc(c.cntWe||'')}" min="0"></label><label>가게 앞 10분 차량<input type="number" data-f="cntCar" value="${esc(c.cntCar||'')}" min="0"></label><label>근처 장어집 대기 손님 (저녁 피크)<input type="number" data-f="cntWait" value="${esc(c.cntWait||'')}" min="0"></label></div>
+    <div class="grid2"><label>평일 저녁 7~8시 · 10분 통행인<input type="number" data-f="cntWk" value="${esc(c.cntWk||'')}" min="0"></label><label>주말 저녁 · 10분 통행인<input type="number" data-f="cntWe" value="${esc(c.cntWe||'')}" min="0"></label><label>가게 앞 10분 차량<input type="number" data-f="cntCar" value="${esc(c.cntCar||'')}" min="0"></label><label>근처 장어집 대기 손님 (저녁 피크)<input type="number" data-f="cntWait" value="${esc(c.cntWait||'')}" min="0"></label><label>상권정보시스템 일평균 유동인구 (명)<input type="number" data-f="sbizFlow" value="${esc(c.sbizFlow||'')}" min="0" placeholder="sg.sbiz.or.kr 보고서"></label></div>
     <div class="note" id="flowres" style="margin-top:8px">${flowTxt(c)}</div>
     <div class="row" style="margin-top:12px"><label class="note" style="font-weight:600">방문 기록 <input type="text" data-f="visit" value="${esc(c.visit||'')}" placeholder="예: 10/7(화) 저녁 7시, 비 옴" maxlength="40" style="width:240px"></label></div></div>`;
 }
@@ -1176,7 +1192,7 @@ function detailHtml(){
       ${s.d.store500!=null?`<div><span>상가 수 500m (음식업 비율)</span><b>${fmtN(s.d.store500)}곳${s.d.foodRatio!=null?` (${s.d.foodRatio}%)`:''}</b></div>`:''}
       ${s.d.popTot!=null?`<div><span>${esc(s.d.bdong||'행정동')} 주민등록 인구 (${esc(s.d.popYm||'')})</span><b>${fmtN(s.d.popTot)}명</b></div><div><span>연령 구성 (0~19세 / 30~50대 / 60세↑)</span><b>${s.d.pKid}% / ${s.d.pCore}% / ${s.d.pOld}%</b></div>`:''}
       ${s.d.restOn!=null?`<div><span>일반음식점 (영업 / 1년 개업 / 1년 폐업)</span><b>${fmtN(s.d.restOn)} / ${fmtN(s.d.restOpen12)} / ${s.d.restClose12!=null?fmtN(s.d.restClose12):'-'}곳</b></div>`:''}</div>
-    ${ageChart(s.d)||restChart(s.d)?`<div class="vizrow">${ageChart(s.d)}${restChart(s.d)}</div>`:''}
+    ${ageChart(s.d)||restChart(s.d)||mixChart(s.d)?`<div class="vizrow">${ageChart(s.d)}${restChart(s.d)}${mixChart(s.d)}</div>`:''}
     <h3>진단 의견</h3><div class="op">${opinion(c,s,fin).map(p=>`<p>${p}</p>`).join('')}</div></div>
   <div class="card" id="s-eval"><div class="sh"><span class="no">03</span><h2>영역별 평가</h2><span class="aside">상권 5개 영역 = 대구 기준 상권 ${s.of}곳 대비 (50 = 중간) · 매물 조건 = 기준표</span></div>
     <div class="evgrid"><div>${evalRows(s)}</div><div>${radar([s.dims.filter(x=>!x.prop).map(x=>x.score)])}</div></div>
@@ -1383,7 +1399,7 @@ document.addEventListener('click',async e=>{
 document.addEventListener('input',e=>{
   const f=e.target.dataset.f; if(f){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c[f]=e.target.type==='number'?(e.target.value===''?'':+e.target.value):e.target.value; save();
     if(['mkRent','rent','area'].includes(f)){ const el=$('#rentcmp'); if(el) el.innerHTML=rentTxt(c); }
-    if(['cntWk','cntWe','cntWait'].includes(f)){ const el=$('#flowres'); if(el) el.innerHTML=flowTxt(c); } if(['rent','area','premium','target','tables'].includes(f)){ clearTimeout(softT); softT=setTimeout(softRender,250); } return; }
+    if(['cntWk','cntWe','cntWait','sbizFlow'].includes(f)){ const el=$('#flowres'); if(el) el.innerHTML=flowTxt(c); } if(['rent','area','premium','target','tables'].includes(f)){ clearTimeout(softT); softT=setTimeout(softRender,250); } return; }
   const rv=e.target.dataset.rv; if(rv){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c.review=c.review||{}; c.review[rv]=e.target.value;
     if(rv==='dec'){ if(!c.review.at) c.review.at=today(); const s=c.m?scoreOf(c.m,c):null, F=s?finalOf(c,s):null; c.review.score=F?F.tot:null; } save(); return; }
   const sy=e.target.dataset.sys; if(sy){ DB.sys=SYS(); const v=e.target.type==='checkbox'?e.target.checked:+e.target.value||0; const [a,b,k]=sy.split('.');

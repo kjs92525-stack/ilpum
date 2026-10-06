@@ -64,7 +64,7 @@ def rest_json(qs):
   if 'LCPMT_YMD' in qs: return R([{"BPLC_NM":"가"}],40)
   recent=fmt(t-datetime.timedelta(days=30)); old=fmt(t-datetime.timedelta(days=500))
   return R([{"CLSBIZ_YMD":recent},{"CLSBIZ_YMD":recent},{"CLSBIZ_YMD":recent},{"CLSBIZ_YMD":old},{"CLSBIZ_YMD":old}],5)
-STORE={"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"},"body":{"items":[{"indsLclsNm":"음식"}]*6+[{"indsLclsNm":"소매"}]*4,"totalCount":345}}
+STORE={"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"},"body":{"items":[{"indsLclsNm":"음식","indsMclsNm":"한식","bizesNm":"한식당"}]*3+[{"indsLclsNm":"음식","indsMclsNm":"주점","bizesNm":"호프"}]*2+[{"indsLclsNm":"음식","indsMclsNm":"한식","indsSclsNm":"장어구이","bizesNm":"풍천장어"}]+[{"indsLclsNm":"소매"}]*4,"totalCount":345}}
 async def handler(r):
   u=r.request.url
   if 'localhost' in u: return await r.continue_()
@@ -146,6 +146,7 @@ async def main():
     ok('    개요 표에 인구·연령 구성·음식점 수', '5,000명' in await pg.inner_text('#s-diag') and '0% / 80% / 20%' in await pg.inner_text('#s-diag') and '200 / 40 / 3곳' in await pg.inner_text('#s-diag'))
     ok('    시각 자료: 요약 타일·점수 링·연령 막대 11개·순위 막대·강약 지표·경쟁 지도·음식점 막대', await pg.evaluate("[document.querySelectorAll('.tile').length>=4,!!document.querySelector('.donut'),document.querySelectorAll('.age:not(.lb) > div').length===11,document.querySelectorAll('.rkrow').length>=8,document.querySelectorAll('.dv').length>=4,!!document.querySelector('svg.cmap circle'),document.querySelectorAll('.viz').length>=5].every(Boolean)"), await pg.evaluate("[document.querySelectorAll('.tile').length,document.querySelectorAll('.age:not(.lb) > div').length,document.querySelectorAll('.rkrow').length,document.querySelectorAll('.dv').length,document.querySelectorAll('.viz').length]"))
     ok('    손익 비용 구조 막대', await pg.evaluate("!!document.querySelector('.fbar') || true"))
+    ok('    업종 구성: 한식 67%·주점 33%·장어 1곳', '한식' in dg and '67%' in dg and '주점 비율 33%' in dg and '장어 상호·업종 1곳' in dg)
     ok('    세부 지표에 구매력·상가 수', '아파트 평당가 (구매력)' in await pg.inner_text('#s-items') and '상가 수 (소상공인 자료)' in await pg.inner_text('#s-items'))
     ok('8b) 상권 진단: 유형·의견·확인 목록', any(x in dg for x in ['먹자·외식 상권','주거 배후 상권','업무·방문 상권','복합 상권','근린 소규모 상권']) and await pg.evaluate("document.querySelectorAll('#s-diag .op p').length")>=4 and await pg.evaluate("document.querySelectorAll('#s-todo .todo li').length")>=5 and '배기·덕트' in await pg.inner_text('#s-todo'), dg[:120])
     ok('    진단에 영업지역 겹침 경고', '영업지역(2km)이 겹쳐요' in dg)
@@ -199,6 +200,8 @@ async def main():
     await pg.fill('[data-f=mkRent]','6'); await pg.wait_for_timeout(200); rf=await pg.inner_text('#s-fin'); await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300)
     ok('18) 시세 6만 대비 평당 7.5만 → +25% 비쌈·SWOT 약점', '+25%' in rf and '주변 시세보다 25% 비싸요' in await pg.inner_text('#s-swot'))
     await pg.fill('[data-f=cntWk]','200'); await pg.fill('[data-f=cntWe]','100'); await pg.dispatch_event('[data-f=cntWe]','change'); await pg.wait_for_timeout(300)
+    await pg.fill('[data-f=sbizFlow]','20000'); await pg.wait_for_timeout(200)
+    ok('19b) 상권정보시스템 유동 2만 → 유동 점수 = 85×0.6+75×0.4 = 81', '유동 점수 81점' in await pg.inner_text('#s-field') and '일평균 20,000명' in await pg.inner_text('#s-field'), await pg.inner_text('#flowres'))
     ok('19) 직접 세기: 10분 평균 150명 → 시간당 900명·많음', '시간당 약 900명' in await pg.inner_text('#s-field') and '많음' in await pg.inner_text('#s-field'))
     await pg.fill('#nope','') if False else None
     await pg.click('[data-tab=list]'); await pg.fill('#q','범어역'); await pg.click('[data-act=find]'); await pg.wait_for_function("document.querySelectorAll('.scorebox').length&&document.querySelector('#rcard').innerText.includes('범어역 2호선')",timeout=20000)
