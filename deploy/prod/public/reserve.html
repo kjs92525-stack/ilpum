@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>일품집 예약</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1EF; --panel:#FFFFFF; --ink:#1E2622; --sub:#5E6B65; --line:#D5DCD8; --soft:#F4F6F5;
+  --accent:#7A3E12; --accent-ink:#FFFFFF; --warn:#B3261E; --warn-bg:#FBE3E0; --ok:#2F6B3F; --ok-bg:#E1F0E4; --tight:#B36B00; --tight-bg:#FFF1D6;
+  --res:#B3261E; --res-bg:#FFF1EF; --soon:#9A6A00; --soon-bg:#FFF8E6; --use:#2F6B3F; --use-bg:#E4F2E7; --past:#8A9690;
+  --field:#FFFFFF; --field-line:#B9C4BE; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#161A18; --panel:#1F2522; --ink:#E7ECE9; --sub:#9AA7A1; --line:#34403A; --soft:#252C29;
+    --accent:#D98B4A; --accent-ink:#1A0F05; --warn:#FF8A80; --warn-bg:#3A1F1C; --ok:#7CC48E; --ok-bg:#1F3326; --tight:#E3A93E; --tight-bg:#3A2E14;
+    --res:#FF8A80; --res-bg:#3A1F1C; --soon:#E7C15C; --soon-bg:#352D17; --use:#7CC48E; --use-bg:#1F3326; --past:#6E7A74;
+    --field:#2B332F; --field-line:#4A5750; color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=text],input[type=tel],input[type=date],input[type=time],input[type=search],select,textarea{
+  background:var(--field);color:var(--ink);border:1px solid var(--field-line);border-radius:7px;padding:7px 9px;font-size:15px;min-width:0}
+input::placeholder,textarea::placeholder{color:var(--sub);opacity:.8}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
+
+header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line)}
+.bar{max-width:none;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.brand{font-weight:700;font-size:18px}
+.datenav{display:flex;align-items:center;gap:4px}
+.datelabel{font-size:20px;font-weight:700;min-width:150px;text-align:center;font-variant-numeric:tabular-nums;border:0;background:none;padding:4px 6px;border-radius:6px}
+.datelabel:hover{background:var(--soft)}
+.datelabel .dw.sun{color:var(--warn)} .datelabel .dw.sat{color:#3C5A86}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--sub)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.today{background:var(--ink);color:var(--panel);border-color:var(--ink);font-weight:700}
+.btn.sm{padding:3px 9px;font-size:13px}
+.btn.danger{color:var(--warn)}
+.spacer{flex:1}
+.sync{font-size:12px;color:var(--sub);padding:2px 8px;border-radius:99px}
+.sync[data-kind="ok"]{color:var(--ok)}
+.sync[data-kind="err"]{color:var(--warn);background:var(--warn-bg);font-weight:600}
+.mtabs{display:none;gap:4px;padding:0 16px}
+.mtabs button{border:0;background:none;padding:9px 14px;border-bottom:3px solid transparent;color:var(--sub);font-weight:600}
+.mtabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+body{min-width:1200px}
+main{padding:12px 16px;display:grid;grid-template-columns:var(--lw,400px) 12px minmax(0,1fr);gap:0;height:calc(100vh - 62px)}
+/* 목록 ↔ 현황 사이 너비 조절 */
+.split{cursor:col-resize;position:relative;touch-action:none;outline:none;-webkit-user-select:none;user-select:none}
+.split::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:4px;margin-left:-2px;border-radius:99px;background:var(--line);transition:background .12s,width .12s,margin .12s}
+.split::after{content:"⋮";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--sub);font-size:16px;line-height:1;background:var(--bg);padding:8px 0;pointer-events:none}
+.split:hover::before,.split:focus-visible::before,.split.on::before{background:var(--accent);width:6px;margin-left:-3px}
+body.resizing{cursor:col-resize;-webkit-user-select:none;user-select:none}
+body.resizing iframe{pointer-events:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;overflow:auto}
+#boardPanel{display:flex;flex-direction:column}
+.panel h2{font-size:16px;margin:0}
+
+/* ----- 목록 ----- */
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.stat{border:1px solid var(--line);border-radius:9px;padding:6px 12px}
+.stat .k{font-size:12px;color:var(--sub)} .stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:6px 11px;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel);font-weight:600}
+.search{flex:1;min-width:120px}
+.tgroup{margin-top:10px}
+.quick{border:1.5px solid var(--accent);border-radius:10px;padding:10px;background:var(--soft);display:flex;flex-direction:column;gap:6px}
+.qrow{display:flex;gap:6px}
+.qrow input{padding:7px 8px;min-width:0;flex:1 1 0}
+#qTime{flex:0 0 86px} #qPP{flex:0 0 84px} #qPhone{flex:0 0 138px}
+.qrow .btn{flex:none}
+.qprev{font-size:13px;min-height:20px}
+.qprev .bad{color:var(--warn);font-weight:600}
+.thead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--sub);padding:2px 2px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+.thead .t{font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums;border:0;background:none;padding:0 4px;border-radius:5px;font-weight:700;cursor:pointer}
+.thead .t:hover{background:var(--soft);text-decoration:underline}
+.rtime{border:1.5px solid var(--accent);background:var(--panel);color:var(--accent);border-radius:6px;padding:0 5px;font-weight:800;font-size:12.5px;font-variant-numeric:tabular-nums;cursor:pointer}
+.rtime:hover{background:var(--accent);color:var(--accent-ink)}
+.res.done .rtime,.res.cxl .rtime{opacity:.5}
+.thead.now .t{color:var(--accent)}
+.res{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:6px;align-items:start;padding:4px 2px;border-bottom:1px dashed var(--line)}
+.res:last-child{border-bottom:0}
+.res{cursor:pointer}
+.res:hover{background:var(--soft);border-radius:8px}
+.res .ck,.res .acts{cursor:auto}
+.res .acts{display:flex;gap:4px}
+.res .ck{width:18px;height:18px;margin-top:1px;accent-color:var(--ok);cursor:pointer}
+.res .l1{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.res .nm{font-weight:700;font-size:14px}
+.res .pp{font-weight:600;font-variant-numeric:tabular-nums}
+.tgroup.nohead .thead{display:none}
+.thead .tgl{font-size:20px;font-weight:900;color:#000;background:#DCEBFF;border:2px solid #3C5A86;border-radius:8px;padding:0 10px}
+.tbls{display:inline-flex;flex-wrap:wrap;gap:3px;align-items:center;margin-right:2px}
+.tbls .tbl:not(.dupt):not(.tightt):not(.none){background:#DCEBFF;color:#000;border:2px solid #3C5A86}
+.tbls .tbl{font-size:18px;font-weight:900;padding:0 9px;border-radius:8px;min-width:36px;text-align:center}.tbl small{font-size:.62em;font-weight:700;margin-left:1px;opacity:.85}
+.res .pp{color:var(--sub)}
+.tbl{display:inline-block;font-size:13px;font-weight:800;padding:0 7px;border-radius:6px;background:var(--ink);color:var(--panel);border:1px solid var(--ink);font-variant-numeric:tabular-nums;letter-spacing:.2px}
+.tnote{display:inline-block;font-size:13px;font-weight:700;padding:1px 8px;border-radius:6px;border:1px solid var(--line);background:var(--soft)}
+.tnote.cx{background:var(--warn);color:#fff;border-color:var(--warn)}
+.res.cxl .nm,.res.cxl .pp,.res.cxl .rq{text-decoration:line-through;color:var(--past)}
+.res.cxl .tbl{opacity:.45}
+.res.dup{background:var(--warn-bg);border-radius:8px;box-shadow:inset 4px 0 0 var(--warn)}
+.res.dup .nm{color:var(--warn)}
+.tbl.dupt{background:var(--warn);border-color:var(--warn);color:#fff;box-shadow:0 0 0 2px var(--warn-bg)}
+.dupline{font-size:13.5px;font-weight:700;color:var(--warn);margin-top:2px}
+.tightline{font-size:13.5px;font-weight:700;color:var(--tight);margin-top:2px}
+.res.tight:not(.dup){background:var(--tight-bg);border-radius:8px;box-shadow:inset 4px 0 0 var(--tight)}
+.res.tight:not(.dup) .nm{color:var(--tight)}
+.tbl.tightt{background:var(--tight);border-color:var(--tight);color:#1A0F05;box-shadow:0 0 0 2px var(--tight-bg)}
+.cell.st-dup{border:3px solid var(--warn);background:repeating-linear-gradient(135deg,var(--warn-bg) 0 10px,var(--panel) 10px 20px);justify-content:flex-start;padding-top:18px}
+.cell.st-dup .no{color:var(--warn)}
+.cell .dn{font-weight:700;font-size:14px;color:var(--warn);line-height:1.25}
+.cell .dn small{font-weight:600;font-size:11.5px}
+.cell .dupb{position:absolute;top:3px;left:4px;right:4px;font-size:11.5px;font-weight:800;background:var(--warn);color:#fff;border-radius:4px;padding:0 4px}
+.cell .tightb{display:inline-block;font-size:10.5px;font-weight:800;background:var(--tight);color:#1A0F05;border-radius:4px;padding:0 5px;margin-top:1px;align-self:center}
+.cell .memo{font-size:11px;font-weight:700;margin-top:2px;color:var(--ink);background:var(--soon-bg);border:1px solid var(--soon);border-radius:4px;padding:0 5px;align-self:center}
+.freebox{border:2px solid #3C5A86;border-radius:10px;padding:8px 12px;margin-bottom:10px;background:var(--soft)}
+.freebox .fh{font-weight:700;font-size:14px;margin-bottom:4px}
+.frow{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:4px}
+.frow .fk{min-width:84px;font-weight:700;font-size:14.5px}
+.frow .fk b{font-size:18px;color:#3C5A86}
+.frow .ff{font-size:12.5px;color:var(--sub);margin:0 2px 0 8px}
+.frow .ff:first-of-type{margin-left:0}
+.fchip{border:1.5px solid #3C5A86;background:var(--panel);color:var(--ink);border-radius:7px;padding:2px 10px;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+.fchip:hover{background:#3C5A86;color:#fff}
+.fnone{color:var(--warn);font-weight:700;font-size:14px}
+.dupbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);border-left:5px solid var(--warn);border-radius:9px;padding:7px 10px;margin-bottom:10px}
+.tightbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--tight-bg);border:1px solid color-mix(in srgb,var(--tight) 35%,transparent);border-left:5px solid var(--tight);border-radius:9px;padding:7px 10px;margin-bottom:10px;cursor:pointer}
+.tightbar .th{color:var(--tight);font-weight:800;font-size:14px;margin-right:4px}
+.tightbar .th small{font-weight:600;color:var(--sub)}
+.tchip{border:1px solid color-mix(in srgb,var(--tight) 40%,transparent);background:var(--panel);color:var(--ink);border-radius:7px;padding:3px 9px;font-size:13.5px;font-weight:600}
+.tchip:hover{border-color:var(--tight)}
+.tchip b{color:var(--tight);font-weight:800;margin-right:3px}
+.dupbar{cursor:pointer}
+.dupbar .dh{color:var(--warn);font-weight:800;font-size:14px;margin-right:4px}
+.dupbar .dh small{font-weight:600;color:var(--sub)}
+.dchip{cursor:pointer}
+.dchip{border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);background:var(--panel);color:var(--ink);border-radius:7px;padding:3px 9px;font-size:13.5px;font-weight:600}
+.dchip:hover{border-color:var(--warn)}
+.dchip b{color:var(--warn);font-weight:800;margin-right:3px}
+.dchip small{color:var(--sub);font-weight:500}
+.pick{display:flex;flex-direction:column;gap:8px}
+.pk1{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.pk1.dupx{border-color:var(--warn);background:var(--warn-bg)}
+.pk1 .l1{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}
+.pk1 .t{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+.pk1 .n{font-size:17px;font-weight:700}
+.pk1 .sub{font-size:13px;color:var(--sub);margin-top:2px}
+.tbl.none{color:var(--warn);border-color:var(--warn);background:var(--warn-bg);font-size:13px}
+.res .rq{font-size:12px;color:var(--ink);margin-top:2px;background:var(--soon-bg);border-left:3px solid var(--soon);border-radius:4px;padding:1px 6px;display:inline-block;max-width:100%}
+.res .ph{font-size:12px;color:var(--sub);text-decoration:none;font-variant-numeric:tabular-nums}
+.res.done .nm,.res.done .pp,.res.done .rq{text-decoration:line-through;color:var(--past)}
+/* 예약금 메모가 있는 예약: 목록과 현황판에서 눈에 띄게 */
+:root{--dep:#C2410C;--dep-bg:#FFE0B8;--dep-ink:#6B2300}
+@media (prefers-color-scheme: dark){:root{--dep:#FF9B54;--dep-bg:#5A300F;--dep-ink:#FFE2C2}}
+.res.dep{background:linear-gradient(90deg,var(--dep-bg),transparent 55%);box-shadow:inset 4px 0 0 var(--dep)}
+.res .rq.depq{background:var(--dep);color:#fff;border-left:0;font-weight:800;font-size:13.5px;padding:2px 8px}
+.res.cxl .rq.depq,.res.done .rq.depq{background:var(--past);color:#fff}
+.depchip{display:inline-block;background:var(--dep);color:#fff;font-weight:800;font-size:12px;border-radius:5px;padding:0 6px;margin-right:4px;white-space:nowrap}
+.cell.dep{box-shadow:0 0 0 3px var(--dep);position:relative}
+.cell .depb{position:absolute;top:-1px;right:-1px;background:var(--dep);color:#fff;font-size:11px;font-weight:800;border-radius:0 8px 0 6px;padding:1px 6px;line-height:1.3}
+.fpos .cell .depb{right:auto;left:50%;transform:translateX(-50%);top:0;border-radius:0 0 8px 8px;font-size:clamp(9px,.62em,12px);padding:0 5px;white-space:nowrap}
+.fpos.round .cell .depb{top:5%;border-radius:8px}
+.res.done .tbl{opacity:.55}
+.badge{display:inline-block;font-size:11.5px;font-weight:700;padding:0 6px;border-radius:4px}
+.badge.done{background:var(--ok-bg);color:var(--ok)}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
+.empty{text-align:center;padding:32px 10px;color:var(--sub)}
+.empty strong{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+
+/* ----- 현황판 ----- */
+.freecanvas{position:relative;width:100%;aspect-ratio:1000/600;min-height:240px;grid-column:1/-1}
+.fpos{position:absolute;container-type:size}
+.fpos .cell{width:100%;height:100%;min-height:0;box-sizing:border-box;overflow:hidden;padding:2px;gap:0;font-size:clamp(10px,15cqmin,21px);line-height:1.15}
+.fpos .cell .cn{font-size:1.25em;line-height:1.1;font-weight:800}.fpos .cell .ci{font-size:.95em}.fpos .cell:not(.empty) .no{font-size:.85em}.fpos .cell .memo,.fpos .cell .tightb{display:none}
+.fpos .cell .no{font-size:1.25em}
+.fpos.round .cell{border-radius:50%}
+.fpos.rect .cell,.fpos.square .cell{border-radius:10px}
+.freecanvas.fedit{background:repeating-linear-gradient(0deg,transparent 0 39px,var(--line) 39px 40px),repeating-linear-gradient(90deg,transparent 0 39px,var(--line) 39px 40px);border:1.5px dashed var(--line);border-radius:12px;touch-action:none}
+.freecanvas.fedit .fpos{cursor:grab;touch-action:none;user-select:none}
+.fselbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px;font-size:13px;min-height:30px}
+.cell.ed{cursor:pointer;position:relative;outline:2px dashed var(--accent);outline-offset:-2px}
+.cell.ed.sel{outline:3px solid var(--ok);background:var(--soft)}
+.cell.ed-blank{border-style:dashed;background:none;color:var(--sub);min-height:clamp(40px,6vh,70px)}
+.cell.addc{border:2px dashed var(--line);background:none;color:var(--sub);font-size:22px;min-height:clamp(40px,6vh,70px);cursor:pointer}
+.cell .x{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;border:0;background:var(--warn);color:#fff;font-size:11px;line-height:1;cursor:pointer;padding:0}
+.ledbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--soon-bg);border:1.5px solid var(--soon);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:13px}
+.ledbar b{font-size:14px}
+.lbtn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:2px 8px;font-size:12px;cursor:pointer;margin-left:6px;font-weight:600}
+.lbtn.bad{color:var(--warn)}
+.btop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.ftabs button{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:8px 22px;font-weight:700;font-size:16px}
+.ftabs button[aria-pressed="true"]{border:2px solid #3C5A86;color:#3C5A86}
+.timebox{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;background:var(--soft);border-radius:9px}
+.timebox input[type=range]{flex:1;min-width:160px;accent-color:var(--accent);height:30px;cursor:grab}
+.timebox input[type=range]:active{cursor:grabbing}
+.timebox input[type=range]::-webkit-slider-runnable-track{height:12px;border-radius:6px;background:var(--line)}
+.timebox input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-9px;border-radius:50%;background:var(--accent);border:3px solid var(--panel);box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.tstep{font-size:17px;font-weight:700;padding:2px 12px;line-height:1.2}
+.tnow{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;min-width:62px}
+.twin{font-size:12.5px;color:var(--sub)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;font-weight:600}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:2px solid currentColor}
+.lg-use{color:var(--use)} .lg-res{color:var(--res)} .lg-soon{color:var(--soon)}
+.lg-tight{color:var(--tight);font-weight:700} .lg-past{color:var(--past)}
+.floor{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;flex:1}
+.floor .grp{padding:0 16px;border-left:1px solid var(--line)}
+.floor .grp:first-child{border-left:0;padding-left:0}
+.floor .grp:last-child{padding-right:0}
+.grp h3{font-size:13px;margin:0 0 6px;color:var(--sub);font-weight:600}
+.grp h3::before{content:"●";color:#3C5A86;margin-right:5px;font-size:10px;vertical-align:1px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.col{display:flex;flex-direction:column;gap:8px}
+.cell{min-height:clamp(66px,10vh,128px);border:1.5px solid var(--line);border-radius:10px;background:var(--panel);padding:6px 4px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:1px;position:relative;cursor:pointer}
+.cell.blank{visibility:hidden}
+.seatline{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 2px;font-size:13px}.seatline:empty{display:none}
+.seatline .sl-t{color:var(--sub);font-size:12px;margin-right:2px}.seatline .sl{background:#E8EEF7;color:#3C5A86;border-radius:999px;padding:2px 10px;font-weight:700}.seatline .sl b{font-size:15px}.seatline .sl.zero{background:#FBE9E7;color:#B3261E}
+.cell.big6{border-color:#E4CB7A}.cell.big8{border-color:#E8B98A}
+.cell.big6:not(.empty){box-shadow:0 0 0 1.5px #EBD98F}.cell.big8:not(.empty){box-shadow:0 0 0 1.5px #EEC9A3}
+.cell.big6 .seatb{background:#F6EBB8;color:#6b5300}.cell.big8 .seatb{background:#F7DDBF;color:#7a4a10}
+.seatb{position:absolute;top:3px;right:4px;font-size:10.5px;font-weight:800;background:#E8EEF7;color:#3C5A86;border-radius:4px;padding:0 5px}
+.seatset{font:inherit;font-size:11px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:1px 6px;cursor:pointer;margin-top:3px}
+.cell .no{font-size:13.5px;font-weight:700;color:var(--sub)}
+.cell .cn{font-weight:700;font-size:17px;line-height:1.2;word-break:keep-all}
+.cell .ci{font-size:13px;font-variant-numeric:tabular-nums}
+.cell.empty .no{font-size:17px;font-weight:500;color:var(--past)}
+.cell.st-use{border:2px solid var(--use);background:var(--use-bg)}
+.cell .arr{position:absolute;top:3px;left:4px;font-size:10.5px;font-weight:700;background:var(--use);color:var(--panel);border-radius:4px;padding:0 5px} .cell.st-use .cn,.cell.st-use .no{color:var(--use)}
+.cell.st-res{border-color:var(--res);background:var(--res-bg)} .cell.st-res .cn,.cell.st-res .no{color:var(--res)}
+.cell.st-soon{border:1.5px dashed var(--soon);background:var(--soon-bg)} .cell.st-soon .cn,.cell.st-soon .no{color:var(--soon)}
+.cell.st-past{border-color:var(--past);background:var(--soft)} .cell.st-past .cn,.cell.st-past .no{color:var(--past)}
+.cell .more{position:absolute;top:3px;right:4px;font-size:10.5px;font-weight:700;background:var(--ink);color:var(--panel);border-radius:4px;padding:0 4px}
+.cell .clash{position:absolute;bottom:3px;right:4px;font-size:10.5px;font-weight:700;background:var(--warn);color:#fff;border-radius:4px;padding:0 4px}
+.bar29{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.barrow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;max-width:66%}
+
+/* ----- 창 ----- */
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:0;width:min(560px,96vw)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.dlg{padding:18px}
+.dlg h3{margin:0 0 12px;font-size:18px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fgrid label{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--sub)}
+.fgrid .full{grid-column:1/-1}
+.times{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.times button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:2px 7px;font-size:13px;font-variant-numeric:tabular-nums}
+.times button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.picker{border:1px solid var(--line);border-radius:9px;padding:8px;max-height:220px;overflow:auto}
+.picker h4{margin:6px 0 4px;font-size:12px;color:var(--sub)}
+.picker h4:first-child{margin-top:0}
+.pk{display:flex;flex-wrap:wrap;gap:4px}
+.pk button{min-width:40px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:3px 6px;font-size:13px;font-weight:600}
+.pk button.busy{border-color:var(--res);color:var(--res);background:var(--res-bg)}
+.pk button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.hint{font-size:12.5px;color:var(--sub)}
+.warnline{font-size:13px;color:var(--warn);font-weight:600}
+.dfoot{display:flex;gap:8px;margin-top:14px;align-items:center}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60}
+.toast.on{opacity:1}
+.toast:has(.tbtn){pointer-events:auto;display:flex;align-items:center;gap:10px}
+.toast .tbtn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:6px;padding:5px 10px;font-weight:800;font-size:13px;cursor:pointer;flex-shrink:0}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+
+/* 검색 */
+.gsearch{position:relative}
+.gsearch input{width:300px;padding-left:32px}
+.gsearch::before{content:"⌕";position:absolute;left:10px;top:50%;transform:translateY(-52%);color:var(--sub);font-size:17px;pointer-events:none}
+.gres{position:absolute;top:calc(100% + 6px);left:0;width:560px;max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:40;padding:6px}
+.gres[hidden]{display:none}
+.gres .gh{font-size:12px;color:var(--sub);padding:4px 8px}
+.gres button{display:grid;grid-template-columns:118px 52px 1fr auto;gap:8px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:7px 8px;border-radius:7px}
+.gres button:hover,.gres button:focus{background:var(--soft)}
+.gres .gd{font-weight:600;font-variant-numeric:tabular-nums}
+.gres .gd.today{color:var(--accent)}
+.gres .gt{font-variant-numeric:tabular-nums}
+.gres .gn b{font-size:15px}
+.gres .gp{color:var(--sub);font-size:12.5px;font-variant-numeric:tabular-nums}
+.gres mark{background:var(--soon-bg);color:inherit;border-radius:3px;padding:0 1px}
+.res.flash,.cell.flash{animation:flash 2.4s ease-out}
+@keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent);background:var(--soon-bg)}100%{box-shadow:0 0 0 0 transparent}}
+.cell.hit{box-shadow:0 0 0 3px var(--accent)}
+.res .nm.sameday{color:#7B3FC4}
+.sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
+@media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">일품집 예약</div>
+    <div class="datenav">
+      <button class="btn" id="prevD" aria-label="이전 날">‹</button>
+      <button class="datelabel" id="dateLbl" title="날짜 고르기"></button>
+      <input type="date" id="datePick" style="position:absolute;opacity:0;pointer-events:none;width:1px" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="btn" id="nextD" aria-label="다음 날">›</button>
+    </div>
+    <button class="btn today" id="todayBtn">오늘 예약</button>
+    <div class="gsearch"><input type="search" id="gq" placeholder="전체 예약 검색 (이름·전화번호·테이블)" autocomplete="off" aria-label="예약 검색">
+      <div class="gres" id="gres" hidden></div></div>
+    <span class="spacer"></span>
+    <button class="btn" id="printBtn">인쇄</button>
+    <button class="btn" id="xlsxBtn">엑셀 내보내기</button>
+    <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
+    <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
+    <button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button>
+    <span class="sync" id="sync">연결 중…</span>
+  </div>
+
+</header>
+<main id="main" data-view="list">
+  <section class="panel" id="listPanel"></section>
+  <div class="split" id="split" role="separator" aria-orientation="vertical" aria-label="목록과 현황 사이 너비 조절 (끌거나 좌우 화살표, 더블클릭하면 원래대로)" tabindex="0" title="끌어서 너비 조절 · 더블클릭하면 원래대로"></div>
+  <section class="panel" id="boardPanel"></section>
+</main>
+<dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ================== Supabase 연결 (새 서버 · 로그인 필요 · 매장별로 나뉨) ================== */
+const SUPABASE_URL = 'https://bdqcrbnbuoujozlpttbe.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcWNyYm5idW91am96bHB0dGJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTU4NDQsImV4cCI6MjEwNjE5MTg0NH0.L8Yuj46Zjg0XNoWeRr-_9xZWKiyHH3-AyC4_3i5p_X8';
+/* ========================================================================== */
+const CONF_KEY='ilpum-fr-conf';
+let SID='', STORES=[], REST='';          // REST: 로그인·매장 확인이 끝나면 켜짐
+const RP=()=>`/rest/v1/res_days?store_id=eq.${SID}&`;
+const readConf=()=>{ try{ return JSON.parse(localStorage.getItem(CONF_KEY))||{}; }catch(e){ return {}; } };
+const readSes=()=>{ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; };
+const writeSes=j=>{ try{ const c=readConf(); if(c.ses){ c.ses=j; localStorage.setItem(CONF_KEY,JSON.stringify(c)); } else sessionStorage.setItem('fr-ses',JSON.stringify(j)); }catch(e){} };
+// 로그인 토큰: 다른 화면(근무표·통합 틀)과 같은 저장소를 쓰고, 갱신은 한 번에 한 화면만 함
+async function freshToken(force){
+  const run=async()=>{ const s=readSes(); if(!s) return null;
+    if(!force && (s.expires_at||0)*1000>Date.now()+60000) return s.access_token;
+    const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+    const j=await r.json().catch(()=>({})); if(!r.ok||!j.access_token) return null; writeSes(j); return j.access_token; };
+  return navigator.locks?navigator.locks.request('ilpum-refresh',run):run();
+}
+async function fx(path,opt,retry=true){
+  opt=opt||{}; const tok=await freshToken(false); if(!tok) throw Object.assign(new Error('로그인이 필요해요'),{auth:true});
+  const r=await fetch(SUPABASE_URL+path,{...opt,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json',...(opt.headers||{})},cache:'no-store'});
+  if(r.status===401&&retry){ const t2=await freshToken(true); if(t2) return fx(path,opt,false); }
+  return r;
+}
+const WIN = 120;
+let followNow=true;   // 현황판: 기준 시간 앞뒤 2시간
+
+/* ---------- 테이블 배치 (지금 현황판과 같은 모양) ---------- */
+const R = (a,b)=>`R${a}-${b}`;
+let FLOORS = [
+  { key:'1', name:'1층', groups:[
+      {title:'1 — 10번',  cols:[[5,4,3,2,1],[10,9,8,7,6]]},
+      {title:'11 — 19번', cols:[[15,14,13,12,11],[19,18,17,16]]},
+      {title:'20 — 28번', cols:[[23,22,21,20],[28,27,26,25,24]]} ],
+    bar:{title:'바 · 29 — 34번', row:[29,30,31,32,33,34]} },
+  { key:'2', name:'2층 · 룸', groups:[
+      {title:'35 — 45번', cols:[[41,40,39,38,37,36],[45,44,43,42,null,35]]},
+      {title:'46 — 53번', cols:[[49,48,47,46],[53,52,51,50]]},
+      {title:'룸', cols:[[R(1,1),R(1,2),R(2,1),R(2,2),R(3,1),R(3,2)],[R(4,1),R(4,2),R(4,3),R(4,4)]]} ] }
+];
+// 층 하나의 테이블 번호들: 칸 배치(groups/bar) 또는 자유 배치(mode:'free', tables:[{id,x,y,w,h,shape}]; 좌표는 가로 1000×세로 600 기준)
+const floorTables=fl=>fl.mode==='free'? (fl.tables||[]).map(t=>String(t.id)) : [...fl.groups.flatMap(g=>g.cols.flat()),...(fl.bar?fl.bar.row:[])].filter(t=>t!=null).map(String);
+const floorHas=(fl,t)=>floorTables(fl).includes(String(t));
+const tablesOf=F=>{ const out=[]; F.forEach(f=>floorTables(f).forEach(t=>out.push(t))); return out; };
+let ALL_TABLES = tablesOf(FLOORS);
+const DEFAULT_FLOORS = JSON.parse(JSON.stringify(FLOORS));
+const tLabel = t=> /^R/.test(t)? '룸'+t.slice(1) : t;
+// 룸 안의 작은 테이블(R2-1·R2-2·R2-3 …)은 그 매장 현황판 배치에 있는 것만큼 — 매장마다 다름 (유천점 룸2 는 3개)
+let ROOM_SUBS={};
+function rebuildRoomSubs(){ const o={}; ALL_TABLES.forEach(t=>{ const m=/^R(\d+)-(\d+)$/.exec(t); if(m) (o[+m[1]]=o[+m[1]]||[]).push(+m[2]); }); Object.keys(o).forEach(r=>o[r].sort((a,b)=>a-b)); ROOM_SUBS=o; }
+rebuildRoomSubs();
+// "33 34" → 33,34번 / "r1,2" → 룸1·룸2 전체 / "r4-1,2" → 룸4-1·4-2 / "r4" → 룸4 전체 / "R3-1, R3-2"(시트 표기)도 인식
+function parseTables(s){
+  const out=[];
+  String(s||'').replace(/룸/g,'r').split(/\s+/).forEach(group=>{
+    let mode='table', room=null;
+    group.split(/[,/·]+/).forEach(tok=>{
+      tok=tok.trim(); if(!tok) return;
+      let m=tok.match(/^r\s*(\d{1,2})(?:\s*-\s*(\d{1,2}))?$/i);
+      if(m){ const r=+m[1];
+        if(!m[2]&&ALL_TABLES.includes('R'+r)){ out.push('R'+r); mode='table'; return; }   // 배치에 "R1" 처럼 통째로 만든 룸
+        if(!ROOM_SUBS[r]) return;
+        if(m[2]){ if(ROOM_SUBS[r].includes(+m[2])) out.push(R(r,+m[2])); mode='sub'; room=r; }
+        else { ROOM_SUBS[r].forEach(x=>out.push(R(r,x))); mode='room'; }
+        return; }
+      m=tok.match(/^(\d{1,2})\s*(?:T|번)?$/i); if(!m) return; const n=+m[1];
+      if(mode==='room' && ROOM_SUBS[n]){ ROOM_SUBS[n].forEach(x=>out.push(R(n,x))); return; }
+      if(mode==='sub' && ROOM_SUBS[room].includes(n)){ out.push(R(room,n)); return; }
+      if(n>0 && n<=99){ out.push(String(n)); mode='table'; }
+    });
+  });
+  return [...new Set(out)];
+}
+// 표시용: 룸 전체면 "룸4", 일부면 "룸4-1·2"
+function tablesText(ts){
+  ts=ts||[]; const nums=ts.filter(t=>!/^R/.test(t)).sort((a,b)=>a-b); const rooms={};
+  const whole=ts.filter(t=>/^R\d+$/.test(t)).map(t=>'룸'+t.slice(1));
+  ts.filter(t=>/^R\d+-\d+$/.test(t)).forEach(t=>{ const [r,x]=t.slice(1).split('-').map(Number); (rooms[r]=rooms[r]||[]).push(x); });
+  const rs=Object.keys(rooms).sort().map(r=>{ const xs=rooms[r].sort(); return ROOM_SUBS[r]&&xs.length===ROOM_SUBS[r].length? `룸${r}` : `룸${r}-${xs.join('·')}`; });
+  return [...nums,...whole,...rs];
+}
+// 표시용 → 다시 입력칸에 넣을 때 쓰는 짧은 표기
+function tablesInput(ts){
+  return tablesText(ts).map(x=>x.replace(/^룸(\d+)$/,'r$1').replace(/^룸(\d+)-(.+)$/,(m,r,xs)=>`r${r}-${xs.replace(/·/g,',')}`)).join(' ');
+}
+function normTime(v){
+  const s=String(v||'').trim(); if(!s) return '';
+  let m=s.match(/^(\d{1,2})\s*[:시.]\s*(\d{1,2})?\s*분?$/) || s.match(/^(\d{1,2})$/);
+  let h,mi;
+  if(m){ h=+m[1]; mi=+(m[2]||0); }
+  else { m=s.match(/^(\d{3,4})$/); if(!m) return ''; h=+s.slice(0,-2); mi=+s.slice(-2); }
+  if(h>23||mi>59) return ''; return `${pad(h)}:${pad(mi)}`;
+}
+function fmtPhone(v){
+  const d=String(v||'').replace(/\D/g,''); if(!d) return String(v||'').trim();
+  if(d.startsWith('02')){ if(d.length===9) return `02-${d.slice(2,5)}-${d.slice(5)}`; if(d.length===10) return `02-${d.slice(2,6)}-${d.slice(6)}`; }
+  if(d.length===11) return `${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7)}`;
+  if(d.length===10) return `${d.slice(0,3)}-${d.slice(3,6)}-${d.slice(6)}`;
+  if(d.length===8) return `${d.slice(0,4)}-${d.slice(4)}`;
+  if(d.length===7) return `${d.slice(0,3)}-${d.slice(3)}`;
+  return d;
+}
+
+/* ---------- 공통 ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const ds=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const DOW=['일','월','화','수','목','금','토'];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const toMin=t=>{ const m=String(t||'').match(/(\d{1,2}):(\d{2})/); return m? (+m[1])*60+(+m[2]) : null; };
+const fromMin=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
+const people=s=>String(s||'').split(/[+,]/).reduce((a,x)=>a+(parseInt(x,10)||0),0);
+const nowMin=()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes(); };
+const todayStr=()=>ds(new Date());
+
+/* ---------- 상태 ---------- */
+const ui={ date:todayStr(), filter:'all', q:'', sort:(()=>{ try{ return localStorage.getItem('ilpum-res-sort')==='table'?'table':'time'; }catch(e){ return 'time'; } })(), floor:'1', t:Math.max(600,Math.min(1320, Math.round(nowMin()/30)*30)), view:'list' };
+const days={};   // date → {items:[], rev}
+function dayDoc(d){ if(!days[d]){ let c=null; try{ c=JSON.parse(localStorage.getItem('ilpum-res-'+SID+'-'+d)||'null'); }catch(e){} days[d]=(c&&Array.isArray(c.items))? {items:c.items.filter(x=>x&&typeof x==='object'),rev:+c.rev||0} : {items:[],rev:0}; } return days[d]; }   // 저장된 임시 기록이 깨져 있어도(items 없음 등) 화면이 멈추지 않게 바로잡음
+function items(d){ return dayDoc(d).items.filter(x=>!x.deleted); }
+// 테이블 칸에 쓴 글자 중 테이블이 아닌 것(예: 네이버 취소, 전화취소)은 메모로 남김
+function tableNote(s){ return String(s||'').split(/\s+/).filter(g=>g && !parseTables(g).length && !/^(T|번)$/i.test(g)).join(' '); }
+const isCxl=x=>/취소/.test(x.tnote||'');
+// 예약금을 이미 받은 예약만: 요청사항에 '예약금' 과 '입완'(입금 완료)이 같이 있을 때 (예: 예약금 5만원(입완), 예약금(입완))
+// '예약금x', '예약금 X', '예약금 없음', '예약금 안받음' 처럼 예약금이 없다는 뜻은 제외
+// 받았다는 표시는 '입완'(입금 완료) 또는 '확인필'
+const hasDep=x=>{ const t=String((x&&x.req)||''); return /입완|확인필/.test(t)&&/예약금(?!\s*[xX×✕]|\s*(?:없|무|안|미))/.test(t); };
+function active(d){ return items(d).filter(x=>!isCxl(x)); }   // 현황판·중복 계산용 (취소 제외)
+function tableShow(x){ const ts=tablesText(x.tables); return [...ts, ...(x.tnote?[x.tnote]:[])].join(', '); }
+function cacheDay(d){ try{ localStorage.setItem('ilpum-res-'+SID+'-'+d, JSON.stringify(days[d])); }catch(e){} }
+
+/* ---------- 동기화: 날짜별 한 줄, 예약마다 수정 시각으로 합치기 ---------- */
+function mergeItems(a,b){
+  const map={}; [...a,...b].forEach(x=>{ const o=map[x.id]; if(!o || (x.u||0)>(o.u||0)) map[x.id]=x; });
+  return Object.values(map);
+}
+function canon(v){ return Array.isArray(v)? '['+v.map(canon).join(',')+']' : (v&&typeof v==='object')? '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}' : JSON.stringify(v); }
+const same=(a,b)=>canon([...a].sort((x,y)=>x.id<y.id?-1:1))===canon([...b].sort((x,y)=>x.id<y.id?-1:1));
+function setSync(t,k){ const el=document.getElementById('sync'); el.textContent=t; el.dataset.kind=k||''; }
+function withTimeout(p,ms){ return Promise.race([p,new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),ms))]); }
+async function fetchDay(d){
+  const r=await withTimeout(fx(`${RP()}id=eq.${d}&select=data,rev`),10000);
+  if(!r.ok) throw new Error('HTTP '+r.status); const rows=await r.json(); return rows[0]||null;
+}
+const pushing={}, dirty={}, fails={}, needRetry={};    // dirty: 저장 중에 또 고침 / needRetry: 저장 실패(천천히 다시 시도)
+async function pushDay(d){
+  if(!REST) return;
+  if(pushing[d]){ dirty[d]=true; return; }
+  pushing[d]=true; setSync('저장 중…');
+  try{
+    let saved=false;
+    for(let tries=0; tries<4&&!saved; tries++){
+      const doc=dayDoc(d); const cur=await fetchDay(d);
+      let merged=doc.items, base=0;
+      if(cur){ merged=mergeItems(((cur.data&&cur.data.items)||[]), doc.items); base=cur.rev||0; }
+      const rev=base+1; const body={data:{items:merged}, rev, updated_at:new Date().toISOString()};
+      let r;
+      if(cur) r=await withTimeout(fx(`${RP()}id=eq.${d}&rev=eq.${base}&select=rev`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(body)}),10000);
+      else r=await withTimeout(fx(`/rest/v1/res_days?select=rev`,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({store_id:SID,id:d,...body})}),10000);
+      if(r.status===409){ continue; }                 // 동시에 처음 만든 경우 → 다시
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const rows=await r.json(); if(!rows.length) continue;   // 그사이 다른 사람이 저장 → 합쳐서 다시
+      doc.items=merged; doc.rev=rev; cacheDay(d); fails[d]=0; needRetry[d]=false;
+      const t=new Date(); setSync(`저장됨 ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`,'ok');
+      if(d===ui.date) render();
+      saved=true;
+    }
+    if(!saved) throw new Error('다른 기기와 동시에 저장 중');     // 4번 연속 겹치면 조용히 멈추지 말고 아래처럼 잠시 뒤 다시 시도
+  }catch(e){ const n=fails[d]=(fails[d]||0)+1; needRetry[d]=true;     // 실패하면 점점 천천히 다시 시도 (서버를 계속 두드리지 않도록)
+    if(e.auth||/HTTP 40[13]/.test(e.message)) setSync('로그인이 필요해요 — 통합관리에서 다시 로그인한 뒤 새로고침하세요','err');
+    else if(n>=8) setSync(`저장 실패(${e.message}) — 여기를 눌러 다시 시도`,'err');
+    else { setSync(`저장 실패(${e.message}) — 잠시 뒤 다시 시도`,'err'); setTimeout(()=>pushDay(d),Math.min(300000,5000*2**(n-1))); } }
+  pushing[d]=false;
+  if(dirty[d]){ dirty[d]=false; pushDay(d); }
+}
+async function fetchRev(d){
+  const r=await withTimeout(fx(`${RP()}id=eq.${d}&select=rev`),10000);
+  if(!r.ok) throw new Error('HTTP '+r.status); const rows=await r.json(); return rows[0]? (rows[0].rev||0) : null;
+}
+let pullFails=0, pullNextAt=0;
+async function pullDay(d){
+  if(!REST || pushing[d]) return;
+  try{
+    const doc=dayDoc(d);
+    const rv=await fetchRev(d);
+    if(rv!==null && rv===doc.rev){ if(!document.getElementById('sync').dataset.kind) setSync('연결됨','ok'); return; }
+    if(rv===null && !doc.items.length){ if(!document.getElementById('sync').dataset.kind) setSync('연결됨','ok'); return; }
+    const cur=rv===null? null : await fetchDay(d);
+    if(cur && (cur.rev||0)!==doc.rev){
+      const merged=mergeItems(doc.items, ((cur.data&&cur.data.items)||[]));
+      const changed=!same(merged, doc.items);
+      const needPush=!same(merged, ((cur.data&&cur.data.items)||[]));
+      doc.items=merged; doc.rev=cur.rev; cacheDay(d);
+      if(changed && d===ui.date && !document.getElementById('dlg').open) render();
+      if(needPush) pushDay(d);
+    } else if(!cur && doc.items.length){ pushDay(d); }
+    if(!document.getElementById('sync').dataset.kind) setSync('연결됨','ok');
+    pullFails=0;
+  }catch(e){ pullFails++; pullNextAt=Date.now()+Math.min(300000,30000*2**pullFails); setSync(e.auth||/HTTP 40[13]/.test(e.message)? '로그인이 필요해요 — 통합관리에서 다시 로그인한 뒤 새로고침하세요' : `연결 실패(${e.message})`,'err'); }
+}
+function saveItem(d,item){ item.u=Date.now(); const doc=dayDoc(d); const i=doc.items.findIndex(x=>x.id===item.id); if(i>=0) doc.items[i]=item; else doc.items.push(item); cacheDay(d); render(); pushDay(d); }
+
+/* ---------- 현황판 상태 계산 ---------- */
+function stateOf(it,T){
+  const m=toMin(it.time); if(m==null) return null;
+  const diff=T-m;                        // 양수 = 예약시간 지남
+  if(it.done) return (diff>=-WIN && diff<=180) ? 'use' : null;   // 도착: 예약 2시간 전 ~ 3시간 후까지 표시
+  if(diff>=0 && diff<=WIN) return 'res';
+  if(diff<0 && -diff<=WIN) return 'soon';
+  return null;
+}
+function boardMap(T){
+  const map={};
+  active(ui.date).forEach(it=>{ const st=stateOf(it,T); if(!st) return;
+    (it.tables||[]).forEach(t=>{ (map[t]=map[t]||[]).push({it,st,diff:Math.abs(T-toMin(it.time))}); }); });
+  Object.values(map).forEach(a=>a.sort((x,y)=>{ const pri={use:0,res:1,soon:2}; return (pri[x.st]-pri[y.st])||(x.diff-y.diff); }));
+  return map;
+}
+function dayConflicts(date){   // 테이블 → 서로 겹치는 예약들 / 예약 id → 겹치는 상대 설명
+  const byT={}; active(date).forEach(x=>{ if(toMin(x.time)==null) return; (x.tables||[]).forEach(t=>(byT[t]=byT[t]||[]).push(x)); });
+  const table={}, who={};
+  Object.keys(byT).forEach(t=>{ const a=byT[t];
+    for(let i=0;i<a.length;i++) for(let j=i+1;j<a.length;j++){
+      if(Math.abs(toMin(a[i].time)-toMin(a[j].time))<WIN){
+        const s=table[t]=table[t]||new Map(); s.set(a[i].id,a[i]); s.set(a[j].id,a[j]);
+        (who[a[i].id]=who[a[i].id]||[]).push(`${tLabel(t)}: ${a[j].name} ${a[j].time}`);
+        (who[a[j].id]=who[a[j].id]||[]).push(`${tLabel(t)}: ${a[i].name} ${a[i].time}`);
+      } } });
+  const tabs={}; Object.keys(table).forEach(t=>table[t].forEach((x,id)=>(tabs[id]=tabs[id]||new Set()).add(t)));
+  return {table,who,tabs};
+}
+function dayTight(date){   // 테이블 → 딱 2시간~2시간30분 간격(겹침은 아니지만 여유 없음)인 예약들
+  const TIGHT_MAX = WIN+30;   // 2시간30분까지를 "임박"으로 봄
+  const byT={}; active(date).forEach(x=>{ if(toMin(x.time)==null) return; (x.tables||[]).forEach(t=>(byT[t]=byT[t]||[]).push(x)); });
+  const table={}, who={};
+  Object.keys(byT).forEach(t=>{ const a=byT[t];
+    for(let i=0;i<a.length;i++) for(let j=i+1;j<a.length;j++){
+      const d=Math.abs(toMin(a[i].time)-toMin(a[j].time));
+      if(d>=WIN && d<=TIGHT_MAX){
+        const s=table[t]=table[t]||new Map(); s.set(a[i].id,a[i]); s.set(a[j].id,a[j]);
+        (who[a[i].id]=who[a[i].id]||[]).push(`${tLabel(t)}: ${a[j].name} ${a[j].time}`);
+        (who[a[j].id]=who[a[j].id]||[]).push(`${tLabel(t)}: ${a[i].name} ${a[i].time}`);
+      } } });
+  const tabs={}; Object.keys(table).forEach(t=>table[t].forEach((x,id)=>(tabs[id]=tabs[id]||new Set()).add(t)));
+  return {table,who,tabs};
+}
+let CONF={table:{},who:{},tabs:{}};
+let TIGHT={table:{},who:{},tabs:{}};
+function clashes(list){ // 같은 테이블에 2시간 안에 겹치는 예약
+  for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++){ if(Math.abs(toMin(list[i].it.time)-toMin(list[j].it.time))<WIN) return true; }
+  return false;
+}
+
+/* ---------- 그리기 ---------- */
+function render(){
+  CONF=dayConflicts(ui.date);
+  TIGHT=dayTight(ui.date);
+  const f=document.activeElement; const fid=f&&f.id&&f.closest&&f.closest('#quick')? f.id : null; const pos=fid? f.selectionStart : null;
+  if(document.getElementById('quick')) quickRead();
+  renderHeader(); renderList(); renderBoard();
+  if(fid){ const el=document.getElementById(fid); if(el){ el.focus(); try{ el.setSelectionRange(pos,pos); }catch(e){} } }
+}
+function renderHeader(){
+  const d=new Date(ui.date+'T00:00'); const wd=d.getDay();
+  document.getElementById('dateLbl').innerHTML=`${d.getMonth()+1}월 ${d.getDate()}일 <span class="dw ${wd===0?'sun':wd===6?'sat':''}">(${DOW[wd]})</span>${ui.date===todayStr()?' <span class="badge done">오늘</span>':''}`;
+  document.getElementById('datePick').value=ui.date;
+}
+let quick={time:'',name:'',pp:'',tables:'',phone:'',req:''};
+function quickHtml(){
+  const ts=parseTables(quick.tables); const t=normTime(quick.time);
+  const busy=t? busyTables(ui.date,t,null) : {}; const clash=ts.filter(x=>busy[x]).map(x=>`${tLabel(x)}(${busy[x].name} ${busy[x].time})`);
+  return `<div class="quick" id="quick">
+    <div class="qrow"><input id="qName" placeholder="이름" value="${esc(quick.name)}" style="flex:1" aria-label="이름" autocomplete="off" autocorrect="off" spellcheck="false">
+      <input id="qTime" placeholder="시간 1830" value="${esc(quick.time)}" inputmode="numeric" style="width:92px" aria-label="예약 시간" autocomplete="off" autocorrect="off" spellcheck="false">
+      <input id="qPP" placeholder="인원 5+1" value="${esc(quick.pp)}" style="width:86px" aria-label="인원" autocomplete="off" autocorrect="off" spellcheck="false"></div>
+    <div class="qrow"><input id="qTables" placeholder="테이블 33 34 · r1,2 · r4-1,2" value="${esc(quick.tables)}" style="flex:1" aria-label="테이블" autocomplete="off" autocorrect="off" spellcheck="false">
+      <input id="qPhone" placeholder="연락처 숫자만" value="${esc(quick.phone)}" inputmode="numeric" style="width:150px" aria-label="연락처" autocomplete="off" autocorrect="off" spellcheck="false"></div>
+    <div class="qrow"><input id="qReq" placeholder="요청사항" value="${esc(quick.req)}" style="flex:1" aria-label="요청사항" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="btn primary" data-act="qadd">추가 ⏎</button></div>
+    <div class="qprev" id="qprev">${quickPrev(t,ts,clash)}</div></div>`;
+}
+function quickPrev(t,ts,clash){
+  const parts=[];
+  if(quick.time) parts.push(t? `<b>${t}</b>` : '<span class="bad">시간 확인 (예: 1830, 18:30)</span>');
+  if(quick.tables){ const nt=tableNote(quick.tables); parts.push(tablesText(ts).map(x=>`<span class="tbl">${esc(x)}</span>`).join(' ')+(nt?` <span class="tnote ${/취소/.test(nt)?'cx':''}">${esc(nt)}</span>`:'')); }
+  if(quick.phone) parts.push(esc(fmtPhone(quick.phone)));
+  if(clash.length) parts.push(`<span class="bad">겹침: ${esc(clash.join(', '))}</span>`);
+  return parts.length? parts.join(' · ') : '<span class="hint">빈칸을 채우고 Enter를 누르면 바로 추가돼요 · 날짜는 지금 보는 날짜</span>';
+}
+function renderList(){
+  const all=items(ui.date).sort((a,b)=>(toMin(a.time)??9999)-(toMin(b.time)??9999)||a.name.localeCompare(b.name,'ko'));
+  const cxl=all.filter(isCxl), live=all.filter(x=>!isCxl(x));
+  const done=live.filter(x=>x.done), left=live.filter(x=>!x.done);
+  const q=ui.q.trim();
+  let list = ui.filter==='left'? left : ui.filter==='done'? done : all;
+  if(q) list=list.filter(x=>[x.name,x.phone,x.req,(x.tables||[]).map(tLabel).join(' ')].join(' ').includes(q));
+  const isToday=ui.date===todayStr(); const nm=nowMin();
+  const tkey=x=>{ const t=(x.tables||[])[0]; if(t==null) return 99999; return /^\d+$/.test(t)?+t:/^R(\d+)/.test(t)?1000+(+RegExp.$1):5000; };
+  const groups={};
+  if(ui.sort==='table'){ list.slice().sort((a,b)=>tkey(a)-tkey(b)||(toMin(a.time)??9999)-(toMin(b.time)??9999)).forEach(x=>{ const t=(x.tables||[])[0]; (groups['__t']=groups['__t']||[]).push(x); }); }
+  else list.forEach(x=>{ const k=x.time||'시간 없음'; (groups[k]=groups[k]||[]).push(x); });
+  const keys=Object.keys(groups);
+  const nowKey = isToday? keys.find(k=>toMin(k)!=null && toMin(k)>=nm-30) : null;
+  const html=keys.map(k=>{ const g=groups[k]; const gl=g.filter(x=>!isCxl(x)); const pp=gl.reduce((a,x)=>a+people(x.pp),0);
+    return `<div class="tgroup ${ui.sort==='table'?'nohead':''}" ${k===nowKey?'id="nowGroup"':''}><div class="thead ${k===nowKey?'now':''}">${ui.sort==='table'?`<span class="t tgl">${esc(k)}</span>`:`<button class="t" data-goto="${esc(k)}" title="현황판을 ${esc(k)}로">${esc(k)}</button>`}<span>${gl.length}팀 · ${pp}명${g.length>gl.length?` · 취소 ${g.length-gl.length}`:''}</span>${k===nowKey?`<span class="badge warn">${Math.abs(toMin(k)-nm)<=30?'지금':'다음'}</span>`:''}</div>
+      ${g.map(x=>{ const tb=(x.tables||[]); const tel=(x.phone||'').replace(/[^\d]/g,'');
+        const dw=CONF.who[x.id];
+        const tw=TIGHT.who[x.id];
+        const cx=isCxl(x);
+        return `<div class="res ${x.done?'done':''} ${dw?'dup':''} ${tw?'tight':''} ${cx?'cxl':''} ${hasDep(x)?'dep':''}" data-row="${x.id}" title="누르면 수정">
+          <input type="checkbox" class="ck" data-done="${x.id}" ${x.done?'checked':''} aria-label="${esc(x.name)} 도착">
+          <div><div class="l1"><span class="tbls">${(()=>{ const ct=CONF.tabs[x.id], tt=TIGHT.tabs[x.id];
+              if(!ct && !tt){ const tx=tablesText(tb), nums=tx.filter(t=>/^\d+$/.test(t)), rest=tx.filter(t=>!/^\d+$/.test(t)); return (nums.length?`<span class="tbl">${esc(nums.join('·'))}<small>번</small></span>`:'')+rest.map(t=>`<span class="tbl">${esc(t)}</span>`).join(''); }
+              return tb.map(t=>`<span class="tbl ${ct&&ct.has(t)?'dupt':tt&&tt.has(t)?'tightt':''}">${esc(tLabel(t))}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join(''); })()}${x.tnote?`<span class="tnote ${cx?'cx':''}">${esc(x.tnote)}</span>`:''}${!tb.length&&!x.tnote?'<span class="tbl none">테이블 미정</span>':''}</span><button class="rtime" data-goto="${esc(x.time)}" data-gt="${esc((x.tables||[])[0]||'')}" title="현황판을 ${esc(x.time)}로">${esc(x.time)}</button><span class="nm ${x.c&&x.c===ui.date?'sameday':''}">${esc(x.name)}</span>${x.c&&x.c===ui.date?'<span class="sdb">당일</span>':''}${x.pp?`<span class="pp">${esc(x.pp)}명</span>`:''}
+            ${x.done?'<span class="badge done">도착</span>':''}</div>
+            ${dw?`<div class="dupline">⚠ 중복: ${esc(dw.join(', '))}</div>`:''}
+            ${!dw&&tw?`<div class="tightline">⏰ 임박(2시간 간격): ${esc(tw.join(', '))}</div>`:''}
+            ${x.req?(hasDep(x)?`<div class="rq depq">💰 ${esc(x.req)}</div>`:`<div class="rq">📝 ${esc(x.req)}</div>`):''}
+            ${x.phone?`<a class="ph" href="tel:${tel}">${esc(x.phone)}</a>`:''}</div>
+          <div class="acts"><button class="btn sm" data-edit="${x.id}" tabindex="-1">수정</button><button class="btn sm danger" data-del="${x.id}">삭제</button></div></div>`; }).join('')}</div>`; }).join('');
+  const P=document.getElementById('listPanel');
+  P.innerHTML=`${quickHtml()}
+    <div style="display:flex;align-items:center;gap:8px;margin-top:12px"><h2>예약 목록</h2></div>
+    <div class="stats">
+      <div class="stat"><div class="k">전체</div><div class="v">${live.length}팀 · ${live.reduce((a,x)=>a+people(x.pp),0)}명</div></div>
+      <div class="stat"><div class="k">남은 예약</div><div class="v">${left.length}팀</div></div>
+      <div class="stat"><div class="k">도착</div><div class="v">${done.length}팀</div></div>
+      ${cxl.length?`<div class="stat"><div class="k">취소</div><div class="v" style="color:var(--warn)">${cxl.length}팀</div></div>`:''}
+    </div>
+    <div class="seatline" id="seatStat"></div>
+    <div class="filters">
+      <div class="seg" role="group" aria-label="보기">
+        <button data-f="all" aria-pressed="${ui.filter==='all'}">전체</button>
+        <button data-f="left" aria-pressed="${ui.filter==='left'}">남은 예약</button>
+        <button data-f="done" aria-pressed="${ui.filter==='done'}">도착</button></div>
+      <div class="seg" role="group" aria-label="정렬" title="손님 몰릴 때는 테이블순이 찾기 쉬워요"><button data-sort="time" aria-pressed="${ui.sort!=='table'}">시간순</button><button data-sort="table" aria-pressed="${ui.sort==='table'}">테이블순</button></div>
+    </div>
+    ${html || `<div class="empty"><strong>${all.length?'조건에 맞는 예약이 없어요':'예약이 없어요'}</strong>${all.length?'':'위 입력 줄에 쓰고 Enter를 누르면 추가돼요.'}</div>`}`;
+  paintSeatStat();
+}
+function cellHtml(t,map){
+  if(t==null) return '<div class="cell blank"></div>';
+  t=String(t); if(!validTid(t)) return '<div class="cell blank"></div>'; const list=map[t]||[];
+  if(!list.length) return `<div class="cell empty ${seatCls(t)}" data-cell="${t}" data-pick="${t}"><span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}</div>`;
+  const top=list[0]; const it=top.it;
+  const dup=CONF.table[t]? [...CONF.table[t].values()].filter(x=>list.some(l=>l.it.id===x.id) || list.some(l=>Math.abs(toMin(l.it.time)-toMin(x.time))<WIN)) : [];
+  if(dup.length>1){
+    dup.sort((a,b)=>toMin(a.time)-toMin(b.time));
+    const depD=dup.some(hasDep);
+    return `<div class="cell st-dup${depD?' dep':''}" data-cell="${t}" data-pick="${t}" title=""${esc(dup.map(x=>x.name+' '+x.time+' '+x.pp+'명').join(' / '))}">
+      ${depD?'<span class="depb">💰 예약금</span>':''}<span class="dupb">⚠ 중복</span><span class="no">${esc(tLabel(t))}</span>
+      ${dup.slice(0,3).map(x=>`<span class="dn">${esc(x.name)} <small>${esc(x.time)}·${esc(x.pp)}명</small></span>`).join('')}${dup.length>3?`<small>외 ${dup.length-3}건</small>`:''}</div>`;
+  }
+  const tight = TIGHT.table[t]? [...TIGHT.table[t].values()] : [];
+  const tightNote = tight.length? `<span class="tightb">⏰ 다음팀 ${esc(tight.filter(x=>x.id!==it.id).map(x=>x.time).join('·'))}</span>` : '';
+  const dep=list.some(l=>hasDep(l.it));
+  return `<div class="cell st-${top.st} ${seatCls(t)}${dep?' dep':''}" data-cell="${t}" data-pick="${t}" title=""${esc(it.name)} ${esc(it.time)} ${esc(it.pp)}명${it.req?' · '+esc(it.req):''}${tight.length?' · 2시간 뒤 다음팀 있음':''}">
+    ${list.length>1?`<span class="more">+${list.length-1}</span>`:''}
+    ${top.st==='use'?'<span class="arr">✓ 도착</span>':''}<span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}<span class="cn">${esc(it.name)}</span><span class="ci">${esc(it.pp)}명·${esc(it.time)}</span>${dep?'<span class="depb">💰 예약금</span>':''}${it.req&&!dep?'<span class="memo">📝 메모</span>':''}${tightNote}</div>`;
+}
+const BIG6={ '1층':['6','7','8','9','10'], '2층':['42','43','44','45','51','52','53'] };
+const BIG8=[['29','30'],['31','32'],['33','34']];
+function freeBig(T){
+  const busy=new Set(); active(ui.date).forEach(x=>{ const m=toMin(x.time); if(m!=null && Math.abs(m-T)<WIN) (x.tables||[]).forEach(t=>busy.add(t)); });
+  const seatRows=[]; const hasSeats=Object.keys(SEATS).length>0, legacy=!hasSeats&&!!(STORES.find(x=>x.id===SID)||{}).is_hq;
+  if(hasSeats){ const caps=[...new Set(Object.values(SEATS).filter(n=>n>=6))].sort((a,b)=>a-b);
+    caps.forEach(c=>{ const byFloor=[]; FLOORS.forEach(fl=>{ const ts=floorTables(fl).filter(t=>seatOf(t)===c&&!busy.has(t)); const all=floorTables(fl).filter(t=>seatOf(t)===c).length; if(all) byFloor.push({name:fl.name,ts}); }); seatRows.push({cap:c,byFloor}); }); }
+  const six={}; Object.keys(BIG6).forEach(f=>six[f]=BIG6[f].filter(t=>!busy.has(t)&&ALL_TABLES.includes(t)));
+  const eight=BIG8.filter(p=>p.every(t=>!busy.has(t)&&ALL_TABLES.includes(t)));
+  const rooms=[]; Object.keys(ROOM_SUBS).map(Number).sort((a,b)=>a-b).forEach(r=>{ const subs=ROOM_SUBS[r].map(x=>R(r,x)).filter(t=>ALL_TABLES.includes(t)); if(!subs.length) return; const free=subs.filter(t=>!busy.has(t));
+    if(free.length===subs.length) rooms.push({label:`룸${r}`,tables:subs});
+    else if(r===4){ [[1,2],[3,4]].forEach(pr=>{ const ts=pr.map(x=>R(4,x)); if(ts.every(t=>!busy.has(t))) rooms.push({label:`룸4-${pr.join('·')}`,tables:ts}); }); }
+    else if(free.length) rooms.push({label:`룸${r} 일부(${free.map(tLabel).join(',')})`,tables:free}); });
+  ALL_TABLES.filter(t=>/^R\d+$/.test(t)).forEach(t=>{ if(!busy.has(t)) rooms.push({label:tLabel(t),tables:[t]}); });   // 배치에 "R1" 처럼 통째로 만든 룸
+  return {six,eight,rooms,seatRows,hasSeats,legacy};
+}
+function freeHtml(T){
+  const f=freeBig(T); const chip=(label,ts)=>`<button class="fchip" data-free="${ts.join(' ')}">${esc(label)}</button>`;
+  const none='<span class="fnone">없음</span>';
+  const sixN=f.six['1층'].length+f.six['2층'].length;
+  return `<div class="freebox">
+    <div class="fh">${fromMin(T)} 기준 비어 있는 큰 자리 <span class="hint">(앞뒤 2시간 예약 없음 · 누르면 입력 줄에 들어가요)</span></div>
+    ${f.hasSeats?f.seatRows.map(r=>`<div class="frow"><span class="fk">${r.cap}인석 <b>${r.byFloor.reduce((n,x)=>n+x.ts.length,0)}</b></span>${r.byFloor.map(x=>`${f.seatRows.length&&r.byFloor.length>1?`<span class="ff">${esc(x.name)}</span>`:''}${x.ts.map(t=>chip(tLabel(t),[t])).join('')||none}`).join('')}</div>`).join(''):f.legacy?`<div class="frow"><span class="fk">6인석 <b>${sixN}</b></span><span class="ff">1층</span>${f.six['1층'].map(t=>chip(t,[t])).join('')||none}<span class="ff">2층</span>${f.six['2층'].map(t=>chip(t,[t])).join('')||none}</div>
+    <div class="frow"><span class="fk">8인석 <b>${f.eight.length}</b></span>${f.eight.map(p=>chip(p.join('·'),p)).join('')||none}</div>`:'<div class="frow"><span class="fnone">배치 수정에서 테이블마다 몇 인석인지 정해 두면 여기에 큰 자리가 나와요</span></div>'}
+    <div class="frow"><span class="fk">룸 <b>${f.rooms.filter(r=>!/일부/.test(r.label)).length}</b></span>${f.rooms.map(r=>chip(r.label,r.tables)).join('')||none}</div>
+  </div>`;
+}
+// 예약 목록 위: 지금 현황판 시간 기준으로 남은 6인석·8인석 (큰 자리만)
+function paintSeatStat(){
+  const el=document.getElementById('seatStat'); if(!el) return; const f=freeBig(ui.t); let parts=[];
+  if(f.hasSeats) f.seatRows.forEach(r=>{ const left=r.byFloor.reduce((n,x)=>n+x.ts.length,0), tot=0; const all=FLOORS.reduce((n,fl)=>n+floorTables(fl).filter(t=>seatOf(t)===r.cap).length,0); parts.push([r.cap+'인석',left,all]); });
+  else if(f.legacy){ parts.push(['6인석',f.six['1층'].length+f.six['2층'].length,Object.values(BIG6).flat().filter(t=>ALL_TABLES.includes(t)).length]); parts.push(['8인석',f.eight.length,BIG8.filter(p=>p.every(t=>ALL_TABLES.includes(t))).length]); }
+  el.innerHTML=parts.length?`<span class="sl-t">${fromMin(ui.t)} 기준 남은 자리</span>`+parts.map(([n,l,a])=>`<span class="sl ${l===0?'zero':''}">${n} <b>${l}</b>/${a}</span>`).join(''):'';
+}
+function renderBoard(){
+  if(layoutEdit) return renderBoardEdit();
+  const T=ui.t; const map=boardMap(T);
+  const f=FLOORS.find(x=>x.key===ui.floor);
+  const cnt={use:0,res:0,soon:0}; const seen=new Set();
+  Object.values(map).forEach(a=>a.forEach(x=>{ if(!seen.has(x.it.id)){ seen.add(x.it.id); cnt[x.st]++; } }));
+  const groups=f.mode==='free'? freeFloorHtml(f,map,false) : f.groups.map(g=>`<div class="grp"><h3>${esc(g.title)}</h3><div class="cols">${g.cols.map(c=>`<div class="col">${c.map(t=>cellHtml(t,map)).join('')}</div>`).join('')}</div></div>`).join('');
+  const bar=f.mode!=='free'&&f.bar? `<div class="grp bar29"><h3>${esc(f.bar.title)}</h3><div class="barrow">${f.bar.row.map(t=>cellHtml(t,map)).join('')}</div></div>`:'';
+  const isToday=ui.date===todayStr();
+  const dupT=Object.keys(CONF.table);
+  const dupBar = dupT.length? `<div class="dupbar" data-dupfirst="1" title="누르면 현황판이 중복 시간으로 이동"><span class="dh">⚠ 중복 예약 ${dupT.length}곳 <small>· 눌러서 이동</small></span>${dupT.map(t=>`<button class="dchip" data-dupgo="${t}" title="현황판을 이 중복 시간으로"><b>${esc(tLabel(t))}</b> ${[...CONF.table[t].values()].sort((a,b)=>toMin(a.time)-toMin(b.time)).map(x=>esc(x.name)+' <small>'+esc(x.time)+'</small>').join(' · ')}</button>`).join('')}</div>` : '';
+  const tightT=Object.keys(TIGHT.table).filter(t=>!CONF.table[t]);
+  const tightBar = tightT.length? `<div class="tightbar" data-tightfirst="1" title="누르면 현황판이 임박 시간으로 이동"><span class="th">⏰ 임박 예약 ${tightT.length}곳 <small>· 2시간 간격 · 눌러서 이동</small></span>${tightT.map(t=>`<button class="tchip" data-tightgo="${t}" title="현황판을 이 임박 시간으로"><b>${esc(tLabel(t))}</b> ${[...TIGHT.table[t].values()].sort((a,b)=>toMin(a.time)-toMin(b.time)).map(x=>esc(x.name)+' <small>'+esc(x.time)+'</small>').join(' · ')}</button>`).join('')}</div>` : '';
+  document.getElementById('boardPanel').innerHTML=`${dupBar}${tightBar}${freeHtml(T)}
+    <div class="btop"><h2>현황판</h2>
+      <div class="ftabs" style="display:flex;gap:6px">${FLOORS.map(x=>`<button data-floor="${esc(x.key)}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div>
+      <span class="spacer"></span>
+      ${canEditLayout()?'<button class="btn sm" data-led="start" title="테이블 추가·삭제·위치 바꾸기">배치 수정</button>':''}
+      <div class="legend"><span class="lg-use">도착 ${cnt.use}</span><span class="lg-res">예약시간 ${cnt.res}</span><span class="lg-soon">2시간 내 예정 ${cnt.soon}</span><span class="lg-tight">⏰ 임박(2시간 간격) ${Object.keys(TIGHT.table).length}</span></div></div>
+    <div class="timebox"><button class="btn sm tstep" data-act="t-" aria-label="30분 앞으로">‹</button>
+      <span class="tnow">${fromMin(T)}</span>
+      <button class="btn sm tstep" data-act="t+" aria-label="30분 뒤로">›</button>
+      <input type="range" id="tRange" min="600" max="1320" step="30" value="${T}" aria-label="기준 시간 (키보드 좌우 키로 30분씩)">
+      ${isToday?'<button class="btn sm" data-act="now">지금</button>':''}
+      <span class="twin">${fromMin(Math.max(0,T-WIN))} ~ ${fromMin(Math.min(1439,T+WIN))} 예약 표시 · 키보드 ← → 30분</span></div>
+    <div class="floor">${groups}</div>${bar}`;
+  paintSeatStat();
+}
+
+/* ---------- 현황판 배치 수정 (수정 버튼을 눌러야만 바뀜 · 저장해야 반영) ---------- */
+let SEATS={};   // 테이블 번호 → 몇 인석 (배치 수정에서 지정, 매장별 저장)
+const seatOf=t=>SEATS[String(t)]||0;
+const seatCls=t=>{ const n=seatOf(t); return n>=8?'big8':n>=6?'big6':''; };
+const seatBadge=t=>seatOf(t)?`<span class="seatb">${seatOf(t)}인</span>`:'';
+let layoutEdit=null, layoutSel='';           // layoutEdit: 수정 중인 임시본 {floors} / layoutSel: 옮기려고 고른 자리
+const canEditLayout=()=>{ const st=STORES.find(x=>x.id===SID); return !!st && ['hq','owner','manager'].includes(st.role); };
+const cloneL=o=>JSON.parse(JSON.stringify(o));
+const FSHAPES=['round','square','rect'];
+function validTid(t){ return t!=null&&normTid(t)===String(t); }
+function validLayout(F){ const txt=v=>typeof v==='string'&&v.length<=40; const okT=c=>Array.isArray(c)&&c.every(t=>t==null||validTid(t));
+  return Array.isArray(F)&&F.length>0&&F.length<=20&&F.every(f=>f&&typeof f.key==='string'&&/^[A-Za-z0-9_-]{1,20}$/.test(f.key)&&txt(f.name)&&(f.mode==='free'? (Array.isArray(f.tables)&&f.tables.every(t=>t&&validTid(t.id)&&[t.x,t.y,t.w,t.h].every(v=>typeof v==='number'&&isFinite(v))&&t.w>0&&t.h>0&&(t.shape==null||FSHAPES.includes(t.shape)))) : (Array.isArray(f.groups)&&f.groups.every(g=>g&&txt(g.title)&&Array.isArray(g.cols)&&g.cols.every(okT))&&(!f.bar||(txt(f.bar.title||'')&&okT(f.bar.row)))))); }
+function layoutError(F){
+  const all=tablesOf(F); if(!all.length) return '테이블이 하나도 없어요';
+  const bad=all.find(t=>!normTid(t)||normTid(t)!==t); if(bad) return `‘${bad}’ 는 쓸 수 없는 번호예요`;
+  const dup=all.find((t,i)=>all.indexOf(t)!==i); if(dup) return `테이블 ${dup}번이 두 번 있어요`;
+  if(new Set(F.map(f=>f.key)).size!==F.length) return '층 구분이 겹쳐요'; return '';
+}
+// 테이블 번호 입력: 숫자(1~99) 또는 룸(R1, R1-2, 룸1)
+function normTid(v){ v=String(v||'').trim().toUpperCase().replace(/^룸/,'R').replace(/\s+/g,''); if(/^\d{1,2}$/.test(v)&&+v>=1) return String(+v); if(/^R\d{1,2}(-\d{1,2})?$/.test(v)) return v; return ''; }
+function rebuildTables(){ ALL_TABLES=tablesOf(FLOORS); rebuildRoomSubs(); if(!FLOORS.some(f=>f.key===ui.floor)) ui.floor=FLOORS[0].key; }
+async function loadLayout(){
+  try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.tables&deleted=eq.false&select=data`); if(!r.ok) return;
+    const rows=await r.json(); const d=rows[0]&&rows[0].data; if(d&&validLayout(d.floors)&&!layoutError(d.floors)){ FLOORS=d.floors; SEATS=(d.seats&&typeof d.seats==='object')?d.seats:{}; rebuildTables(); } }catch(e){}
+}
+async function saveLayout(F,S){
+  const r=await fx('/rest/v1/sch_items?on_conflict=store_id,kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({store_id:SID,kind:'cfg',id:'tables',data:{floors:F,seats:S||{},v:1},deleted:false})});
+  if(!r.ok) throw new Error(r.status===403?'배치를 바꿀 권한이 없어요':'HTTP '+r.status);
+}
+const slotOf=(F,p)=>{ const a=p.split(','); const f=F[+a[0]]; return a[1]==='b'?{arr:f.bar.row,idx:+a[2]}:{arr:f.groups[+a[1]].cols[+a[2]],idx:+a[3]}; };
+const colOf=(F,p)=>{ const a=p.split(','); const f=F[+a[0]]; return a[1]==='b'?f.bar.row:f.groups[+a[1]].cols[+a[2]]; };
+function editCell(t,p){
+  const sel=layoutSel===p?' sel':'';
+  if(t==null) return `<div class="cell ed ed-blank${sel}" data-dp="${p}"><span class="no">빈칸</span><button class="x" data-led="tdel" data-p="${p}" aria-label="빈칸 지우기">✕</button></div>`;
+  return `<div class="cell empty ed${sel} ${seatCls(t)}" data-dp="${p}"><span class="no">${esc(tLabel(String(t)))}</span>${seatBadge(t)}<button class="seatset" data-led="tseat" data-t="${esc(String(t))}">${seatOf(t)?'인원 변경':'인원'}</button><button class="x" data-led="tdel" data-p="${p}" aria-label="테이블 지우기">✕</button></div>`;
+}
+function renderBoardEdit(){
+  const F=layoutEdit.floors; if(!F.some(x=>x.key===ui.floor)) ui.floor=F[0].key; const fi=F.findIndex(x=>x.key===ui.floor); const f=F[fi];
+  const groups=f.mode==='free'? freeFloorHtml(f,{},true) : f.groups.map((g,gi)=>`<div class="grp"><h3>${esc(g.title)}<button class="lbtn" data-led="gren" data-p="${fi},${gi}">이름 바꾸기</button><button class="lbtn bad" data-led="gdel" data-p="${fi},${gi}">구역 지우기</button></h3><div class="cols">${g.cols.map((c,ci)=>`<div class="col">${c.map((t,ti)=>editCell(t,`${fi},${gi},${ci},${ti}`)).join('')}<button class="cell addc" data-led="tadd" data-p="${fi},${gi},${ci}" data-dp-end="${fi},${gi},${ci}" title="여기에 테이블 추가 (고른 테이블이 있으면 여기로 옮겨요)">+</button></div>`).join('')}</div></div>`).join('');
+  const bar=f.mode!=='free'&&f.bar?`<div class="grp bar29"><h3>${esc(f.bar.title)}</h3><div class="barrow">${f.bar.row.map((t,ti)=>editCell(t,`${fi},b,${ti}`)).join('')}<button class="cell addc" data-led="tadd" data-p="${fi},b,0" data-dp-end="${fi},b,0">+</button></div></div>`:'';
+  document.getElementById('boardPanel').innerHTML=`<div class="ledbar"><b>배치 수정 중</b><span>${f.mode==='free'?'저장을 눌러야 실제 현황판에 반영돼요. 테이블을 <b>끌어서</b> 마음대로 옮기고, 누르면 모양·크기를 바꿀 수 있어요':'저장을 눌러야 실제 현황판에 반영돼요. ① 테이블을 누르고 ② 바꿀 자리를 누르면 서로 자리가 바뀌어요 (<b>+</b> 를 누르면 그 줄 끝으로 옮겨요)'}</span></div>
+    <div class="btop"><h2>배치 수정</h2><div class="ftabs" style="display:flex;gap:6px">${F.map(x=>`<button data-floor="${esc(x.key)}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div><span class="spacer"></span>
+      ${f.mode==='free'?`<button class="lbtn" data-led="ftadd">+ 테이블</button><button class="lbtn" data-led="fcircle">원형으로 배치</button><button class="lbtn" data-led="togrid">칸 배치로 되돌리기</button>`:`<button class="lbtn" data-led="gadd">+ 구역</button><button class="lbtn" data-led="tofree">자유 배치로 바꾸기</button>`}<button class="lbtn" data-led="fadd">+ 층(칸)</button><button class="lbtn" data-led="ffadd">+ 층(자유)</button><button class="lbtn" data-led="fren">층 이름</button><button class="lbtn bad" data-led="fdel">층 지우기</button>
+      ${(STORES.find(x=>x.id===SID)||{}).is_hq?'<button class="lbtn" data-led="seedseats">6·8인석 기본값</button>':''}<button class="lbtn" data-led="reset">처음 배치로</button><button class="btn sm" data-led="cancel">취소</button><button class="btn sm pri" data-led="save">저장</button></div>
+    ${f.mode==='free'?freeSelBar(f):''}
+    <div class="floor">${groups}</div>${bar}`;
+}
+/* ---------- 자유 배치 (원형·마음대로): 테이블마다 위치·모양·크기를 따로 저장. 좌표는 가로 1000×세로 600 기준 ---------- */
+const FW=1000, FH=600, snapN=v=>Math.round(v/10)*10, clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
+const editFloor=()=>layoutEdit&&layoutEdit.floors.find(x=>x.key===ui.floor);
+function freeFloorHtml(f,map,edit){
+  const T=f.tables||[];
+  return `<div class="freecanvas${edit?' fedit':''}" id="fcanvas">${T.map(t=>{ const id=String(t.id); const sel=edit&&layoutSel===id?' sel':''; const sh=FSHAPES.includes(t.shape)?t.shape:'round';
+    const inner=edit?`<div class="cell empty ed${sel} ${seatCls(id)}"><span class="no">${esc(tLabel(id))}</span>${seatBadge(id)}</div>`:cellHtml(id,map);
+    return `<div class="fpos ${sh}" data-ft="${esc(id)}" style="left:${t.x/10}%;top:${t.y/6}%;width:${t.w/10}%;height:${t.h/6}%">${inner}</div>`; }).join('')}</div>`;
+}
+function freeSelBar(f){
+  const t=(f.tables||[]).find(x=>String(x.id)===layoutSel);
+  if(!t) return `<div class="fselbar"><span class="note">테이블을 눌러 고르면 번호·모양·크기를 바꿀 수 있어요</span></div>`;
+  return `<div class="fselbar"><b>${esc(tLabel(String(t.id)))}번</b><button class="lbtn" data-led="frenum">번호</button><button class="lbtn" data-led="tseat" data-t="${esc(String(t.id))}">인원수</button><button class="lbtn" data-led="fshape" data-v="round">원</button><button class="lbtn" data-led="fshape" data-v="square">네모</button><button class="lbtn" data-led="fshape" data-v="rect">직사각</button><button class="lbtn" data-led="fsize" data-v="-1">작게</button><button class="lbtn" data-led="fsize" data-v="1">크게</button><button class="lbtn bad" data-led="fdelt">지우기</button></div>`;
+}
+function freeSpot(f,w,h){ const T=f.tables||[]; for(let y=30;y<=FH-h;y+=20) for(let x=30;x<=FW-w;x+=20){ if(!T.some(t=>x<t.x+t.w+6&&x+w+6>t.x&&y<t.y+t.h+6&&y+h+6>t.y)) return {x,y}; } return {x:30,y:30}; }
+// 지금 칸 배치의 테이블들을 자유 배치로: 줄 맞춰 늘어놓고 그다음 마음대로 옮기게
+function toFree(f){
+  const ids=floorTables(f); const n=Math.max(1,ids.length); const cols=Math.min(12,Math.max(4,Math.ceil(Math.sqrt(n*1.7)))); const rows=Math.ceil(n/cols);
+  const w=Math.min(110,Math.floor(940/cols)-10), h=Math.min(90,Math.floor(520/rows)-10);
+  f.mode='free'; f.tables=ids.map((id,i)=>({id,x:30+(i%cols)*(w+10),y:30+Math.floor(i/cols)*(h+10),w,h,shape:'square'})); delete f.groups; delete f.bar;
+}
+function toGrid(f){
+  const ids=f.tables.map(t=>String(t.id)).sort((a,b)=>(parseFloat(a)||0)-(parseFloat(b)||0));
+  f.groups=[{title:'테이블',cols:[ids.filter((_,i)=>i%2===0),ids.filter((_,i)=>i%2===1)]}]; delete f.mode; delete f.tables;
+}
+document.getElementById('boardPanel').addEventListener('pointerdown',e=>{
+  if(!layoutEdit) return; const el=e.target.closest('.fedit .fpos'); if(!el) return; const f=editFloor(); if(!f||f.mode!=='free') return;
+  const t=f.tables.find(x=>String(x.id)===el.dataset.ft); if(!t) return; e.preventDefault();
+  const cv=document.getElementById('fcanvas'); const r=cv.getBoundingClientRect(); const sx=e.clientX, sy=e.clientY, ox=t.x, oy=t.y; let moved=false;
+  try{ el.setPointerCapture(e.pointerId); }catch(er){}
+  const mv=ev=>{ if(!moved&&Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)<5) return; moved=true;
+    t.x=clampN(snapN(ox+(ev.clientX-sx)/r.width*FW),0,FW-t.w); t.y=clampN(snapN(oy+(ev.clientY-sy)/r.height*FH),0,FH-t.h); el.style.left=t.x/10+'%'; el.style.top=t.y/6+'%'; };
+  const up=()=>{ el.removeEventListener('pointermove',mv); el.removeEventListener('pointerup',up); el.removeEventListener('pointercancel',up); layoutSel=String(t.id); renderBoard(); };
+  el.addEventListener('pointermove',mv); el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
+});
+document.getElementById('boardPanel').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-led],[data-dp],[data-dp-end]'); if(!b) return;
+  const act=b.dataset.led; if(!act && !layoutEdit) return;
+  if(act==='start'){ if(!confirm('현황판 배치를 수정할까요?\n\n저장을 누르기 전에는 실제 배치가 바뀌지 않아요.')) return; layoutEdit={floors:cloneL(FLOORS),seats:cloneL(SEATS)}; layoutSel=''; renderBoard(); return; }
+  if(!layoutEdit) return;
+  e.stopPropagation(); const F=layoutEdit.floors; const f=F.find(x=>x.key===ui.floor); const p=b.dataset.p;
+  const redraw=()=>renderBoard();
+  if(act==='tofree'){ if(!confirm('이 층을 자유 배치로 바꿀까요?\n테이블들이 줄 맞춰 놓이고, 그다음 끌어서 마음대로 옮길 수 있어요.\n(저장을 눌러야 반영돼요)')) return; toFree(f); layoutSel=''; return redraw(); }
+  if(act==='togrid'){ if(!confirm('칸 배치로 되돌릴까요?\n위치·모양 정보는 사라지고 번호순으로 두 줄에 놓여요.')) return; toGrid(f); layoutSel=''; return redraw(); }
+  if(act==='ffadd'){ const v=(prompt('새 층 이름 (자유 배치, 예: 홀)')||'').trim(); if(v){ const key=String(Math.max(0,...F.map(x=>+x.key||0))+1); F.push({key,name:v,mode:'free',tables:[]}); ui.floor=key; layoutSel=''; redraw(); } return; }
+  if(f&&f.mode==='free'){
+    const sel=(f.tables||[]).find(x=>String(x.id)===layoutSel);
+    if(act==='ftadd'){ const raw=(prompt('추가할 테이블 번호 (1~99, 룸은 R1 처럼)')||'').trim(); if(!raw) return; const v=normTid(raw); if(!v) return toast('1~99 사이 숫자나 룸(R1, R1-2)으로 넣어 주세요'); if(tablesOf(F).includes(v)) return toast(`${tLabel(v)}번은 이미 있어요`);
+      const sp=freeSpot(f,100,90); f.tables.push({id:v,x:sp.x,y:sp.y,w:100,h:90,shape:/^R/.test(v)?'rect':'round'}); layoutSel=v; return redraw(); }
+    if(act==='fcircle'){ const n=parseInt(prompt('몇 개를 원형으로 놓을까요? (2~30)','8'),10); if(!(n>=2&&n<=30)) return toast('2~30 사이로 넣어 주세요'); const st=parseInt(prompt('시작 번호 (이 번호부터 차례로)','1'),10); if(!(st>=1&&st+n-1<=99)) return toast('번호는 1~99 안에서 정해 주세요');
+      const used=new Set(tablesOf(F)); const ids=Array.from({length:n},(_,i)=>String(st+i)); const dup=ids.find(x=>used.has(x)); if(dup) return toast(`${dup}번이 이미 있어요. 다른 시작 번호를 쓰거나 먼저 지워 주세요`);
+      const rx=380, ry=200, size=clampN(Math.floor(2*Math.PI*Math.sqrt((rx*rx+ry*ry)/2)/n*0.8),50,120);
+      ids.forEach((id,i)=>{ const a=-Math.PI/2+2*Math.PI*i/n; f.tables.push({id,x:Math.round(FW/2+rx*Math.cos(a)-size/2),y:Math.round(FH/2+ry*Math.sin(a)-size/2),w:size,h:size,shape:'round'}); }); layoutSel=''; return redraw(); }
+    if(sel&&act==='fshape'){ const v=b.dataset.v; if(v==='rect'){ sel.w=Math.min(260,Math.round(sel.h*1.6)); } else { const m=Math.round((sel.w+sel.h)/2); sel.w=sel.h=m; } sel.shape=v; sel.x=clampN(sel.x,0,FW-sel.w); sel.y=clampN(sel.y,0,FH-sel.h); return redraw(); }
+    if(sel&&act==='fsize'){ const k=+b.dataset.v>0?1.15:0.87; sel.w=clampN(Math.round(sel.w*k),40,300); sel.h=clampN(Math.round(sel.h*k),40,300); sel.x=clampN(sel.x,0,FW-sel.w); sel.y=clampN(sel.y,0,FH-sel.h); return redraw(); }
+    if(sel&&act==='frenum'){ const raw=(prompt('새 번호 (1~99, 룸은 R1 처럼)',sel.id)||'').trim(); if(!raw||raw===String(sel.id)) return; const v=normTid(raw); if(!v) return toast('1~99 사이 숫자나 룸(R1, R1-2)으로 넣어 주세요'); if(tablesOf(F).includes(v)) return toast(`${tLabel(v)}번은 이미 있어요`); if(layoutEdit.seats&&layoutEdit.seats[sel.id]){ layoutEdit.seats[v]=layoutEdit.seats[sel.id]; delete layoutEdit.seats[sel.id]; } sel.id=v; layoutSel=sel.id; return redraw(); }
+    if(sel&&act==='fdelt'){ f.tables.splice(f.tables.indexOf(sel),1); layoutSel=''; return redraw(); }
+  }
+  if(act==='tseat'){ const t=b.dataset.t; const cur=layoutEdit.seats[t]||''; const v=(prompt(`${tLabel(t)}번은 몇 인석인가요? (예: 6, 8 · 비우면 표시 해제)`,cur)||'').trim();
+    if(v===''){ delete layoutEdit.seats[t]; return redraw(); } const n=parseInt(v,10); if(!(n>=1&&n<=30)) return toast('1~30 사이 숫자로 넣어 주세요'); layoutEdit.seats[t]=n; return redraw(); }
+  if(act==='seedseats'){ if(!confirm('본점 기본 큰 자리를 불러올까요?\n6인석: 1층 6~10번, 2층 42~45·51~53번\n8인석: 29~34번(바 자리)\n(저장을 눌러야 반영돼요)')) return; const all=new Set(tablesOf(F)); Object.values(BIG6).flat().forEach(t=>{ if(all.has(t)) layoutEdit.seats[t]=6; }); BIG8.flat().forEach(t=>{ if(all.has(t)) layoutEdit.seats[t]=8; }); return redraw(); }
+  if(act==='tdel'){ const {arr,idx}=slotOf(F,p); arr.splice(idx,1); layoutSel=''; return redraw(); }
+  if(act==='tadd'){
+    if(layoutSel){ const src=slotOf(F,layoutSel); const v=src.arr[src.idx]; const dst=colOf(F,b.dataset.dpEnd||p); src.arr.splice(src.idx,1); dst.push(v); layoutSel=''; return redraw(); }
+    const raw=(prompt('추가할 테이블 번호 (1~99, 룸은 R1 처럼)')||'').trim(); if(!raw) return; const v=normTid(raw); if(!v) return toast('1~99 사이 숫자나 룸(R1, R1-2)으로 넣어 주세요');
+    if(tablesOf(F).includes(v)) return toast(`${tLabel(v)}번은 이미 있어요`); colOf(F,p).push(v); return redraw(); }
+  if(b.dataset.dp!==undefined && !act){
+    const q=b.dataset.dp; if(!layoutSel){ layoutSel=q; return redraw(); } if(layoutSel===q){ layoutSel=''; return redraw(); }
+    const A=slotOf(F,layoutSel), B=slotOf(F,q); const t=A.arr[A.idx]; A.arr[A.idx]=B.arr[B.idx]; B.arr[B.idx]=t; layoutSel=''; return redraw(); }
+  if(act==='gren'){ const [fi,gi]=p.split(',').map(Number); const v=(prompt('구역 이름',F[fi].groups[gi].title)||'').trim(); if(v){ F[fi].groups[gi].title=v; redraw(); } return; }
+  if(act==='gdel'){ const [fi,gi]=p.split(',').map(Number); const g=F[fi].groups[gi]; const n=g.cols.flat().filter(t=>t!=null).length; if(!confirm(`‘${g.title}’ 구역과 안의 테이블 ${n}개를 지울까요?`)) return; F[fi].groups.splice(gi,1); layoutSel=''; return redraw(); }
+  if(act==='gadd'){ const v=(prompt('새 구역 이름 (예: 창가석)')||'').trim(); if(v){ f.groups.push({title:v,cols:[[],[]]}); redraw(); } return; }
+  if(act==='fadd'){ const v=(prompt('새 층 이름 (예: 3층)')||'').trim(); if(v){ const key=String(Math.max(0,...F.map(x=>+x.key||0))+1); F.push({key,name:v,groups:[{title:'구역 1',cols:[[],[]]}]}); ui.floor=key; redraw(); } return; }
+  if(act==='fren'){ const v=(prompt('층 이름',f.name)||'').trim(); if(v){ f.name=v; redraw(); } return; }
+  if(act==='fdel'){ if(F.length<2) return toast('층은 하나 이상 있어야 해요'); if(!confirm(`‘${f.name}’ 전체를 지울까요?`)) return; F.splice(F.indexOf(f),1); layoutSel=''; ui.floor=F[0].key; return redraw(); }
+  if(act==='reset'){ if(!confirm('처음 배치(기본 배치)로 되돌릴까요?\n저장을 눌러야 반영돼요.')) return; layoutEdit.floors=cloneL(DEFAULT_FLOORS); layoutEdit.seats={}; layoutSel=''; ui.floor=layoutEdit.floors[0].key; return redraw(); }
+  if(act==='cancel'){ if(!confirm('수정한 내용을 버리고 닫을까요?')) return; layoutEdit=null; layoutSel=''; return renderBoard(); }
+  if(act==='save'){ const err=layoutError(F); if(err) return toast(err);
+    const all=new Set(tablesOf(F)); const S={}; Object.entries(layoutEdit.seats||{}).forEach(([k,v])=>{ if(all.has(k)&&v>0) S[k]=v; });
+    try{ await saveLayout(F,S); FLOORS=cloneL(F); SEATS=S; rebuildTables(); layoutEdit=null; layoutSel=''; render(); toast('배치를 저장했어요'); }catch(er){ toast('저장하지 못했어요: '+er.message); } return; }
+},true);
+
+/* ---------- 예약 입력 창 ---------- */
+const dlg=document.getElementById('dlg'), dlgBody=document.getElementById('dlgBody');
+let draft=null;
+function openForm(it){
+  draft = it? JSON.parse(JSON.stringify(it)) : {id:uid(), name:'', phone:'', time:'', pp:'', tables:[], req:'', done:false, isNew:true};
+  draft.date = draft.date || ui.date;
+  drawForm(); dlg.showModal();
+  setTimeout(()=>document.getElementById('fName')?.focus(),30);
+}
+function busyTables(date,time,exceptId){
+  const m=toMin(time); const busy={}; if(m==null) return busy;
+  active(date).forEach(x=>{ if(x.id===exceptId) return; const xm=toMin(x.time); if(xm==null) return;
+    if(Math.abs(xm-m)<WIN) (x.tables||[]).forEach(t=>busy[t]=x); });
+  return busy;
+}
+function tPrev(tables,tnote){
+  const cx=/취소/.test(tnote||'');
+  const parts=[]; if(tables.length) parts.push(tablesText(tables).join(', '));
+  if(tnote) parts.push(tnote);
+  if(!parts.length) return '';
+  return '→ '+esc(parts.join(' · '))+(cx?' <b style="color:var(--warn)">· 취소로 표시 (현황판에서 빠짐)</b>':'');
+}
+function goDup(t){
+  const xs=[...(CONF.table[t]||new Map()).values()]; if(!xs.length) return;
+  const first=Math.min(...xs.map(x=>toMin(x.time))); followNow=false; ui.t=Math.max(600,Math.min(1320,first));
+  const f=FLOORS.find(fl=>floorHas(fl,t)); if(f) ui.floor=f.key;
+  renderBoard();
+  setTimeout(()=>document.querySelectorAll(`.cell[data-cell="${t}"]`).forEach(c=>{ c.classList.add('flash'); c.scrollIntoView({block:'nearest'}); }),30);
+  toast(`${tLabel(t)} 중복 — ${fromMin(ui.t)}로 옮겼어요. 칸을 누르면 두 예약을 비교할 수 있어요`);
+}
+function goTight(t){
+  const xs=[...(TIGHT.table[t]||new Map()).values()]; if(!xs.length) return;
+  const first=Math.min(...xs.map(x=>toMin(x.time))); followNow=false; ui.t=Math.max(600,Math.min(1320,first));
+  const f=FLOORS.find(fl=>floorHas(fl,t)); if(f) ui.floor=f.key;
+  renderBoard();
+  setTimeout(()=>document.querySelectorAll(`.cell[data-cell="${t}"]`).forEach(c=>{ c.classList.add('flash'); c.scrollIntoView({block:'nearest'}); }),30);
+  toast(`${tLabel(t)} 임박 — 2시간 간격으로 다음 팀이 있어요. ${fromMin(ui.t)}로 옮겼어요`);
+}
+function pickDialog(t){
+  const list=active(ui.date).filter(x=>(x.tables||[]).includes(t)).sort((a,b)=>(toMin(a.time)??0)-(toMin(b.time)??0));
+  const dupIds=CONF.table[t]? new Set(CONF.table[t].keys()) : new Set();
+  const tightIds=TIGHT.table[t]? new Set(TIGHT.table[t].keys()) : new Set();
+  dlgBody.innerHTML=`<h3>${esc(tLabel(t))} · 오늘 예약 ${list.length}건${dupIds.size?' <span class="badge warn">중복</span>':''}${!dupIds.size&&tightIds.size?' <span class="badge warn" style="background:var(--tight-bg);color:var(--tight)">임박</span>':''}</h3>
+    ${list.length? `<div class="hint" style="margin-bottom:8px">이 테이블의 오늘 예약 전체예요. 고칠 예약의 수정을 누르세요.</div>` : `<div class="hint" style="margin-bottom:8px">오늘 이 테이블에 잡힌 예약이 없어요.</div>`}
+    <div class="pick">${list.map(x=>`<div class="pk1 ${dupIds.has(x.id)?'dupx':''}">
+      <div><div class="l1"><span class="t">${esc(x.time)}</span><span class="n">${esc(x.name)}</span>${x.pp?`<b>${esc(x.pp)}명</b>`:''}
+        ${tablesText(x.tables).map(z=>`<span class="tbl">${esc(z)}</span>`).join('')}${x.done?'<span class="badge done">도착</span>':''}${dupIds.has(x.id)?'<span class="badge warn">겹침</span>':tightIds.has(x.id)?'<span class="badge warn" style="background:var(--tight-bg);color:var(--tight)">임박</span>':''}</div>
+        <div class="sub">${x.req?(hasDep(x)?'<span class="depchip">💰 예약금</span>':'📝 ')+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div>
+      <button class="btn primary" data-pe="${x.id}">수정</button></div>`).join('')}</div>
+    <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="add" data-add-t="${esc(t)}">＋ 이 테이블에 예약 추가</button><button class="btn" data-d="close">닫기</button></div>`;
+  if(!dlg.open) dlg.showModal();
+}
+function drawForm(){
+  const busy=busyTables(draft.date,draft.time,draft.id);
+  const clash=(draft.tables||[]).filter(t=>busy[t]).map(t=>`${tLabel(t)}(${busy[t].name} ${busy[t].time})`);
+  dlgBody.innerHTML=`<h3>${draft.isNew?'예약 추가':'예약 수정'}</h3>
+    <div class="fgrid">
+      <label>이름<input type="text" id="fName" value="${esc(draft.name)}" autocomplete="off"></label>
+      <label>연락처<input type="text" id="fPhone" value="${esc(draft.phone)}" placeholder="숫자만 입력" inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+      <label>날짜<input type="date" id="fDate" value="${draft.date}" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+      <label>인원<input type="text" id="fPP" value="${esc(draft.pp)}" placeholder="예: 5+1" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+      <label class="full">예약 시간 (24시간)<input type="text" id="fTime" value="${esc(draft.time)}" placeholder="예: 1830" inputmode="numeric" style="width:120px" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+      <label class="full">테이블 <span class="hint">33 34 · r1,2 · r4-1,2 · 취소면 "네이버 취소", "전화취소"처럼 쓰기</span>
+        <input type="text" id="fTables" value="${esc([tablesInput(draft.tables),draft.tnote||''].filter(Boolean).join(' '))}" placeholder="33 34 · r1,2 · 네이버 취소" autocomplete="off" autocorrect="off" spellcheck="false">
+        <span class="hint" id="fTPrev">${tPrev(draft.tables,draft.tnote)}</span></label>
+      ${clash.length?`<div class="full warnline">겹치는 예약: ${esc(clash.join(', '))}</div>`:''}
+      <label class="full">요청사항<textarea id="fReq" autocomplete="off" spellcheck="false" rows="2" placeholder="예: 초1+아기2, 예약금 5만원(입완)">${esc(draft.req)}</textarea></label>
+    </div>
+    <div class="dfoot">
+      ${draft.isNew?'':'<button class="btn danger" data-d="del">삭제</button>'}
+      <span class="spacer"></span>
+      <button class="btn" data-d="close">취소</button>
+      <button class="btn primary" data-d="save">${draft.isNew?'예약 추가':'저장'}</button></div>`;
+}
+function readForm(){
+  draft.name=document.getElementById('fName').value.trim();
+  draft.phone=fmtPhone(document.getElementById('fPhone').value);
+  draft.date=document.getElementById('fDate').value||draft.date;
+  draft.pp=document.getElementById('fPP').value.trim();
+  draft.time=normTime(document.getElementById('fTime').value) || document.getElementById('fTime').value.trim();
+  const ft=document.getElementById('fTables'); if(ft){ draft.tables=parseTables(ft.value); draft.tnote=tableNote(ft.value); }
+  draft.req=document.getElementById('fReq').value.trim();
+}
+dlg.addEventListener('click',e=>{
+  if(e.target===dlg){ const r=dlg.getBoundingClientRect();
+    const outside = e.clientX<r.left || e.clientX>r.right || e.clientY<r.top || e.clientY>r.bottom;
+    if(outside) dlg.close();
+    return; }
+  const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
+  if(d.pe){ const it=items(ui.date).find(x=>x.id===d.pe); if(it){ dlg.close(); openForm({...it,origDate:ui.date}); } return; }
+  if(d.restore){ const x=dayDoc(ui.date).items.find(y=>y.id===d.restore); if(x){ x.deleted=false; x.u=Date.now(); saveItem(ui.date,x); toast(`${x.name||'예약'}을(를) 복원했어요`); trashDialog(); } return; }
+  if(d.tb){ readForm(); const i=draft.tables.indexOf(d.tb); if(i>=0) draft.tables.splice(i,1); else draft.tables.push(d.tb); drawForm(); return; }
+  if(d.d==='close'){ dlg.close(); return; }
+  if(d.d==='add'){ const t=d.addT; dlg.close(); openForm(); if(t){ draft.tables=[t]; drawForm(); } return; }
+  if(d.d==='del'){ dlg.close(); confirmBox(`${draft.name||'이'} 예약을 삭제할까요?`,'삭제',()=>{
+      const dt=draft.origDate||draft.date, x=dayDoc(dt).items.find(y=>y.id===draft.id);
+      if(x){ x.deleted=true; saveItem(dt,x);
+        toast(`${x.name||'예약'}을(를) 지웠어요`, '되돌리기', ()=>{ x.deleted=false; x.u=Date.now(); saveItem(dt,x); render(); toast('되돌렸어요'); });
+      }
+    }); return; }
+  if(d.d==='yes'){ const f=confirmCb; confirmCb=null; dlg.close(); if(f) f(); return; }
+  if(d.d==='save'){ readForm();
+    if(!draft.name){ document.getElementById('fName').focus(); toast('이름을 넣어주세요'); return; }
+    if(!normTime(draft.time)){ document.getElementById('fTime').focus(); toast('예약 시간을 확인해 주세요 (예: 1830)'); return; }
+    const it={id:draft.id,c:draft.c||(draft.isNew?ds(new Date()):undefined),name:draft.name,phone:draft.phone,time:normTime(draft.time),pp:draft.pp,tables:draft.tables,tnote:draft.tnote||'',req:draft.req,done:!!draft.done};
+    const orig=draft.origDate;
+    if(orig && orig!==draft.date){ const old=dayDoc(orig).items.find(y=>y.id===draft.id); if(old){ old.deleted=true; saveItem(orig,old); } it.id=uid(); }
+    saveItem(draft.date,it); dlg.close();
+    if(draft.date!==ui.date){ ui.date=draft.date; loadDate(); }
+    toast(draft.isNew?'예약을 추가했어요':'저장했어요'); }
+});
+dlg.addEventListener('input',e=>{
+  if(e.target.id==='fTime'||e.target.id==='fTables'){ syncBoardFromInput(document.getElementById('fTime')?.value, document.getElementById('fTables')?.value); }
+  if(e.target.id==='fTables'){ const pv=document.getElementById('fTPrev'); if(pv) pv.innerHTML=tPrev(parseTables(e.target.value),tableNote(e.target.value)); }
+});
+dlg.addEventListener('change',e=>{ if(['fDate','fTime'].includes(e.target.id)){ readForm(); drawForm(); } });
+dlg.addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.tagName==='INPUT' && !e.isComposing){ e.preventDefault(); dlg.querySelector('[data-d="save"]')?.click(); } });
+let confirmCb=null;
+function confirmBox(title,yes,fn){ confirmCb=fn; dlgBody.innerHTML=`<h3>${esc(title)}</h3><div class="dfoot"><span class="spacer"></span><button class="btn" data-d="close">취소</button><button class="btn primary" data-d="yes">${esc(yes)}</button></div>`; dlg.showModal(); }
+
+/* ---------- 이벤트 ---------- */
+function loadDate(){ render(); pullDay(ui.date); }
+function shiftDay(n){ const d=new Date(ui.date+'T00:00'); d.setDate(d.getDate()+n); ui.date=ds(d); loadDate(); }
+document.getElementById('prevD').onclick=()=>shiftDay(-1);
+document.getElementById('nextD').onclick=()=>shiftDay(1);
+document.getElementById('dateLbl').onclick=()=>{ const p=document.getElementById('datePick'); if(p.showPicker) p.showPicker(); else p.click(); };
+document.getElementById('datePick').onchange=e=>{ if(e.target.value){ ui.date=e.target.value; loadDate(); } };
+document.getElementById('todayBtn').onclick=()=>{
+  followNow=true; ui.date=todayStr(); ui.filter='left'; ui.q=''; ui.t=Math.max(600,Math.min(1320,Math.round(nowMin()/10)*10));
+  loadDate(); setTimeout(()=>{ const g=document.getElementById('nowGroup'); if(g) g.scrollIntoView({block:'start',behavior:'smooth'}); },60);
+};
+// 예약 입력 중: 시간을 쓰면 현황판이 그 시간으로, 테이블을 쓰면 그 층으로
+let sbTimer=null;
+function syncBoardFromInput(timeStr, tablesStr){
+  clearTimeout(sbTimer);
+  sbTimer=setTimeout(()=>{
+    const digits=String(timeStr||'').replace(/\D/g,'');
+    const t=normTime(timeStr); let moved=false;
+    if(t && (digits.length>=3 || /[:시]/.test(timeStr))){ const m=Math.max(600,Math.min(1320,Math.round(toMin(t)/30)*30)); if(m!==ui.t){ ui.t=m; followNow=false; moved=true; } }
+    const ts=parseTables(tablesStr);
+    if(ts.length){ const f=FLOORS.find(fl=>floorHas(fl,ts[0])); if(f&&f.key!==ui.floor){ ui.floor=f.key; moved=true; } }
+    if(moved) renderBoard();
+    document.querySelectorAll('.cell.hit').forEach(c=>c.classList.remove('hit'));
+    ts.forEach(x=>document.querySelector(`.cell[data-cell="${x}"]`)?.classList.add('hit'));
+  },250);
+}
+function quickRead(){ ['time','name','pp','tables','phone','req'].forEach(k=>{ const el=document.getElementById('q'+{time:'Time',name:'Name',pp:'PP',tables:'Tables',phone:'Phone',req:'Req'}[k]); if(el) quick[k]=el.value; }); }
+function quickAdd(){
+  quickRead(); const t=normTime(quick.time);
+  if(!quick.name.trim()){ toast('이름을 넣어주세요'); document.getElementById('qName').focus(); return; }
+  if(!t){ toast('시간을 넣어주세요 (예: 1830)'); document.getElementById('qTime').focus(); return; }
+  const it={id:uid(),c:ds(new Date()),name:quick.name.trim(),time:t,pp:quick.pp.trim(),tables:parseTables(quick.tables),tnote:tableNote(quick.tables),phone:fmtPhone(quick.phone),req:quick.req.trim(),done:false};
+  quick={time:'',name:'',pp:'',tables:'',phone:'',req:''};
+  document.querySelectorAll('#quick input').forEach(i=>i.value='');
+  saveItem(ui.date,it); toast(`${it.name} ${it.time} 예약 추가`);
+  document.getElementById('qName').focus();
+}
+document.getElementById('listPanel').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.closest('#quick') && !e.isComposing){ e.preventDefault(); quickAdd(); } });
+document.getElementById('listPanel').addEventListener('click',e=>{
+  const b=e.target.closest('button');
+  if(!b){   // 줄 아무 곳이나 누르면 수정 (체크박스·전화번호 링크 제외)
+    if(e.target.closest('input,a,#quick')) return;
+    const row=e.target.closest('[data-row]'); if(row){ const it=items(ui.date).find(x=>x.id===row.dataset.row); if(it) openForm({...it,origDate:ui.date}); }
+    return; }
+  if(b.dataset.act==='qadd'){ quickAdd(); return; }
+  if(b.dataset.goto!==undefined){ const m=toMin(b.dataset.goto); if(m==null) return;
+    followNow=false; ui.t=Math.max(600,Math.min(1320,m));
+    const t=b.dataset.gt; if(t){ const f=FLOORS.find(fl=>floorHas(fl,t)); if(f) ui.floor=f.key; }
+    renderBoard();
+    if(t) setTimeout(()=>document.querySelectorAll(`.cell[data-cell="${t}"]`).forEach(c=>c.classList.add('flash')),30);
+    toast(`현황판을 ${fromMin(ui.t)} 기준으로 옮겼어요`); return; }
+  if(b.dataset.del){ const it=dayDoc(ui.date).items.find(x=>x.id===b.dataset.del); if(!it) return;
+    confirmBox(`${it.name} ${it.time} 예약을 삭제할까요?`,'삭제',()=>{ it.deleted=true; saveItem(ui.date,it); toast('삭제했어요'); }); return; }
+  if(b.dataset.f){ ui.filter=b.dataset.f; renderList(); return; }
+  if(b.dataset.sort){ ui.sort=b.dataset.sort; try{ localStorage.setItem('ilpum-res-sort',ui.sort); }catch(e){} renderList(); return; }
+  if(b.dataset.edit){ const it=items(ui.date).find(x=>x.id===b.dataset.edit); if(it){ openForm({...it,origDate:ui.date}); } }
+});
+document.getElementById('listPanel').addEventListener('focusout',e=>{
+  if(e.target.id==='qPhone'&&e.target.value) e.target.value=fmtPhone(e.target.value);
+  if(e.target.id==='qTime'&&normTime(e.target.value)) e.target.value=normTime(e.target.value);
+});
+document.getElementById('listPanel').addEventListener('change',e=>{
+  if(e.target.dataset.done){ const it=dayDoc(ui.date).items.find(x=>x.id===e.target.dataset.done); if(it){ it.done=e.target.checked; saveItem(ui.date,it); } }
+});
+document.getElementById('listPanel').addEventListener('input',e=>{
+  if(e.target.closest && e.target.closest('#quick')){ quickRead(); syncBoardFromInput(quick.time, quick.tables); const t=normTime(quick.time); const ts=parseTables(quick.tables);
+    const busy=t? busyTables(ui.date,t,null):{}; document.getElementById('qprev').innerHTML=quickPrev(t,ts,ts.filter(x=>busy[x]).map(x=>`${tLabel(x)}(${busy[x].name} ${busy[x].time})`)); return; }
+});
+document.getElementById('boardPanel').addEventListener('click',e=>{
+  const b=e.target.closest('button');
+  if(b&&b.dataset.floor){ ui.floor=b.dataset.floor; renderBoard(); return; }
+  if(b&&b.dataset.pick){ pickDialog(b.dataset.pick); return; }
+  if(!b && e.target.closest('[data-dupfirst]')){   // 줄의 빈 곳 → 가장 이른 중복 자리로
+    let best=null; Object.keys(CONF.table).forEach(t=>{ const m=Math.min(...[...CONF.table[t].values()].map(x=>toMin(x.time))); if(!best||m<best.m) best={t,m}; });
+    if(best) goDup(best.t); return; }
+  if(b&&b.dataset.dupgo){ return goDup(b.dataset.dupgo); }
+  if(!b && e.target.closest('[data-tightfirst]')){   // 줄의 빈 곳 → 가장 이른 임박 자리로
+    let best=null; Object.keys(TIGHT.table).forEach(t=>{ const m=Math.min(...[...TIGHT.table[t].values()].map(x=>toMin(x.time))); if(!best||m<best.m) best={t,m}; });
+    if(best) goTight(best.t); return; }
+  if(b&&b.dataset.tightgo){ return goTight(b.dataset.tightgo); }
+  if(b&&b.dataset.free){ const ts=b.dataset.free.split(' '); quick.tables=tablesInput(ts); if(!quick.time) quick.time=fromMin(ui.t).replace(':','');
+    const qt=document.getElementById('qTables'), qm=document.getElementById('qTime'); if(qt) qt.value=quick.tables; if(qm&&!qm.value) qm.value=quick.time;
+    qt&&qt.dispatchEvent(new Event('input',{bubbles:true})); document.getElementById('qName')?.focus(); toast(`${tablesText(ts).join(', ')} 을(를) 입력 줄에 넣었어요`); return; }
+  if(b&&(b.dataset.act==='t-'||b.dataset.act==='t+')){ shiftT(b.dataset.act==='t+'?30:-30); return; }
+  if(b&&b.dataset.act==='now'){ followNow=true; ui.t=Math.max(600,Math.min(1320,Math.round(nowMin()/10)*10)); renderBoard(); return; }
+  const c=e.target.closest('.cell'); if(!c||c.classList.contains('blank')) return;
+  if(c.dataset.pick){ pickDialog(c.dataset.pick); return; }
+  else { openForm(null); draft.tables=[c.dataset.cell]; draft.time=fromMin(Math.round(ui.t/30)*30); drawForm(); }
+});
+function shiftT(d){ followNow=false; ui.t=Math.max(600,Math.min(1320, Math.round((ui.t+d)/30)*30)); renderBoard(); document.getElementById('tRange')?.focus(); }
+document.getElementById('boardPanel').addEventListener('input',e=>{ if(e.target.id==='tRange'){ followNow=false; ui.t=+e.target.value; renderBoard(); const r=document.getElementById('tRange'); r.focus(); } });
+document.getElementById('boardPanel').addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ e.preventDefault(); shiftT(e.key==='ArrowRight'?30:-30); } });
+document.addEventListener('keydown',e=>{
+  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return;
+  const t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT')) return;
+  if(dlg.open) return;
+  e.preventDefault(); shiftT(e.key==='ArrowRight'?30:-30);
+});
+
+/* ---------- 구글 시트(엑셀) 가져오기 ---------- */
+function loadScript(src){ return new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=no; document.head.appendChild(s); }); }
+function cellText(c){ const v=c&&c.value; if(v==null) return ''; if(v instanceof Date) return v; if(typeof v==='object'){ if(v.richText) return v.richText.map(t=>t.text).join(''); if(v.text!=null) return String(v.text); if(v.result!=null) return v.result; } return v; }
+function toTime(v){
+  if(v instanceof Date) return `${pad(v.getUTCHours())}:${pad(v.getUTCMinutes())}`;
+  if(typeof v==='number'){ const m=Math.round((v%1)*1440); return fromMin(m); }
+  const s=String(v||''); let m=s.match(/(오전|오후)?\s*(\d{1,2}):(\d{2})/); if(!m) return '';
+  let h=+m[2]; if(m[1]==='오후'&&h<12) h+=12; if(m[1]==='오전'&&h===12) h=0; return `${pad(h)}:${m[3]}`;
+}
+function hashId(s){ let h=0; for(const c of s){ h=(h*31+c.charCodeAt(0))|0; } return 'imp'+(h>>>0).toString(36); }
+document.getElementById('importIn').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{
+    toast('시트 읽는 중…');
+    if(!window.ExcelJS) await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+    const wb=new ExcelJS.Workbook(); await wb.xlsx.load(await f.arrayBuffer());
+    const ym=(f.name.match(/(\d{2,4})\s*년/)||[])[1]; let year= ym? (ym.length===2? 2000+(+ym) : +ym) : new Date().getFullYear();
+    let total=0; const touched=[];
+    wb.worksheets.forEach(ws=>{
+      const m=ws.name.match(/(\d{1,2})\s*[.\/월]\s*(\d{1,2})/); if(!m) return;
+      const date=`${year}-${pad(+m[1])}-${pad(+m[2])}`; const doc=dayDoc(date); let n=0;
+      ws.eachRow((row,ri)=>{ if(ri===1) return;
+        const name=String(cellText(row.getCell(1))||'').trim();
+        // 이름 칸이 비었거나 "합계 9팀 · 54명" 같은 합계 줄이면 건너뜀 (예약이 아님)
+        if(!name || /^합계\b/.test(name) || row.actualCellCount<=1) return;
+        const time=toTime(cellText(row.getCell(3)));
+        const tablesRaw=String(cellText(row.getCell(2))||'');
+        const norm=v=>String(v||'').trim().replace(/\s+/g,'');
+        const it={ name, tables:parseTables(tablesRaw), time,
+          pp:String(cellText(row.getCell(4))||'').trim(), req:String(cellText(row.getCell(5))||'').trim(),
+          phone:String(cellText(row.getCell(6))||'').trim(), done: cellText(row.getCell(7))===true || String(cellText(row.getCell(7))).toUpperCase()==='TRUE', u:Date.now() };
+        // 같은 날 같은 시간·이름의 예약이 이미 있으면(직접 입력했던 것 포함) 새로 만들지 않고 그 예약을 갱신
+        const mi=doc.items.findIndex(x=>!x.deleted && x.time===time && norm(x.name)===norm(name));
+        if(mi>=0){ doc.items[mi]={...doc.items[mi], ...it}; }
+        else{ it.id=hashId(date+name+time+tablesRaw); const i=doc.items.findIndex(x=>x.id===it.id); if(i>=0) doc.items[i]=it; else doc.items.push(it); }
+        n++; });
+      if(n){ cacheDay(date); touched.push(date); total+=n; }
+    });
+    render();
+    for(const d of touched) await pushDay(d);
+    toast(total? `${touched.length}일치 예약 ${total}건을 가져왔어요` : '가져올 예약을 찾지 못했어요. 시트 탭 이름이 "9.20(일)" 형식인지 확인해 주세요');
+  }catch(err){ toast('파일을 읽지 못했어요: '+(err.message||'')); }
+});
+
+/* ---------- 휴지통 (지금 보는 날짜, 서버 추가 호출 없음) ---------- */
+function trashDialog(){
+  const d = ui.date;
+  const dead = dayDoc(d).items.filter(x=>x.deleted).sort((a,b)=>(b.u||0)-(a.u||0));
+  dlg.classList.remove('wide');
+  dlgBody.innerHTML = `<h3>휴지통 · ${esc(d)}</h3>
+    <div class="hint" style="margin-bottom:8px">지금 보고 있는 날짜(${esc(d)})에서 지운 예약이에요. 다른 날짜 것을 보려면 그 날짜를 먼저 연 뒤 휴지통을 다시 열어주세요.</div>
+    ${dead.length? `<div class="pick">${dead.map(x=>`<div class="pk1">
+        <div><div class="l1"><span class="t">${esc(x.time||'')}</span><span class="n">${esc(x.name||'(이름 없음)')}</span>${x.pp?`<b>${esc(x.pp)}명</b>`:''}
+          ${tablesText(x.tables||[]).map(z=>`<span class="tbl">${esc(z)}</span>`).join('')}</div>
+          <div class="sub">${x.req?(hasDep(x)?'<span class="depchip">💰 예약금</span>':'📝 ')+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div>
+        <button class="btn primary" data-restore="${x.id}">복원</button></div>`).join('')}</div>`
+      : `<div class="hint">이 날짜엔 지운 예약이 없어요.</div>`}
+    <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="close">닫기</button></div>`;
+  dlg.showModal();
+}
+document.getElementById('trashBtn').addEventListener('click', trashDialog);
+
+/* ---------- 중복 예약 정리 ---------- */
+async function dedupeAll(){
+  if(!REST){ toast('Supabase 연결이 필요해요'); return; }
+  const dnorm=v=>String(v||'').trim().replace(/\s+/g,'');
+  toast('모든 날짜를 확인하는 중…');
+  await loadAll(true);
+  const dates=Object.keys(gServer).sort();
+  let removed=0, touched=0;
+  for(const d of dates){
+    await pullDay(d);                         // 이 날짜를 최신 상태로 로컬에 받아옴
+    const doc=dayDoc(d);
+    const live=doc.items.filter(x=>!x.deleted);
+    const seen=new Map(); const dups=[];
+    live.forEach(x=>{
+      const key=dnorm(x.name)+'|'+(x.time||'')+'|'+tablesText(x.tables||[]).join(',');
+      const keep=seen.get(key);
+      if(!keep){ seen.set(key,x); return; }
+      if((x.u||0)>(keep.u||0)){ dups.push(keep); seen.set(key,x); } else dups.push(x);
+    });
+    if(dups.length){
+      dups.forEach(x=>{ x.deleted=true; x.u=Date.now(); });
+      cacheDay(d); await pushDay(d);
+      removed+=dups.length; touched++;
+    }
+  }
+  gAt=0;   // 검색용 캐시도 다시 받게
+  if(dates.includes(ui.date)) render();
+  toast(removed? `중복 ${removed}건을 ${touched}개 날짜에서 정리했어요` : '중복된 예약이 없었어요');
+}
+document.getElementById('dedupeBtn').addEventListener('click',()=>{
+  confirmBox('저장된 모든 날짜에서 이름·시간·테이블이 같은 예약을 찾아 중복분을 지울게요. 계속할까요?','중복 정리',dedupeAll);
+});
+
+/* ---------- 전체 예약 검색 (저장된 모든 날짜) ---------- */
+let gServer={}, gAt=0, gLoading=null, gCache={};
+async function loadAll(force){
+  if(!REST) return;
+  if(gLoading) return gLoading;
+  if(!force && gAt && Date.now()-gAt<300000) return;   // 5분 안에는 다시 안 받음
+  gLoading=(async()=>{ try{
+    const r=await withTimeout(fx(`${RP()}select=id,data`),15000);
+    if(r.ok){ const o={}; (await r.json()).forEach(row=>o[row.id]=row.data.items||[]); gServer=o; gAt=Date.now(); }
+  }catch(e){} gLoading=null; })();
+  return gLoading;
+}
+function searchSource(){   // 서버 + 이 기기에서 방금 고친 내용
+  const out={...gServer};
+  Object.keys(days).forEach(d=>out[d]=mergeItems(out[d]||[], days[d].items));
+  gCache=out; return out;
+}
+function hl(text,q){ const t=esc(text); if(!q) return t; const i=String(text).indexOf(q); if(i<0) return t; return esc(String(text).slice(0,i))+'<mark>'+esc(q)+'</mark>'+esc(String(text).slice(i+q.length)); }
+let gTimer=null;
+async function runSearch(){
+  const box=document.getElementById('gres'); const q=document.getElementById('gq').value.trim();
+  if(!q){ box.hidden=true; document.querySelectorAll('.cell.hit').forEach(c=>c.classList.remove('hit')); return; }
+  const qd=q.replace(/[^\d]/g,'');
+  if(!gAt && REST){ box.innerHTML='<div class="gh">예약 불러오는 중…</div>'; box.hidden=false; await loadAll(); }
+  const data=searchSource(); const today=todayStr(); const hits=[];
+  Object.keys(data).forEach(d=>(data[d]||[]).forEach(x=>{ if(x.deleted) return;
+    const tbl=(x.tables||[]).map(tLabel).join(' ')+' '+(x.tnote||'');
+    const ok = (x.name||'').includes(q) || (x.req||'').includes(q) || (x.tnote||'').includes(q) || tbl.split(' ').includes(q.replace(/[번T]$/i,'')) ||
+               (qd.length>=3 && (x.phone||'').replace(/[^\d]/g,'').includes(qd));
+    if(ok) hits.push({d,x}); }));
+  hits.sort((a,b)=>{ const fa=a.d>=today, fb=b.d>=today; if(fa!==fb) return fa?-1:1; return fa? (a.d.localeCompare(b.d)||(a.x.time||'').localeCompare(b.x.time||'')) : (b.d.localeCompare(a.d)||(a.x.time||'').localeCompare(b.x.time||'')); });
+  const show=hits.slice(0,60);
+  box.innerHTML = show.length? `<div class="gh">전체 예약에서 ${hits.length}건 · 오늘 이후 예약 먼저${hits.length>60?' · 60건까지 표시':''}</div>`+show.map(({d,x})=>{ const dd=new Date(d+'T00:00');
+      return `<button data-gd="${d}" data-gid="${x.id}"><span class="gd ${d===today?'today':''}">${dd.getMonth()+1}/${dd.getDate()} (${DOW[dd.getDay()]})${d===today?' 오늘':''}</span><span class="gt">${esc(x.time)}</span>
+        <span class="gn"><b>${hl(x.name,q)}</b> ${esc(x.pp)}명 ${tablesText(x.tables).map(t=>`<span class="tbl">${esc(t)}</span>`).join(' ')}${x.done?' <span class="badge done">도착</span>':''}${x.req?`<br><span class="gp">${hl(x.req,q)}</span>`:''}</span>
+        <span class="gp">${hl(x.phone||'',q)}</span></button>`; }).join('')
+    : `<div class="gh">"${esc(q)}" 검색 결과가 없어요</div>`;
+  box.hidden=false;
+  // 지금 보는 날짜 현황판에서도 표시
+  document.querySelectorAll('.cell.hit').forEach(c=>c.classList.remove('hit'));
+  hits.filter(h=>h.d===ui.date).forEach(h=>(h.x.tables||[]).forEach(t=>{ const c=document.querySelector(`.cell[data-cell="${t}"]`); if(c) c.classList.add('hit'); }));
+}
+const gq=document.getElementById('gq');
+// 입력칸은 절대 다시 그리지 않고 결과만 바꿔서 빨리 쳐도 끊기지 않게
+gq.addEventListener('input',()=>{ clearTimeout(gTimer); gTimer=setTimeout(runSearch,90); });
+gq.addEventListener('focus',()=>{ loadAll(); if(gq.value.trim()) runSearch(); });
+gq.addEventListener('keydown',e=>{ if(e.key==='Escape'){ gq.value=''; runSearch(); gq.blur(); } if(e.key==='Enter' && !e.isComposing){ const f=document.querySelector('#gres button'); if(f) f.click(); } });
+document.addEventListener('click',e=>{ if(!e.target.closest('.gsearch')) document.getElementById('gres').hidden=true; });
+document.getElementById('gres').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-gd]'); if(!b) return;
+  const d=b.dataset.gd, id=b.dataset.gid; document.getElementById('gres').hidden=true;
+  const x=(gCache[d]||[]).find(y=>y.id===id);
+  ui.date=d; ui.filter='all'; ui.q='';
+  if(x){ const doc=dayDoc(d); if(!doc.items.find(y=>y.id===id)){ doc.items=mergeItems(doc.items,[x]); }
+    const m=toMin(x.time); if(m!=null){ ui.t=Math.max(600,Math.min(1320,m)); followNow=false; }
+    const t=(x.tables||[])[0]; if(t){ const f=FLOORS.find(fl=>floorHas(fl,t)); if(f) ui.floor=f.key; } }
+  loadDate();
+  setTimeout(()=>{ const row=document.querySelector(`.res [data-edit="${id}"]`)?.closest('.res'); if(row){ row.scrollIntoView({block:'center'}); row.classList.add('flash'); }
+    (x&&x.tables||[]).forEach(t=>document.querySelector(`.cell[data-cell="${t}"]`)?.classList.add('flash')); },80);
+});
+
+/* ---------- 엑셀 내보내기 / 인쇄 ---------- */
+function sortedDay(list){ return list.filter(x=>!x.deleted).sort((a,b)=>(toMin(a.time)??9999)-(toMin(b.time)??9999)||a.name.localeCompare(b.name,'ko')); }
+async function monthData(ym){
+  const [y,m]=ym.split('-').map(Number); const first=`${ym}-01`, last=`${ym}-${pad(new Date(y,m,0).getDate())}`;
+  const out={};
+  Object.keys(days).forEach(d=>{ if(d>=first&&d<=last) out[d]=days[d].items; });
+  if(REST){ const r=await withTimeout(fx(`${RP()}id=gte.${first}&id=lte.${last}&select=id,data`),10000);
+    if(!r.ok) throw new Error('HTTP '+r.status); (await r.json()).forEach(row=>{ out[row.id]=mergeItems(out[row.id]||[], row.data.items||[]); }); }
+  return out;
+}
+function exportDialog(){
+  const d=new Date(ui.date+'T00:00');
+  dlgBody.innerHTML=`<h3>엑셀 내보내기</h3>
+    <div class="dfoot" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:0">
+      <button class="btn primary" data-x="day">${d.getMonth()+1}월 ${d.getDate()}일 (${DOW[d.getDay()]}) 하루만</button>
+      <button class="btn" data-x="month">${d.getFullYear()}년 ${d.getMonth()+1}월 전체 (날짜별 시트)</button>
+      <button class="btn" data-d="close">취소</button></div>`;
+  dlg.showModal();
+}
+async function exportXlsx(kind){
+  try{
+    toast('엑셀 만드는 중…');
+    if(!window.ExcelJS) await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+    const ym=ui.date.slice(0,7);
+    const data = kind==='month'? await monthData(ym) : {[ui.date]: dayDoc(ui.date).items};
+    const dates=Object.keys(data).filter(d=>sortedDay(data[d]).length).sort();
+    if(!dates.length){ toast('내보낼 예약이 없어요'); return; }
+    const wb=new ExcelJS.Workbook();
+    const thin={style:'thin',color:{argb:'FFBFC7C3'}}; const box={top:thin,left:thin,bottom:thin,right:thin};
+    dates.forEach(d=>{
+      const dd=new Date(d+'T00:00'); const ws=wb.addWorksheet(`${dd.getMonth()+1}.${dd.getDate()}(${DOW[dd.getDay()]})`,{pageSetup:{paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0}});
+      ws.columns=[{header:'이름',width:12},{header:'테이블번호',width:16},{header:'예약시간',width:10},{header:'인원',width:9},{header:'요청사항',width:30},{header:'연락처',width:16},{header:'도착',width:7}];
+      const hr=ws.getRow(1); hr.font={bold:true}; hr.eachCell(c=>{ c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF200'}}; c.alignment={horizontal:'center'}; c.border=box; });
+      sortedDay(data[d]).forEach(x=>{ const r=ws.addRow([x.name, tableShow(x), x.time, x.pp, x.req||'', x.phone||'', x.done?'✓':'']);
+        r.eachCell({includeEmpty:true},(c,ci)=>{ c.border=box; c.alignment={vertical:'middle',horizontal: ci===5?'left':'center', wrapText: ci===5};
+          if(x.done||isCxl(x)) c.font={strike:true,color:{argb: isCxl(x)?'FF8A9690':'FFB3261E'}}; }); });
+      const n=sortedDay(data[d]).filter(x=>!isCxl(x)); ws.addRow([]); const tr=ws.addRow([`합계 ${n.length}팀 · ${n.reduce((a,x)=>a+people(x.pp),0)}명`]); tr.font={bold:true};
+    });
+    const buf=await wb.xlsx.writeBuffer();
+    const name= kind==='month'? `일품집_예약_${ym}.xlsx` : `일품집_예약_${ui.date}.xlsx`;
+    const url=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast(`${dates.length}일치 예약을 엑셀로 저장했어요`);
+  }catch(e){ toast('엑셀을 만들지 못했어요: '+(e.message||'')); }
+}
+function printDialog(){
+  const d=new Date(ui.date+'T00:00'); const n=fromMin(Math.floor(nowMin()/30)*30);
+  dlgBody.innerHTML=`<h3>${d.getMonth()+1}월 ${d.getDate()}일 예약 인쇄</h3>
+    <div class="hint" style="margin-bottom:10px">직원용으로 크게 뽑으려면 시간대를 나눠서 인쇄하세요. 예약이 많으면 한 장에 억지로 넣지 않고 글씨 크기를 지켜 2장으로 나옵니다.</div>
+    <div class="fgrid">
+      <label class="full">시간대
+        <div class="times" style="margin:2px 0 6px">
+          <button type="button" data-pr="0,1440" aria-pressed="true">하루 전체</button>
+          <button type="button" data-pr="600,960">점심 (10:00~16:00)</button>
+          <button type="button" data-pr="960,1440">저녁 (16:00~)</button>
+          <button type="button" data-pr="${Math.floor(nowMin()/30)*30},1440">지금(${n}) 이후</button>
+        </div></label>
+      <label>시작<input type="text" id="pFrom" value="" placeholder="예: 1700" inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+      <label>끝<input type="text" id="pTo" value="" placeholder="예: 2100" inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+      <label class="full" style="flex-direction:row;align-items:center;gap:6px;font-size:14px;color:var(--ink)">
+        <input type="checkbox" id="pOne" style="width:18px;height:18px"> 글씨가 작아지더라도 무조건 한 장에</label>
+    </div>
+    <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="close">취소</button><button class="btn primary" data-d="pgo">인쇄</button></div>`;
+  dlg.showModal();
+}
+function printDay(from,to,fitOne){
+  from=from??0; to=to??1440;
+  const all=sortedDay(dayDoc(ui.date).items);
+  const list=all.filter(x=>{ const m=toMin(x.time); return m==null? from===0 : (m>=from && m<=to); });
+  const dd=new Date(ui.date+'T00:00');
+  if(!list.length){ toast('그 시간대에 인쇄할 예약이 없어요'); return; }
+  const rng = (from>0||to<1440)? ` <span style="font-size:.75em;font-weight:500">${fromMin(from)} ~ ${to>=1440?'마감':fromMin(to)}</span>` : '';
+  const groups={}; list.forEach(x=>{ (groups[x.time||'-']=groups[x.time||'-']||[]).push(x); });
+  const rows=Object.keys(groups).map(t=>groups[t].map((x,i)=>`<tr class="${x.done||isCxl(x)?'done':''} ${i===0?'first':''}"><td class="t">${i===0?esc(t):''}</td><td class="nm">${esc(x.name)}</td><td class="c">${esc(x.pp)}</td>
+    <td class="c tb">${esc(tableShow(x)||'미정')}</td><td>${esc(x.req||'')}</td><td class="c">${x.done?'✓':'□'}</td></tr>`).join('')).join('');
+  let root=document.getElementById('printRoot'); if(!root){ root=document.createElement('div'); root.id='printRoot'; document.body.appendChild(root); }
+  root.innerHTML=`<style>
+    @page{size:A4 portrait;margin:10mm}
+    @media screen{#printRoot{position:absolute;left:-100000px;top:0}}
+    @media print{body>*:not(#printRoot){display:none!important} #printRoot{display:block!important;position:static!important} html,body{background:#fff!important;min-width:0!important;margin:0!important}}
+    #printRoot .pg{width:190mm;font-family:"IBM Plex Sans KR","Malgun Gothic",sans-serif;color:#000;font-size:var(--f,15px);line-height:1.3}
+    #printRoot h1{font-size:1.5em;margin:0 0 .2em} #printRoot .sub{font-size:.85em;color:#444;margin-bottom:.6em}
+    #printRoot table{width:100%;border-collapse:collapse;table-layout:fixed}
+    #printRoot col.w1{width:4.2em} #printRoot col.w2{width:6.5em} #printRoot col.w3{width:4.4em} #printRoot col.w4{width:7em} #printRoot col.w6{width:3.2em}
+    #printRoot th{background:#EEE;font-size:.85em;border:1px solid #888;padding:.35em .3em}
+    #printRoot td{border:1px solid #bbb;padding:.3em .45em;vertical-align:top;word-break:keep-all;overflow-wrap:anywhere}
+    #printRoot tr.first td{border-top:1.5px solid #555}
+    #printRoot .t{font-weight:700;text-align:center} #printRoot .nm{font-weight:700}
+    #printRoot .c{text-align:center} #printRoot .tb{font-weight:700}
+    #printRoot tr.done td{color:#777;text-decoration:line-through} #printRoot tr.done td:last-child{text-decoration:none}
+    #printRoot tr{break-inside:avoid}
+  </style><div class="pg">
+  <h1>일품집 예약 — ${dd.getMonth()+1}월 ${dd.getDate()}일 (${DOW[dd.getDay()]})${rng}</h1>
+  <div class="sub">전체 ${list.filter(x=>!isCxl(x)).length}팀 · ${list.filter(x=>!isCxl(x)).reduce((a,x)=>a+people(x.pp),0)}명 · 도착 ${list.filter(x=>x.done).length}팀${list.some(isCxl)?` · 취소 ${list.filter(isCxl).length}팀`:''} · 출력 ${fromMin(nowMin())}</div>
+  <table><colgroup><col class="w1"><col class="w2"><col class="w3"><col class="w4"><col><col class="w6"></colgroup><thead><tr><th>시간</th><th>이름</th><th>인원</th><th>테이블</th><th>요청사항</th><th>도착</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  // A4 한 장(가로 190mm × 세로 275mm)에 들어가는 가장 큰 글씨 찾기
+  const pg=root.querySelector('.pg'); const probe=document.createElement('div'); probe.style.cssText='position:absolute;height:275mm;width:1px;left:-100000px'; document.body.appendChild(probe);
+  const maxH=probe.getBoundingClientRect().height; probe.remove();
+  const MIN=13;              // 직원이 보기 편한 최소 글씨 (이보다 작아지면 장수를 늘림)
+  let lo=5, hi=20;
+  for(let i=0;i<14;i++){ const mid=(lo+hi)/2; pg.style.setProperty('--f',mid+'px'); if(pg.scrollHeight<=maxH) lo=mid; else hi=mid; }
+  const f = fitOne? lo : Math.max(MIN, lo);
+  pg.style.setProperty('--f',Math.floor(f*10)/10+'px');
+  const pages=Math.max(1,Math.ceil(pg.scrollHeight/maxH));
+  if(!fitOne && pages>1) toast(`예약이 많아 ${pages}장으로 나옵니다 (글씨 크기 유지)`);
+  const cleanup=()=>{ const r=document.getElementById('printRoot'); if(r) r.remove(); window.removeEventListener('afterprint',cleanup); };
+  window.addEventListener('afterprint',cleanup);
+  window.print();
+}
+document.getElementById('xlsxBtn').onclick=exportDialog;
+document.getElementById('printBtn').onclick=printDialog;
+dlg.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.pr){ const [f,t]=b.dataset.pr.split(',').map(Number);
+    dlg.querySelectorAll('[data-pr]').forEach(x=>x.setAttribute('aria-pressed', x===b));
+    document.getElementById('pFrom').value = f? fromMin(f) : ''; document.getElementById('pTo').value = t<1440? fromMin(t) : ''; return; }
+  if(b.dataset.d==='pgo'){ const f=normTime(document.getElementById('pFrom').value), t=normTime(document.getElementById('pTo').value);
+    const one=document.getElementById('pOne').checked; dlg.close();
+    setTimeout(()=>printDay(f?toMin(f):0, t?toMin(t):1440, one),50); }
+});
+dlg.addEventListener('click',e=>{ const b=e.target.closest('[data-x]'); if(!b) return; const k=b.dataset.x; dlg.close(); exportXlsx(k); });
+
+let tt; function toast(m, actLabel, actFn){
+  const el=document.getElementById('toast');
+  el.innerHTML = actLabel? `<span>${esc(m)}</span><button class="tbtn" id="toastAct">${esc(actLabel)}</button>` : esc(m);
+  el.classList.add('on'); clearTimeout(tt);
+  const dur = actLabel? 6000 : 2800;
+  tt=setTimeout(()=>el.classList.remove('on'),dur);
+  if(actLabel){ const b=document.getElementById('toastAct'); if(b) b.onclick=()=>{ el.classList.remove('on'); clearTimeout(tt); actFn&&actFn(); }; }
+}
+
+/* ---------- 시작 ---------- */
+// 전체 예약은 검색할 때만 받아옴 (Supabase 무료 사용량 아끼기)
+const IDLE_MS=10*60*1000; let lastActive=Date.now();       // 실시간이 안 될 때만: 30분 동안 아무도 안 만졌으면 30초 확인을 쉬어요 (방치된 기기가 서버를 계속 두드리지 않도록)
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{ const was=Date.now()-lastActive; lastActive=Date.now(); if(was>30*60*1000&&REST&&onScreen()&&!rtOk) pullDay(ui.date); },{passive:true}));
+function onScreen(){ if(document.hidden) return false; try{ if(window.frameElement && window.frameElement.hidden) return false; }catch(e){} return true; }
+function needLogin(msg){ setSync(msg,'err'); const m=document.getElementById('main'); if(m) m.insertAdjacentHTML('afterbegin',`<div class="card" style="margin:12px;padding:16px;grid-column:1/-1"><b>${msg}</b><div style="margin-top:6px;color:var(--sub,#666)">통합관리(index.html)에서 로그인하면 예약이 보여요.</div></div>`); }
+async function resolveStore(){
+  if(!readSes()){ needLogin('로그인이 필요해요'); return; }
+  try{
+    const r=await fx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{auth:r.status===401});
+    STORES=(await r.json()).filter(x=>x.role);
+    if(!STORES.length){ needLogin('연결된 매장이 없어요 — 본사에 계정 연결을 요청하세요'); return; }
+    const want=readConf().sid; const st=STORES.find(x=>x.id===want)||STORES.find(x=>x.is_hq)||STORES[0];
+    SID=st.id; REST='1'; showStore(st); await loadLayout();
+  }catch(e){ if(e.auth) needLogin('로그인이 필요해요'); else setSync(`연결 실패(${e.message})`,'err'); }
+}
+function showStore(st){
+  const sync=document.getElementById('sync'); if(!sync) return;
+  const box=document.createElement('span'); box.id='storeBox'; box.style.cssText='font-weight:600;margin-right:8px';
+  if(STORES.length>1){ box.innerHTML=`<select id="storeSel" aria-label="매장" style="font:inherit;padding:4px 6px">${STORES.map(x=>`<option value="${x.id}" ${x.id===SID?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`; }
+  else box.textContent=st.name;
+  sync.parentNode.insertBefore(box,sync);
+  const sel=document.getElementById('storeSel'); if(sel) sel.onchange=()=>{ try{ const c=readConf(); c.sid=sel.value; localStorage.setItem(CONF_KEY,JSON.stringify(c)); }catch(e){} location.reload(); };
+  // 다른 화면(근무표)에서 매장을 바꾸면 여기도 따라감
+  window.addEventListener('storage',e=>{ if(e.key===CONF_KEY && readConf().sid && readConf().sid!==SID && STORES.some(x=>x.id===readConf().sid)) location.reload(); });
+}
+/* ---------- 실시간 알림: 다른 기기에서 예약이 바뀌면 바로 반영 (Supabase Realtime) ---------- */
+// 연결이 되어 있으면 서버가 "바뀌었어요" 하고 알려 줘서 계속 물어볼 필요가 없어요 (전송량 거의 0). 연결이 안 되면 예전처럼 30초마다 확인해요.
+let rtWs=null, rtOk=false, rtRef=0, rtBeat=null, rtTok=null, rtWait=1000;
+function rtSet(v){ rtOk=!!v; let e=document.getElementById('rtDot'); const sy=document.getElementById('sync');
+  if(!e&&sy){ e=document.createElement('span'); e.id='rtDot'; e.style.cssText='font-size:12px;font-weight:700;margin-right:8px'; sy.parentNode.insertBefore(e,sy); }
+  if(e){ e.textContent=rtOk?'● 실시간':'○ 30초마다 확인'; e.style.color=rtOk?'var(--ok)':'var(--sub)'; e.title=rtOk?'다른 기기에서 바뀌면 바로 반영돼요':'실시간 연결이 안 돼서 30초마다 확인해요'; } }
+function rtConnect(){
+  if(!REST||rtWs||!('WebSocket' in window)) return;
+  let ws; try{ ws=new WebSocket(SUPABASE_URL.replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+encodeURIComponent(SUPABASE_KEY)+'&vsn=1.0.0'); }catch(e){ return; }
+  rtWs=ws; const topic='realtime:res_days_'+SID;
+  const send=(event,payload,t)=>{ try{ if(ws.readyState===1) ws.send(JSON.stringify({topic:t||topic,event,payload,ref:String(++rtRef)})); }catch(e){} };
+  ws.onopen=async()=>{
+    const tok=await freshToken(false); if(!tok){ try{ ws.close(); }catch(e){} return; }
+    send('phx_join',{config:{broadcast:{ack:false,self:false},presence:{key:''},postgres_changes:[{event:'*',schema:'public',table:'res_days',filter:'store_id=eq.'+SID}],private:false},access_token:tok});
+    clearInterval(rtBeat); rtBeat=setInterval(()=>send('heartbeat',{},'phoenix'),25000);
+    clearInterval(rtTok); rtTok=setInterval(async()=>{ const t=await freshToken(false); if(t) send('access_token',{access_token:t}); },40*60*1000); };
+  ws.onmessage=e=>{
+    let m; try{ m=JSON.parse(e.data); }catch(x){ return; }
+    if(m.event==='phx_reply'&&m.topic===topic){ rtSet(m.payload&&m.payload.status==='ok'); if(rtOk){ rtWait=1000; pullDay(ui.date); } return; }     // 연결되면 한 번 맞춰 봄
+    if(m.event==='postgres_changes'){ const dd=m.payload&&m.payload.data; const rec=dd&&(dd.record||dd.old_record); const d=rec&&rec.id; if(d&&(d===ui.date||days[d])) pullDay(d); return; }
+    if(m.event==='phx_error'||m.event==='phx_close'||(m.event==='system'&&m.payload&&m.payload.status==='error')) rtSet(false); };
+  ws.onclose=()=>{ rtSet(false); rtWs=null; clearInterval(rtBeat); clearInterval(rtTok); setTimeout(rtConnect,rtWait); rtWait=Math.min(rtWait*2,300000); };
+  ws.onerror=()=>{ try{ ws.close(); }catch(e){} };
+}
+let lastPollAt=0;
+(async function boot(){
+  await resolveStore();
+  render();
+  // 탭을 다시 열 때: 매장 목록이 바뀌었으면(다른 기기에서 가맹점을 추가 등) 새로 불러옴. 아주 작은 요청 1건
+  window.pullNow=async()=>{ if(!REST) return; pullDay(ui.date);
+    try{ const r=await fx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); if(!r.ok) return; const ids=(await r.json()).filter(x=>x.role).map(x=>x.id).sort().join(); if(ids!==STORES.map(x=>x.id).sort().join()) location.reload(); }catch(e){} };
+  document.getElementById('sync').onclick=()=>{ if(document.getElementById('sync').dataset.kind!=='err') return; pullNextAt=0; Object.keys(needRetry).forEach(d=>{ if(needRetry[d]){ fails[d]=0; pushDay(d); } }); pullDay(ui.date); };
+  if(REST){ pullDay(ui.date); lastPollAt=Date.now(); rtSet(false); rtConnect();
+    // 실시간 연결이 되어 있으면 5분마다 안전 확인만 / 안 되면 30초마다 확인 (30분 동안 아무도 안 만졌으면 쉼)
+    setInterval(()=>{ const every=rtOk?300000:30000; if(Date.now()-lastPollAt<every-1000||Date.now()<pullNextAt) return; if(!rtOk&&(!onScreen()||Date.now()-lastActive>30*60*1000)) return; lastPollAt=Date.now(); pullDay(ui.date); },15000);
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ lastActive=Date.now(); if(Date.now()>=pullNextAt) pullDay(ui.date); } }); }
+})();
+// 오늘 화면이면 1분마다 현황판 기준 시간을 지금으로 따라가기 (슬라이더를 직접 옮기면 멈춤)
+document.getElementById('boardPanel').addEventListener('pointerdown',e=>{ if(e.target.id==='tRange') followNow=false; });
+setInterval(()=>{ if(followNow && ui.date===todayStr()){ ui.t=Math.max(600,Math.min(1320,Math.round(nowMin()/10)*10)); if(!dlg.open) renderBoard(); } },60000);
+</script>
+<script>
+/* 목록 ↔ 현황 너비 조절 (이 컴퓨터에 기억) */
+(function(){
+  const main=document.getElementById('main'), sp=document.getElementById('split'), KEY='ilpum-res-listw', DEF=400;
+  const max=()=>Math.max(300,main.clientWidth-32-12-360);   // 현황 쪽은 최소 360px 남김
+  const clamp=w=>Math.min(max(),Math.max(280,Math.round(w)));
+  const apply=w=>{ w=clamp(w); main.style.setProperty('--lw',w+'px'); sp.setAttribute('aria-valuenow',w); return w; };
+  let w0=DEF; try{ const v=+localStorage.getItem(KEY); if(v) w0=v; }catch(e){}
+  apply(w0);
+  const save=w=>{ try{ localStorage.setItem(KEY,String(w)); }catch(e){} };
+  sp.addEventListener('pointerdown',e=>{
+    e.preventDefault(); sp.setPointerCapture(e.pointerId); sp.classList.add('on'); document.body.classList.add('resizing');
+    const left=main.getBoundingClientRect().left+16;
+    const move=ev=>apply(ev.clientX-left-6);
+    const up=ev=>{ sp.releasePointerCapture(e.pointerId); sp.removeEventListener('pointermove',move); sp.removeEventListener('pointerup',up); sp.removeEventListener('pointercancel',up);
+      sp.classList.remove('on'); document.body.classList.remove('resizing'); save(apply(ev.clientX-left-6)); };
+    sp.addEventListener('pointermove',move); sp.addEventListener('pointerup',up); sp.addEventListener('pointercancel',up);
+  });
+  sp.addEventListener('dblclick',()=>{ save(apply(DEF)); });
+  sp.addEventListener('keydown',e=>{ if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return; e.preventDefault();
+    const cur=document.getElementById('listPanel').getBoundingClientRect().width; save(apply(cur+(e.key==='ArrowRight'?1:-1)*(e.shiftKey?60:20))); });
+  window.addEventListener('resize',()=>apply(document.getElementById('listPanel').getBoundingClientRect().width));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# 통합관리 운영 사이트 (ilpum). public/ 은 tools/release.sh 로만 갱신 — 테스트(deploy/main)에서 확인한 것을 운영에 반영할 때만.
+name = "ilpum"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./public"

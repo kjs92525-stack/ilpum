@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>일품집 · 발주</title>
+<style>
+:root{--bg:#f6f6f4;--panel:#fff;--ink:#1c2420;--sub:#68736d;--line:#e2e5e1;--accent:#14524a;--accent-ink:#fff;--warn:#c0392b;--ok:#2e7d4f;--soft:#eef2ef;--gold:#b88a2a}
+@media (prefers-color-scheme:dark){:root{--bg:#121816;--panel:#1b2420;--ink:#e8ede9;--sub:#9aa7a0;--line:#2c3732;--accent:#2f8f82;--soft:#222d28;--warn:#ff7a6b;--ok:#6fcf97}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+header{background:var(--accent);color:#fff;padding:12px 16px 0;position:sticky;top:0;z-index:5}
+header .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+header h1{margin:0;font-size:18px}
+header .sp{flex:1}
+#sync{font-size:12px;opacity:.85}
+#storeBox{font-weight:700;font-size:13px}
+#storeSel{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:3px 6px}
+#storeSel option{color:#000}
+.tabs{display:flex;gap:4px;margin-top:10px}
+.tabs button{border:0;background:transparent;color:#d6e7e3;padding:9px 14px;border-radius:10px 10px 0 0;font-weight:700;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--bg);color:var(--accent)}
+main{max-width:860px;margin:0 auto;padding:12px 12px 90px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+h2{font-size:15px;margin:0 0 8px}
+.sbox{position:sticky;top:0;z-index:5;display:flex;gap:6px;align-items:center;padding:8px 12px;background:var(--bg)}
+.sbox input{flex:1;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);min-width:0}
+.sbox button{border:0;background:var(--soft);border-radius:999px;width:32px;height:32px;cursor:pointer;color:var(--sub)}
+.nomatch{text-align:center;color:var(--sub);padding:24px 8px}
+.cat{font-weight:800;color:var(--accent);margin:14px 2px 6px;font-size:14px}
+.it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px dashed var(--line)}
+.it:last-child{border-bottom:0}
+.it .nm{font-weight:700}
+.it .st{font-size:12.5px;color:var(--sub)}
+.it .st b{color:var(--ink)}
+.step{display:flex;align-items:center;gap:4px}
+.step button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--panel);font-size:18px;cursor:pointer}
+.step input{width:46px;height:34px;text-align:center;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.step .u{font-size:12px;color:var(--sub);min-width:28px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 12px;cursor:pointer;font-weight:600}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.bad{color:var(--warn)}
+.btn.sm{padding:3px 9px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:10px;align-items:center;justify-content:center;z-index:6}
+.bar .sum{font-weight:700}
+.empty{color:var(--sub);text-align:center;padding:26px 8px}
+.chip{display:inline-block;border:1px solid var(--accent);color:var(--accent);border-radius:999px;padding:1px 9px;font-size:12.5px;font-weight:700;text-decoration:none;margin:2px 4px 2px 0}
+.badge{display:inline-block;font-size:12px;font-weight:800;border-radius:6px;padding:1px 8px}
+.badge.open{background:#fff2d6;color:#8a5a00}.badge.done{background:#dff3e6;color:#1d6b3a}
+.ord .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.ord .code{font-weight:900;font-size:17px;letter-spacing:1px}
+.ord .when{color:var(--sub);font-size:12.5px}
+.ln{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:8px;align-items:start;padding:5px 0;border-top:1px dashed var(--line)}
+.ln input[type=checkbox]{width:20px;height:20px;accent-color:var(--ok)}
+.ln.done .n{text-decoration:line-through;color:var(--sub)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:6px 12px;cursor:pointer;font-weight:600}
+.seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+dialog{border:0;border-radius:14px;padding:16px;max-width:460px;width:94vw;background:var(--panel);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+label.f{display:block;margin:8px 0 2px;font-size:13px;font-weight:700;color:var(--sub)}
+.f+input,.f+select,dialog input,dialog select{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px;background:var(--panel)}
+.lk{display:grid;grid-template-columns:90px 1fr;gap:6px;margin-top:6px}
+.toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);background:#222;color:#fff;border-radius:10px;padding:9px 16px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90vw}
+.toast.on{opacity:1}
+.note{color:var(--sub);font-size:12.5px}
+.stchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.stchip{border:1.5px solid var(--line);background:var(--panel);border-radius:12px;padding:8px 12px;cursor:pointer;font-weight:700;text-align:left}
+.stchip small{display:block;font-weight:500;color:var(--sub)}
+.stchip.has{border-color:var(--warn)}
+.stchip .n{display:inline-block;background:var(--warn);color:#fff;border-radius:999px;padding:0 8px;margin-left:6px;font-size:12.5px}
+.sname{display:inline-block;background:var(--accent);color:#fff;border-radius:6px;padding:1px 8px;font-size:12.5px;font-weight:800}
+</style>
+</head>
+<body>
+<header>
+  <div class="row"><h1>발주</h1><span id="storeSlot"></span><span class="sp"></span><span id="sync">연결 중…</span><button class="btn sm" id="reload" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.5)">새로고침</button></div>
+  <div class="tabs" role="tablist"><button role="tab" data-tab="in" aria-selected="true">발주 입력</button><button role="tab" data-tab="items" aria-selected="false">품목 관리</button><button role="tab" data-tab="hist" aria-selected="false">발주 내역</button><button role="tab" data-tab="all" id="allTab" aria-selected="false" hidden>전체 현황</button></div>
+</header>
+<div class="sbox" id="sbox"><input type="search" id="sq" placeholder="검색 (물건 이름·분류)" autocomplete="off" aria-label="검색"><button type="button" id="sqx" hidden aria-label="지우기">✕</button></div>
+<main id="main"></main>
+<div class="bar" id="bar" hidden><span class="sum" id="sum"></span><button class="btn" id="clear">비우기</button><button class="btn pri" id="send">발주 넣기</button></div>
+<dialog id="dlg"><div id="dlgBody"></div></dialog>
+<div class="toast" id="toast" role="status"></div>
+<script>
+/* ================== Supabase 연결 (새 서버 · 로그인 필요 · 매장별로 나뉨) ================== */
+const SUPABASE_URL = 'https://bdqcrbnbuoujozlpttbe.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcWNyYm5idW91am96bHB0dGJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTU4NDQsImV4cCI6MjEwNjE5MTg0NH0.L8Yuj46Zjg0XNoWeRr-_9xZWKiyHH3-AyC4_3i5p_X8';
+const OLD_ORDER = { url:'https://gcdzeroxdmzlmevaccfw.supabase.co', key:'/*ORDKEY*/' };     // 예전 발주 사이트가 쓰던 서버 (가져오기 전용)
+/* ========================================================================== */
+const CONF_KEY='ilpum-fr-conf';
+let SID='', STORES=[], ST=null, READY=false;
+const readConf=()=>{ try{ return JSON.parse(localStorage.getItem(CONF_KEY))||{}; }catch(e){ return {}; } };
+const readSes=()=>{ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; };
+const writeSes=j=>{ try{ const c=readConf(); if(c.ses){ c.ses=j; localStorage.setItem(CONF_KEY,JSON.stringify(c)); } else sessionStorage.setItem('fr-ses',JSON.stringify(j)); }catch(e){} };
+async function freshToken(force){
+  const run=async()=>{ const s=readSes(); if(!s) return null;
+    if(!force && (s.expires_at||0)*1000>Date.now()+60000) return s.access_token;
+    const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+    const j=await r.json().catch(()=>({})); if(!r.ok||!j.access_token) return null; writeSes(j); return j.access_token; };
+  return navigator.locks?navigator.locks.request('ilpum-refresh',run):run();
+}
+async function fx(path,opt,retry=true){
+  opt=opt||{}; const tok=await freshToken(false); if(!tok) throw Object.assign(new Error('로그인이 필요해요'),{auth:true});
+  const r=await fetch(SUPABASE_URL+path,{...opt,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json',...(opt.headers||{})},cache:'no-store'});
+  if(r.status===401&&retry){ const t2=await freshToken(true); if(t2) return fx(path,opt,false); }
+  return r;
+}
+async function jx(path,opt){ const r=await fx(path,opt); if(!r.ok){ let m='HTTP '+r.status; try{ const j=await r.json(); m=j.message||m; }catch(e){} throw Object.assign(new Error(m),{status:r.status}); } const t=await r.text(); return t?JSON.parse(t):null; }
+
+/* ---------- 도우미 ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeUrl=u=>/^https?:\/\//i.test(String(u||''))?String(u):'';
+let tt; function toast(m){ const el=$('#toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),2600); }
+function setSync(t,bad){ const e=$('#sync'); e.textContent=t; e.style.color=bad?'#ffb4a8':''; }
+const canEditItems=()=>!!ST&&['hq','owner','manager'].includes(ST.role);
+const canDelete=canEditItems;   // 발주 삭제는 본사·점주·매니저만 (서버 규칙과 같게). 고치기는 그 매장 사람 누구나
+const kst=iso=>{ const d=new Date(iso); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+const unitOf=stock=>{ const m=String(stock||'').match(/\d+\s*([^\d\s].*)$/); return m?m[1].trim():'개'; };
+const linksOf=it=>{ let l=Array.isArray(it.links)?it.links.filter(x=>x&&safeUrl(x.u)):[]; if(!l.length&&safeUrl(it.buy_url)) l=[{n:'구매',u:it.buy_url}]; return l; };
+
+/* ---------- 자료 ---------- */
+let ITEMS=[], ORDERS=[], ALLOPEN=[], QTY={}, TAB='in', HFILTER='open', EXTRA=[];
+const isHqUser=()=>STORES.some(x=>x.role==='hq');
+const storeName=sid=>(STORES.find(x=>x.id===sid)||{}).name||'';
+let loading=null;
+async function loadAll(){
+  if(!READY) return; if(loading) return loading;
+  loading=(async()=>{ try{ setSync('불러오는 중…');
+    const [it,od]=await Promise.all([
+      jx(`/rest/v1/wh_items?store_id=eq.${SID}&select=*&order=sort,id`),
+      jx(`/rest/v1/wh_orders?store_id=eq.${SID}&select=*&order=created_at.desc&limit=100`)]);
+    ITEMS=it||[]; ORDERS=od||[];
+    if(isHqUser()){ try{ ALLOPEN=await jx('/rest/v1/wh_orders?status=eq.open&select=*&order=created_at.desc&limit=200')||[]; }catch(e){ ALLOPEN=[]; } labelStores(); }
+    const t=new Date(); setSync(`연결됨 ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`);
+  }catch(e){ setSync(e.auth||e.status===401?'로그인이 필요해요':'연결 실패: '+e.message,true); }
+  loading=null; render(); })();
+  return loading;
+}
+
+/* ---------- 화면 ---------- */
+function labelStores(){ const sel=document.getElementById('storeSel'); if(!sel) return; const cnt={}; ALLOPEN.forEach(o=>cnt[o.store_id]=(cnt[o.store_id]||0)+1);
+  [...sel.options].forEach(op=>{ const n=cnt[op.value]||0; op.textContent=storeName(op.value)+(n?` · 발주 ${n}건`:''); }); }
+function render(){
+  const at=document.getElementById('allTab'); if(at){ at.hidden=!isHqUser(); const n=ALLOPEN.length; at.textContent=n?`전체 현황 (${n})`:'전체 현황'; }
+  if(ST&&ST.role==='order'){ const it=document.querySelector('[data-tab="items"]'); if(it) it.hidden=true; if(TAB==='items') TAB='in'; }
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===TAB));
+  const m=$('#main'); $('#bar').hidden=TAB!=='in';
+  if(!READY){ return; }
+  if(TAB==='in') m.innerHTML=vIn(); else if(TAB==='items') m.innerHTML=vItems(); else if(TAB==='all'&&isHqUser()) m.innerHTML=vAll(); else m.innerHTML=vHist();
+  if(TAB==='in') updateBar();
+  applyFilter();
+}
+// 검색: 화면을 다시 그리지 않고 줄만 숨겨서(입력 중 커서·수량이 안 사라지게) 걸러 줘요
+function applyFilter(){
+  const q=($('#sq').value||'').trim().toLowerCase(); $('#sqx').hidden=!q; const m=$('#main'); m.querySelectorAll('.nomatch').forEach(e=>e.remove());
+  const rows=[...m.querySelectorAll('.it, .card.ord')]; rows.forEach(r=>{ r.hidden=!!q&&!r.textContent.toLowerCase().includes(q); });
+  m.querySelectorAll('.cat').forEach(c=>{ const card=c.nextElementSibling; const any=card?[...card.querySelectorAll('.it, .card.ord')].some(r=>!r.hidden):false; c.hidden=!!q&&!any; if(card&&card.classList.contains('card')) card.hidden=!!q&&!any; });
+  if(q&&rows.length&&rows.every(r=>r.hidden)) m.insertAdjacentHTML('beforeend','<div class="nomatch">검색 결과가 없어요</div>');
+}
+$('#sq').addEventListener('input',applyFilter); $('#sqx').onclick=()=>{ $('#sq').value=''; applyFilter(); $('#sq').focus(); };
+function groups(list){ const g={}; list.forEach(x=>{ (g[x.category||'기타']=g[x.category||'기타']||[]).push(x); }); return g; }
+function vIn(){
+  if(!ITEMS.length&&!EXTRA.length) return `<div class="card empty"><b>등록된 품목이 없어요</b><br>${canEditItems()?'‘품목 관리’에서 추가하거나 예전 발주 사이트에서 가져오세요.':'본사나 점주에게 품목 등록을 요청하세요.'}</div>${extraHtml()}`;
+  const g=groups(ITEMS);
+  return Object.keys(g).map(c=>`<div class="cat">${esc(c)}</div><div class="card">${g[c].map(itRow).join('')}</div>`).join('')+extraHtml();
+}
+function itRow(x){
+  const q=QTY[x.id]||0, u=unitOf(x.stock);
+  return `<div class="it"><div><div class="nm">${esc(x.name)}</div><div class="st">남은 수량 <b>${esc(x.stock||'-')}</b></div></div>
+    <div class="step"><button data-q="${esc(x.id)}" data-d="-1" aria-label="줄이기">−</button><input inputmode="numeric" value="${q||''}" placeholder="0" data-qi="${esc(x.id)}" aria-label="${esc(x.name)} 수량"><button data-q="${esc(x.id)}" data-d="1" aria-label="늘리기">+</button><span class="u">${esc(u)}</span></div></div>`;
+}
+function extraHtml(){
+  return `<div class="cat">목록에 없는 물건</div><div class="card">${EXTRA.map((x,i)=>`<div class="it"><div><div class="nm">${esc(x.name)}</div><div class="st">${esc(x.qty)}${esc(x.unit)}${x.save?' · 품목에도 저장':''}</div></div><button class="btn sm bad" data-xdel="${i}">빼기</button></div>`).join('')}
+    <div style="margin-top:8px"><button class="btn" data-act="xadd">+ 물건 직접 적기</button></div></div>`;
+}
+function selected(){ const out=[]; ITEMS.forEach(x=>{ const q=QTY[x.id]||0; if(q>0) out.push({id:x.id,qty:q,done:false,name:x.name,unit:unitOf(x.stock),links:linksOf(x),buy_url:safeUrl(x.buy_url)||null}); });
+  EXTRA.forEach((x,i)=>out.push({id:'n'+Date.now()+i,qty:+x.qty,done:false,name:x.name,unit:x.unit,links:x.url?[{n:'구매',u:x.url}]:[],buy_url:x.url||null,_save:x.save,_cat:x.cat})); return out; }
+function updateBar(){ const n=selected().length; $('#sum').textContent=n?`${n}개 품목`:'수량을 넣어 주세요'; $('#send').disabled=!n; $('#clear').disabled=!n; }
+function vItems(){
+  const g=groups(ITEMS); const ed=canEditItems();
+  return `${ed?`<div class="card"><button class="btn pri" data-act="iadd">+ 품목 추가</button> <button class="btn" data-act="import">예전 발주 사이트에서 가져오기</button><div class="note" style="margin-top:6px">품목 ${ITEMS.length}개 · 이 매장 전용 목록이에요</div></div>`:''}`
+   +(Object.keys(g).length?Object.keys(g).map(c=>`<div class="cat">${esc(c)}</div><div class="card">${g[c].map(x=>`<div class="it"><div><div class="nm">${esc(x.name)}</div><div class="st">남은 수량 ${esc(x.stock||'-')} ${linksOf(x).map(l=>`<a class="chip" href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.n||'구매')}</a>`).join('')}</div></div>
+      ${ed?`<div><button class="btn sm" data-iedit="${esc(x.id)}">수정</button> <button class="btn sm bad" data-idel="${esc(x.id)}">삭제</button></div>`:''}</div>`).join('')}</div>`).join(''):'<div class="card empty">품목이 없어요</div>');
+}
+function ordCard(o,showStore){ const L=Array.isArray(o.lines)?o.lines:[]; const nd=L.filter(l=>l.done).length; const sid=o.store_id||SID;
+  return `<div class="card ord"><div class="h">${showStore?`<span class="sname">${esc(storeName(sid))}</span>`:''}<span class="code">${esc(o.code)}</span><span class="badge ${o.status}">${o.status==='done'?'완료':'진행 중'}</span><span class="when">${kst(o.created_at)} · ${nd}/${L.length}</span><span style="flex:1"></span><button class="btn sm" data-oedit="${esc(o.code)}" data-sid="${esc(sid)}">수정</button>${canDelete()?`<button class="btn sm bad" data-odel="${esc(o.code)}" data-sid="${esc(sid)}">삭제</button>`:''}</div>
+    ${L.map((l,i)=>`<div class="ln ${l.done?'done':''}"><input type="checkbox" data-ck="${esc(o.code)}" data-sid="${esc(sid)}" data-i="${i}" ${l.done?'checked':''} aria-label="${esc(l.name)} 구매 완료"><div class="n"><b>${esc(l.name)}</b> × ${esc(l.qty)}${esc(l.unit||'')}</div><div>${(l.links||[]).filter(x=>safeUrl(x.u)).map(x=>`<a class="chip" href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.n||'구매')}</a>`).join('')}</div></div>`).join('')}</div>`; }
+function vHist(){
+  const list=ORDERS.filter(o=>HFILTER==='all'||o.status===HFILTER);
+  return `<div style="margin-bottom:10px"><div class="seg"><button data-hf="open" aria-pressed="${HFILTER==='open'}">진행 중</button><button data-hf="done" aria-pressed="${HFILTER==='done'}">완료</button><button data-hf="all" aria-pressed="${HFILTER==='all'}">전체</button></div></div>`
+   +(list.length?list.map(o=>ordCard(o,false)).join(''):'<div class="card empty">발주 내역이 없어요</div>');
+}
+// 본사: 모든 매장에서 들어온 진행 중 발주를 한 번에 (매장 이름표 + 매장별 건수)
+function vAll(){
+  const by={}; ALLOPEN.forEach(o=>(by[o.store_id]=by[o.store_id]||[]).push(o));
+  const chips=STORES.map(st=>{ const n=(by[st.id]||[]).length; const last=n?kst(by[st.id][0].created_at):'';
+    return `<button class="stchip ${n?'has':''}" data-gostore="${esc(st.id)}">${esc(st.name)}${n?`<span class="n">${n}</span>`:''}<small>${n?`가장 최근 ${last}`:'들어온 발주 없음'}</small></button>`; }).join('');
+  return `<div class="note" style="margin-bottom:8px">모든 매장에서 들어온 <b>진행 중</b> 발주예요 (${ALLOPEN.length}건). 매장 칸을 누르면 그 매장의 발주 내역으로 가요.</div><div class="stchips">${chips}</div>`
+   +(ALLOPEN.length?ALLOPEN.map(o=>ordCard(o,true)).join(''):'<div class="card empty">진행 중인 발주가 없어요</div>');
+}
+
+/* ---------- 동작 ---------- */
+document.querySelector('.tabs').addEventListener('click',e=>{ const b=e.target.closest('[data-tab]'); if(!b) return; TAB=b.dataset.tab; render(); });
+$('#reload').onclick=()=>loadAll();
+document.addEventListener('click',async e=>{
+  const t=e.target; const q=t.closest('[data-q]');
+  if(q){ const id=q.dataset.q; QTY[id]=Math.max(0,(QTY[id]||0)+(+q.dataset.d)); const inp=document.querySelector(`[data-qi="${CSS.escape(id)}"]`); if(inp) inp.value=QTY[id]||''; updateBar(); return; }
+  const h=t.closest('[data-hf]'); if(h){ HFILTER=h.dataset.hf; render(); return; }
+  const gs=t.closest('[data-gostore]'); if(gs){ try{ const c=readConf(); c.sid=gs.dataset.gostore; localStorage.setItem(CONF_KEY,JSON.stringify(c)); }catch(er){} TAB='hist'; HFILTER='open'; location.reload(); return; }
+  const xd=t.closest('[data-xdel]'); if(xd){ EXTRA.splice(+xd.dataset.xdel,1); render(); return; }
+  const act=t.closest('[data-act]')?.dataset.act;
+  if(act==='xadd') return dlgExtra();
+  if(act==='iadd') return dlgItem(null);
+  if(act==='import') return importOld();
+  const ie=t.closest('[data-iedit]'); if(ie) return dlgItem(ITEMS.find(x=>x.id===ie.dataset.iedit));
+  const id=t.closest('[data-idel]'); if(id){ const it=ITEMS.find(x=>x.id===id.dataset.idel); if(it&&confirm(`‘${it.name}’ 품목을 지울까요?\n이미 넣은 발주 내역은 그대로 남아요.`)){ try{ await jx(`/rest/v1/wh_items?store_id=eq.${SID}&id=eq.${encodeURIComponent(it.id)}`,{method:'DELETE'}); ITEMS=ITEMS.filter(x=>x!==it); render(); toast('지웠어요'); }catch(er){ toast('지우지 못했어요: '+er.message); } } return; }
+  const oe=t.closest('[data-oedit]'); if(oe) return dlgOrder(oe.dataset.oedit,oe.dataset.sid||SID);
+  const od=t.closest('[data-odel]'); if(od){ const sid=od.dataset.sid||SID; if(!confirm(`발주 ${od.dataset.odel} 을(를) 지울까요?`)) return; try{ await jx(`/rest/v1/wh_orders?store_id=eq.${sid}&code=eq.${encodeURIComponent(od.dataset.odel)}`,{method:'DELETE'}); const gone=o=>o.code===od.dataset.odel&&(o.store_id||SID)===sid; ORDERS=ORDERS.filter(o=>!gone(o)); ALLOPEN=ALLOPEN.filter(o=>!gone(o)); labelStores(); render(); }catch(er){ toast('지우지 못했어요: '+er.message); } return; }
+  if(t.id==='clear'){ QTY={}; EXTRA=[]; render(); return; }
+  if(t.id==='send') return sendOrder();
+});
+document.addEventListener('input',e=>{ const i=e.target.closest('[data-qi]'); if(i){ QTY[i.dataset.qi]=Math.max(0,parseInt(i.value,10)||0); updateBar(); } });
+document.addEventListener('change',async e=>{
+  const c=e.target.closest('[data-ck]'); if(!c) return; const sid=c.dataset.sid||SID; const code=c.dataset.ck;
+  const o=ORDERS.find(x=>x.code===code&&(x.store_id||SID)===sid)||ALLOPEN.find(x=>x.code===code&&x.store_id===sid); if(!o) return;
+  const lines=JSON.parse(JSON.stringify(o.lines)); lines[+c.dataset.i].done=c.checked; const status=lines.every(l=>l.done)?'done':'open';
+  try{ await jx(`/rest/v1/wh_orders?store_id=eq.${sid}&code=eq.${encodeURIComponent(code)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({lines,status,updated_at:new Date().toISOString()})});
+    [ORDERS.find(x=>x.code===code&&(x.store_id||SID)===sid),ALLOPEN.find(x=>x.code===code&&x.store_id===sid)].forEach(x=>{ if(x){ x.lines=lines; x.status=status; } });
+    if(status==='done') ALLOPEN=ALLOPEN.filter(x=>!(x.code===code&&x.store_id===sid)); labelStores(); render(); }
+  catch(er){ c.checked=!c.checked; toast('저장하지 못했어요: '+er.message); } });
+
+async function sendOrder(){
+  const lines=selected(); if(!lines.length) return; const btn=$('#send'); btn.disabled=true;
+  try{
+    for(const l of lines.filter(x=>x._save)){ await jx('/rest/v1/wh_items?on_conflict=store_id,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({store_id:SID,id:l.id,category:l._cat||'기타',name:l.name,stock:'',buy_url:l.buy_url,links:l.links,sort:ITEMS.length+1})}); }
+    const clean=lines.map(({_save,_cat,...r})=>r);
+    let code='', ok=false; const alpha='ABCDEFGHJKLMNPQRSTUVWXYZ';
+    for(let k=0;k<5&&!ok;k++){ code=Array.from({length:4},()=>alpha[Math.floor(Math.random()*alpha.length)]).join('');
+      const r=await fx('/rest/v1/wh_orders',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({store_id:SID,code,status:'open',lines:clean})});
+      if(r.ok) ok=true; else if(r.status!==409) throw new Error('HTTP '+r.status); }
+    if(!ok) throw new Error('발주 번호를 만들지 못했어요');
+    QTY={}; EXTRA=[]; toast(`발주를 넣었어요 (${code})`); await loadAll(); TAB='hist'; HFILTER='open'; render();
+  }catch(e){ toast('발주를 넣지 못했어요: '+e.message); }
+  btn.disabled=false;
+}
+function openDlg(html){ $('#dlgBody').innerHTML=html; const d=$('#dlg'); if(!d.open) d.showModal(); }
+function closeDlg(){ $('#dlg').close(); }
+// 넣은 발주 고치기: 수량 바꾸기 · 줄 빼기 · 목록에서 물건 더하기 (구매 체크 표시는 그대로 유지)
+function findOrder(code,sid){ return ORDERS.find(x=>x.code===code&&(x.store_id||SID)===sid)||ALLOPEN.find(x=>x.code===code&&x.store_id===sid); }
+function dlgOrder(code,sid){
+  const o=findOrder(code,sid); if(!o) return; const lines=JSON.parse(JSON.stringify(o.lines||[]));
+  const paint=()=>{
+    const have=new Set(lines.map(l=>l.id)); const cand=ITEMS.filter(x=>!have.has(x.id));
+    $('#dlgBody').innerHTML=`<h2>발주 ${esc(code)} 고치기</h2>
+      ${lines.length?lines.map((l,i)=>`<div class="ln ${l.done?'done':''}" style="align-items:center"><div class="n" style="flex:1"><b>${esc(l.name)}</b>${l.done?' <small>(구매 완료)</small>':''}</div><input inputmode="numeric" value="${esc(l.qty)}" data-lq="${i}" style="width:64px;text-align:center" aria-label="${esc(l.name)} 수량"><span>${esc(l.unit||'')}</span><button class="btn sm bad" data-lx="${i}">빼기</button></div>`).join(''):'<div class="note">물건이 하나도 없어요. 저장하려면 하나 이상 있어야 해요 (발주를 지우려면 삭제 버튼을 쓰세요)</div>'}
+      ${cand.length?`<div class="lk" style="margin-top:10px"><div style="flex:1"><label class="f">물건 더하기</label><select id="oAdd"><option value="">고르세요</option>${cand.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></div><div><label class="f">수량</label><input id="oQty" inputmode="numeric" value="1"></div></div><div style="margin-top:6px"><button class="btn sm" id="oAddBtn">+ 더하기</button></div>`:''}
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="dCancel">취소</button><button class="btn pri" id="dOk">저장</button></div>`;
+    $('#dCancel').onclick=closeDlg;
+    $('#dlgBody').querySelectorAll('[data-lq]').forEach(el=>el.oninput=()=>{ lines[+el.dataset.lq].qty=Math.max(0,parseInt(el.value,10)||0); });
+    $('#dlgBody').querySelectorAll('[data-lx]').forEach(el=>el.onclick=()=>{ lines.splice(+el.dataset.lx,1); paint(); });
+    const ab=$('#oAddBtn'); if(ab) ab.onclick=()=>{ const id=$('#oAdd').value; const q=parseInt($('#oQty').value,10)||0; if(!id||q<1) return toast('물건과 수량을 골라 주세요'); const it=ITEMS.find(x=>x.id===id); if(!it) return;
+      lines.push({id:it.id,qty:q,done:false,name:it.name,unit:unitOf(it.stock),links:linksOf(it),buy_url:safeUrl(it.buy_url)||null}); paint(); };
+    $('#dOk').onclick=async()=>{ if(!lines.length) return toast('물건이 하나도 없어요'); if(lines.some(l=>!(+l.qty>0))) return toast('수량은 1 이상으로 넣어 주세요');
+      const status=lines.every(l=>l.done)?'done':'open';
+      try{ await jx(`/rest/v1/wh_orders?store_id=eq.${sid}&code=eq.${encodeURIComponent(code)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({lines,status,updated_at:new Date().toISOString()})});
+        [ORDERS.find(x=>x.code===code&&(x.store_id||SID)===sid),ALLOPEN.find(x=>x.code===code&&x.store_id===sid)].forEach(x=>{ if(x){ x.lines=JSON.parse(JSON.stringify(lines)); x.status=status; } });
+        if(status==='done') ALLOPEN=ALLOPEN.filter(x=>!(x.code===code&&x.store_id===sid)); closeDlg(); labelStores(); render(); toast('고쳤어요'); }
+      catch(er){ toast('저장하지 못했어요: '+er.message); } };
+  };
+  $('#dlgBody').innerHTML=''; const d=$('#dlg'); if(!d.open) d.showModal(); paint();
+}
+function dlgExtra(){
+  const cats=[...new Set(ITEMS.map(x=>x.category).filter(Boolean))];
+  openDlg(`<h2>목록에 없는 물건</h2><label class="f">이름</label><input id="xName" placeholder="예: 깻잎">
+    <div class="lk"><div><label class="f">수량</label><input id="xQty" inputmode="numeric" value="1"></div><div><label class="f">단위</label><input id="xUnit" value="개"></div></div>
+    <label class="f">구매 링크 (있으면)</label><input id="xUrl" placeholder="https://…">
+    <label class="f"><input type="checkbox" id="xSave" style="width:auto" checked> 다음에도 쓰게 품목에 저장</label>
+    <label class="f">분류</label><input id="xCat" list="cats" value="${esc(cats[0]||'기타')}"><datalist id="cats">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="dCancel">취소</button><button class="btn pri" id="dOk">담기</button></div>`);
+  $('#dCancel').onclick=closeDlg;
+  $('#dOk').onclick=()=>{ const name=$('#xName').value.trim(), qty=parseInt($('#xQty').value,10)||0, url=$('#xUrl').value.trim(); if(!name||qty<1) return toast('이름과 수량을 넣어 주세요'); if(url&&!safeUrl(url)) return toast('링크는 http 로 시작해야 해요');
+    EXTRA.push({name,qty,unit:$('#xUnit').value.trim()||'개',url,save:$('#xSave').checked,cat:$('#xCat').value.trim()||'기타'}); closeDlg(); render(); };
+}
+function dlgItem(it){
+  const cats=[...new Set(ITEMS.map(x=>x.category).filter(Boolean))]; const ls=it?linksOf(it):[]; while(ls.length<3) ls.push({n:'',u:''});
+  openDlg(`<h2>${it?'품목 수정':'품목 추가'}</h2><label class="f">분류</label><input id="iCat" list="cats2" value="${esc(it?it.category:(cats[0]||''))}" placeholder="예: 위생·장갑"><datalist id="cats2">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+    <label class="f">이름</label><input id="iName" value="${esc(it?it.name:'')}">
+    <label class="f">남은 수량 (예: 5box)</label><input id="iStock" value="${esc(it?it.stock:'')}">
+    <label class="f">구매 링크 (이름 + 주소, 최대 3개)</label>${ls.slice(0,3).map((l,i)=>`<div class="lk"><input id="lN${i}" value="${esc(l.n)}" placeholder="쿠팡"><input id="lU${i}" value="${esc(l.u)}" placeholder="https://…"></div>`).join('')}
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="dCancel">취소</button><button class="btn pri" id="dOk">저장</button></div>`);
+  $('#dCancel').onclick=closeDlg;
+  $('#dOk').onclick=async()=>{ const name=$('#iName').value.trim(); if(!name) return toast('이름을 넣어 주세요');
+    const links=[0,1,2].map(i=>({n:$('#lN'+i).value.trim()||'구매',u:$('#lU'+i).value.trim()})).filter(l=>l.u); if(links.some(l=>!safeUrl(l.u))) return toast('링크는 http 로 시작해야 해요');
+    const row={store_id:SID,id:it?it.id:'n'+Date.now(),category:$('#iCat').value.trim()||'기타',name,stock:$('#iStock').value.trim(),buy_url:links[0]?links[0].u:null,links,sort:it?it.sort:(Math.max(-1,...ITEMS.map(x=>x.sort||0))+1),updated_at:new Date().toISOString()};
+    try{ await jx('/rest/v1/wh_items?on_conflict=store_id,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(row)}); closeDlg(); await loadAll(); toast('저장했어요'); }catch(e){ toast('저장하지 못했어요: '+e.message); } };
+}
+/* ---------- 예전 발주 사이트에서 한 번 가져오기 ---------- */
+async function importOld(){
+  if(!canEditItems()) return;
+  if(!OLD_ORDER.key||OLD_ORDER.key.startsWith('/*')) return toast('가져오기 설정이 빠져 있어요');
+  const label=(prompt('예전 발주 사이트에서 이 매장을 부르던 이름 (주문 내역을 가져올 때 써요)', ST.is_hq?'본점':ST.name)||'').trim(); if(!label) return;
+  if(!confirm(`예전 발주 사이트의 품목 전체와 ‘${label}’ 주문 내역을 이 매장(${ST.name})으로 가져올까요?\n같은 품목·주문은 덮어써요 (중복되지 않아요).`)) return;
+  const H={apikey:OLD_ORDER.key};
+  try{ setSync('가져오는 중…');
+    const rd=async p=>{ const r=await fetch(OLD_ORDER.url+p,{headers:H,cache:'no-store'}); if(!r.ok) throw new Error('예전 서버 읽기 실패 (HTTP '+r.status+')'); return r.json(); };
+    const oi=await rd('/rest/v1/wh_items?select=*&order=sort,id'), oo=await rd('/rest/v1/wh_orders?select=*&store=eq.'+encodeURIComponent(label));
+    const items=oi.map(x=>({store_id:SID,id:x.id,category:x.category||'기타',name:x.name||'',stock:x.stock||'',buy_url:safeUrl(x.buy_url)||null,links:Array.isArray(x.links)?x.links:[],sort:x.sort||0}));
+    const orders=oo.map(x=>({store_id:SID,code:x.code,created_at:x.created_at,status:x.status==='done'?'done':'open',lines:Array.isArray(x.lines)?x.lines:[]}));
+    const put=async(table,key,rows)=>{ for(let i=0;i<rows.length;i+=40) await jx(`/rest/v1/${table}?on_conflict=${key}`,{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+40))}); };
+    await put('wh_items','store_id,id',items); await put('wh_orders','store_id,code',orders);
+    await loadAll(); toast(`가져왔어요: 품목 ${items.length}개 · 주문 ${orders.length}건`);
+  }catch(e){ setSync('가져오기 실패',true); toast(e.message); }
+}
+
+/* ---------- 시작 ---------- */
+function needLogin(msg){ setSync(msg,true); $('#main').innerHTML=`<div class="card"><b>${esc(msg)}</b><div class="note" style="margin-top:6px">통합관리(index.html)에서 로그인하면 보여요.</div></div>`; }
+async function resolveStore(){
+  if(!readSes()){ needLogin('로그인이 필요해요'); return; }
+  try{
+    const r=await fx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{auth:r.status===401});
+    STORES=(await r.json()).filter(x=>x.role);
+    if(!STORES.length){ needLogin('연결된 매장이 없어요 — 본사에 계정 연결을 요청하세요'); return; }
+    const want=readConf().sid; ST=STORES.find(x=>x.id===want)||STORES.find(x=>x.is_hq)||STORES[0]; SID=ST.id; READY=true;
+    const slot=$('#storeSlot'); slot.id='storeBox';
+    if(STORES.length>1){ slot.innerHTML=`<select id="storeSel" aria-label="매장">${STORES.map(x=>`<option value="${x.id}" ${x.id===SID?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`; $('#storeSel').onchange=e=>{ try{ const c=readConf(); c.sid=e.target.value; localStorage.setItem(CONF_KEY,JSON.stringify(c)); }catch(er){} location.reload(); }; }
+    else slot.textContent=ST.name;
+    window.addEventListener('storage',e=>{ if(e.key===CONF_KEY&&readConf().sid&&readConf().sid!==SID&&STORES.some(x=>x.id===readConf().sid)) location.reload(); });
+  }catch(e){ if(e.auth) needLogin('로그인이 필요해요'); else setSync('연결 실패: '+e.message,true); }
+}
+window.pullNow=async()=>{ if(!READY||document.hidden) return; loadAll();
+  try{ const r=await fx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); if(!r.ok) return; const ids=(await r.json()).filter(x=>x.role).map(x=>x.id).sort().join(); if(ids!==STORES.map(x=>x.id).sort().join()) location.reload(); }catch(e){} };
+(async function boot(){ await resolveStore(); if(READY){ render(); await loadAll(); } })();
+</script>
+</body>
+</html>
