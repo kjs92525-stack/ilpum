@@ -12,6 +12,8 @@ function Places(){}
 Places.prototype.keywordSearch=function(q,cb,o){ window.__calls=(window.__calls||0)+1; o=o||{};
   setTimeout(()=>{
     if(!o.location){
+      { const mm=q.match(/^대구 (\S+) 장어$/); if(mm){ const gi=['중구','동구','수성구'].indexOf(mm[1]); if(gi<0) return cb([],S.ZERO_RESULT,null);
+        return cb([0,1,2].map(j=>({id:'eel'+gi+j,place_name:(j===2?'스시':'장어')+gi+j,category_name:j===2?'음식점 > 일식 > 초밥':'음식점 > 한식 > 장어',road_address_name:'대구 '+mm[1]+' 장어로 '+j,x:String(128.55+gi*0.05+j*0.01),y:String(35.80+gi*0.02)})),S.OK,{totalCount:3,hasNextPage:false}); } }
       if(q.startsWith('대구 ')){ const i=NAMES.indexOf(q.slice(3)); if(i<0) return cb([],S.ZERO_RESULT,null); return cb([{id:'b'+i,place_name:q.slice(3),x:String(128.50+i*0.012),y:String(35.78+i*0.008)}],S.OK,pg(1)); }
       if(q==='범어역') return cb([{id:'k1',place_name:'범어역 2호선',road_address_name:'대구 수성구 달구벌대로 지하',address_name:'대구 수성구 범어동',x:'128.6262',y:'35.8590'}],S.OK,pg(1));
       return cb([],S.ZERO_RESULT,null);
@@ -99,14 +101,16 @@ async def main():
     pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('dialog',lambda d: asyncio.ensure_future(d.accept()))
     await pg.route('**/*',handler)
     await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(600)
-    ok('1) 처음: 대구 기준 상권 안내', '대구 기준 상권' in await pg.inner_text('#pane'))
+    ok('1) 처음: 대구 장어집 자리 안내', '대구 장어집 자리' in await pg.inner_text('#pane'))
     await pg.fill('#q','대구 수성구 범어동 177'); await pg.click('[data-act=find]'); await pg.wait_for_timeout(200); await pg.click('[data-cand="0"]'); await pg.wait_for_function("document.querySelector('#s-comp')",timeout=20000)
-    t0=await pg.inner_text('#pane'); ok('1b) 기준 없이도 세부 지표와 안내', '대구 기준 상권' in t0 and '저녁 외식 상권' in t0 and '음식점' in t0 and '경쟁 현황' in t0)
+    t0=await pg.inner_text('#pane'); ok('1b) 기준 없이도 세부 지표와 안내', '대구 장어집 자리' in t0 and '저녁 외식 상권' in t0 and '음식점' in t0 and '경쟁 현황' in t0)
     await pg.click('[data-act=del]'); await pg.wait_for_timeout(100)
     await pg.click('[data-tab=set]'); await pg.fill('#sname','본점'); await pg.fill('#saddr','대구 수성구 들안로 1'); await pg.click('[data-act=sadd]'); await pg.wait_for_timeout(200)
     db=await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))")
     ok('2) 우리 매장 저장', db['stores'][0]['name']=='본점' and db['stores'][0]['x']==128.635, db['stores'])
     ok('3a) 기본 기준 상권: 8개 유형·39곳(교동 포함)', await pg.evaluate("DEF_BENCH.length===39 && DEF_BENCH.includes('교동') && BENCH_GROUPS.length===8 && DEF_BENCH.length<=40"))
+    ok('3b) 처음 비교 기준 = 장어집 자리', await pg.is_checked('[data-bm=eel]'))
+    await pg.check('[data-bm=area]'); await pg.wait_for_timeout(100)
     await pg.fill('#benchNames','\n'.join(["동성로","반월당역","범어역","수성못","들안길","동대구역","칠곡3지구","상인역","월배역","계명대역","죽전역","두류역","신매역","대곡역","경북대학교 북문","침산동","앞산카페거리","율하역","대구혁신도시","대실역"])); await pg.dispatch_event('#benchNames','change')
     await pg.uncheck('[data-bs]')
     await pg.click('[data-act=bench]'); await pg.wait_for_function("JSON.parse(localStorage.getItem('ilpum-sk-v1')||'{}').bench",timeout=120000)
