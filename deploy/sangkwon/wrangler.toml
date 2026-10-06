@@ -1,0 +1,6 @@
+# 상권분석 화면(정적 파일 1개). public/index.html 하나만 올림 — 손으로 올리다 404 나는 일을 막으려고 깃 연결 배포용으로 둠.
+name = "sangkwon"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./public"

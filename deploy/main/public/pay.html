@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>일품집 급여 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1EF; --panel:#FFFFFF; --ink:#1E2622; --sub:#5E6B65; --line:#D5DCD8;
+  --accent:#7A3E12; --accent-ink:#FFFFFF; --warn:#B3261E; --warn-bg:#FBE3E0; --ok:#2F6B3F;
+  --pm:#3C5A86; --edit:#FFF3D6; --edit-line:#C58A2A; --alba:#8A4A00;
+  --field:#FFFFFF; --field-line:#B9C4BE; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#161A18; --panel:#1F2522; --ink:#E7ECE9; --sub:#9AA7A1; --line:#34403A;
+    --accent:#D98B4A; --accent-ink:#1A0F05; --warn:#FF8A80; --warn-bg:#3A1F1C; --ok:#7CC48E;
+    --pm:#8FB0E0; --edit:#3A3220; --edit-line:#D9A24A; --alba:#E7A95C;
+    --field:#2B332F; --field-line:#4A5750; color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=text],input[type=number],input[type=date],input[type=month],select{
+  background:var(--field);color:var(--ink);border:1px solid var(--field-line);border-radius:6px;padding:6px 8px;font-size:15px;min-width:0}
+input::placeholder{color:var(--sub);opacity:.85}
+input:focus,select:focus{border-color:var(--accent);outline:none}
+input.edited,select.edited{background:var(--edit);border-color:var(--edit-line);font-weight:600}
+
+header{position:sticky;top:0;z-index:10;background:var(--panel);border-bottom:1px solid var(--line)}
+.bar{max-width:1180px;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.brand{font-weight:700;font-size:18px;margin-right:auto}
+.brand small{font-weight:500;color:var(--sub);font-size:13px;margin-left:8px}
+main{max-width:1180px;margin:0 auto;padding:16px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--sub)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.sm{padding:3px 9px;font-size:13px}
+.btn.danger{color:var(--warn)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.card h2{font-size:17px;margin:0 0 4px}
+.help{margin:0 0 12px;color:var(--sub);font-size:13.5px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.row label{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--sub)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;white-space:nowrap}
+th{font-size:12.5px;color:var(--sub);font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
+.name{font-weight:600;border:0;background:none;padding:0;text-align:left;color:var(--ink);text-decoration:underline dotted;text-underline-offset:3px}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;padding:0 6px;border-radius:4px;margin-left:4px;vertical-align:1px}
+.tag.alba{background:var(--edit);color:var(--alba)}
+.tag.pm{background:var(--pm);color:var(--panel)}
+.tag.man{background:var(--line);color:var(--ink)}
+.tag.week{background:var(--pm);color:var(--panel);cursor:pointer;border:0}
+.tag.week.off{background:var(--line);color:var(--sub);cursor:pointer;border:0}
+.weeksum{margin-bottom:12px}
+.weeksum td.payday{font-weight:700;color:var(--accent)}
+.rate{width:100px;text-align:right}
+.ck{width:34px;text-align:center}
+.ck input{width:18px;height:18px;accent-color:var(--accent);cursor:pointer}
+.hrs{width:70px;text-align:right}
+.amt{width:110px;text-align:right}
+.money{font-weight:700;font-variant-numeric:tabular-nums}
+.muted{color:var(--sub)}
+.sum{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 14px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px}
+.stat .k{font-size:12.5px;color:var(--sub)}
+.stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat.big{border-color:var(--accent)}
+.stat.big .v{color:var(--accent)}
+.sun{color:var(--warn)} .sat{color:var(--pm)}
+.empty{text-align:center;padding:36px 16px;color:var(--sub)}
+.empty strong{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
+.search{width:200px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30}
+.toast.on{opacity:1}
+#confirmBox{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:16px}
+#confirmBox[hidden]{display:none}
+.cf{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:18px;width:min(380px,100%)}
+.cf h3{margin:0 0 6px;font-size:17px} .cf p{margin:0 0 14px;color:var(--sub);font-size:14px}
+.cf-acts{display:flex;justify-content:flex-end;gap:8px}
+#preview{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column}
+#preview[hidden]{display:none}
+.pv-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+#preview iframe{flex:1;border:0;width:100%;background:#fff}
+.removed td{opacity:.45;text-decoration:line-through}
+.removed td:last-child{opacity:1;text-decoration:none}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+.daily-card{max-width:420px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.daily-head{padding:18px 20px 14px;border-bottom:1px dashed var(--line)}
+.daily-head .dt{font-size:20px;font-weight:700;color:#1E2622}
+.daily-head .sub{font-size:12.5px;color:#8a938d;margin-top:2px}
+.daily-rows{padding:6px 20px}
+.daily-row{padding:11px 0;border-bottom:1px solid #F0F2F0}
+.daily-row .top{display:flex;align-items:center;gap:10px}
+.daily-row .top .nm{flex:1;min-width:0}
+.daily-row .pchk{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#B4541A;white-space:nowrap;cursor:pointer}
+.daily-row .pchk input{width:20px;height:20px;accent-color:#2F7D4F}
+.daily-row.paid .pchk{color:#2F7D4F}
+.daily-row.paid .amt{color:#2F7D4F}
+.daily-row .cmemo{width:100%;margin-top:7px;padding:7px 10px;font-size:13.5px;border:1px solid #E6E8E5;border-radius:8px;background:#FAFAF8;box-sizing:border-box}
+.daily-row:last-child{border-bottom:0}
+.daily-row .nm{font-size:16px;font-weight:600;color:#1E2622}
+.daily-row .hh{font-size:12.5px;color:#8a938d;margin-left:6px}
+.daily-row .amt{font-size:16px;font-weight:700;color:#1E2622;font-variant-numeric:tabular-nums}
+.daily-total{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#FAFAF8;border-top:2px solid #1E2622}
+.daily-total .k{font-size:13.5px;color:#5E6B65;font-weight:600}
+.daily-total .v{font-size:22px;font-weight:800;color:#7A3E12;font-variant-numeric:tabular-nums}
+.daily-empty{padding:40px 20px;text-align:center;color:#8a938d;font-size:14px}
+#dailyCanvasHolder{margin:14px auto 0;max-width:420px;text-align:center}
+#dailyCanvasHolder canvas{max-width:100%;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.12)}
+@media print{header,.noprint,.btn,.toast{display:none!important} body{background:#fff;color:#000} .card{border:0;padding:0} input,select{border:0;background:none!important;padding:0}}
+.srvnote{margin:8px 16px 0;padding:8px 12px;border-radius:10px;background:#FDECEA;color:#9B2C1F;font-weight:600;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">일품집 급여 계산기<small>이 기기에만 저장돼요</small></div>
+    <span id="storeBox" style="font-weight:700;margin-left:6px"></span>
+    <button class="btn primary" id="syncNowBtn">근무표 불러오기</button>
+    <label class="btn" style="cursor:pointer">파일로 불러오기<input type="file" id="fileIn" accept=".json,.xlsx" hidden></label>
+    <select id="monthSel" aria-label="월 선택"></select>
+    <button class="btn" id="dailyBtn">일당 지급</button>
+  </div>
+</header>
+<p id="srvNote" class="srvnote" hidden></p>
+<main id="app"></main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* 근무표 계산 엔진(근무표 앱 core.js 와 똑같은 코드)을 빌드 때 끼워 넣어요. 이름이 겹치지 않게 Core 안에 가둠 */
+const Core=(()=>{
+/* ================= 기본 도구 ================= */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const pad=n=>String(n).padStart(2,'0');
+const ds=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const pd=k=>new Date(k+'T00:00');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,10);
+const DOW=['일','월','화','수','목','금','토'], WD_MON=[1,2,3,4,5,6,0];
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const weekStart=d=>{ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; };
+const weekKey=d=>ds(weekStart(d));
+const md=k=>{ const d=pd(k); return `${d.getMonth()+1}/${d.getDate()}`; };
+const mdw=k=>{ const d=pd(k); return `${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`; };
+const won=v=>Math.round(v||0).toLocaleString('ko-KR')+'원';
+const todayStr=ds(new Date());
+const MINWAGE=10320;   // 2026년 최저시급
+function wonS(v){ if(v==null) return ''; if(v>=10000&&v%1000===0) return (v/10000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'만'; return Math.round(v).toLocaleString('ko-KR')+'원'; }
+function payLbl(p){ if(!p||p.v==null) return ''; return p.k==='hour'?'시급 '+wonS(p.v):p.k==='bonus'?'+'+wonS(p.v):p.k==='month'?'월 '+wonS(p.v):wonS(p.v); }
+let _tt; function toast(m){ const el=$('#toast'); el.textContent=m; el.classList.add('on'); clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('on'),2200); }
+
+/* ---------- 시간 ---------- */
+function tMin(t){ if(!t||typeof t!=='string') return null; const m=t.match(/^(\d{1,2}):(\d{2})$/); return m?(+m[1])*60+(+m[2]):null; }
+function tLbl(t){ const x=tMin(t); if(x==null) return ''; const h=Math.floor(x/60), mi=x%60; const hh=h<10?'오전'+h:(h>12?h-12:h); return hh+'시'+(mi===30?'반':mi?mi+'분':''); }
+function zen(s){ return String(s||'').replace(/[０-９．：]/g,c=>c==='．'?'.':c==='：'?':':String.fromCharCode(c.charCodeAt(0)-0xFEE0)); }
+// "11" "5시반" "17:30" "1730" "오전 9시" → 'HH:MM' (출근 1~9시=오후, 퇴근 1~11시=오후)
+function parseT(raw,isEnd){
+  let s=zen(raw).trim().replace(/\s+/g,''); if(!s) return null;
+  const am=/^오전/.test(s), pmf=/^오후/.test(s); s=s.replace(/^(오전|오후)/,'').replace(/(출근|퇴근|출|퇴)$/,'');
+  let m,h,mi=0,lit=false;
+  if((m=s.match(/^(\d{1,2}):(\d{2})$/))){ h=+m[1]; mi=+m[2]; lit=m[1].length===2&&(m[1][0]==='0'||h>=12); }
+  else if((m=s.match(/^(\d{1,2})(\d{2})$/))){ h=+m[1]; mi=+m[2]; lit=true; }
+  else if((m=s.match(/^(\d{1,2})시?(?:(반)|(\d{1,2})분?)?$/))){ h=+m[1]; mi=m[2]?30:(m[3]?+m[3]:0); }
+  else return null;
+  if(h>24||mi>59) return null;
+  if(pmf&&h<12) h+=12; else if(!am&&!lit&&h<12&&(isEnd?h<=11:h<=9)) h+=12;
+  if(h>=24) return null; return pad(h)+':'+pad(mi);
+}
+function parseWon(raw){ let s=zen(raw).trim().replace(/[,\s원]/g,''); if(!s) return null;
+  const man=/만$/.test(s); s=s.replace(/만$/,''); if(!/^\d+(\.\d+)?$/.test(s)) return NaN;
+  let v=parseFloat(s); if(man||v<1000) v*=10000; return Math.round(v); }
+function shLbl(sh,st){ if(!sh||sh.k==='full') return ''; if(sh.k==='pm') return '오후'; if(sh.k==='am') return '오전';
+  if(sh.k==='t') return tLbl(sh.s)+(sh.e&&sh.e!==(st?st.close:'22:00')?'~'+tLbl(sh.e):''); return ''; }
+function shSame(a,b){ const n=x=>(!x||x.k==='full')?'full':x.k==='pm'?'pm':x.k==='am'?'am':'t'+x.s+'-'+(x.e||''); return n(a)===n(b); }
+function shIsPm(sh,st){ return !!sh&&(sh.k==='pm'||(sh.k==='t'&&tMin(sh.s)>=12*60)); }
+// 근무시간: 영업시간 안쪽만 (급여 계산기와 같은 규칙)
+function hoursOf(st,sh){
+  if(!sh||sh.k==='full') return +st.fullH||10; if(sh.k==='pm') return +st.pmH||5; if(sh.k==='am') return +st.amH||5;
+  const o=tMin(st.open), c=tMin(st.close); let a=tMin(sh.s), b=tMin(sh.e||st.close); if(a==null||b==null) return +st.fullH||10;
+  a=Math.max(o,Math.min(c,a)); b=Math.max(o,Math.min(c,b)); return Math.max(0,Math.round((b-a)/60*100)/100);
+}
+function spanOf(st,sh){ // 타임라인 막대용 [시작분, 끝분]
+  const o=tMin(st.open), c=tMin(st.close);
+  if(!sh||sh.k==='full') return [o,c];
+  if(sh.k==='pm') return [tMin(st.pmStart)||c-300,c];
+  if(sh.k==='am'){ const a=tMin(st.amStart)||720; return [a,Math.min(c,a+60*(+st.amH||5))]; }
+  return [Math.max(o,tMin(sh.s)),Math.min(c,tMin(sh.e||st.close))];
+}
+
+
+/* ================= 매장 데이터 ================= */
+const DEF_POS=[['카운터','#3C5A86',1,1],['홀','#2F6B3F',3,4],['그릴','#B8621B',2,3],['주방','#8A2E2E',3,4],['장치','#5B3F86',0,0],['장잡','#1F6F78',0,0],['배송','#8A6A12',0,0],['주차','#55605A',0,1]];
+const defStore=()=>({name:'',open:'11:00',close:'22:00',fullH:10,pmH:5,pmStart:'17:00',amH:5,amStart:'12:00',fivePlus:true,vis:'week',target:25});
+const defPositions=()=>DEF_POS.map(([name,color,wd,we])=>({name,color,req:[we,wd,wd,wd,wd,wd,we]}));
+const safeColor=c=>/^#[0-9a-fA-F]{3,8}$/.test(String(c||''))?c:'#888888';
+const cleanPositions=a=>Array.isArray(a)? a.filter(p=>p&&typeof p.name==='string').map(p=>Object.assign({},p,{color:safeColor(p.color)})) : [];
+// 본사가 이 계정 비밀번호를 바꾼 뒤 본인이 아직 다시 안 바꿨으면 그 시각(문자열), 아니면 ''
+const pwByHqAt=u=>{ const h=u&&u.app_metadata&&u.app_metadata.pw_by_hq, m=u&&u.user_metadata&&u.user_metadata.pw_self_at; return h&&(!m||m<h)?h:''; };
+const CLOSED_MARK=' (사용 중지)', isClosedName=n=>String(n||'').endsWith(CLOSED_MARK);
+const TYPES={regular:'고정 근무',weekly:'매주 변동',spot:'단기·당일'};
+// 보건증(건강진단결과서): 발급일 hcIss · 만료일 hcExp (만료일을 비우면 발급일 + 1년). 만료 30일 전부터 알림
+// 입사 1년 되는 날 (같은 날짜 다음 해, 2/29 입사는 3/1)
+function oneYear(k){ const m=String(k||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return ''; return ds(new Date(+m[1]+1,+m[2]-1,+m[3])); }
+function hcExpOf(s){ if(!s) return ''; if(s.hcExp) return s.hcExp; if(!s.hcIss) return ''; const m=s.hcIss.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return ''; const d=new Date(+m[1]+1,+m[2]-1,+m[3]); d.setDate(d.getDate()-1); return ds(d); }
+function hcState(s,today){ const exp=hcExpOf(s); if(!exp) return {exp:'',days:null,lv:'none'};
+  const t=today||ds(new Date()); const days=Math.round((new Date(exp+'T00:00')-new Date(t+'T00:00'))/86400000);
+  return {exp,days,lv:days<0?'over':days<=30?'soon':'ok'}; }
+function buildD(items,storeName){
+  const g=k=>items[k]||{}; const cfg=g('cfg');
+  const store=Object.assign(defStore(),cfg.store||{}); if(!store.name) store.name=storeName||'';
+  return {store, positions:(cleanPositions(cfg.positions).length)?cleanPositions(cfg.positions):defPositions(),
+    staff:g('staff'),rules:g('rule'),dc:g('dc'),spot:g('spot'),aw:g('aw'),sales:g('sales'),pay:g('pay')};
+}
+const KIND_OF={staff:'staff',rules:'rule',dc:'dc',spot:'spot',aw:'aw',sales:'sales',pay:'pay'};
+function staffList(D,all){ return Object.values(D.staff).filter(s=>all||s.active!==false).sort((a,b)=>(a.order||0)-(b.order||0)||a.name.localeCompare(b.name,'ko')); }
+
+/* ================= 근무 계산 엔진: 요일 패턴 → 기간 설정 → 주간 입력 → 그날만 ================= */
+function rulesSorted(D){ return Object.values(D.rules).filter(r=>r&&r.from&&Array.isArray(r.ids)).sort((a,b)=>(a.at||0)-(b.at||0)); }
+function ruleHit(r,sid,key,wd){ return r.ids.includes(sid)&&key>=r.from&&key<=(r.to||r.from)&&(!r.days||!r.days.length||r.days.includes(wd)); }
+function resolve(D,d,opt={}){
+  const rules=opt.rules||rulesSorted(D);
+  const key=ds(d), wd=d.getDay(), di=(wd+6)%7, wk=weekKey(d);
+  const list=[], offs=[]; const pnames=D.positions.map(p=>p.name);
+  staffList(D).forEach(s=>{
+    if(s.last&&key>s.last) return;            // 마지막 근무일이 지난 사람은 그 다음 날부터 근무표에서 빠져요 (지난 기록은 그대로)
+    let working=false, reason=null, pos=s.pos, tag=null, sh=null, shSrc='', ruleIds=[], payoff=false, awSh=null, awMissing=false;
+    if(s.type==='weekly'){ const en=(D.aw[wk]||{})[s.id];
+      if(en){ working=!(en.off||[]).includes(di); if(!working) reason='주간휴무';
+        else { const tt=(en.t||{})[di]; if(tt&&tt.s) awSh={k:'t',s:tt.s,e:tt.e||''}; else if((en.pm||[]).includes(di)) awSh={k:'pm'}; } }
+      else awMissing=true; }
+    else if(s.type==='spot'){ working=false; }
+    else { working=!(s.off||[]).includes(wd); if(!working) reason='고정휴무'; }
+    const pat=(s.wk||{})[wd]; if(pat&&pat.sh){ sh=pat.sh; shSrc='pat'; }
+    rules.forEach(r=>{ if(!ruleHit(r,s.id,key,wd)) return; ruleIds.push(r.id);
+      if(r.w==='off'){ working=false; reason=(r.memo&&r.memo.length<=8)?r.memo:'기간휴무'; }
+      else if(r.w==='on'&&!working){ working=true; reason=null; tag='add'; }
+      if(r.pos) pos=r.pos; if(r.sh){ sh=r.sh; shSrc='rule'; } });
+    if(awSh){ sh=awSh; shSrc='week'; }
+    const dc=opt.noDc&&opt.noDc===s.id? null : D.dc[key+'|'+s.id];
+    if(dc){
+      if(dc.st==='off'||dc.st==='annual'){ working=false; reason=dc.st==='annual'?'월차':'휴무'; }
+      else if(dc.st==='extra'){ if(!working) tag='add'; working=true; reason=null; }
+      else if(dc.st==='paidoff'){ working=true; payoff=true; tag='payoff'; reason=null; }
+      if(dc.pos) pos=dc.pos; if(dc.sh){ sh=dc.sh; shSrc='day'; } }
+    if(!pnames.includes(pos)) pos=pnames[0];
+    if(!tag&&pos!==s.pos) tag='chg';
+    if(working) list.push({sid:s.id,name:s.name,nl:s.note||'',type:s.type,pos,tag,sh,shSrc,ruleIds,payoff,memo:(dc&&dc.memo)||''});
+    else if(reason||(awMissing&&!opt.quiet)) offs.push({sid:s.id,name:s.name,reason:reason||'미입력',ruleIds,missing:!reason&&awMissing});
+  });
+  Object.values(D.spot).filter(x=>x&&x.date===key).forEach(x=>{
+    list.push({spotId:x.id,name:x.name,type:'spot',pos:pnames.includes(x.pos)?x.pos:pnames[0],tag:'spot',sh:x.sh||null,shSrc:x.sh?'day':'',ruleIds:[],memo:x.memo||'',nl:x.note||''}); });
+  return {key,wd,list,offs};
+}
+function findItem(D,key,sid,opt={}){ return resolve(D,pd(key),opt).list.find(x=>x.sid===sid)||null; }
+
+/* ---------- 금액 (권한 있는 사람만 D.pay가 채워짐) ---------- */
+function payOf(D,x,key,wd){
+  const P=D.pay||{}; let ov=null, src='';
+  if(x.spotId){ ov=P['spot:'+x.spotId]||null; if(ov) src='day'; return {ov,src,base:null}; }
+  const pat=P['pat:'+x.sid+':'+wd]; if(pat){ ov=pat; src='pat'; }
+  x.ruleIds.forEach(id=>{ const p=P['rule:'+id]; if(p){ ov=p; src='rule'; } });
+  const dp=P['dc:'+key+'|'+x.sid]; if(dp){ ov=dp; src='day'; }
+  return {ov,src,base:P['staff:'+x.sid]||null};
+}
+function costOf(D,x,key,wd){
+  const st=D.store; const h=x.payoff?0:hoursOf(st,x.sh); const {ov,src,base}=payOf(D,x,key,wd);
+  let bc=null; if(base){ if(base.k==='hour') bc=base.v*h; else if(base.k==='day') bc=Math.round(base.v*h/(+st.fullH||10)); else if(base.k==='month') bc=Math.round(base.v/30); }
+  let c=bc; if(ov){ if(ov.k==='day') c=ov.v; else if(ov.k==='hour') c=ov.v*h; else if(ov.k==='bonus') c=(bc||0)+ov.v; }
+  const rate = h>0&&c!=null&&(ov?ov.k!=='bonus':base&&base.k!=='month')? c/h : null;
+  return {h,c,ov,src,base,rate,cash:!!(ov&&ov.cash)};
+}
+
+/* ---------- 한 주 계산 + 노동법 경고 ---------- */
+function reqOf(D,pos,wd){ const p=D.positions.find(x=>x.name===pos); return p&&p.req? (+p.req[wd]||0) : 0; }
+function weekCalc(D,ws,canPay){
+  const rules=rulesSorted(D); const st=D.store; const days=[]; const per={};
+  let reqCells=0, filled=0, shortCells=0, hours=0, cost=0, costKnown=true, sales=0;
+  for(let i=0;i<7;i++){ const d=addDays(ws,i); const R=resolve(D,d,{rules});
+    const by={}; D.positions.forEach(p=>by[p.name]=[]); R.list.forEach(x=>(by[x.pos]=by[x.pos]||[]).push(x));
+    let dh=0, dc=0, dMissing=0, need=0, have=0; const short={};
+    D.positions.forEach(p=>{ const rq=reqOf(D,p.name,R.wd), n=by[p.name].length; need+=rq; have+=Math.min(n,rq); if(rq&&n<rq){ short[p.name]=rq-n; shortCells+=rq-n; } });
+    reqCells+=need; filled+=have;
+    R.list.forEach(x=>{ const k=costOf(D,x,R.key,R.wd); x.h=k.h; x.cost=k; dh+=k.h;
+      if(canPay){ if(k.c==null) dMissing++; else dc+=k.c; }
+      if(x.sid){ const p=per[x.sid]=per[x.sid]||{name:x.name,h:0,days:[]}; p.h+=k.h; p.days.push({key:R.key,h:k.h,rate:k.rate,sh:x.sh}); } });
+    const sv=(D.sales[R.key]||{}).v||0; sales+=sv; hours+=dh; cost+=dc; if(dMissing) costKnown=false;
+    days.push({d,key:R.key,wd:R.wd,R,by,short,hours:dh,cost:dc,costMissing:dMissing,sales:sv,need,have,count:R.list.length});
+  }
+  // 경고
+  const W=[];
+  const P=Object.values(per), nm=l=>l.slice(0,6).join(', ')+(l.length>6?` 외 ${l.length-6}명`:'');
+  const o52=P.filter(p=>p.h>52); if(o52.length) W.push({lv:'bad',t:`주 52시간 넘는 사람 ${o52.length}명`,s:nm(o52.map(p=>`${p.name} ${fmtH(p.h)}h`))+' — 연장근로는 주 12시간까지예요'+(st.fivePlus?'':' (5인 미만 매장은 적용 안 됨)')});
+  P.filter(p=>p.h>=13&&p.h<15).forEach(p=>W.push({lv:'warn',t:`${p.name} 주 ${fmtH(p.h)}시간 — 주휴수당 경계`,s:'주 15시간 이상이면 주휴수당이 생겨요. 의도한 시간인지 확인하세요'}));
+  if(canPay){ const low=[]; P.forEach(p=>{ const d=p.days.filter(x=>x.rate!=null&&x.rate<MINWAGE); if(d.length) low.push(`${p.name} ${won(Math.min(...d.map(x=>x.rate)))}(${d.map(x=>md(x.key)).join(',')})`); });
+    if(low.length) W.push({lv:'bad',t:`시간당 금액이 최저시급(${won(MINWAGE)})보다 낮은 사람 ${low.length}명`,s:low.join(' / ')}); }
+  if(st.fivePlus){ const o8=P.filter(p=>p.days.some(x=>x.h>8)); if(o8.length){ const extra=P.reduce((a,p)=>a+p.days.reduce((b,x)=>b+Math.max(0,x.h-8),0),0);
+    W.push({lv:'info',t:`하루 8시간 넘는 근무 ${o8.length}명 · 연장 합계 ${fmtH(extra)}시간 (가산 50%)`,s:nm(o8.map(p=>p.name))}); } }
+  return {days,per,W,reqCells,filled,shortCells,hours,cost,costKnown,sales,fill:reqCells?filled/reqCells:1};
+}
+const fmtH=h=>(Math.round(h*10)/10).toLocaleString('ko-KR');
+function ratioCls(r,t){ if(r==null) return ''; return r<=t?'ok':r<=t+5?'warn':'bad'; }
+
+return {buildD,resolve,payOf,hoursOf,rulesSorted,tMin,parseT};
+})();
+/* ================== 새 서버 연결 (읽기 전용 · 로그인 필요 · 매장별) ==================
+   근무표 앱과 같은 새 Supabase(ilpum-franchise)의 sch_items 를 읽어서 계산해요. 여기서는 쓰지 않아요.
+   금액(급여)은 권한이 있는 계정(본사=본점 / 점주 / 허용된 매니저)만 읽을 수 있어요. */
+const NEW_URL = 'https://bdqcrbnbuoujozlpttbe.supabase.co';
+const NEW_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcWNyYm5idW91am96bHB0dGJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTU4NDQsImV4cCI6MjEwNjE5MTg0NH0.L8Yuj46Zjg0XNoWeRr-_9xZWKiyHH3-AyC4_3i5p_X8';
+const CONF_KEY='ilpum-fr-conf';
+let SID='', STORES=[], ST=null, READY=false;
+const readConf=()=>{ try{ return JSON.parse(localStorage.getItem(CONF_KEY))||{}; }catch(e){ return {}; } };
+const readSes=()=>{ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; };
+const writeSes=j=>{ try{ const c=readConf(); if(c.ses){ c.ses=j; localStorage.setItem(CONF_KEY,JSON.stringify(c)); } else sessionStorage.setItem('fr-ses',JSON.stringify(j)); }catch(e){} };
+async function freshToken(force){
+  const run=async()=>{ const s=readSes(); if(!s) return null;
+    if(!force && (s.expires_at||0)*1000>Date.now()+60000) return s.access_token;
+    const r=await fetch(NEW_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:NEW_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+    const j=await r.json().catch(()=>({})); if(!r.ok||!j.access_token) return null; writeSes(j); return j.access_token; };
+  return navigator.locks?navigator.locks.request('ilpum-refresh',run):run();
+}
+async function fx(path,opt,retry=true){
+  opt=opt||{}; const tok=await freshToken(false); if(!tok) throw Object.assign(new Error('로그인이 필요해요'),{auth:true});
+  const r=await fetch(NEW_URL+path,{...opt,headers:{apikey:NEW_KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json',...(opt.headers||{})},cache:'no-store'});
+  if(r.status===401&&retry){ const t2=await freshToken(true); if(t2) return fx(path,opt,false); }
+  return r;
+}
+async function jx(path,opt){ const r=await fx(path,opt); if(!r.ok) throw Object.assign(new Error('연결 실패 (HTTP '+r.status+')'),{status:r.status}); return r.json(); }
+let SCHED=null, SCHED_AT=0;       // 받아 온 근무표(메모리에만) — 같은 달을 여러 번 계산해도 서버는 한 번만 읽음
+async function getSchedule(force){
+  if(!READY) throw new Error(ST===null?'로그인이 필요해요':'매장을 확인하지 못했어요');
+  if(!force&&SCHED&&Date.now()-SCHED_AT<5*60*1000) return SCHED;
+  const rows=await jx(`/rest/v1/sch_items?store_id=eq.${SID}&deleted=eq.false&id=not.like.calc:*&select=kind,id,data`);
+  const items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data);
+  SCHED=Core.buildD(items,ST.name); SCHED_AT=Date.now(); return SCHED;
+}
+
+/* ---------- 저장 ---------- */
+let KEY='ilpum-pay-v1';       // 본점은 예전 키 그대로(예전에 입력한 시급·계좌가 이어짐), 다른 매장은 매장별 키
+let pay={ fullH:10, pmH:5, rates:{}, drates:{}, months:{}, schedule:null, cur:'', cycle:{} };
+function loadPay(){
+  pay={ fullH:10, pmH:5, rates:{}, drates:{}, months:{}, schedule:null, cur:'', cycle:{} };
+  try{ const s=localStorage.getItem(KEY); if(s) pay=Object.assign(pay,JSON.parse(s)); }catch(e){}
+  pay.drates=pay.drates||{}; pay.cycle=pay.cycle||{}; pay.fullHs=pay.fullHs||{}; pay.accts=pay.accts||{}; if(pay.showAcct==null) pay.showAcct=true;
+}
+loadPay();
+// 지급 주기: 정하지 않았으면 일급이 없는 사람은 주급(주마다 계산), 일급인 사람은 월급(그 달 일한 날만큼 더함)
+const cycleOf=n=>pay.cycle[n]||(pay.drates[n]!=null?'month':'week');
+const fullOf=n=>(pay.fullHs&&pay.fullHs[n]!=null)? pay.fullHs[n] : pay.fullH;   // 사람별 종일 시간 (없으면 공통 기준)
+const fmtW=v=>Math.round(v).toLocaleString('ko-KR');
+function baseLabel(n){ return pay.drates[n]!=null? '일급 '+fmtW(pay.drates[n]) : (pay.rates[n]!=null? '시급 '+fmtW(pay.rates[n]) : ''); }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(pay)); }catch(e){} srvQueue(); }
+
+/* ---------- 서버 보관 (급여 권한자만 읽고 쓰는 sch_items 의 pay 칸) ----------
+   설정은 'calc:cfg', 달마다 'calc:m:YYYY-MM' 한 줄. 바뀐 줄만 올리고, 열 때는 더 새로운 줄만 받음(전송량 절약).
+   PC를 바꾸거나 브라우저를 정리해도 기록이 남고, 본사 전체 백업에도 들어감. */
+let SENT={}, SRV_AT={}, srvT=null, srvBusy=false, srvFails=0;
+const srvKey=()=>KEY+'-srv';
+const hsh=t=>{ let h=5381; for(let i=0;i<t.length;i++) h=((h<<5)+h+t.charCodeAt(i))|0; return t.length+':'+h; };
+const srvMeta=()=>{ try{ localStorage.setItem(srvKey(),JSON.stringify({at:SRV_AT,sent:SENT})); }catch(e){} };
+function srvRows(){ const {months,...cfg}=pay; const rows={'calc:cfg':cfg}; Object.keys(months||{}).forEach(m=>rows['calc:m:'+m]=months[m]); return rows; }
+function srvQueue(){ if(!READY||!ST||!ST.can_pay) return; clearTimeout(srvT); srvT=setTimeout(srvPush, 1500*Math.pow(2,Math.min(srvFails,5))); }
+async function srvPush(){
+  if(srvBusy){ return srvQueue(); } srvBusy=true;
+  try{
+    const rows=srvRows(), out=[];
+    Object.entries(rows).forEach(([id,d])=>{ const j=hsh(JSON.stringify(d)); if(SENT[id]!==j) out.push({id,data:d,deleted:false,j}); });
+    Object.keys(SENT).forEach(id=>{ if(!(id in rows)&&SENT[id]!==null) out.push({id,data:null,deleted:true,j:null}); });
+    if(!out.length) return;
+    const r=await fx('/rest/v1/sch_items?on_conflict=store_id,kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},
+      body:JSON.stringify(out.map(x=>({store_id:SID,kind:'pay',id:x.id,data:x.data,deleted:x.deleted})))});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const back=await r.json().catch(()=>[]); out.forEach(x=>SENT[x.id]=x.j); (back||[]).forEach(b=>SRV_AT[b.id]=b.updated_at);
+    srvMeta();
+    srvFails=0; setSrvNote('');
+  }catch(e){ srvFails++; setSrvNote('서버에 저장하지 못했어요 — 이 기기에는 남아 있어요. 잠시 뒤 다시 시도해요'); srvQueue(); }
+  finally{ srvBusy=false; }
+}
+// 열 때: 서버 줄의 고친 시각만 먼저 받고, 이 기기 것보다 새로운 줄만 내용까지 받음
+async function srvPull(){
+  if(!READY||!ST||!ST.can_pay) return;
+  let prevSent={}; try{ const m=JSON.parse(localStorage.getItem(srvKey())||'null'); SRV_AT=(m&&m.at)||{}; prevSent=(m&&m.sent)||{}; }catch(e){ SRV_AT={}; }
+  let firstSync=false; try{ firstSync=!localStorage.getItem(srvKey())&&!!localStorage.getItem(KEY); }catch(e){}     // 이 기기에 기록이 있는데 서버와는 처음 맞추는 경우
+  const list=(await jx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.pay&id=like.calc:*&select=id,updated_at,deleted`)).filter(x=>x&&/^calc:(cfg|m:\d{4}-\d{2})$/.test(x.id));
+  SENT={};
+  if(!list.length){ srvQueue(); return; }           // 서버에 아직 없음 → 이 기기 기록을 올림(처음 한 번)
+  const need=list.filter(x=>!x.deleted&&(x.updated_at!==SRV_AT[x.id]||(x.id.startsWith('calc:m:')&&!pay.months[x.id.slice(7)]))).map(x=>x.id);
+  const got={};
+  for(let i=0;i<need.length;i+=20){ const part=need.slice(i,i+20).map(x=>'"'+x+'"').join(',');
+    (await jx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.pay&id=in.(${encodeURIComponent(part)})&select=id,data,updated_at`)).forEach(r=>{ if(need.includes(r.id)) got[r.id]=r; }); }
+  list.forEach(x=>{
+    if(x.deleted){ if(x.id.startsWith('calc:m:')) delete pay.months[x.id.slice(7)]; SENT[x.id]=null; SRV_AT[x.id]=x.updated_at; return; }
+    const g=got[x.id];
+    if(g){
+      if(firstSync){   // 이 기기가 서버와 처음 맞출 때: 이 기기에 있는 값이 이김(빈 기기가 먼저 올린 기본값이 진짜 기록을 덮지 않게), 없는 것만 서버 것으로 채움
+        if(x.id==='calc:cfg'){ const sv=g.data||{}; ['rates','drates','cycle','fullHs','accts','sel'].forEach(k=>{ pay[k]=Object.assign({},sv[k]||{},pay[k]||{}); }); }
+        else if(!pay.months[x.id.slice(7)]) pay.months[x.id.slice(7)]=g.data;
+        SRV_AT[x.id]=g.updated_at; SENT[x.id]='?'; return;      // 합친 결과를 다시 올림
+      }
+      if(x.id==='calc:cfg'){ const keep=pay.months; pay=Object.assign(pay,g.data||{}); pay.months=keep; } else pay.months[x.id.slice(7)]=g.data; SRV_AT[x.id]=g.updated_at; }
+    // 서버에서 새로 받은 줄은 지금 내용이 서버와 같음. 안 받은 줄은 지난번에 올린 값 기준(그 뒤 이 기기에서 고친 게 있으면 다시 올라감)
+    SENT[x.id]= g? hsh(JSON.stringify(x.id==='calc:cfg'? srvRows()['calc:cfg'] : pay.months[x.id.slice(7)])) : (prevSent[x.id]||'?');
+  });
+  pay.drates=pay.drates||{}; pay.cycle=pay.cycle||{}; pay.fullHs=pay.fullHs||{}; pay.accts=pay.accts||{}; pay.months=pay.months||{};
+  try{ localStorage.setItem(KEY,JSON.stringify(pay)); }catch(e){} srvMeta();
+  srvQueue();     // 이 기기에만 있거나 고친 뒤 못 올린 줄이 있으면 올림(같으면 아무것도 안 보냄)     // 이 기기에만 있는 달은 올림
+}
+function setSrvNote(t){ const el=document.getElementById('srvNote'); if(el){ el.textContent=t; el.hidden=!t; } }
+
+const pad=n=>String(n).padStart(2,'0');
+const ds=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const DOW=['일','월','화','수','목','금','토'];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const won=n=>Math.round(n).toLocaleString('ko-KR')+'원';
+const num=v=>{ if(v===''||v==null) return null; const x=+String(v).replace(/[^\d.]/g,''); return isFinite(x)?x:null; };
+let view={ person:'', q:'', daily:null };
+
+/* ---------- 근무표 백업(JSON)에서 그 달 근무 계산 (근무표와 같은 규칙) ---------- */
+function weekKey(d){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()-((x.getDay()+6)%7)); return ds(x); }
+/* ===== 근무 조건 엔진 (근무표·급여 계산기 공통) =====
+   적용 순서: 요일 패턴(매주 기본) → 기간 설정(나중에 만든 것 우선) → 그날만(예외·시간·금액)
+   출근 시간 sh = {k:'full'} 종일 | {k:'pm'} 오후 | {k:'t', s:'11:00', e:'21:00'(없으면 밤 10시)}
+   금액 pay   = {k:'day'|'hour'|'bonus', v:숫자, cash:true(그날 현금)}                     */
+const OPEN_AT='11:00', CLOSE_AT='22:00';
+const tyLbl=t=>t==='pm'?'오후':t==='am'?'오전':'종일';
+function tMin(t){ if(!t||typeof t!=='string') return null; const m=t.match(/^(\d{1,2}):(\d{2})$/); return m? (+m[1])*60+(+m[2]) : null; }
+function tLbl(t){ const x=tMin(t); if(x==null) return ''; const h=Math.floor(x/60), mi=x%60;
+  const hh = h<10? '오전'+h : (h>12? h-12 : h); return hh+'시'+(mi===30?'반':mi?mi+'분':''); }
+// 급여 계산과 같은 규칙: 영업시간(11~22시) 안쪽만 근무시간으로 셈
+function shHours(sh,fullH,pmH){
+  if(!sh||sh.k==='full') return fullH; if(sh.k==='pm') return pmH; if(sh.k==='am') return 5;
+  let a=tMin(sh.s), b=tMin(sh.e||CLOSE_AT); if(a==null||b==null) return fullH;
+  const o=tMin(OPEN_AT), c=tMin(CLOSE_AT); a=Math.max(o,Math.min(c,a)); b=Math.max(o,Math.min(c,b));
+  return Math.max(0,Math.round((b-a)/60*100)/100); }
+function shIsPm(sh){ return !!sh && (sh.k==='pm' || (sh.k==='t' && tMin(sh.s)>=12*60)); }
+function shLbl(sh){ if(!sh||sh.k==='full') return ''; if(sh.k==='pm') return '오후'; if(sh.k==='am') return '오전';
+  if(sh.k==='t') return tLbl(sh.s)+(sh.e&&sh.e!==CLOSE_AT? '~'+tLbl(sh.e) : ''); return ''; }
+function shSame(a,b){ const n=x=>(!x||x.k==='full')? 'full' : x.k==='pm'? 'pm' : x.k==='am'? 'am' : 't'+x.s+'-'+(x.e||CLOSE_AT); return n(a)===n(b); }
+function wonS(v){ if(v==null) return ''; if(v>=10000 && v%1000===0) return (v/10000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'만'; return Math.round(v).toLocaleString('ko-KR')+'원'; }
+function payLbl(p){ if(!p||p.v==null) return ''; return p.k==='hour'? '시급 '+wonS(p.v) : p.k==='bonus'? '+'+wonS(p.v) : wonS(p.v); }
+function condRules(st){ return (Array.isArray(st.rules)? st.rules : []).filter(r=>r&&r.from&&Array.isArray(r.ids)).slice().sort((a,b)=>(a.at||0)-(b.at||0)); }
+function ruleHit(r,sid,key,wd){ return r.ids.includes(sid) && key>=r.from && key<=(r.to||r.from) && (!r.days||!r.days.length||r.days.includes(wd)); }
+function resolveCore(st,d,rules){
+  rules = rules || condRules(st);
+  const key=ds(d), wd=d.getDay(), di=(wd+6)%7, wk=weekKey(d);
+  const exs=(st.ex||[]).filter(e=>e&&e.date===key);
+  const dcs=st.dc||{}, list=[], offs=[];
+  (st.staff||[]).forEach(s=>{
+    let working, reason=null, pos=s.pos, tag=null, exId=null, payoff=false, ruleIds=[];
+    let sh=null, shSrc='', pay=null, paySrc=''; let awSh=null;
+    const pat=(s.wk||{})[wd]||null;
+    if(s.kind==='fixed'){                                   // 고정알바: 그 주에 받은 스케줄
+      const en=((st.aw||{})[wk]||{})[s.id];
+      if(!en) working=false;
+      else { working=!(en.off||[]).includes(di); if(!working) reason='주간휴무';
+        else { const tt=(en.t||{})[di]; if(tt&&tt.s) awSh={k:'t',s:tt.s,e:tt.e||''}; else if((en.pm||[]).includes(di)) awSh={k:'pm'}; } }
+    } else { working=!(s.off||[]).includes(wd); if(!working) reason='고정휴무'; }
+    if(pat){ if(pat.sh){ sh=pat.sh; shSrc='pat'; } if(pat.pay){ pay=pat.pay; paySrc='pat'; } }
+    rules.forEach(r=>{ if(!ruleHit(r,s.id,key,wd)) return; ruleIds.push(r.id);
+      if(r.w==='off'){ working=false; reason=(r.memo&&r.memo.length<=8)? r.memo : '기간휴무'; }
+      else if(r.w==='on' && !working){ working=true; reason=null; tag='add'; }
+      if(r.pos) pos=r.pos;
+      if(r.sh){ sh=r.sh; shSrc='rule:'+r.id; }
+      if(r.pay){ pay=r.pay; paySrc='rule:'+r.id; }
+    });
+    if(awSh){ sh=awSh; shSrc='week'; }                        // 그 주에 받은 시간은 기간 설정보다 우선
+    exs.forEach(e=>{ if(e.staffId!==s.id) return;
+      if(e.type==='월차'||e.type==='휴무'){ working=false; reason=e.type; exId=e.id; }
+      if(e.type==='휴무지급'){ working=true; tag='alba'; payoff=true; exId=e.id; }
+      if(e.type==='추가근무'){ working=true; pos=e.pos||s.pos; tag='add'; exId=e.id; }
+      if(e.type==='근무변경'){ if(working){ pos=e.pos||pos; tag='chg'; exId=e.id; } }
+      if(e.type==='오후출근'){ sh={k:'pm'}; shSrc='day'; }
+    });
+    const dc=dcs[key+'|'+s.id];
+    if(dc){ if(dc.sh){ sh=dc.sh; shSrc='day'; } if(dc.pay){ pay=dc.pay; paySrc='day'; } }
+    if(!tag && pos!==s.pos) tag='chg';
+    if(working) list.push({id:s.id,name:s.name,pos,tag,exId,payoff,fixed:s.kind==='fixed',sh,shSrc,pay,paySrc,ruleIds,pm:shIsPm(sh)});
+    else if(reason) offs.push({id:s.id,name:s.name,reason,exId,ruleIds});
+  });
+  exs.filter(e=>e.type==='당일알바').forEach(e=>{
+    const sh = e.sh || (e.pm? {k:'pm'} : null);
+    list.push({name:e.name,pos:e.pos,tag:'alba',exId:e.id,alba:true,sh,shSrc:sh?'day':'',pay:e.pay||null,paySrc:e.pay?'day':'',ruleIds:[],pm:shIsPm(sh),memo:e.memo||''});
+  });
+  return {key,wd,list,offs};
+}
+/* ===== /근무 조건 엔진 ===== */
+
+// 근무표와 같은 엔진으로 그날 근무자 + 출근 시간(sh) + 금액(pay) 계산
+function workersOn(st,d){
+  const out=[];
+  resolveCore(st,d).list.forEach(x=>{
+    if(x.payoff){ if(x.pay) out.push({name:x.name,flatPay:x.pay}); return; }   // 휴무지급: 근무시간 없이 금액만
+    out.push({name:x.name,pm:!!x.pm,alba:!!x.alba,fixed:!!x.fixed,sh:x.sh,pay:x.pay});
+  });
+  return out;
+}
+// 근무표에서 정한 출근 시간·금액을 그날 기록에 넣기 (영업시간 11~22시 안쪽만 근무시간으로)
+function applyCond(e,w){
+  const sh=w.sh;
+  if(sh&&sh.k==='t'){ let a=tMin(sh.s), b=tMin(sh.e||CLOSE_AT);
+    if(a!=null&&b!=null){ a=Math.max(OPEN_H*60,Math.min(CLOSE_H*60,a)); b=Math.max(OPEN_H*60,Math.min(CLOSE_H*60,b));
+      e.start=a/60; e.hours=Math.max(0,Math.round((b-a)/60*100)/100); e.pm=e.start>=12; } }
+  else if(sh&&sh.k==='pm') e.pm=true;
+  else if(sh&&sh.k==='full') e.pm=false;
+  const p=w.pay; if(p&&p.v>0){ if(p.k==='hour') e.rate=p.v; else if(p.k==='day') e.amt=p.v; else if(p.k==='bonus') e.bonus+=p.v; if(p.cash) e.cash=true; }
+}
+function addFlat(res,raw,key,p){
+  const name=splitName(raw).name||String(raw).trim(); if(!name) return;
+  const P=res[name]=res[name]||{}; const e=P[key]||(P[key]={pm:false,alba:false,bonus:0,work:false});
+  if(p.v>0) e.bonus+=p.v; if(p.cash) e.cash=true;
+}
+const OPEN_H=11, CLOSE_H=22;   // 가게 영업시간: 오전 11시 ~ 밤 10시
+function normText(raw){
+  return String(raw).trim().replace(/[（）]/g,c=>c==='（'?'(':')')
+    .replace(/[０-９．]/g,c=>c==='．'?'.':String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+}
+// 시간·금액 표기를 뽑아내고, 알아본 부분은 문자열에서 지워서 남김(이름 등)을 반환
+function stripAttrs(s){
+  let bonus=0, rate=null, hours=null, start=null, m;
+  const cut=()=>{ s=(s.slice(0,m.index)+' '+s.slice(m.index+m[0].length)).trim(); };
+  const toH=v=>{ let h=parseFloat(v); if(h<10) h+=12; return h; };   // 1~9시→오후, 10~12시는 그대로 (영업시간 안에서만 쓰이므로)
+  // "11-9"·"11~9"·"11시-9시" → 오전 11시부터 밤 9시까지 근무 (10시간). 영업시간(11~22시) 밖으로는 안 나가게 안쪽으로 붙여요.
+  while((m=s.match(/\(?\s*(?<!\d)(\d{1,2}(?:\.\d+)?)\s*시?\s*[-~]\s*(\d{1,2}(?:\.\d+)?)(?!\d)\s*시?\s*\)?/))){
+    let sh=toH(m[1]), eh=toH(m[2]);
+    sh=Math.max(OPEN_H,Math.min(CLOSE_H,sh)); eh=Math.max(OPEN_H,Math.min(CLOSE_H,eh));
+    start=sh; hours=Math.max(0,Math.round((eh-sh)*100)/100); cut(); }
+  // "5시출" → 오후 5시~밤 10시 = 5시간 / "11시출" → 오전 11시~밤 10시 = 11시간
+  // 1~9시는 오후, 10·11·12시는 그대로 (5시반출·5시30분출·5시 출근도 가능)
+  while((m=s.match(/\(?\s*(\d{1,2}(?:\.\d+)?)\s*시\s*(?:(반)|(\d{1,2})\s*분)?\s*출근?\s*\)?/))){
+    let h=toH(m[1]); if(m[2]) h+=0.5; else if(m[3]) h+=(+m[3])/60;
+    h=Math.max(OPEN_H,Math.min(CLOSE_H,h));
+    start=h; hours=Math.max(0,Math.round((CLOSE_H-h)*100)/100); cut(); }
+  while((m=s.match(/\(?\s*(\d+(?:\.\d+)?)\s*만\s*원?\s*\)?/))){ rate=Math.round(parseFloat(m[1])*10000); cut(); }
+  while((m=s.match(/\(?\s*(\d+(?:\.\d+)?)\s*시간\s*\)?/))){ hours=parseFloat(m[1]); cut(); }
+  while((m=s.match(/\(\s*(\d{1,2}(?:\.\d+)?)\s*\)/))){ bonus+=Math.round(parseFloat(m[1])*10000); cut(); }
+  return {s, bonus, rate, hours, start};
+}
+function splitName(raw){
+  // "홍길동1.1만" → 그 날 시급 11,000원 / "홍길동3시간" → 그 날 3시간 근무
+  // "홍길동6.5"·"홍길동(3.5)" → 그 날 금액 65,000원만 (근무시간 없음)   ※ 괄호·숫자 전각 모두 가능
+  const r=stripAttrs(normText(raw)); let s=r.s, bonus=r.bonus, m;
+  if((m=s.match(/^(.*?[^\d.\s])\s*(\d{1,2}(?:\.\d+)?)$/))){ bonus+=Math.round(parseFloat(m[2])*10000); s=m[1]; }
+  return {name:s.replace(/\s+/g,' ').trim(), bonus, rate:r.rate, hours:r.hours, start:r.start};
+}
+// 메모탭용: 이름 없이 순수 메모만 있을 때 (예: "6.5" 하나만 있으면 그대로 보너스로 인식)
+function parseNote(raw){
+  const r=stripAttrs(normText(raw)); let s=r.s, bonus=r.bonus, rate=r.rate, hours=r.hours, start=r.start;
+  // 다른 특이사항 글자가 같이 있어도, 앞뒤가 공백(또는 문장의 시작/끝)인 1~2자리 숫자는 금액으로 인식
+  // 예: "6.5 오늘 늦게옴" · "연락처 010-1234 지각 6.5" 모두 인식. 전화번호처럼 다른 숫자에 붙어있으면 무시.
+  s=s.replace(/일당백\s*(?=\d)/g,'일당백 ');     // '일당백7' = 7만원 (일당백은 표기)
+  const m=s.match(/(?:^|\s)(\d{1,2}(?:\.\d+)?)(?:\s|$)/);
+  if(m){
+    bonus+=Math.round(parseFloat(m[1])*10000);
+    // "6.5 / 5시간"처럼 금액과 시간이 같이 적혀 있으면, 그 금액이 그날 일당 전체라는 뜻이라
+    // 다른 시간·시급 정보는 무시하고 순수 일당(그 금액만)으로 처리 — 주급·월급 시간에 안 들어감
+    rate=null; hours=null; start=null;
+  }
+  return {bonus, rate, hours, start, dayPay: !!m};
+}
+function addEntry(res,raw,key,pm,alba){
+  const {name,bonus,rate,hours,start}=splitName(raw); if(!name) return; if(start!=null) pm=start>=12;   // 12시 이후 출근 = 오후, 10·11시 출근 = 종일
+  const p=res[name]=res[name]||{}; const e=p[key]||(p[key]={pm:false,alba:false,bonus:0,work:false});
+  e.bonus+=bonus;
+  if(!bonus||rate!=null||hours!=null){ e.work=true; e.pm=pm; e.alba=e.alba||alba; }   // 금액만 적힌 게 아니면 실제 근무
+  if(rate!=null) e.rate=rate; if(hours!=null) e.hours=hours; if(start!=null) e.start=start;
+  return e;
+}
+// 메모 탭 한 줄(이름·날짜가 이미 정해진 상태) 적용: 스케줄 표에 없던 날도 메모만으로 추가될 수 있음
+function applyNote(res,name,key,noteText){
+  name=String(name||'').trim(); if(!name||!key) return;
+  const {bonus,rate,hours,start,dayPay}=parseNote(noteText); if(!bonus&&rate==null&&hours==null&&start==null) return;
+  const p=res[name]=res[name]||{}; const e=p[key]||(p[key]={pm:false,alba:false,bonus:0,work:false});
+  e.bonus+=bonus; if(dayPay) e.noteDay=true;   // 메모에 숫자만 = 그 날 일급
+  if(rate!=null) e.rate=rate; if(hours!=null) e.hours=hours;
+  if(start!=null){ e.start=start; e.pm=start>=12; }
+  if(rate!=null||hours!=null||start!=null) e.work=true;   // 시간·시급·출근시각이 있으면 실제 근무로 인정
+}
+function xlsxDateKey(cell,fallbackY,fallbackM){
+  const v=cell&&cell.value;
+  if(v instanceof Date) return `${v.getFullYear()}-${pad(v.getMonth()+1)}-${pad(v.getDate())}`;
+  const t=cellText(cell).trim(); let mm;
+  if((mm=t.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/))) return `${mm[1]}-${pad(+mm[2])}-${pad(+mm[3])}`;
+  if((mm=t.match(/^(\d{1,2})[.\-\/](\d{1,2})$/)) && fallbackY) return `${fallbackY}-${pad(+mm[1])}-${pad(+mm[2])}`;
+  if((mm=t.match(/^(\d{1,2})\s*월\s*(\d{1,2})\s*일?$/)) && fallbackY) return `${fallbackY}-${pad(+mm[1])}-${pad(+mm[2])}`;
+  if((mm=t.match(/^(\d{1,2})$/)) && fallbackY && fallbackM) return `${fallbackY}-${pad(fallbackM)}-${pad(+mm[1])}`;   // 날짜만 적힌 경우(일자만)
+  return null;
+}
+function readNotesTab(ws,res,y,m){
+  if(!ws) return 0;
+  let hdr=null;
+  for(let r=1;r<=Math.min(3,ws.rowCount);r++){ const a=cellText(ws.getCell(r,1)).trim(); if(a==='날짜'){ hdr=r; break; } }
+  const startRow=(hdr||1)+ (hdr?1:0);
+  let n=0;
+  for(let r=startRow;r<=ws.rowCount;r++){
+    const name=cellText(ws.getCell(r,2)).trim(); const note=cellText(ws.getCell(r,4)).trim();
+    if(!name && !note) continue;
+    const key=xlsxDateKey(ws.getCell(r,1), y, m); if(!key||!name||!note) continue;
+    applyNote(res,name,key,note); n++;
+  }
+  return n;
+}
+function workFromJson(st,ym){
+  const [y,m]=ym.split('-').map(Number); const last=new Date(y,m,0).getDate(); const res={};
+  for(let i=1;i<=last;i++){ const d=new Date(y,m-1,i);
+    const key=ds(d);
+    workersOn(st,d).forEach(w=>{ if(w.flatPay) return addFlat(res,w.name,key,w.flatPay);
+      const e=addEntry(res,w.name,key,w.pm,w.alba); if(e) applyCond(e,w); }); }
+  // 근무표에 직접 써둔 메모("6.5"·"5시출"·"11-9" 등)도 반영
+  // ① 직원·고정알바: state.notes 에 "날짜|직원ID"로 저장됨
+  if(st.notes && typeof st.notes==='object'){
+    const byId={}; (st.staff||[]).forEach(s=>byId[s.id]=s.name);
+    Object.keys(st.notes).forEach(key=>{
+      const note=st.notes[key]; if(!note) return;
+      const bar=key.indexOf('|'); if(bar<0) return;
+      const date=key.slice(0,bar), staffId=key.slice(bar+1);
+      if(!date.startsWith(ym)) return;
+      const name=byId[staffId]; if(!name) return;
+      applyNote(res,name,date,note);
+    });
+  }
+  // ② 당일알바: 직원 목록에 없고, 그날 예외(ex) 항목 자체에 memo 칸이 따로 있음
+  (st.ex||[]).forEach(e=>{
+    if(e.type!=='당일알바' || !e.memo) return;
+    if(!e.date || !e.date.startsWith(ym)) return;
+    applyNote(res, e.name, e.date, e.memo);
+  });
+  // ③ 휴무지급: 혹시 메모가 예외 항목 자체(ex.memo)에 저장된 경우도 같이 확인
+  if(Array.isArray(st.staff)){
+    const byId2={}; st.staff.forEach(s=>byId2[s.id]=s.name);
+    (st.ex||[]).forEach(e=>{
+      if(e.type!=='휴무지급' || !e.memo || !e.staffId) return;
+      if(!e.date || !e.date.startsWith(ym)) return;
+      const name=byId2[e.staffId]; if(!name) return;
+      applyNote(res, name, e.date, e.memo);
+    });
+  }
+  return res;
+}
+
+/* ---------- 근무표 엑셀(엑셀로 받기)에서 읽기 ---------- */
+function loadScript(src){ return new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=no; document.head.appendChild(s); }); }
+function cellText(c){ const v=c&&c.value; if(v==null) return ''; if(typeof v==='object'){ if(v.richText) return v.richText.map(t=>t.text).join(''); if(v.text) return String(v.text); if(v.result!=null) return String(v.result); } return String(v); }
+async function workFromXlsx(buf){
+  if(!window.ExcelJS) await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+  const wb=new ExcelJS.Workbook(); await wb.xlsx.load(buf);
+  const ws=wb.worksheets.find(w=>/스케줄/.test(w.name))||wb.worksheets[0];
+  let y=null,m=null;
+  ws.eachRow(r=>r.eachCell(c=>{ const t=cellText(c); const mm=t.match(/(\d{4})년\s*(\d{1,2})월/); if(mm&&!y){ y=+mm[1]; m=+mm[2]; } }));
+  if(!y) throw new Error('엑셀에서 연·월을 찾지 못했어요');
+  const res={}, H=/^(\d{1,2})\/(\d{1,2})\s*\(/;
+  const maxR=ws.rowCount, maxC=ws.columnCount;
+  for(let r=1;r<=maxR;r++) for(let c=1;c<=maxC;c++){
+    const cell=ws.getCell(r,c); if(cell.isMerged && cell.master!==cell) continue;
+    const h=cellText(cell).match(H); if(!h) continue;
+    const mon=+h[1], day=+h[2]; if(mon!==m) continue;
+    const key=`${y}-${pad(mon)}-${pad(day)}`;
+    for(let rr=r+1; rr<=Math.min(maxR,r+20); rr++){
+      const a=cellText(ws.getCell(rr,c)).trim();
+      if(H.test(a) || a.startsWith('휴무')) break;
+      const b=cellText(ws.getCell(rr,c+1));
+      if(!b.trim()) continue;
+      const cellB=ws.getCell(rr,c+1); const rich=cellB.value&&cellB.value.richText;
+      // 당일알바는 굵은 주황 글씨로 저장돼 있음
+      const boldNames=new Set(); if(rich) rich.forEach(t=>{ if(t.font&&t.font.bold) boldNames.add(t.text.replace(/\(오후\)/,'').trim()); });
+      b.split(',').map(x=>x.trim()).filter(Boolean).forEach(nm=>{
+        const pm=/\(오후\)/.test(nm); const name=nm.replace(/\(오후\)/,'').trim();
+        addEntry(res,name,key,pm,boldNames.has(name));
+      });
+    }
+  }
+  const notesWs=wb.worksheets.find(w=>/메모/.test(w.name));
+  const notesN=readNotesTab(notesWs,res,y,m);
+  return {ym:`${y}-${pad(m)}`, work:res, notesN};
+}
+
+/* ---------- 달 데이터 합치기 (수정한 내용은 유지) ---------- */
+function applyWork(ym,work,src,quiet){
+  const mon=pay.months[ym]||(pay.months[ym]={people:{}});
+  const P=mon.people;
+  // 예전에 불러온 날 중 이번 근무표에 없는 날은 지움 (직접 추가한 날은 유지)
+  Object.keys(P).forEach(n=>{ Object.keys(P[n].days).forEach(dt=>{ const d=P[n].days[dt]; if(d.base && !(work[n]&&work[n][dt])) delete P[n].days[dt]; }); });
+  Object.keys(work).forEach(n=>{ const p=P[n]||(P[n]={days:{}});
+    Object.keys(work[n]).forEach(dt=>{ const w=work[n][dt]; const d=p.days[dt]||(p.days[dt]={});
+      d.base=w.pm?'pm':w.am?'am':'full'; d.alba=!!w.alba; d.bonus=w.bonus||0; d.flat=!w.work; if(w.noteDay) d.noteDay=true; else delete d.noteDay;
+      if(w.hours!=null) d.baseH=w.hours; else delete d.baseH;
+      if(w.rate!=null) d.baseR=w.rate; else delete d.baseR;
+      if(w.start!=null) d.baseS=w.start; else delete d.baseS;
+      if(w.amt!=null) d.baseAmt=w.amt; else delete d.baseAmt;
+      if(w.cash) d.cash=true; else delete d.cash; }); });
+  Object.keys(P).forEach(n=>{ if(!Object.keys(P[n].days).length) delete P[n]; });
+  mon.src=src; mon.at=Date.now();
+  if(quiet) return;
+  pay.cur=ym; save(); render();
+}
+
+/* ---------- 내보낼 사람 선택 (이름별로 저장) ---------- */
+function isSel(n){ pay.sel=pay.sel||{}; if(pay.sel[n]!=null) return !!pay.sel[n]; if(pay.rates[n]!=null||pay.drates[n]!=null) return true;
+  const mon=pay.months[pay.cur]; const p=mon&&mon.people[n]; return !!(p&&Object.values(p.days).some(d=>d.baseR!=null||d.baseAmt!=null)); }
+function selectedNames(){ const mon=pay.months[pay.cur]; return Object.keys(mon.people).filter(isSel).sort((a,b)=>a.localeCompare(b,'ko')); }
+
+/* ---------- 계산 ---------- */
+function dayCalc(name,d){
+  const type=d.type||d.base||'full';
+  const hasAmt = d.baseAmt!=null;                             // 근무표(요일 패턴·기간 설정·이 날만)에서 정한 그날 금액
+  const amtOverMemo = (hasAmt || d.amount!=null) && !!d.noteDay;      // 메모 숫자와 근무표 금액이 겹치면 근무표 금액만 (두 번 더하지 않음)
+  const bonus = d.bonusOv!=null? d.bonusOv : (amtOverMemo? 0 : (d.bonus||0));
+  const flat = !!d.flat && d.hours==null && !d.type;   // 이름+숫자만 있는 날: 근무시간 없이 추가금만
+  const hours = flat? 0 : (d.hours!=null? d.hours : (d.baseH!=null? d.baseH : (type==='pm'?pay.pmH:fullOf(name))));
+  // 메모에 일급(숫자만, 예: 6.5): 메모 금액이 그 날 일당 전체 → 시급×시간이나 기본 일급을 더하지 않음 (그 날 시급을 직접 고친 경우만 예외). 당일알바든 고정이든 같아요.
+  const memoDay = !hasAmt && !!d.noteDay && d.amount==null && d.bonusOv==null;
+  // 우선순위: 그 날 시급(직접 입력·근무표 1.1만) > 기본 일급 > 기본 시급
+  const dayR = memoDay? null : (d.rate!=null? d.rate : (d.baseR!=null? d.baseR : null));
+  const drate = dayR==null? (pay.drates[name]??null) : null;   // 일급: 종일은 그대로, 시간이 다르면 시간 비례
+  const rate = dayR!=null? dayR : (drate!=null? null : (pay.rates[name]??null));
+  let base = d.amount!=null? d.amount : hasAmt? d.baseAmt : ((flat||memoDay)? 0 : (drate!=null? Math.round(drate*hours/(fullOf(name)||10)) : (rate!=null? hours*rate : null)));
+  const amount = base==null? (bonus? bonus : null) : base+bonus;
+  return memoDay? {type,hours,rate:null,drate:null,base,amount,bonus,flat,memoDay,missing:false}
+               : {type,hours,rate:hasAmt&&d.amount==null?null:rate,drate:hasAmt&&d.amount==null?null:drate,base,amount,bonus,flat,fixedAmt:hasAmt,amtOverMemo,missing: base==null};
+}
+function personCalc(name){
+  const p=pay.months[pay.cur].people[name]; let full=0,pm=0,h=0,sum=0,missing=false,alba=false,edited=false;
+  let bonus=0;
+  Object.keys(p.days).forEach(dt=>{ const d=p.days[dt]; if(d.removed) return; const c=dayCalc(name,d);
+    if(!c.flat){ if(c.type==='pm') pm++; else full++; } h+=c.hours; bonus+=c.bonus; if(c.missing) missing=true; if(c.amount!=null) sum+=c.amount;
+    if(d.alba) alba=true; if(d.type||d.hours!=null||d.rate!=null||d.amount!=null||d.bonusOv!=null||!d.base) edited=true; });
+  return {full,pm,h,sum,missing,alba,edited,bonus};
+}
+
+/* ---------- 주급 집계 (그 주의 마지막 근무일 = 급여일) ---------- */
+function weekNo(dateOrKey){
+  const [y,m]=pay.cur.split('-').map(Number);
+  const firstWk=new Date(weekKey(new Date(y,m-1,1))+'T00:00');
+  const wk=typeof dateOrKey==='string'&&dateOrKey.length>7 ? weekKey(new Date(dateOrKey+'T00:00')) : dateOrKey;
+  const cur=new Date(wk+'T00:00');
+  return Math.round((cur-firstWk)/(7*86400000))+1;
+}
+function weeklyBreakdown(name){
+  const p=pay.months[pay.cur].people[name]; if(!p) return [];
+  const weeks={};
+  Object.keys(p.days).sort().forEach(dt=>{
+    const d=p.days[dt]; if(d.removed) return; const c=dayCalc(name,d);
+    const wk=weekKey(new Date(dt+'T00:00'));
+    const g=weeks[wk]=weeks[wk]||{key:wk,no:weekNo(wk),dates:[],h:0,sum:0,bonus:0,cnt:0,lastWork:null};
+    g.dates.push(dt); g.h+=c.hours; g.bonus+=c.bonus; if(c.amount!=null) g.sum+=c.amount;
+    if(!c.flat){ g.cnt++; g.lastWork=dt; }
+  });
+  return Object.keys(weeks).sort().map(k=>weeks[k]);
+}
+function fmtMD(dt){ const d=new Date(dt+'T00:00'); return `${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`; }
+
+/* ---------- 일당(당일 현금) 지급 목록 ---------- */
+// 당일알바(alba)로 표시됐거나, 근무표에 "이름+숫자"만 적힌 사람(그 날 금액만·시간 없음)을 그 날 지급 대상으로 봄
+const fmtMan=v=>{ const m=Math.round(v/1000)/10; return (Number.isInteger(m)?m:m.toFixed(1))+'만'; };
+function dailyPayoutRows(dateStr){
+  const mon=pay.months[pay.cur]; if(!mon||!dateStr) return [];
+  const out=[];
+  Object.keys(mon.people).forEach(n=>{
+    const p=mon.people[n]; const d=p.days[dateStr]; if(!d||d.removed) return;
+    const k=dayCalc(n,d);
+    // 메모에 일당(숫자만, 예: 6.5)이 적힌 사람, 또는 근무표에서 그날 현금으로 정한 사람만 나와요. 메모에 일당이 없으면(당일알바 포함) 월급·주급 계산에만 들어가요.
+    if(k.memoDay || d.noteDay || d.cash){
+      // 메모 숫자(예: 7 = 7만원)가 있으면 근무표에 금액이 따로 있어도 일당 지급 대상. 두 금액이 다르면 표시해서 확인하게 함
+      const memoAmt = d.noteDay ? (d.bonus||0) : 0;
+      const diff = d.noteDay && !k.memoDay && memoAmt>0 && k.amount!=null && Math.round(memoAmt)!==Math.round(k.amount);
+      out.push({name:n, hours:k.hours, amount:k.amount||0, tag:(k.memoDay||d.noteDay)?(diff?`메모 ${fmtMan(memoAmt)} ≠ 금액 ${fmtMan(k.amount)} 확인`:'메모 일급'):'근무표 현금', warn:!!diff});
+    }
+  });
+  out.forEach(r=>{ const c=cashRec(dateStr,r.name); if(c.amt!=null){ r.calcAmt=r.amount; r.amount=c.amt; r.edited=true; r.warn=false; r.tag='직접 수정'; } r.paid=!!c.paid; r.memo=c.memo||''; r.acctSaved=pay.accts[r.name]||''; r.acct=pay.showAcct? r.acctSaved : ''; });
+  // 일당 화면에서 직접 추가한 사람(예: 3일치를 한 번에 지급) — 근무표와 상관없이 그날 목록에 들어감
+  ((mon.extra||{})[dateStr]||[]).forEach(x=>{ out.push({name:x.name,hours:0,amount:+x.amount||0,tag:(x.days>1?x.days+'일치':'직접 추가'),eid:x.id,paid:!!x.paid,memo:x.memo||'',acctSaved:pay.accts[x.name]||'',acct:pay.showAcct?(pay.accts[x.name]||''):''}); });
+  return out.sort((a,b)=>a.name.localeCompare(b.name,'ko')||(a.eid?1:0)-(b.eid?1:0));
+}
+function cashRec(dateStr,name){ const mon=pay.months[pay.cur]; const c=(mon.cash||{})[dateStr]||{}; return c[name]||{}; }
+function setCash(dateStr,name,patch){ const mon=pay.months[pay.cur]; mon.cash=mon.cash||{}; const c=mon.cash[dateStr]=mon.cash[dateStr]||{};
+  const r=Object.assign({},c[name]||{},patch); if(!r.paid) delete r.paid; if(!r.memo) delete r.memo; if(r.amt==null) delete r.amt;
+  if(Object.keys(r).length) c[name]=r; else delete c[name]; if(!Object.keys(c).length) delete mon.cash[dateStr]; save(); }
+function dailyDateBounds(){
+  const [y,m]=pay.cur.split('-'); return {min:`${pay.cur}-01`, max:`${pay.cur}-${pad(new Date(+y,+m,0).getDate())}`};
+}
+
+function dailyView(dateStr){
+  const rows=dailyPayoutRows(dateStr); const bd=dailyDateBounds();
+  const tot=rows.reduce((a,r)=>a+r.amount,0); const paidSum=rows.filter(r=>r.paid).reduce((a,r)=>a+r.amount,0);
+  const dd=new Date(dateStr+'T00:00');
+  return `<div class="card noprint" style="margin-bottom:14px">
+    <div class="row" style="align-items:center">
+      <button class="btn" data-dailyback="1">← 목록으로</button>
+      <label>날짜<input type="date" id="dailyDate" value="${dateStr}" min="${bd.min}" max="${bd.max}"></label>
+      <label style="flex-direction:row;align-items:center;gap:6px;font-weight:600;cursor:pointer"><input type="checkbox" data-showacct="1" ${pay.showAcct?'checked':''} style="width:20px;height:20px">계좌 보이기</label>
+      <span style="flex:1"></span>
+      <button class="btn" id="dailyCopy">텍스트 복사</button>
+      <button class="btn primary" id="dailySave">이미지로 저장</button>
+    </div>
+    <p class="help" style="margin:10px 0 0">근무표 <b>메모에 일당(숫자, 예: 6.5 · 7 · 일당백7)</b>이 적힌 사람(근무표에 금액이 따로 있어도 나와요), 또는 근무표에서 <b>그날 현금</b>으로 정한 사람이 나와요. 메모 숫자와 금액이 다르면 <b style="color:#B4541A">주황색 "확인"</b> 표시가 떠요. 메모에 일당이 없는 사람은 월급·주급 계산에만 들어가요. 빠진 사람은 아래 <b>사람 추가</b>로 넣을 수 있어요.</p>
+  </div>
+  <div class="card noprint" style="margin-bottom:14px" id="xAddCard">
+    <h3 style="margin:0 0 6px;font-size:16px">사람 추가 <span class="muted" style="font-size:13px;font-weight:500">이 날(${dd.getMonth()+1}/${dd.getDate()}) 일당 목록에 직접 넣기 · 며칠치를 한 번에 줄 때도 써요</span></h3>
+    <div class="row" style="align-items:flex-end">
+      <label>이름<input type="text" id="xName" list="xNames" placeholder="이름" autocomplete="off" style="width:130px"></label>
+      <datalist id="xNames">${Object.keys((pay.months[pay.cur]||{people:{}}).people).sort((a,b)=>a.localeCompare(b,'ko')).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+      <label>며칠치<input type="number" id="xDays" min="1" step="1" value="1" style="width:70px"></label>
+      <label>하루 금액<input type="text" inputmode="numeric" id="xPer" class="rate" placeholder="예: 110,000"></label>
+      <label>합계 금액<input type="text" inputmode="numeric" id="xTotal" class="rate" placeholder="며칠치 × 하루 금액"></label>
+      <label style="flex:1;min-width:150px">비고<input type="text" id="xMemo" placeholder="예: 10/1~10/3 3일치"></label>
+      <button class="btn primary" data-act="xadd">+ 추가</button>
+    </div>
+    <div class="row" style="align-items:flex-end;margin-top:8px">
+      <label>근무 형태<select id="xShift"><option value="">직접 금액</option><option value="full">종일</option><option value="pm">오후</option><option value="am">오전</option><option value="t">시간 지정</option></select></label>
+      <label id="xTWrap" hidden>출근~퇴근<span class="row" style="gap:4px"><input type="text" id="xT1" placeholder="12" style="width:64px"><span>~</span><input type="text" id="xT2" placeholder="17" style="width:64px"></span></label>
+      <label>시급<input type="text" inputmode="numeric" id="xRate" class="rate" placeholder="비우면 저장된 시급·일급" style="width:150px"></label>
+      <span class="muted" id="xHint" style="font-size:13px;padding-bottom:8px">형태를 고르면 시간×시급으로 하루 금액이 채워져요 (비고에 숫자만 있으면 그 금액이 하루 전체)</span>
+    </div>
+    <div class="row" style="align-items:flex-end;margin-top:8px">
+      <span class="muted" style="font-size:13px;padding-bottom:8px">근무표에서 계산 →</span>
+      <label>시작<input type="date" id="xFrom" value="${addD(dateStr,-2)}"></label><label>끝<input type="date" id="xTo" value="${dateStr}"></label>
+      <button class="btn" data-act="xcalc">이름의 그 기간 근무 합계 불러오기</button>
+    </div>
+    <p class="help" style="margin:8px 0 0">① 이름·며칠치·하루 금액을 넣으면 합계가 자동으로 계산돼요(합계를 직접 고쳐도 돼요). ② 이름이 근무표에 있으면 <b>기간을 정해 합계를 불러올</b> 수도 있어요. 추가한 줄은 아래 목록에 들어가고 이미지·텍스트 복사에도 나와요.</p>
+  </div>
+  <div class="daily-card">
+    <div class="daily-head"><div class="dt">${dd.getMonth()+1}월 ${dd.getDate()}일 (${DOW[dd.getDay()]}) 일당 지급</div><div class="sub">${rows.length}명 · 지급완료 ${rows.filter(r=>r.paid).length}명${rows.length?` · 미지급 ${won(tot-paidSum)}`:''}</div></div>
+    <div class="daily-rows">${rows.length? rows.map(r=>`<div class="daily-row${r.paid?' paid':''}"><div class="top"><label class="pchk"><input type="checkbox" ${r.eid?`data-xpaid="${esc(r.eid)}"`:`data-cashpaid="${esc(r.name)}"`} ${r.paid?'checked':''}><span>${r.paid?'지급완료':'미지급'}</span></label><div class="nm">${esc(r.name)}${r.hours?`<span class="hh">${fmtH(r.hours)}시간</span>`:''}${r.tag?`<span class="hh"${r.warn?' style="color:#B4541A;font-weight:700"':''}>${esc(r.tag)}</span>`:''}</div><div class="amt">${won(r.amount)}</div></div>
+      ${pay.showAcct?`${r.acctSaved?`<button class="btn sm" data-copyacct="${esc(r.name)}" style="margin-top:7px;float:right;margin-left:6px">계좌 복사</button>`:''}<input type="text" class="cmemo" data-acct="${esc(r.name)}" value="${esc(r.acctSaved)}" style="${r.acctSaved?'width:calc(100% - 90px)':''}"`:'<input type="hidden"'} placeholder="계좌 (예: 국민 123-456-789 홍길동) · 한 번 넣으면 저장돼요">
+      <input type="text" class="cmemo" ${r.eid?`data-xmemo="${esc(r.eid)}"`:`data-cashmemo="${esc(r.name)}"`} value="${esc(r.memo)}" placeholder="비고 (예: 계좌이체, 내일 지급)">
+      ${!r.eid?`<div class="row noprint" style="margin-top:6px;align-items:center"><label>금액<input type="text" inputmode="numeric" class="rate" data-cashamt="${esc(r.name)}" value="${r.amount.toLocaleString('ko-KR')}"></label>${r.edited?`<button class="btn sm" data-cashamtreset="${esc(r.name)}">원래대로 (${won(r.calcAmt)})</button>`:''}</div>`:''}
+      ${r.eid?`<div class="row noprint" style="margin-top:6px;align-items:center"><label>금액<input type="text" inputmode="numeric" class="rate" data-xamt="${esc(r.eid)}" value="${r.amount.toLocaleString('ko-KR')}"></label><button class="btn sm danger" data-xdel="${esc(r.eid)}">이 줄 삭제</button></div>`:''}</div>`).join('')
+      : `<div class="daily-empty">이 날 지급할 일당 근무자가 없어요.</div>`}</div>
+    ${rows.length?`<div class="daily-total"><div class="k">합계</div><div class="v">${won(tot)}</div></div>`:''}
+  </div>
+  <div id="dailyCanvasHolder"></div>`;
+}
+let dailyFont=false;
+async function drawDailyCanvas(){
+  const holder=document.getElementById('dailyCanvasHolder'); if(!holder) return;
+  if(!dailyFont){ try{ await document.fonts.load('700 20px "IBM Plex Sans KR"'); await document.fonts.load('600 16px "IBM Plex Sans KR"'); await document.fonts.ready; }catch(e){} dailyFont=true; }
+  const dateStr=view.daily; const rows=dailyPayoutRows(dateStr); const tot=rows.reduce((a,r)=>a+r.amount,0);
+  const dd=new Date(dateStr+'T00:00');
+  const DPR=Math.min(3,window.devicePixelRatio||2);
+  const W=460, rowH=56, memoH=22, headH=92, footH=64, padX=24;
+  const rh=r=>rowH+(r.acct?memoH:0)+(r.memo?memoH:0);
+  const H=headH+(rows.length? rows.reduce((a,r)=>a+rh(r),0) : rowH)+footH+ (rows.length?0:40);
+  const cv=document.createElement('canvas'); cv.width=W*DPR; cv.height=H*DPR;
+  const ctx=cv.getContext('2d'); ctx.scale(DPR,DPR);
+  ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#1E2622'; ctx.font='700 20px "IBM Plex Sans KR"'; ctx.textBaseline='alphabetic';
+  ctx.fillText(`${dd.getMonth()+1}월 ${dd.getDate()}일 (${DOW[dd.getDay()]}) 일당 지급`, padX, 40);
+  ctx.fillStyle='#8A938D'; ctx.font='500 12.5px "IBM Plex Sans KR"'; ctx.fillText(`${rows.length}명 · 지급완료 ${rows.filter(r=>r.paid).length}명`, padX, 60);
+  ctx.strokeStyle='#D9D9D5'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(padX,headH-20); ctx.lineTo(W-padX,headH-20); ctx.stroke(); ctx.setLineDash([]);
+  let y=headH;
+  if(!rows.length){ ctx.fillStyle='#8A938D'; ctx.font='500 14px "IBM Plex Sans KR"'; ctx.textAlign='center'; ctx.fillText('이 날 지급할 일당 근무자가 없어요.', W/2, y+24); ctx.textAlign='left'; y+=40; }
+  rows.forEach(r=>{
+    const RH=rh(r);
+    ctx.strokeStyle='#F0F2F0'; ctx.beginPath(); ctx.moveTo(padX,y+RH-1); ctx.lineTo(W-padX,y+RH-1); ctx.stroke();
+    ctx.fillStyle='#1E2622'; ctx.font='600 16px "IBM Plex Sans KR"'; ctx.textAlign='left';
+    ctx.fillText(r.name, padX, y+rowH/2+6);
+    const nmW=ctx.measureText(r.name).width;
+    const sub=r.hours?`${fmtH(r.hours)}시간`:(r.tag||'');
+    if(sub){ ctx.fillStyle='#8A938D'; ctx.font='500 12.5px "IBM Plex Sans KR"'; ctx.fillText(sub, padX+nmW+8, y+rowH/2+5); }
+    ctx.fillStyle='#1E2622'; ctx.font='700 16px "IBM Plex Sans KR"'; ctx.textAlign='right';
+    ctx.fillStyle=r.paid?'#2F7D4F':'#1E2622'; ctx.fillText(won(r.amount), W-padX, y+rowH/2+6);
+    const amtW=ctx.measureText(won(r.amount)).width;
+    ctx.font='700 12px "IBM Plex Sans KR"'; ctx.fillStyle=r.paid?'#2F7D4F':'#B4541A'; ctx.fillText(r.paid?'✓ 지급완료':'미지급', W-padX-amtW-10, y+rowH/2+5);
+    ctx.textAlign='left';
+    const fit=t=>{ while(ctx.measureText(t).width>W-padX*2 && t.length>4) t=t.slice(0,-2)+'…'; return t; };
+    let ly=y+rowH+4;
+    if(r.acct){ ctx.fillStyle='#1E4E8C'; ctx.font='600 13px "IBM Plex Sans KR"'; ctx.fillText(fit('계좌: '+r.acct), padX, ly); ly+=memoH; }
+    if(r.memo){ ctx.fillStyle='#5E6B65'; ctx.font='500 12.5px "IBM Plex Sans KR"'; ctx.fillText(fit('비고: '+r.memo), padX, ly); }
+    y+=RH;
+  });
+  ctx.fillStyle='#FAFAF8'; ctx.fillRect(0,y,W,footH); ctx.strokeStyle='#1E2622'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  ctx.fillStyle='#5E6B65'; ctx.font='600 13.5px "IBM Plex Sans KR"'; ctx.fillText('합계', padX, y+footH/2+5);
+  ctx.fillStyle='#7A3E12'; ctx.font='800 22px "IBM Plex Sans KR"'; ctx.textAlign='right'; ctx.fillText(won(tot), W-padX, y+footH/2+8); ctx.textAlign='left';
+  holder.innerHTML=''; holder.appendChild(cv); window.__dailyCanvas=cv;
+}
+function copyText(t,msg){
+  const fb=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    let ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove(); toast(ok?msg:'복사에 실패했어요'); };
+  if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(t).then(()=>toast(msg),fb); else fb();
+}
+function dailyText(dateStr){
+  const rows=dailyPayoutRows(dateStr); const dd=new Date(dateStr+'T00:00'); const tot=rows.reduce((a,r)=>a+r.amount,0);
+  const L=[`${dd.getMonth()+1}월 ${dd.getDate()}일 (${DOW[dd.getDay()]}) 일당 지급`];
+  rows.forEach(r=>{ L.push(''); L.push(`${r.name} ${won(r.amount)}${r.paid?' (지급완료)':''}`); if(r.acct) L.push(r.acct); if(r.memo) L.push('비고: '+r.memo); });
+  L.push(''); L.push(`합계 ${won(tot)}`); return L.join('\n');
+}
+function saveDailyImage(){
+  const cv=window.__dailyCanvas; if(!cv){ toast('이미지를 준비하지 못했어요'); return; }
+  cv.toBlob(blob=>{ if(!blob){ toast('이미지 만들기에 실패했어요'); return; }
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download=`일당지급_${view.daily}.png`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),5000); toast('이미지를 저장했어요');
+  },'image/png');
+}
+
+// 새 근무표(sch_items)를 그 달 근무 기록으로 바꿔요: 날짜마다 계산 엔진(resolve)으로 "그날 일하는 사람"을 구하고, 출근 시간·금액을 넣어요
+function workFromNew(D,ym){
+  const [y,m]=ym.split('-').map(Number); const last=new Date(y,m,0).getDate(); const store=D.store; const work={}; const rules=Core.rulesSorted(D);
+  const open=Core.tMin(store.open)||660;
+  for(let dd=1;dd<=last;dd++){
+    const R=Core.resolve(D,new Date(y,m-1,dd),{rules,quiet:true});
+    R.list.forEach(x=>{
+      const name=String(x.name||'').trim(); if(!name) return;
+      const w={pm:false,alba:x.type==='spot',bonus:0,work:true}; (work[name]=work[name]||{})[R.key]=w;
+      const sh=x.sh;
+      if(sh&&sh.k==='t'){ const a=Core.tMin(sh.s); w.hours=Core.hoursOf(store,sh); if(a!=null){ w.start=Math.max(open,a)/60; w.pm=w.start>=12; } }
+      else if(sh&&sh.k==='pm') w.pm=true;
+      else if(sh&&sh.k==='am'){ w.am=true; w.hours=Core.hoursOf(store,sh); w.start=(Core.tMin(store.amStart)||720)/60; }
+      const {ov}=Core.payOf(D,x,R.key,R.wd);
+      if(ov){ if(ov.k==='day') w.amt=ov.v; else if(ov.k==='hour') w.rate=ov.v; else if(ov.k==='bonus') w.bonus+=ov.v; if(ov.cash) w.cash=true; }
+      if(x.payoff){ w.work=false; w.hours=0; if(w.amt!=null){ w.bonus+=w.amt; delete w.amt; } }          // 휴무지급: 시간 없이 금액만
+      if(x.memo){ const nt=parseNote(x.memo);                                                            // 메모에 적은 시간·시급·금액도 반영 (예: "6.5" = 그 날 일급 6.5만)
+        if(nt.bonus||nt.rate!=null||nt.hours!=null||nt.start!=null){ w.bonus+=nt.bonus; if(nt.dayPay) w.noteDay=true;
+          if(nt.rate!=null&&w.rate==null) w.rate=nt.rate; if(nt.hours!=null) w.hours=nt.hours; if(nt.start!=null){ w.start=nt.start; w.pm=nt.start>=12; } } }
+    });
+  }
+  return work;
+}
+// 근무표에서 정한 사람별 기본 시급·일급을 이 계산기 설정에 맞춰 둠 (근무표가 기준)
+function applyBasePay(D){
+  let monthly=0; const P=D.pay||{};
+  Object.values(D.staff).forEach(s=>{ const b=P['staff:'+s.id]; const n=String(s.name||'').trim(); if(!b||!n) return;
+    if(b.k==='hour'){ pay.rates[n]=b.v; delete pay.drates[n]; } else if(b.k==='day'){ pay.drates[n]=b.v; delete pay.rates[n]; } else if(b.k==='month') monthly++; });
+  return monthly;
+}
+async function syncMonths(yms,force){
+  const D=await getSchedule(force); if(+D.store.fullH>0) pay.fullH=+D.store.fullH; if(+D.store.pmH>0) pay.pmH=+D.store.pmH;
+  const monthly=applyBasePay(D);
+  yms.forEach(ym=>applyWork(ym,workFromNew(D,ym),'근무표(서버)에서 계산',true));
+  return {D,monthly};
+}
+async function syncSchedule(ym){
+  toast('근무표를 받아오는 중…');
+  try{
+    const {D,monthly}=await syncMonths([ym],true); pay.schedAt=Date.now(); pay.cur=ym; save(); render();
+    const nopay=!(ST&&ST.can_pay)? ' (금액은 급여 권한이 있는 계정에서만 읽혀요)' : '';
+    toast(`${ym.replace('-','년 ')}월 근무를 불러왔어요${monthly?` · 월급제 ${monthly}명은 아직 계산하지 않아요`:''}${nopay}`);
+  }catch(e){ toast('불러오기 실패: '+(e.message||e)); }
+}
+
+/* ---------- 화면 ---------- */
+function monthOptions(){
+  const sel=document.getElementById('monthSel'); const ms=Object.keys(pay.months).sort().reverse();
+  sel.innerHTML = ms.length? ms.map(m=>`<option value="${m}" ${m===pay.cur?'selected':''}>${m.replace('-','년 ')}월</option>`).join('') : '<option>불러온 달 없음</option>';
+  sel.disabled=!ms.length;
+}
+function render(){
+  monthOptions();
+  const app=document.getElementById('app');
+  if(!pay.cur || !pay.months[pay.cur]){
+    app.innerHTML=`<div class="card empty"><strong>근무표를 불러오세요</strong>
+      위의 <b>근무표 불러오기</b>를 누르면 근무표(새 서버)에서 이번 달 근무가 바로 채워집니다.<br>파일로 하시려면 근무표의 <b>백업 파일 받기</b>(.json)나 <b>엑셀로 받기</b>(.xlsx)를 <b>파일로 불러오기</b>로 여세요.</div>${settingsCard()}`;
+    return;
+  }
+  app.innerHTML = view.daily ? dailyView(view.daily) : (view.person && pay.months[pay.cur].people[view.person] ? detailView(view.person) : summaryView());
+  if(view.focus){ const el=document.getElementById(view.focus); if(el){ el.focus(); } view.focus=null; }
+  if(view.daily) setTimeout(drawDailyCanvas,0);
+}
+function settingsCard(){
+  const hasJson=!!pay.schedule;
+  return `<div class="card noprint"><h2>기본 설정</h2>
+    <p class="help">출근 구분별 기본 근무시간이에요. 날짜마다 따로 바꾸면 그 날만 다르게 계산됩니다.</p>
+    <div class="row">
+      <label>종일 출근 (시간)<input type="number" class="hrs" id="fullH" value="${pay.fullH}" min="0" step="0.5"></label>
+      <label>오후 출근 (시간)<input type="number" class="hrs" id="pmH" value="${pay.pmH}" min="0" step="0.5"></label>
+      <label>불러올 달<input type="month" id="ymPick" value="${pay.cur||ds(new Date()).slice(0,7)}"></label>
+      <button class="btn" data-act="syncYm">근무표에서 이 달 다시 계산</button>
+      ${hasJson?`<button class="btn" data-act="loadYm">백업 파일에서 이 달 계산</button>`:''}
+    </div>
+    ${pay.schedAt?`<p class="help" style="margin:8px 0 0">마지막으로 근무표를 받아온 시각: ${new Date(pay.schedAt).toLocaleString('ko-KR')}</p>`:''}
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" data-act="exportHtml">급여 명세 HTML로 저장</button>
+      <button class="btn" data-act="exportXlsx">급여표 엑셀로 받기</button>
+      <button class="btn" data-act="print">인쇄</button>
+      <button class="btn" data-act="pinChange">급여 비밀번호 바꾸기</button>
+      <button class="btn" data-act="backup">급여 데이터 백업</button>
+      <label class="btn" style="cursor:pointer">백업 복원<input type="file" id="restoreIn" accept=".json,.html" hidden></label>
+      ${pay.cur?`<button class="btn danger" data-act="delMonth">이 달 지우기</button>`:''}
+    </div></div>`;
+}
+
+/* ---------- 기간별 계산 (주급·원하는 기간) ---------- */
+// 일급이 없는 사람 = 시급 × 일한 시간, 일급인 사람 = 일한 날마다 일급(그 날 금액이 따로 있으면 그 금액). 체크한 사람만.
+const mondayOf=dt=>{ const d=new Date(dt+'T00:00'); d.setDate(d.getDate()-((d.getDay()+6)%7)); return ds(d); };
+const addD=(dt,n)=>{ const d=new Date(dt+'T00:00'); d.setDate(d.getDate()+n); return ds(d); };
+function ymsBetween(a,b){ const out=[]; let y=+a.slice(0,4), m=+a.slice(5,7); const ey=+b.slice(0,4), em=+b.slice(5,7); while(y<ey||(y===ey&&m<=em)){ out.push(`${y}-${pad(m)}`); if(++m>12){ m=1; y++; } } return out; }
+function isSelAny(n){ pay.sel=pay.sel||{}; if(pay.sel[n]!=null) return !!pay.sel[n]; if(pay.rates[n]!=null||pay.drates[n]!=null) return true;
+  return Object.values(pay.months).some(mon=>{ const p=mon.people[n]; return !!(p&&Object.values(p.days).some(d=>d.baseR!=null||d.baseAmt!=null)); }); }
+function periodInit(){ if(!view.pf||!view.pt){ view.pf=mondayOf(ds(new Date())); view.pt=addD(view.pf,6); } }
+function periodData(){
+  periodInit(); const from=view.pf, to=view.pt; const yms=ymsBetween(from,to).slice(0,14);
+  const missing=yms.filter(ym=>!pay.months[ym]); const names=new Set();
+  yms.forEach(ym=>{ const mon=pay.months[ym]; if(mon) Object.keys(mon.people).forEach(n=>names.add(n)); });
+  const rows=[]; let tot={days:0,h:0,sum:0,miss:false};
+  [...names].filter(isSel).sort((a,b)=>a.localeCompare(b,'ko')).forEach(n=>{
+    let days=0,h=0,sum=0,miss=false;
+    yms.forEach(ym=>{ const p=pay.months[ym]&&pay.months[ym].people[n]; if(!p) return;
+      Object.keys(p.days).forEach(dt=>{ if(dt<from||dt>to) return; const d=p.days[dt]; if(d.removed) return; const c=dayCalc(n,d);
+        if(!c.flat) days++; h+=c.hours; if(c.amount!=null) sum+=c.amount; if(c.missing) miss=true; }); });
+    if(days||sum){ rows.push({n,days,h,sum,miss}); tot.days+=days; tot.h+=h; tot.sum+=sum; if(miss) tot.miss=true; } });
+  return {from,to,yms,missing,rows,tot};
+}
+let periodBusy=false;
+async function ensurePeriod(){
+  const need=ymsBetween(view.pf,view.pt).slice(0,14).filter(ym=>!pay.months[ym]); if(!need.length||periodBusy||!READY) return;
+  periodBusy=true; try{ await syncMonths(need,false); save(); }catch(e){ toast('기간의 근무표를 받지 못했어요: '+(e.message||e)); } periodBusy=false; render();
+}
+function periodBar(P){ return `<div class="row noprint" style="align-items:flex-end">
+      <label>시작일<input type="date" id="pFrom" value="${P.from}" style="font-size:15px;padding:6px 8px"></label><label>끝일<input type="date" id="pTo" value="${P.to}" style="font-size:15px;padding:6px 8px"></label>
+      <button class="btn" data-act="pset" data-v="prev" title="지금 정한 기간만큼 앞으로">◀ 이전 기간</button><button class="btn" data-act="pset" data-v="next" title="지금 정한 기간만큼 뒤로">다음 기간 ▶</button>
+      <button class="btn" data-act="pset" data-v="lastweek">지난 주</button><button class="btn" data-act="pset" data-v="this">이번 주</button><button class="btn" data-act="pset" data-v="lastmonth">지난 달</button><button class="btn" data-act="pset" data-v="month">이번 달</button>
+      <button class="btn" data-act="pcopy">텍스트 복사</button></div>`; }
+function isSelNone(){ const mon=pay.months[pay.cur]; return !mon||!Object.keys(mon.people).some(isSel); }
+function periodCard(){
+  const P=periodData(); const fmtD=dt=>fmtMD(dt); const wkNo=P.from===mondayOf(P.from)&&P.to===addD(P.from,6);
+  const rows=P.rows.map(r=>`<tr><td><button class="name" data-person="${esc(r.n)}">${esc(r.n)}</button> <span class="muted" style="font-size:12.5px">${esc(baseLabel(r.n))}</span></td><td class="n">${r.days}일</td><td class="n">${fmtH(r.h)}시간</td><td class="n money">${r.miss&&!r.sum?'<span class="muted">시급·일급 필요</span>':won(r.sum)+(r.miss?' <span class="muted">+ 미입력</span>':'')}</td></tr>`).join('');
+  return `<div class="card" id="periodCard"><h2 style="margin:0 0 6px">기간 정해서 계산 <span class="muted" style="font-size:14px;font-weight:500">${fmtD(P.from)} ~ ${fmtD(P.to)} · ${Math.round((new Date(P.to)-new Date(P.from))/86400000)+1}일${wkNo?' (한 주)':''}</span></h2>
+    <p class="help noprint">위 표에서 <b>체크한 사람</b>만 계산해요. <b>일급이 없는 사람</b>은 시급 × 일한 시간, <b>일급인 사람</b>은 일한 날마다 일급을 더해요 (그 날 금액이 따로 정해진 날은 그 금액). 한 주씩 넘겨 보면 주급이에요. <b>시작일·끝일을 직접 고르면</b> 달이 걸쳐도(예: 9월 26일 ~ 10월 5일) 두 달 근무표를 자동으로 합쳐서 계산해요.</p>
+    ${periodBar(P)}
+    ${P.missing.length?`<p class="help" style="color:var(--warn)">${periodBusy?'근무표를 받아오는 중…':'아직 불러오지 않은 달이 있어요: '+P.missing.map(m=>m.replace('-','년 ')+'월').join(', ')}</p>`:''}
+    ${P.rows.length?`<div class="tablewrap"><table><thead><tr><th>이름</th><th class="n">일한 날</th><th class="n">시간</th><th class="n">이 기간 금액</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td>합계 ${P.rows.length}명</td><td class="n">${P.tot.days}일</td><td class="n">${fmtH(P.tot.h)}시간</td><td class="n">${won(P.tot.sum)}</td></tr></tfoot></table></div>`
+      :`<div class="empty">${isSelNone()?'위 표에서 <b>계산할 사람을 체크</b>해 주세요.':'이 기간에 계산할 근무가 없어요.'}</div>`}</div>`;
+}
+// ---- 사람 한 명의 기간 계산 (사람 이름을 눌러 들어간 화면): 달이 걸쳐도 날짜별로 합침 ----
+function personRange(n,from,to){
+  const yms=ymsBetween(from,to).slice(0,14); const days=[]; const tot={days:0,h:0,sum:0,miss:false,bonus:0};
+  yms.forEach(ym=>{ const p=pay.months[ym]&&pay.months[ym].people[n]; if(!p) return;
+    Object.keys(p.days).sort().forEach(dt=>{ if(dt<from||dt>to) return; const d=p.days[dt]; if(d.removed) return; const c=dayCalc(n,d);
+      days.push({dt,c}); if(!c.flat) tot.days++; tot.h+=c.hours; if(c.amount!=null) tot.sum+=c.amount; if(c.missing) tot.miss=true; }); });
+  return {from,to,yms,days,tot,missing:yms.filter(ym=>!pay.months[ym])};
+}
+function personPeriodCard(n){
+  periodInit(); const R=personRange(n,view.pf,view.pt); const wkNo=view.pf===mondayOf(view.pf)&&view.pt===addD(view.pf,6);
+  const len=Math.round((new Date(view.pt)-new Date(view.pf))/86400000)+1;
+  const rows=R.days.map(({dt,c})=>{ const dd=new Date(dt+'T00:00'), wd=dd.getDay();
+    return `<tr><td class="${wd===0?'sun':wd===6?'sat':''}">${dd.getMonth()+1}/${dd.getDate()} (${DOW[wd]})</td><td>${c.flat?'추가금만':tyLbl(c.type)}</td><td class="n">${fmtH(c.hours)}시간</td><td class="n money">${c.amount!=null?won(c.amount):'<span class="muted">시급·일급 필요</span>'}</td></tr>`; }).join('');
+  return `<div class="card" id="periodCard" style="margin:10px 0 14px;background:var(--soft,rgba(128,128,128,.07))">
+    <h3 style="margin:0 0 6px;font-size:16px">${esc(n)} 기간 정해서 계산 <span class="muted" style="font-size:13.5px;font-weight:500">${fmtMD(R.from)} ~ ${fmtMD(R.to)} · ${len}일${wkNo?' (한 주)':''}</span></h3>
+    <p class="help noprint" style="margin:0 0 6px">달이 걸쳐도 돼요 (예: 9월 26일 ~ 10월 2일). 두 달 근무표를 자동으로 합쳐서 날짜별로 더해요.</p>
+    ${periodBar(R)}
+    ${R.missing.length?`<p class="help" style="color:var(--warn)">${periodBusy?'근무표를 받아오는 중…':'아직 불러오지 않은 달이 있어요: '+R.missing.map(m=>m.replace('-','년 ')+'월').join(', ')}</p>`:''}
+    ${R.days.length?`<div class="sum" style="margin:6px 0">
+        <div class="stat"><div class="k">일한 날</div><div class="v">${R.tot.days}일</div></div><div class="stat"><div class="k">근무시간</div><div class="v">${fmtH(R.tot.h)}시간</div></div>
+        <div class="stat big"><div class="k">이 기간 급여</div><div class="v">${won(R.tot.sum)}${R.tot.miss?' <span class="muted" style="font-size:13px">+ 미입력</span>':''}</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>날짜</th><th>구분</th><th class="n">시간</th><th class="n">금액</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td>합계</td><td></td><td class="n">${fmtH(R.tot.h)}시간</td><td class="n">${won(R.tot.sum)}</td></tr></tfoot></table></div>`
+      :`<div class="empty">이 기간에 ${esc(n)}님 근무가 없어요.</div>`}</div>`;
+}
+function personPeriodText(n){ const R=personRange(n,view.pf,view.pt); const L=[`${n} ${fmtMD(R.from)} ~ ${fmtMD(R.to)} 급여`];
+  R.days.forEach(({dt,c})=>L.push(`${fmtMD(dt)} ${c.flat?'추가금':tyLbl(c.type)} ${fmtH(c.hours)}시간 ${c.amount!=null?won(c.amount):'(시급·일급 필요)'}`));
+  L.push(''); L.push(`${R.tot.days}일 · ${fmtH(R.tot.h)}시간 · 합계 ${won(R.tot.sum)}`); return L.join('\n'); }
+function periodText(){
+  const P=periodData(); const L=[`${fmtMD(P.from)} ~ ${fmtMD(P.to)} 급여`];
+  P.rows.forEach(r=>L.push(`${r.n} ${r.miss&&!r.sum?'(시급·일급 필요)':won(r.sum)} (${r.days}일 · ${fmtH(r.h)}시간)`));
+  L.push(''); L.push(`합계 ${won(P.tot.sum)}`); return L.join('\n');
+}
+function summaryView(){
+  const mon=pay.months[pay.cur]; const names=Object.keys(mon.people).sort((a,b)=>a.localeCompare(b,'ko'));
+  const q=view.q.trim(); const list=names;
+  let T={full:0,pm:0,h:0,sum:0};
+  const selN=list.filter(isSel);   // 위 요약·아래 합계는 체크한 사람만
+  const rows=list.map(n=>{ const c=personCalc(n); if(isSel(n)){ T.full+=c.full; T.pm+=c.pm; T.h+=c.h; T.sum+=c.sum; }
+    const cyc=cycleOf(n)==='week';
+    return `<tr data-name="${esc(n)}" ${q&&!n.includes(q)?'hidden':''}><td class="ck noprint"><input type="checkbox" data-sel="${esc(n)}" ${isSel(n)?'checked':''} aria-label="${esc(n)} 내보내기 선택"></td><td><button class="name" data-person="${esc(n)}">${esc(n)}</button><button class="tag ${cyc?'week':'week off'}" data-cycle="${esc(n)}" title="눌러서 지급주기 바꾸기">${cyc?'주급':'월급'}</button>${c.alba?'<span class="tag alba">당일알바</span>':''}${c.edited?'<span class="tag man">수정</span>':''}${c.bonus?`<span class="tag alba">추가금 ${won(c.bonus)}</span>`:''}</td>
+      <td class="n">${c.full}회</td><td class="n">${c.pm}회</td><td class="n">${fmtH(c.h)}시간</td>
+      <td class="n"><input type="text" inputmode="numeric" class="rate" data-rate="${esc(n)}" value="${pay.rates[n]!=null?pay.rates[n].toLocaleString('ko-KR'):''}" placeholder="시급 입력" aria-label="${esc(n)} 시급"></td>
+      <td class="n"><input type="text" inputmode="numeric" class="rate" data-drate="${esc(n)}" value="${pay.drates[n]!=null?pay.drates[n].toLocaleString('ko-KR'):''}" placeholder="일급 입력" aria-label="${esc(n)} 일급"></td>
+      <td class="n money">${c.missing&&!c.sum?'<span class="muted">시급·일급 필요</span>':won(c.sum)+(c.missing?' <span class="muted">+ 미입력</span>':'')}</td></tr>`; }).join('');
+  const [y,m]=pay.cur.split('-');
+  return `<div class="card">
+    <div class="row" style="align-items:center;margin-bottom:8px"><h2 style="margin:0">${y}년 ${+m}월 급여</h2>
+      <span class="muted" style="font-size:13px">${mon.src||''}</span>
+      <span style="flex:1"></span>
+      <button class="btn noprint" data-act="pgo" title="월 단위가 아니라 원하는 기간(예: 9월 말 ~ 10월 초)으로 계산">📅 기간 정해서 계산</button>
+      <input type="text" class="search noprint" id="q" placeholder="이름 검색" value="${esc(view.q)}"></div>
+    <div class="sum">
+      <div class="stat"><div class="k">선택 인원</div><div class="v">${selN.length}명 <span class="muted" style="font-size:14px;font-weight:400">/ 전체 ${list.length}명</span></div></div>
+      <div class="stat"><div class="k">종일 출근</div><div class="v">${T.full}회</div></div>
+      <div class="stat"><div class="k">오후 출근</div><div class="v">${T.pm}회</div></div>
+      <div class="stat"><div class="k">총 근무시간</div><div class="v">${fmtH(T.h)}시간</div></div>
+      <div class="stat big"><div class="k">총 지급액</div><div class="v">${won(T.sum)}</div></div>
+    </div>
+    <p class="help noprint">왼쪽 체크박스로 <b>급여 명세·엑셀에 넣을 사람</b>을 고르세요 (지금 ${names.filter(isSel).length}명 선택). 선택은 이름별로 저장돼서 다음 달에도 유지돼요. 시급을 넣으면 한 달치가 바로 계산돼요. 시급은 이름별로 저장되어 다음 달에도 그대로 쓰입니다. <b>일급</b>을 넣으면 시급 대신 일급으로 계산해요(종일은 일급 그대로, 오후·시간이 다른 날은 종일 ${pay.fullH}시간 기준으로 시간 비례). 이름을 누르면 날짜별로 시간·시급·금액을 고칠 수 있어요.</p>
+    ${list.length?`<div class="tablewrap"><table><thead><tr><th class="ck noprint"><input type="checkbox" id="selAll" ${names.every(isSel)?'checked':''} aria-label="전체 선택"></th><th>이름</th><th class="n">종일</th><th class="n">오후</th><th class="n">총 시간</th><th class="n">기본 시급</th><th class="n">기본 일급</th><th class="n">합계</th></tr></thead>
+      <tbody>${rows}</tbody><tfoot><tr><td class="noprint"></td><td>선택 ${selN.length}명 합계</td><td class="n">${T.full}회</td><td class="n">${T.pm}회</td><td class="n">${fmtH(T.h)}시간</td><td></td><td></td><td class="n">${won(T.sum)}</td></tr></tfoot></table></div>`
+      :`<div class="empty">불러온 근무자가 없어요.</div>`}
+    <div class="empty" id="noHit" ${q&&!names.some(n=>n.includes(q))?'':'hidden'}>이 이름은 이번 달 근무표에 없어요.</div>
+  </div>${periodCard()}${settingsCard()}`;
+}
+const fmtH=h=>(Math.round(h*100)/100).toLocaleString('ko-KR');
+const fmtS=h=>{ const H=Math.floor(h), M=Math.round((h-H)*60); return `${H>12?H-12:H}시${M?' '+M+'분':''}`; };
+function detailView(n){
+  const p=pay.months[pay.cur].people[n]; const c=personCalc(n);
+  const dates=Object.keys(p.days).sort();
+  const rows=dates.map(dt=>{ const d=p.days[dt]; const k=dayCalc(n,d); const dd=new Date(dt+'T00:00'); const wd=dd.getDay();
+    const defH = d.baseH!=null? d.baseH : (k.type==='pm'?pay.pmH:fullOf(n)); const defR = d.baseR!=null? d.baseR : (pay.drates[n]!=null? null : pay.rates[n]);
+    return `<tr class="${d.removed?'removed':''}">
+      <td class="${wd===0?'sun':wd===6?'sat':''}">${dd.getMonth()+1}/${dd.getDate()} (${DOW[wd]})${!d.base?'<span class="tag man">직접 추가</span>':''}${d.alba?'<span class="tag alba">당일알바</span>':''}${k.flat?'<span class="tag man">추가금만</span>':''}${d.baseS!=null?'<span class="tag man">'+fmtS(d.baseS)+' 출근</span>':''}${d.baseH!=null?'<span class="tag man">'+fmtH(d.baseH)+'시간</span>':''}${d.baseR!=null?'<span class="tag man">시급 '+d.baseR.toLocaleString('ko-KR')+'</span>':''}${d.baseAmt!=null?'<span class="tag man">근무표 금액 '+fmtW(d.baseAmt)+'</span>':''}${d.cash?'<span class="tag alba">당일 현금</span>':''}${k.amtOverMemo?'<span class="tag man" title="메모에 적은 숫자 대신 근무표에서 정한 금액으로 계산">메모 금액 대신</span>':''}</td>
+      <td><select data-f="type" data-dt="${dt}" class="${d.type&&d.type!==d.base?'edited':''}"><option value="full" ${k.type==='full'?'selected':''}>종일</option><option value="pm" ${k.type==='pm'?'selected':''}>오후</option><option value="am" ${k.type==='am'?'selected':''}>오전</option></select></td>
+      <td class="n"><input type="number" step="0.5" min="0" class="hrs ${d.hours!=null?'edited':''}" data-f="hours" data-dt="${dt}" value="${d.hours??''}" placeholder="${defH}"></td>
+      <td class="n"><input type="text" inputmode="numeric" class="rate ${d.rate!=null?'edited':''}" data-f="rate" data-dt="${dt}" value="${d.rate!=null?d.rate.toLocaleString('ko-KR'):''}" placeholder="${d.baseAmt!=null&&d.amount==null?'근무표 금액':defR!=null?defR.toLocaleString('ko-KR'):(k.drate!=null?'일급':'기본 시급')}"></td>
+      <td class="n"><input type="text" inputmode="numeric" class="amt ${d.bonusOv!=null?'edited':''}" data-f="bonusOv" data-dt="${dt}" value="${d.bonusOv!=null?d.bonusOv.toLocaleString('ko-KR'):''}" placeholder="${d.bonus?d.bonus.toLocaleString('ko-KR'):'0'}"></td>
+      <td class="n"><input type="text" inputmode="numeric" class="amt ${d.amount!=null?'edited':''}" data-f="amount" data-dt="${dt}" value="${d.amount!=null?d.amount.toLocaleString('ko-KR'):''}" placeholder="${d.amount==null&&!k.missing?fmtW(k.base||0):'-'}"></td>
+      <td class="n money">${k.amount!=null?won(k.amount):'-'}</td>
+      <td class="noprint">${d.removed?`<button class="btn sm" data-restore="${dt}">되살리기</button>`:`<button class="btn sm danger" data-remove="${dt}">${d.base?'빼기':'삭제'}</button>`}
+        ${(d.type||d.hours!=null||d.rate!=null||d.amount!=null||d.bonusOv!=null)?`<button class="btn sm" data-reset="${dt}">원래대로</button>`:''}</td></tr>`; }).join('');
+  return `<div class="card">
+    <div class="row noprint" style="align-items:center;margin-bottom:6px"><button class="btn" data-back="1">← 전체 목록</button></div>
+    <h2 style="font-size:22px">${esc(n)} <span class="muted" style="font-size:15px;font-weight:500">${pay.cur.replace('-','년 ')}월</span></h2>
+    <div class="sum">
+      <div class="stat"><div class="k">종일 출근</div><div class="v">${c.full}회</div></div>
+      <div class="stat"><div class="k">오후 출근</div><div class="v">${c.pm}회</div></div>
+      <div class="stat"><div class="k">총 근무시간</div><div class="v">${fmtH(c.h)}시간</div></div>
+      ${c.bonus?`<div class="stat"><div class="k">추가금</div><div class="v">${won(c.bonus)}</div></div>`:''}
+      <div class="stat big"><div class="k">이번 달 급여</div><div class="v">${won(c.sum)}</div></div>
+      ${(()=>{ if(cycleOf(n)!=='week') return ''; const wk=weeklyBreakdown(n); const last=[...wk].reverse().find(w=>w.lastWork);
+        return last? `<div class="stat"><div class="k">이번 달 마지막 급여일</div><div class="v" style="font-size:17px">${fmtMD(last.lastWork)}</div></div>` : ''; })()}
+    </div>
+    ${personPeriodCard(n)}
+    <div class="row" style="margin-bottom:10px">
+      <label>기본 시급<input type="text" inputmode="numeric" class="rate" id="baseRate" data-rate="${esc(n)}" value="${pay.rates[n]!=null?pay.rates[n].toLocaleString('ko-KR'):''}" placeholder="예: 12,000"></label>
+      <label>기본 일급<input type="text" inputmode="numeric" class="rate" data-drate="${esc(n)}" value="${pay.drates[n]!=null?pay.drates[n].toLocaleString('ko-KR'):''}" placeholder="예: 130,000"></label>
+      <label>종일 시간<input type="number" class="hrs" step="0.5" min="0" data-fullh="${esc(n)}" value="${pay.fullHs[n]??''}" placeholder="${pay.fullH}"></label>
+      <label>계좌<input type="text" data-acct="${esc(n)}" value="${esc(pay.accts[n]||'')}" placeholder="예: 국민 123-456 홍길동" style="min-width:200px"></label>
+      <label>지급 주기<select data-cyclesel="${esc(n)}"><option value="month" ${cycleOf(n)==='week'?'':'selected'}>월급</option><option value="week" ${cycleOf(n)==='week'?'selected':''}>주급</option></select></label>
+      ${pay.drates[n]!=null?`<span class="muted" style="font-size:13.5px;padding-bottom:8px">일급으로 계산 중 · 오후 ${pay.pmH}시간 = ${won(Math.round(pay.drates[n]*pay.pmH/(fullOf(n)||10)))}</span>`:''}
+      ${c.missing?'<span style="color:var(--warn);font-size:13.5px;padding-bottom:8px">시급·일급이 없는 날이 있어요. 기본 시급이나 일급을 넣거나 그 날 시급을 넣어주세요.</span>':''}
+    </div>
+    ${cycleOf(n)==='week'? (()=>{ const wk=weeklyBreakdown(n); if(!wk.length) return '';
+      return `<div class="tablewrap weeksum"><table><thead><tr><th>주차</th><th>주간</th><th class="n">근무일</th><th class="n">시간</th><th class="n">그 주 급여</th><th>급여일</th></tr></thead>
+        <tbody>${wk.map(w=>`<tr><td><b>${w.no}주차</b></td><td>${fmtMD(w.dates[0])} ~ ${fmtMD(w.dates[w.dates.length-1])}</td><td class="n">${w.cnt}일</td><td class="n">${fmtH(w.h)}시간</td><td class="n money">${won(w.sum)}</td><td class="payday">${w.lastWork?fmtMD(w.lastWork):'-'}</td></tr>`).join('')}</tbody></table></div>
+      <p class="help noprint">급여일은 그 주의 <b>마지막 근무일</b>이에요. 월 경계에 걸친 주는 이번 달에 속한 날짜만 나와요.</p>`; })() : ''}
+    <p class="help noprint">근무표에서 정한 <b>출근 시간·금액</b>(요일 패턴·기간 설정·이 날만)은 “근무표 불러오기”를 누르면 자동으로 들어와요. <b>그날 금액</b>이 있는 날은 시간·시급과 상관없이 그 금액이고, <b>시급</b>이 있는 날은 그 시급으로 계산해요. 빈칸이면 기본값(회색 글씨)으로 계산하고, 칸에 값을 넣으면 그 날만 바뀌어요(노란색). <b>근무 금액</b>을 직접 넣으면 시간·시급과 상관없이 그 금액으로 계산해요. 근무표나 메모 탭에 "6.5"처럼 숫자만 있으면 그 날 <b>추가금 65,000원</b>으로 들어가고 근무시간에는 포함되지 않아요. "(3.5)"처럼 괄호 안에 숫자를 써도 똑같이 <b>35,000원</b>으로 들어가요. "1.1만"처럼 <b>만</b>이 붙으면 그 날 <b>시급 11,000원</b>, "3시간"처럼 <b>시간</b>이 붙으면 그 날 <b>3시간 근무</b>, "5시출"처럼 <b>시출</b>이 붙으면 그 시간부터 밤 10시까지로 계산해요(5시출 = 오후 5시부터 <b>5시간</b>, 11시출 = 오전 11시부터 <b>11시간</b>). "11-9"처럼 <b>시간 범위</b>를 쓰면 그 사이 시간으로 계산해요(11-9 = 오전 11시~밤 9시 = <b>10시간</b>, 영업시간인 11시~22시 안으로만 계산돼요). 이 표기들은 근무표의 이름 뒤(예: "김지수6.5")에 붙여도 되고, <b>메모 탭</b>에 날짜·이름과 함께 따로 적어도 똑같이 반영돼요. 실제로 안 나온 날은 "빼기"를 누르세요.</p>
+    <div class="tablewrap"><table><thead><tr><th>날짜</th><th>구분</th><th class="n">시간</th><th class="n">시급</th><th class="n">추가금</th><th class="n">근무 금액</th><th class="n">그날 합계</th><th class="noprint"></th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="8" class="muted">근무일이 없어요</td></tr>'}</tbody>
+      <tfoot><tr><td>합계</td><td>종일 ${c.full} · 오후 ${c.pm}</td><td class="n">${fmtH(c.h)}시간</td><td></td><td class="n">${won(c.bonus)}</td><td></td><td class="n">${won(c.sum)}</td><td class="noprint"></td></tr></tfoot></table></div>
+    <div class="row noprint" style="margin-top:14px">
+      <label>근무일 추가<input type="date" id="addDate" min="${pay.cur}-01" max="${pay.cur}-${pad(new Date(+pay.cur.slice(0,4),+pay.cur.slice(5),0).getDate())}" value="${pay.cur}-01"></label>
+      <label>구분<select id="addType"><option value="full">종일</option><option value="pm">오후</option></select></label>
+      <button class="btn" data-act="addDay">추가</button>
+    </div></div>`;
+}
+
+/* ---------- 이벤트 ---------- */
+const app=document.getElementById('app');
+app.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
+  if(d.person){ view.person=d.person; render(); ensurePeriod(); window.scrollTo(0,0); return; }
+  if(d.back){ view.person=''; render(); return; }
+  if(d.dailyback){ view.daily=null; render(); return; }
+  if(b.id==='dailySave'){ saveDailyImage(); return; }
+  if(b.id==='dailyCopy'){ copyText(dailyText(view.daily),'일당 목록을 복사했어요'); return; }
+  if(b.dataset.copyacct!==undefined){ const a=pay.accts[b.dataset.copyacct]; if(a) copyText(a,'계좌를 복사했어요'); return; }
+  if(d.cycle){ pay.cycle=pay.cycle||{}; pay.cycle[d.cycle]=cycleOf(d.cycle)==='week'?'month':'week'; save(); render(); return; }
+  const P=()=>pay.months[pay.cur].people[view.person];
+  if(d.remove){ const x=P().days[d.remove]; if(x.base) x.removed=true; else delete P().days[d.remove]; save(); render(); return; }
+  if(d.restore){ delete P().days[d.restore].removed; save(); render(); return; }
+  if(d.cashamtreset){ setCash(view.daily,d.cashamtreset,{amt:null}); render(); return; }
+  if(d.xdel){ const mon=pay.months[pay.cur]; const L=(mon.extra||{})[view.daily]||[]; const i=L.findIndex(x=>x.id===d.xdel); if(i>=0&&confirm(`‘${L[i].name}’ ${won(L[i].amount)} 줄을 지울까요?`)){ L.splice(i,1); if(!L.length) delete mon.extra[view.daily]; save(); render(); } return; }
+  if(d.reset){ const x=P().days[d.reset]; delete x.type; delete x.hours; delete x.rate; delete x.amount; delete x.bonusOv; save(); render(); return; }
+  switch(d.act){
+    case 'xadd': { const name=(document.getElementById('xName').value||'').trim(); if(!name) return toast('이름을 넣어 주세요');
+      const days=Math.max(1,Math.round(+document.getElementById('xDays').value||1)); const per=num(document.getElementById('xPer').value); let total=num(document.getElementById('xTotal').value);
+      if(total==null&&per!=null) total=per*days; if(total==null||!(total>0)) return toast('금액을 넣어 주세요 (하루 금액 × 며칠치, 또는 합계)');
+      const mon=pay.months[pay.cur]; mon.extra=mon.extra||{}; const L=mon.extra[view.daily]=mon.extra[view.daily]||[];
+      let memo=(document.getElementById('xMemo').value||'').trim(); if(!memo&&days>1) memo=`${days}일치`;
+      L.push({id:'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name,amount:Math.round(total),days,memo}); save(); render(); toast(`${name}님을 추가했어요`); break; }
+    case 'xcalc': { const name=(document.getElementById('xName').value||'').trim(); const f=document.getElementById('xFrom').value, t=document.getElementById('xTo').value;
+      if(!name) return toast('이름을 먼저 넣어 주세요'); if(!f||!t||f>t) return toast('시작·끝 날짜를 확인해 주세요');
+      const need=ymsBetween(f,t).slice(0,14).filter(ym=>!pay.months[ym]);
+      (async()=>{ if(need.length){ try{ await syncMonths(need,false); save(); }catch(e){ return toast('근무표를 받지 못했어요: '+(e.message||e)); } }
+        const R=personRange(name,f,t); if(!R.days.length) return toast(`${name}님 근무가 그 기간에 없어요 (이름을 확인하세요)`);
+        document.getElementById('xDays').value=R.tot.days||1; document.getElementById('xTotal').value=R.tot.sum.toLocaleString('ko-KR'); document.getElementById('xPer').value='';
+        document.getElementById('xMemo').value=`${fmtMD(f)}~${fmtMD(t)} ${R.tot.days}일치`+(R.tot.miss?' (일부 금액 미입력)':''); toast(`${R.tot.days}일 · ${won(R.tot.sum)} 불러왔어요. 확인하고 [+ 추가]`); })(); break; }
+    case 'addDay': { const dt=document.getElementById('addDate').value; if(!dt) return; const p=P();
+      if(p.days[dt] && !p.days[dt].removed){ toast('이미 있는 날짜예요'); return; }
+      p.days[dt]=p.days[dt]||{}; delete p.days[dt].removed; if(!p.days[dt].base) p.days[dt].type=document.getElementById('addType').value;
+      else p.days[dt].type=document.getElementById('addType').value;
+      save(); render(); toast('근무일을 추가했어요'); break; }
+    case 'loadYm': { const ym=document.getElementById('ymPick').value; if(!ym||!pay.schedule) return;
+      applyWork(ym, workFromJson(pay.schedule,ym), '근무표 백업에서 계산'); toast(`${ym.replace('-','년 ')}월을 불러왔어요`); break; }
+    case 'pset': { periodInit(); const v=d.v; if(v==='this'){ view.pf=mondayOf(ds(new Date())); view.pt=addD(view.pf,6); } else if(v==='prev'||v==='next'){ const n=v==='prev'?-7:7; const wk=view.pf===mondayOf(view.pf)&&view.pt===addD(view.pf,6); if(wk){ view.pf=addD(view.pf,n); view.pt=addD(view.pf,6); } else { const len=Math.round((new Date(view.pt)-new Date(view.pf))/86400000)+1; view.pf=addD(view.pf,n>0?len:-len); view.pt=addD(view.pf,len-1); } } else if(v==='lastweek'){ view.pf=addD(mondayOf(ds(new Date())),-7); view.pt=addD(view.pf,6); } else if(v==='lastmonth'){ const t=new Date(); const y=t.getFullYear(), m=t.getMonth(); view.pf=ds(new Date(y,m-1,1)); view.pt=ds(new Date(y,m,0)); } else if(v==='month'){ const t=ds(new Date()); view.pf=t.slice(0,8)+'01'; view.pt=ds(new Date(+t.slice(0,4),+t.slice(5,7),0)); }
+      render(); ensurePeriod(); break; }
+    case 'pinChange': pinChangeDialog(); break;
+    case 'pgo': { const el=document.getElementById('periodCard'); if(el){ el.scrollIntoView({behavior:'smooth',block:'start'}); el.style.outline='3px solid var(--brand,#7A3E12)'; setTimeout(()=>{ el.style.outline=''; },1600); } break; }
+    case 'pcopy': copyText(view.person?personPeriodText(view.person):periodText(),'기간 계산을 복사했어요'); break;
+    case 'syncNow': { const ym=pay.cur || ds(new Date()).slice(0,7); syncSchedule(ym); break; }
+    case 'syncYm': { const ym=document.getElementById('ymPick').value; if(!ym) return; syncSchedule(ym); break; }
+    case 'delMonth': askConfirm(`${pay.cur.replace('-','년 ')}월 급여 기록을 지울까요?`,'시급 설정은 남고, 이 달의 근무일과 수정 내용만 지워져요. 먼저 급여 명세 HTML로 저장해 두면 나중에 복원할 수 있어요.','지우기',()=>{
+      const gone=pay.cur; delete pay.months[pay.cur]; pay.cur=Object.keys(pay.months).sort().pop()||''; view.person=''; save(); render(); toast(`${gone.replace('-','년 ')}월 기록을 지웠어요`); }); break;
+    case 'backup': { const blob=new Blob([JSON.stringify(pay,null,1)],{type:'application/json'}); const a=document.createElement('a');
+      downloadText(JSON.stringify(pay,null,1), `일품집_급여_백업_${ds(new Date())}.json`, 'application/json'); toast('백업 파일을 저장했어요'); break; }
+    case 'print': window.print(); break;
+    case 'exportXlsx': exportXlsx(); break;
+    case 'exportHtml': exportHtml(); break;
+  }
+});
+function setRate(name,v){ const x=num(v); if(x==null) delete pay.rates[name]; else pay.rates[name]=x; save(); }
+function xAuto(){
+  const g=id=>document.getElementById(id); const kind=g('xShift').value; g('xTWrap').hidden=kind!=='t';
+  const name=(g('xName').value||'').trim(); const days=Math.max(1,Math.round(+g('xDays').value||1)); const hint=g('xHint');
+  const nt=parseNote(g('xMemo').value||''); let per=null, msg='';
+  if(nt.dayPay&&nt.bonus){ per=nt.bonus; msg='비고의 숫자 = 하루 금액 전체'; }
+  else if(kind){
+    let h=null; if(kind==='full') h=fullOf(name); else if(kind==='pm') h=pay.pmH; else if(kind==='am') h=5;
+    else { const a=tMin(Core.parseT?Core.parseT(g('xT1').value,false):''), b=tMin(Core.parseT?Core.parseT(g('xT2').value||CLOSE_AT,true):''); if(a!=null&&b!=null&&b>a) h=Math.round((b-a)/60*100)/100; }
+    if(h==null){ msg='출근·퇴근 시간을 넣어 주세요 (예: 12 ~ 17)'; }
+    else { const r=num(g('xRate').value)??pay.rates[name]; const dr=pay.drates[name];
+      if(r!=null){ per=Math.round(h*r); msg=`${fmtH(h)}시간 × 시급 ${r.toLocaleString('ko-KR')}`; }
+      else if(dr!=null){ per=Math.round(dr*h/(fullOf(name)||10)); msg=`${fmtH(h)}시간 · 일급 ${dr.toLocaleString('ko-KR')} 비례`; }
+      else msg=`${fmtH(h)}시간 — 시급을 넣어 주세요`; }
+  }
+  if(hint&&(per!=null||kind||nt.dayPay)) hint.textContent=msg;
+  if(per!=null){ g('xPer').value=per.toLocaleString('ko-KR'); g('xTotal').value=(per*days).toLocaleString('ko-KR'); }
+}
+app.addEventListener('change',e=>{
+  const t=e.target, d=t.dataset;
+  if(t.id==='pFrom'||t.id==='pTo'){ if(t.value){ periodInit(); if(t.id==='pFrom') view.pf=t.value; else view.pt=t.value; if(view.pf>view.pt){ if(t.id==='pFrom') view.pt=view.pf; else view.pf=view.pt; } render(); ensurePeriod(); } return; }
+  if(d.rate!==undefined){ setRate(d.rate,t.value); render(); return; }
+  if(d.drate!==undefined){ const x=num(t.value); if(x==null) delete pay.drates[d.drate]; else pay.drates[d.drate]=x; save(); render(); return; }
+  if(d.cashpaid!==undefined){ setCash(view.daily,d.cashpaid,{paid:t.checked}); render(); return; }
+  const xo=id=>((pay.months[pay.cur].extra||{})[view.daily]||[]).find(x=>x.id===id);
+  if(d.xpaid!==undefined){ const x=xo(d.xpaid); if(x){ x.paid=t.checked; if(!x.paid) delete x.paid; save(); } render(); return; }
+  if(d.xmemo!==undefined){ const x=xo(d.xmemo); if(x){ x.memo=t.value.trim(); if(!x.memo) delete x.memo; save(); } render(); return; }
+  if(d.xamt!==undefined){ const x=xo(d.xamt); const v=num(t.value); if(x&&v!=null&&v>=0){ x.amount=Math.round(v); save(); } render(); return; }
+  if(['xShift','xT1','xT2','xRate','xName','xMemo'].includes(t.id)){ xAuto(); return; }
+  if(t.id==='xDays'||t.id==='xPer'){ const days=Math.max(1,Math.round(+document.getElementById('xDays').value||1)); const per=num(document.getElementById('xPer').value); if(per!=null) document.getElementById('xTotal').value=(per*days).toLocaleString('ko-KR'); if(t.id==='xDays') xAuto(); return; }
+  if(d.showacct!==undefined){ pay.showAcct=t.checked; save(); render(); return; }
+  if(d.acct!==undefined){ const v=t.value.trim(); if(v) pay.accts[d.acct]=v; else delete pay.accts[d.acct]; save(); render(); return; }
+  if(d.cashamt!==undefined){ const v=num(t.value); if(v!=null&&v>=0){ const base=dailyPayoutRows(view.daily).find(r=>r.name===d.cashamt&&!r.eid); setCash(view.daily,d.cashamt,{amt:(base&&!base.edited&&Math.round(v)===Math.round(base.amount))?null:Math.round(v)}); } render(); return; }
+  if(d.cashmemo!==undefined){ setCash(view.daily,d.cashmemo,{memo:t.value.trim()}); render(); return; }
+  if(d.fullh!==undefined){ const x=parseFloat(t.value); if(!(x>0)) delete pay.fullHs[d.fullh]; else pay.fullHs[d.fullh]=x; save(); render(); return; }
+  if(d.cyclesel!==undefined){ pay.cycle=pay.cycle||{}; pay.cycle[d.cyclesel]=t.value==='week'?'week':'month'; save(); render(); return; }
+  if(d.sel!==undefined){ pay.sel=pay.sel||{}; pay.sel[d.sel]=t.checked; save(); render(); return; }
+  if(t.id==='selAll'){ pay.sel=pay.sel||{}; const q=view.q.trim(); Object.keys(pay.months[pay.cur].people).filter(n=>!q||n.includes(q)).forEach(n=>pay.sel[n]=t.checked); save(); render(); return; }
+  if(d.f){ const x=pay.months[pay.cur].people[view.person].days[d.dt];
+    if(d.f==='type'){ if(t.value===x.base) delete x.type; else x.type=t.value; }
+    else { const v=num(t.value); if(v==null) delete x[d.f]; else x[d.f]=v; }
+    save(); render(); return; }
+  if(t.id==='dailyDate'){ if(t.value) view.daily=t.value; render(); return; }
+  if(t.id==='fullH'||t.id==='pmH'){ const v=num(t.value); if(v!=null){ pay[t.id]=v; save(); render(); } return; }
+  if(t.id==='restoreIn' && t.files[0]){ t.files[0].text().then(txt=>{ try{
+      const m=txt.match(/<script type="application\/json" id="payData">([\s\S]*?)<\/script>/);
+      const o=JSON.parse(m? m[1].replace(/\\u003c/g,'<') : txt); if(!o.months) throw 0; pay=Object.assign({fullH:10,pmH:5,rates:{},drates:{},months:{},schedule:null,cur:'',cycle:{},fullHs:{},accts:{}},o); view.person=''; save(); render(); toast('백업으로 복원했어요'); }catch(err){ toast('급여 백업 파일이 아니에요'); } }); }
+});
+function filterRows(){
+  const q=view.q.trim(); let hit=0;
+  document.querySelectorAll('tbody tr[data-name]').forEach(tr=>{ const ok=!q||tr.dataset.name.includes(q); tr.hidden=!ok; if(ok) hit++; });
+  const nh=document.getElementById('noHit'); if(nh) nh.hidden = !(q && hit===0);
+}
+app.addEventListener('input',e=>{ if(e.target.id==='q'){ view.q=e.target.value; filterRows(); } });
+app.addEventListener('compositionend',e=>{ if(e.target.id==='q'){ view.q=e.target.value; filterRows(); } });
+app.addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.tagName==='INPUT' && e.target.type!=='file') e.target.blur(); });
+document.getElementById('monthSel').addEventListener('change',e=>{ pay.cur=e.target.value; view.person=''; view.daily=null; save(); render(); });
+document.getElementById('syncNowBtn')?.addEventListener('click',()=>{ const ym=pay.cur || ds(new Date()).slice(0,7); syncSchedule(ym); });
+document.getElementById('dailyBtn').addEventListener('click',()=>{
+  if(!pay.cur||!pay.months[pay.cur]){ toast('먼저 근무표를 불러오세요'); return; }
+  const today=ds(new Date()); const bd=dailyDateBounds();
+  view.daily = (today>=bd.min && today<=bd.max) ? today : bd.max;
+  view.person=''; render();
+});
+document.getElementById('fileIn').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{
+    if(/\.json$/i.test(f.name)){
+      const st=JSON.parse(await f.text());
+      if(!Array.isArray(st.staff)) throw new Error('근무표 백업 파일이 아니에요');
+      pay.schedule=st;
+      const ym = pay.cur || ds(new Date()).slice(0,7);
+      const now=new Date(); const guess = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+      const target = pay.months[pay.cur] ? pay.cur : guess;
+      applyWork(target, workFromJson(st,target), `근무표 백업 (${f.name})`);
+      toast(`${target.replace('-','년 ')}월 근무를 계산했어요. 다른 달은 아래 기본 설정에서 고르세요`);
+    } else {
+      toast('엑셀 읽는 중…');
+      const {ym,work,notesN}=await workFromXlsx(await f.arrayBuffer());
+      applyWork(ym, work, `근무표 엑셀 (${f.name})`);
+      toast(`${ym.replace('-','년 ')}월 근무를 불러왔어요${notesN?` (메모 ${notesN}건 반영)`:''}`);
+    }
+    view.person='';
+  }catch(err){ toast(err.message||'파일을 읽지 못했어요'); }
+});
+
+/* ---------- 급여표 엑셀 ---------- */
+async function exportXlsx(){
+  if(!selectedNames().length){ toast('엑셀에 넣을 사람을 목록에서 체크해 주세요'); return; }
+  try{ if(!window.ExcelJS) await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js'); }catch(e){ toast('엑셀 도구를 불러오지 못했어요'); return; }
+  const mon=pay.months[pay.cur]; const names=selectedNames();
+  if(!names.length){ toast('엑셀에 넣을 사람을 목록에서 체크해 주세요'); return; }
+  const wb=new ExcelJS.Workbook();
+  const s1=wb.addWorksheet('급여 요약');
+  s1.columns=[{header:'이름',width:14},{header:'지급주기',width:9},{header:'종일(회)',width:10},{header:'오후(회)',width:10},{header:'총 시간',width:10},{header:'기본 시급',width:12},{header:'기본 일급',width:12},{header:'합계(원)',width:14}];
+  let tot=0; names.forEach(n=>{ const c=personCalc(n); tot+=c.sum; s1.addRow([n,cycleOf(n)==='week'?'주급':'월급',c.full,c.pm,c.h,pay.rates[n]??'',pay.drates[n]??'',Math.round(c.sum)]); });
+  s1.addRow(['합계','','','','','','',Math.round(tot)]).font={bold:true};
+  s1.getRow(1).font={bold:true}; [6,7,8].forEach(i=>s1.getColumn(i).numFmt='#,##0');
+  const s2=wb.addWorksheet('날짜별');
+  s2.columns=[{header:'이름',width:14},{header:'날짜',width:12},{header:'구분',width:8},{header:'시간',width:8},{header:'시급',width:10},{header:'금액(원)',width:12},{header:'비고',width:16}];
+  names.forEach(n=>{ const p=mon.people[n]; Object.keys(p.days).sort().forEach(dt=>{ const d=p.days[dt]; if(d.removed) return; const k=dayCalc(n,d);
+    s2.addRow([n,dt,tyLbl(k.type),k.hours,k.rate??'',k.amount!=null?Math.round(k.amount):'',[k.drate!=null&&d.amount==null?'일급 '+k.drate:'',d.alba?'당일알바':'',!d.base?'직접 추가':'',d.baseS!=null?fmtS(d.baseS)+' 출근':'',d.baseH!=null&&d.hours==null?d.baseH+'시간 근무':'',d.baseR!=null&&d.rate==null?'시급 '+d.baseR:'',d.amount!=null?'금액 직접 입력':'',k.bonus?'추가금 '+Math.round(k.bonus):''].filter(Boolean).join(', ')]); }); });
+  s2.getRow(1).font={bold:true}; s2.getColumn(5).numFmt='#,##0'; s2.getColumn(6).numFmt='#,##0';
+  const buf=await wb.xlsx.writeBuffer();
+  const url=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  const a=document.createElement('a'); a.href=url; a.download=`일품집_급여_${pay.cur}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),5000); toast('엑셀 파일을 저장했어요');
+}
+
+/* ---------- 급여 명세 HTML (시급 저장한 사람만) ---------- */
+function exportHtml(){
+  const mon=pay.months[pay.cur]; if(!mon) return;
+  const names=selectedNames();
+  if(!names.length){ toast('급여 명세에 넣을 사람을 목록에서 체크해 주세요'); return; }
+  const [y,m]=pay.cur.split('-'); let tot=0, T={full:0,pm:0,h:0};
+  const sumRows=names.map(n=>{ const c=personCalc(n); tot+=c.sum; T.full+=c.full; T.pm+=c.pm; T.h+=c.h;
+    return `<tr><td><a href="#p-${encodeURIComponent(n)}">${esc(n)}</a></td><td class="n">${c.full}</td><td class="n">${c.pm}</td><td class="n">${fmtH(c.h)}</td><td class="n">${baseLabel(n)||'-'}</td><td class="n b">${won(c.sum)}</td></tr>`; }).join('');
+  const people=names.map(n=>{ const p=mon.people[n]; const c=personCalc(n); const cyc=cycleOf(n)==='week';
+    const rows=Object.keys(p.days).sort().filter(dt=>!p.days[dt].removed).map(dt=>{ const d=p.days[dt]; const k=dayCalc(n,d); const dd=new Date(dt+'T00:00'); const wd=dd.getDay();
+      const note=[k.drate!=null&&d.amount==null?'일급 '+fmtW(k.drate):'',d.alba?'당일알바':'',!d.base?'직접 추가':'',d.baseS!=null?fmtS(d.baseS)+' 출근':'',d.baseH!=null&&d.hours==null?fmtH(d.baseH)+'시간 근무':'',d.baseR!=null&&d.rate==null?'시급 '+d.baseR.toLocaleString('ko-KR'):'',d.hours!=null?'시간 수정':'',d.rate!=null?'시급 수정':'',d.amount!=null?'금액 직접 입력':'',k.bonus?'추가금 '+won(k.bonus):''].filter(Boolean).join(', ');
+      return `<tr><td class="${wd===0?'sun':wd===6?'sat':''}">${dd.getMonth()+1}/${dd.getDate()} (${DOW[wd]})</td><td>${tyLbl(k.type)}</td><td class="n">${fmtH(k.hours)}</td><td class="n">${k.rate!=null?k.rate.toLocaleString('ko-KR'):(k.drate!=null?'일급':'-')}</td><td class="n">${k.amount!=null?won(k.amount):'-'}</td><td class="note">${note}</td></tr>`; }).join('');
+    const weekTbl=cyc? (()=>{ const wk=weeklyBreakdown(n); if(!wk.length) return '';
+      return `<table style="margin-bottom:10px"><thead><tr><th>주차</th><th>주간</th><th class="n">근무일</th><th class="n">시간</th><th class="n">그 주 급여</th><th>급여일</th></tr></thead>
+        <tbody>${wk.map(w=>`<tr><td><b>${w.no}주차</b></td><td>${fmtMD(w.dates[0])} ~ ${fmtMD(w.dates[w.dates.length-1])}</td><td class="n">${w.cnt}일</td><td class="n">${fmtH(w.h)}시간</td><td class="n">${won(w.sum)}</td><td class="n b" style="color:#7A3E12">${w.lastWork?fmtMD(w.lastWork):'-'}</td></tr>`).join('')}</tbody></table>`; })() : '';
+    return `<section class="person" id="p-${encodeURIComponent(n)}"><h2>${esc(n)}${cyc?' <span style="font-size:13px;font-weight:600;color:#3C5A86">· 주급</span>':''}</h2>
+      <p class="line">종일 <b>${c.full}회</b> · 오후 <b>${c.pm}회</b> · 총 <b>${fmtH(c.h)}시간</b> · 기본 <b>${baseLabel(n)?baseLabel(n)+'원':'시급 미입력'}</b> · 합계 <b class="acc">${won(c.sum)}</b></p>
+      ${weekTbl}
+      <table><thead><tr><th>날짜</th><th>구분</th><th class="n">시간</th><th class="n">시급</th><th class="n">금액</th><th>비고</th></tr></thead><tbody>${rows}</tbody></table></section>`; }).join('');
+  const data=JSON.stringify(pay).replace(/</g,'\\u003c');
+  const doc=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>일품집 ${y}년 ${+m}월 급여 명세</title>
+<style>
+body{margin:0;background:#EEF1EF;color:#1E2622;font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:14px;line-height:1.5}
+main{max-width:900px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 4px} .meta{color:#5E6B65;font-size:13px;margin:0 0 16px}
+.box{background:#fff;border:1px solid #D5DCD8;border-radius:10px;padding:16px;margin-bottom:14px;overflow-x:auto}
+.big{font-size:26px;font-weight:700;color:#7A3E12}
+table{border-collapse:collapse;width:100%} th,td{padding:6px 8px;border-bottom:1px solid #E1E6E3;text-align:left;white-space:nowrap}
+th{font-size:12px;color:#5E6B65} .n{text-align:right;font-variant-numeric:tabular-nums} .b{font-weight:700}
+tfoot td{font-weight:700;border-top:2px solid #1E2622;border-bottom:0}
+.person h2{font-size:18px;margin:0 0 2px} .line{margin:0 0 8px;color:#333} .acc{color:#7A3E12}
+.note{color:#5E6B65;font-size:12px} .sun{color:#B3261E} .sat{color:#3C5A86}
+a{color:inherit}
+.pbtn{position:fixed;right:16px;bottom:16px;padding:10px 18px;border:0;border-radius:8px;background:#7A3E12;color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+@media print{body{background:#fff}.pbtn{display:none}.box{border:0;padding:0}.person{break-inside:avoid;margin-top:14px}}
+</style></head><body><main>
+<h1>일품집 ${y}년 ${+m}월 급여 명세</h1>
+<p class="meta">선택한 ${names.length}명 · 만든 날 ${ds(new Date())} · 종일 ${pay.fullH}시간 / 오후 ${pay.pmH}시간 기준</p>
+<div class="box"><div style="color:#5E6B65;font-size:13px">총 지급액</div><div class="big">${won(tot)}</div>
+<table style="margin-top:10px"><thead><tr><th>이름</th><th class="n">종일(회)</th><th class="n">오후(회)</th><th class="n">총 시간</th><th class="n">시급·일급</th><th class="n">합계</th></tr></thead>
+<tbody>${sumRows}</tbody><tfoot><tr><td>합계</td><td class="n">${T.full}</td><td class="n">${T.pm}</td><td class="n">${fmtH(T.h)}</td><td></td><td class="n">${won(tot)}</td></tr></tfoot></table></div>
+<div class="box">${people}</div>
+<p class="meta">이 파일을 급여 계산기의 "백업 복원"으로 불러오면 이어서 수정할 수 있어요.</p>
+</main><button class="pbtn" onclick="window.print()">인쇄</button>
+<script type="application/json" id="payData">${data}<\/script>
+</body></html>`;
+  showPreview(doc, `일품집_급여명세_${pay.cur}.html`, names.length);
+}
+function downloadText(text, filename, type){
+  const url=URL.createObjectURL(new Blob([text],{type}));
+  const a=document.createElement('a'); a.href=url; a.download=filename; a.style.display='none';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+// 명세서를 먼저 화면에 보여주고, 저장 버튼으로 파일 저장
+function showPreview(doc, filename, count){
+  let ov=document.getElementById('preview');
+  if(!ov){ ov=document.createElement('div'); ov.id='preview'; document.body.appendChild(ov); }
+  ov.innerHTML=`<div class="pv-bar"><b>급여 명세 미리보기</b><span class="muted">선택한 ${count}명</span><span style="flex:1"></span>
+    <button class="btn primary" id="pvSave">HTML 파일로 저장</button><button class="btn" id="pvClose">닫기</button></div>
+    <iframe title="급여 명세 미리보기"></iframe>`;
+  ov.querySelector('iframe').srcdoc=doc;
+  ov.hidden=false; document.body.style.overflow='hidden';
+  ov.querySelector('#pvClose').onclick=()=>{ ov.hidden=true; document.body.style.overflow=''; };
+  ov.querySelector('#pvSave').onclick=()=>{ try{ downloadText(doc, filename, 'text/html'); toast('저장했어요. 다운로드 폴더를 확인하세요'); }catch(e){ toast('이 화면에서는 파일 저장이 막혀 있어요'); } };
+}
+
+/* ---------- 확인 창 (브라우저 기본 확인창이 막힌 환경 대비) ---------- */
+function askConfirm(title,sub,yes,fn){
+  let ov=document.getElementById('confirmBox');
+  if(!ov){ ov=document.createElement('div'); ov.id='confirmBox'; document.body.appendChild(ov); }
+  ov.innerHTML=`<div class="cf" role="dialog" aria-modal="true"><h3>${esc(title)}</h3><p>${esc(sub)}</p>
+    <div class="cf-acts"><button class="btn" id="cfNo">취소</button><button class="btn primary" id="cfYes">${esc(yes)}</button></div></div>`;
+  ov.hidden=false;
+  const close=()=>{ ov.hidden=true; };
+  ov.querySelector('#cfNo').onclick=close;
+  ov.querySelector('#cfYes').onclick=()=>{ close(); fn(); };
+  ov.onclick=e=>{ if(e.target===ov) close(); };
+  setTimeout(()=>ov.querySelector('#cfNo').focus(),20);
+}
+
+let tt; function toast(m){ const el=document.getElementById('toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),2600); }
+
+/* ---------- 급여 비밀번호 (계정마다 자기가 정한 비밀번호 · 서버에 암호화해서 저장) ----------
+   이 화면을 여는 사람이 맞는지 한 번 더 확인하는 잠금이에요. 열기 전에는 근무표·금액을 받아오지도, 보여주지도 않아요.
+   통합관리에서 이 메뉴를 다시 열 때마다, 그리고 10분 동안 아무도 안 만지면 다시 잠겨요. */
+let LOCKED=true, idleT=null;
+const rpcText=async(fn,body)=>{ const r=await jx('/rest/v1/rpc/'+fn,{method:'POST',body:JSON.stringify(body||{})}); return r; };
+function pinBox(){ let b=document.getElementById('lockBox'); if(!b){ b=document.createElement('div'); b.id='lockBox'; b.style.cssText='position:fixed;inset:0;background:var(--bg,#f4f5f3);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(b); } return b; }
+function pinClose(){ const b=document.getElementById('lockBox'); if(b) b.remove(); }
+function pinForm(title,sub,fields,btn,onSubmit,extra){
+  const b=pinBox();
+  b.innerHTML=`<form class="card" id="pinForm" autocomplete="off" style="max-width:360px;width:100%;padding:22px"><h2 style="margin:0 0 4px">${esc(title)}</h2><p class="help" style="margin:0 0 12px">${esc(sub)}</p>
+    ${fields.map((f,i)=>`<label style="display:block;margin-bottom:10px">${esc(f)}<input type="password" class="pinin" data-i="${i}" autocomplete="${i===0&&fields.length===1?'current-password':'new-password'}" style="width:100%;padding:10px;font-size:16px;margin-top:4px"></label>`).join('')}
+    <div id="pinMsg" style="color:var(--warn);min-height:20px;font-size:13.5px;margin-bottom:8px"></div>
+    <div class="row"><button class="btn primary" type="submit" style="flex:1">${esc(btn)}</button>${extra||''}</div></form>`;
+  const f=b.querySelector('#pinForm'); const msg=t=>{ b.querySelector('#pinMsg').textContent=t; };
+  f.onsubmit=async e=>{ e.preventDefault(); const v=[...f.querySelectorAll('.pinin')].map(x=>x.value); const bt=f.querySelector('button[type=submit]'); bt.disabled=true;
+    try{ await onSubmit(v,msg); }catch(er){ msg(er.auth?'로그인이 필요해요':'서버에 연결하지 못했어요: '+(er.message||er)); } bt.disabled=false; };
+  setTimeout(()=>{ const x=f.querySelector('.pinin'); if(x) x.focus(); },30);
+}
+async function lockScreen(){
+  LOCKED=true; clearTimeout(idleT); SCHED=null;
+  const app=document.getElementById('app'); if(app) app.innerHTML='';
+  let stt; try{ stt=await rpcText('pay_pin_status'); }catch(e){ pinForm('급여 계산기','서버에 연결하지 못했어요. 로그인과 인터넷을 확인해 주세요.',[],'다시 시도',()=>lockScreen()); return; }
+  if(!stt.has){
+    pinForm('급여 비밀번호 만들기','이 계정만 아는 비밀번호를 정해 주세요 (4자 이상). 급여 계산기를 열 때마다 물어봐요.',['새 비밀번호','한 번 더'],'만들고 열기',async(v,msg)=>{
+      if(v[0].length<4) return msg('4자 이상으로 정해 주세요'); if(v[0]!==v[1]) return msg('두 칸이 달라요');
+      const r=await rpcText('pay_pin_set',{p_new:v[0]}); if(r==='ok') return unlock(); msg(r==='short'?'4자 이상으로 정해 주세요':'비밀번호를 만들지 못했어요 ('+r+')'); }); return; }
+  pinForm('급여 계산기',stt.locked>0?`비밀번호를 여러 번 틀려서 잠겼어요. ${Math.ceil(stt.locked/60)}분 뒤에 다시 해 주세요.`:'급여 비밀번호를 넣어 주세요.',['비밀번호'],'열기',async(v,msg)=>{
+    const r=await rpcText('pay_pin_check',{p_pin:v[0]}); if(r==='ok') return unlock();
+    if(r==='locked') return msg('5번 틀려서 10분 동안 잠겼어요'); msg('비밀번호가 달라요'); });
+}
+function unlock(){ LOCKED=false; pinClose(); armIdle(); startApp(); }
+function armIdle(){ clearTimeout(idleT); idleT=setTimeout(()=>{ if(!LOCKED) lockScreen(); },10*60*1000); }
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{ if(!LOCKED) armIdle(); },{passive:true}));
+window.pullNow=()=>{ if(READY&&!LOCKED) lockScreen(); };       // 통합관리에서 이 메뉴를 다시 열면 비밀번호를 다시 물어봄
+function pinChangeDialog(){
+  pinForm('급여 비밀번호 바꾸기','지금 비밀번호와 새 비밀번호를 넣어 주세요 (4자 이상).',['지금 비밀번호','새 비밀번호','새 비밀번호 한 번 더'],'바꾸기',async(v,msg)=>{
+    if(v[1].length<4) return msg('새 비밀번호는 4자 이상이에요'); if(v[1]!==v[2]) return msg('새 비밀번호 두 칸이 달라요');
+    const r=await rpcText('pay_pin_set',{p_new:v[1],p_old:v[0]}); if(r==='ok'){ pinClose(); toast('급여 비밀번호를 바꿨어요'); return; }
+    msg(r==='bad_old'?'지금 비밀번호가 달라요':r==='locked'?'여러 번 틀려서 10분 동안 잠겼어요':'바꾸지 못했어요 ('+r+')'); },
+    `<button class="btn" type="button" id="pinCancel">취소</button>`);
+  const c=document.getElementById('pinCancel'); if(c) c.onclick=pinClose;
+}
+/* ---------- 시작: 로그인 확인 → 매장 → 이번 달 자동 계산 ---------- */
+function needLogin(msg){ document.getElementById('app').innerHTML=`<div class="card empty"><strong>${esc(msg)}</strong>통합관리(index.html)에서 로그인한 뒤 다시 열어 주세요.</div>`; document.getElementById('monthSel').disabled=true; }
+async function resolveStore(){
+  if(!readSes()){ needLogin('로그인이 필요해요'); return false; }
+  try{
+    const rows=await jx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); STORES=rows.filter(x=>x.role);
+    if(!STORES.length){ needLogin('연결된 매장이 없어요 — 본사에 계정 연결을 요청하세요'); return false; }
+    const pays=STORES.filter(x=>x.can_pay); const pool=pays.length?pays:STORES; const want=readConf().sid;
+    ST=pool.find(x=>x.id===want)||pool.find(x=>x.is_hq)||pool[0]; SID=ST.id; READY=true;
+    KEY=ST.is_hq?'ilpum-pay-v1':'ilpum-pay-v1-'+SID; loadPay();
+    const box=document.getElementById('storeBox');
+    if(pool.length>1){ box.innerHTML=`<select id="storeSel" aria-label="매장">${pool.map(x=>`<option value="${x.id}" ${x.id===SID?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`; document.getElementById('storeSel').onchange=e=>{ try{ const c=readConf(); c.sid=e.target.value; localStorage.setItem(CONF_KEY,JSON.stringify(c)); }catch(er){} location.reload(); }; }
+    else box.textContent=ST.name;
+    return true;
+  }catch(e){ if(e.auth||e.status===401) needLogin('로그인이 필요해요'); else needLogin('서버에 연결하지 못했어요: '+e.message); return false; }
+}
+async function startApp(){
+  if(READY&&ST.can_pay){ try{ await srvPull(); }catch(e){ toast('서버의 급여 기록을 받지 못했어요 — 이 기기 기록으로 열어요'); } }
+  render(); if(!READY) return;
+  if(!ST.can_pay) toast('이 계정은 금액(급여)을 볼 수 없어요. 시간만 계산돼요');
+  const ym=ds(new Date()).slice(0,7); if(!pay.months[ym]) syncSchedule(ym); else ensurePeriod();
+}
+(async function boot(){
+  const ok=await resolveStore(); if(!ok) return;
+  document.getElementById('app').innerHTML=''; lockScreen();       // 비밀번호를 넣어야 근무표·금액이 나와요
+})();
+</script>
+</body>
+</html>

@@ -51,13 +51,6 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .main{position:fixed;inset:0 0 0 var(--w);display:flex;flex-direction:column;transition:left .22s ease,inset .22s ease}
 body.nav-hidden .nav{transform:translateX(-102%)}
 body.nav-hidden .main{inset:0}
-.bellw{position:relative}
-#bell{position:relative} #bell .bn{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:#E5484D;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--card)}
-.npanel{position:absolute;right:0;top:44px;width:min(360px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.16);z-index:60}
-.npanel .nh{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px 8px;border-bottom:1px solid var(--line)} .npanel .nh small{color:var(--sub);font-size:11.5px}
-.npanel .ni{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;padding:11px 14px;border-bottom:1px solid var(--line);color:var(--ink);font:inherit;cursor:pointer}
-.npanel .ni:hover{background:var(--brand-soft)} .npanel .ni .em{font-size:18px;line-height:1.2} .npanel .ni b{display:block;font-size:14px} .npanel .ni small{display:block;color:var(--sub);font-size:12px;margin-top:2px}
-.npanel .ni.bad b{color:#C8333A} .npanel .none{padding:22px 14px;text-align:center;color:var(--sub);font-size:13px}
 .bar{height:54px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px;flex:0 0 auto}
 .ib{display:inline-grid;place-items:center;width:36px;height:36px;border:1px solid var(--line);background:var(--card);border-radius:10px;color:var(--ink)}
 .ib:hover{border-color:var(--brand);color:var(--brand)}
@@ -137,8 +130,6 @@ select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var
     <button class="ib" id="tog" aria-label="메뉴 숨기기 / 보이기" title="메뉴 숨기기 / 보이기"><svg class="i" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <div class="crumb"><small>일품집 통합관리</small><b id="ttl">오늘 현황</b></div>
     <span class="sp"></span>
-    <div class="bellw"><button class="ib" id="bell" hidden aria-label="알림" title="알림"><svg class="i" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bn" id="bellN" hidden></span></button>
-      <div class="npanel" id="npanel" hidden><div class="nh"><b>알림</b><small id="nAt"></small></div><div id="nList"></div></div></div>
     <button class="lk" id="acct" hidden></button>
     <button class="lk" id="reload" title="새로고침"><svg class="i" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>새로고침</span></button>
     <a class="lk" id="solo" target="_blank" rel="noopener" title="이 화면만 새 창으로"><svg class="i" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>새 창</span></a>
@@ -148,12 +139,175 @@ select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-/*ENGINE*/
+/* ================= 기본 도구 ================= */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const pad=n=>String(n).padStart(2,'0');
+const ds=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const pd=k=>new Date(k+'T00:00');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,10);
+const DOW=['일','월','화','수','목','금','토'], WD_MON=[1,2,3,4,5,6,0];
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const weekStart=d=>{ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; };
+const weekKey=d=>ds(weekStart(d));
+const md=k=>{ const d=pd(k); return `${d.getMonth()+1}/${d.getDate()}`; };
+const mdw=k=>{ const d=pd(k); return `${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`; };
+const won=v=>Math.round(v||0).toLocaleString('ko-KR')+'원';
+const todayStr=ds(new Date());
+const MINWAGE=10320;   // 2026년 최저시급
+function wonS(v){ if(v==null) return ''; if(v>=10000&&v%1000===0) return (v/10000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'만'; return Math.round(v).toLocaleString('ko-KR')+'원'; }
+function payLbl(p){ if(!p||p.v==null) return ''; return p.k==='hour'?'시급 '+wonS(p.v):p.k==='bonus'?'+'+wonS(p.v):p.k==='month'?'월 '+wonS(p.v):wonS(p.v); }
+let _tt; function toast(m){ const el=$('#toast'); el.textContent=m; el.classList.add('on'); clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('on'),2200); }
+
+/* ---------- 시간 ---------- */
+function tMin(t){ if(!t||typeof t!=='string') return null; const m=t.match(/^(\d{1,2}):(\d{2})$/); return m?(+m[1])*60+(+m[2]):null; }
+function tLbl(t){ const x=tMin(t); if(x==null) return ''; const h=Math.floor(x/60), mi=x%60; const hh=h<10?'오전'+h:(h>12?h-12:h); return hh+'시'+(mi===30?'반':mi?mi+'분':''); }
+function zen(s){ return String(s||'').replace(/[０-９．：]/g,c=>c==='．'?'.':c==='：'?':':String.fromCharCode(c.charCodeAt(0)-0xFEE0)); }
+// "11" "5시반" "17:30" "1730" "오전 9시" → 'HH:MM' (출근 1~9시=오후, 퇴근 1~11시=오후)
+function parseT(raw,isEnd){
+  let s=zen(raw).trim().replace(/\s+/g,''); if(!s) return null;
+  const am=/^오전/.test(s), pmf=/^오후/.test(s); s=s.replace(/^(오전|오후)/,'').replace(/(출근|퇴근|출|퇴)$/,'');
+  let m,h,mi=0,lit=false;
+  if((m=s.match(/^(\d{1,2}):(\d{2})$/))){ h=+m[1]; mi=+m[2]; lit=m[1].length===2&&(m[1][0]==='0'||h>=12); }
+  else if((m=s.match(/^(\d{1,2})(\d{2})$/))){ h=+m[1]; mi=+m[2]; lit=true; }
+  else if((m=s.match(/^(\d{1,2})시?(?:(반)|(\d{1,2})분?)?$/))){ h=+m[1]; mi=m[2]?30:(m[3]?+m[3]:0); }
+  else return null;
+  if(h>24||mi>59) return null;
+  if(pmf&&h<12) h+=12; else if(!am&&!lit&&h<12&&(isEnd?h<=11:h<=9)) h+=12;
+  if(h>=24) return null; return pad(h)+':'+pad(mi);
+}
+function parseWon(raw){ let s=zen(raw).trim().replace(/[,\s원]/g,''); if(!s) return null;
+  const man=/만$/.test(s); s=s.replace(/만$/,''); if(!/^\d+(\.\d+)?$/.test(s)) return NaN;
+  let v=parseFloat(s); if(man||v<1000) v*=10000; return Math.round(v); }
+function shLbl(sh,st){ if(!sh||sh.k==='full') return ''; if(sh.k==='pm') return '오후'; if(sh.k==='am') return '오전';
+  if(sh.k==='t') return tLbl(sh.s)+(sh.e&&sh.e!==(st?st.close:'22:00')?'~'+tLbl(sh.e):''); return ''; }
+function shSame(a,b){ const n=x=>(!x||x.k==='full')?'full':x.k==='pm'?'pm':x.k==='am'?'am':'t'+x.s+'-'+(x.e||''); return n(a)===n(b); }
+function shIsPm(sh,st){ return !!sh&&(sh.k==='pm'||(sh.k==='t'&&tMin(sh.s)>=12*60)); }
+// 근무시간: 영업시간 안쪽만 (급여 계산기와 같은 규칙)
+function hoursOf(st,sh){
+  if(!sh||sh.k==='full') return +st.fullH||10; if(sh.k==='pm') return +st.pmH||5; if(sh.k==='am') return +st.amH||5;
+  const o=tMin(st.open), c=tMin(st.close); let a=tMin(sh.s), b=tMin(sh.e||st.close); if(a==null||b==null) return +st.fullH||10;
+  a=Math.max(o,Math.min(c,a)); b=Math.max(o,Math.min(c,b)); return Math.max(0,Math.round((b-a)/60*100)/100);
+}
+function spanOf(st,sh){ // 타임라인 막대용 [시작분, 끝분]
+  const o=tMin(st.open), c=tMin(st.close);
+  if(!sh||sh.k==='full') return [o,c];
+  if(sh.k==='pm') return [tMin(st.pmStart)||c-300,c];
+  if(sh.k==='am'){ const a=tMin(st.amStart)||720; return [a,Math.min(c,a+60*(+st.amH||5))]; }
+  return [Math.max(o,tMin(sh.s)),Math.min(c,tMin(sh.e||st.close))];
+}
+
+
+/* ================= 매장 데이터 ================= */
+const DEF_POS=[['카운터','#3C5A86',1,1],['홀','#2F6B3F',3,4],['그릴','#B8621B',2,3],['주방','#8A2E2E',3,4],['장치','#5B3F86',0,0],['장잡','#1F6F78',0,0],['배송','#8A6A12',0,0],['주차','#55605A',0,1]];
+const defStore=()=>({name:'',open:'11:00',close:'22:00',fullH:10,pmH:5,pmStart:'17:00',amH:5,amStart:'12:00',fivePlus:true,vis:'week',target:25});
+const defPositions=()=>DEF_POS.map(([name,color,wd,we])=>({name,color,req:[we,wd,wd,wd,wd,wd,we]}));
+const safeColor=c=>/^#[0-9a-fA-F]{3,8}$/.test(String(c||''))?c:'#888888';
+const cleanPositions=a=>Array.isArray(a)? a.filter(p=>p&&typeof p.name==='string').map(p=>Object.assign({},p,{color:safeColor(p.color)})) : [];
+// 본사가 이 계정 비밀번호를 바꾼 뒤 본인이 아직 다시 안 바꿨으면 그 시각(문자열), 아니면 ''
+const pwByHqAt=u=>{ const h=u&&u.app_metadata&&u.app_metadata.pw_by_hq, m=u&&u.user_metadata&&u.user_metadata.pw_self_at; return h&&(!m||m<h)?h:''; };
+const CLOSED_MARK=' (사용 중지)', isClosedName=n=>String(n||'').endsWith(CLOSED_MARK);
+const TYPES={regular:'고정 근무',weekly:'매주 변동',spot:'단기·당일'};
+function buildD(items,storeName){
+  const g=k=>items[k]||{}; const cfg=g('cfg');
+  const store=Object.assign(defStore(),cfg.store||{}); if(!store.name) store.name=storeName||'';
+  return {store, positions:(cleanPositions(cfg.positions).length)?cleanPositions(cfg.positions):defPositions(),
+    staff:g('staff'),rules:g('rule'),dc:g('dc'),spot:g('spot'),aw:g('aw'),sales:g('sales'),pay:g('pay')};
+}
+const KIND_OF={staff:'staff',rules:'rule',dc:'dc',spot:'spot',aw:'aw',sales:'sales',pay:'pay'};
+function staffList(D,all){ return Object.values(D.staff).filter(s=>all||s.active!==false).sort((a,b)=>(a.order||0)-(b.order||0)||a.name.localeCompare(b.name,'ko')); }
+
+/* ================= 근무 계산 엔진: 요일 패턴 → 기간 설정 → 주간 입력 → 그날만 ================= */
+function rulesSorted(D){ return Object.values(D.rules).filter(r=>r&&r.from&&Array.isArray(r.ids)).sort((a,b)=>(a.at||0)-(b.at||0)); }
+function ruleHit(r,sid,key,wd){ return r.ids.includes(sid)&&key>=r.from&&key<=(r.to||r.from)&&(!r.days||!r.days.length||r.days.includes(wd)); }
+function resolve(D,d,opt={}){
+  const rules=opt.rules||rulesSorted(D);
+  const key=ds(d), wd=d.getDay(), di=(wd+6)%7, wk=weekKey(d);
+  const list=[], offs=[]; const pnames=D.positions.map(p=>p.name);
+  staffList(D).forEach(s=>{
+    if(s.last&&key>s.last) return;            // 마지막 근무일이 지난 사람은 그 다음 날부터 근무표에서 빠져요 (지난 기록은 그대로)
+    let working=false, reason=null, pos=s.pos, tag=null, sh=null, shSrc='', ruleIds=[], payoff=false, awSh=null, awMissing=false;
+    if(s.type==='weekly'){ const en=(D.aw[wk]||{})[s.id];
+      if(en){ working=!(en.off||[]).includes(di); if(!working) reason='주간휴무';
+        else { const tt=(en.t||{})[di]; if(tt&&tt.s) awSh={k:'t',s:tt.s,e:tt.e||''}; else if((en.pm||[]).includes(di)) awSh={k:'pm'}; } }
+      else awMissing=true; }
+    else if(s.type==='spot'){ working=false; }
+    else { working=!(s.off||[]).includes(wd); if(!working) reason='고정휴무'; }
+    const pat=(s.wk||{})[wd]; if(pat&&pat.sh){ sh=pat.sh; shSrc='pat'; }
+    rules.forEach(r=>{ if(!ruleHit(r,s.id,key,wd)) return; ruleIds.push(r.id);
+      if(r.w==='off'){ working=false; reason=(r.memo&&r.memo.length<=8)?r.memo:'기간휴무'; }
+      else if(r.w==='on'&&!working){ working=true; reason=null; tag='add'; }
+      if(r.pos) pos=r.pos; if(r.sh){ sh=r.sh; shSrc='rule'; } });
+    if(awSh){ sh=awSh; shSrc='week'; }
+    const dc=opt.noDc&&opt.noDc===s.id? null : D.dc[key+'|'+s.id];
+    if(dc){
+      if(dc.st==='off'||dc.st==='annual'){ working=false; reason=dc.st==='annual'?'월차':'휴무'; }
+      else if(dc.st==='extra'){ if(!working) tag='add'; working=true; reason=null; }
+      else if(dc.st==='paidoff'){ working=true; payoff=true; tag='payoff'; reason=null; }
+      if(dc.pos) pos=dc.pos; if(dc.sh){ sh=dc.sh; shSrc='day'; } }
+    if(!pnames.includes(pos)) pos=pnames[0];
+    if(!tag&&pos!==s.pos) tag='chg';
+    if(working) list.push({sid:s.id,name:s.name,nl:s.note||'',type:s.type,pos,tag,sh,shSrc,ruleIds,payoff,memo:(dc&&dc.memo)||''});
+    else if(reason||(awMissing&&!opt.quiet)) offs.push({sid:s.id,name:s.name,reason:reason||'미입력',ruleIds,missing:!reason&&awMissing});
+  });
+  Object.values(D.spot).filter(x=>x&&x.date===key).forEach(x=>{
+    list.push({spotId:x.id,name:x.name,type:'spot',pos:pnames.includes(x.pos)?x.pos:pnames[0],tag:'spot',sh:x.sh||null,shSrc:x.sh?'day':'',ruleIds:[],memo:x.memo||'',nl:x.note||''}); });
+  return {key,wd,list,offs};
+}
+function findItem(D,key,sid,opt={}){ return resolve(D,pd(key),opt).list.find(x=>x.sid===sid)||null; }
+
+/* ---------- 금액 (권한 있는 사람만 D.pay가 채워짐) ---------- */
+function payOf(D,x,key,wd){
+  const P=D.pay||{}; let ov=null, src='';
+  if(x.spotId){ ov=P['spot:'+x.spotId]||null; if(ov) src='day'; return {ov,src,base:null}; }
+  const pat=P['pat:'+x.sid+':'+wd]; if(pat){ ov=pat; src='pat'; }
+  x.ruleIds.forEach(id=>{ const p=P['rule:'+id]; if(p){ ov=p; src='rule'; } });
+  const dp=P['dc:'+key+'|'+x.sid]; if(dp){ ov=dp; src='day'; }
+  return {ov,src,base:P['staff:'+x.sid]||null};
+}
+function costOf(D,x,key,wd){
+  const st=D.store; const h=x.payoff?0:hoursOf(st,x.sh); const {ov,src,base}=payOf(D,x,key,wd);
+  let bc=null; if(base){ if(base.k==='hour') bc=base.v*h; else if(base.k==='day') bc=Math.round(base.v*h/(+st.fullH||10)); else if(base.k==='month') bc=Math.round(base.v/30); }
+  let c=bc; if(ov){ if(ov.k==='day') c=ov.v; else if(ov.k==='hour') c=ov.v*h; else if(ov.k==='bonus') c=(bc||0)+ov.v; }
+  const rate = h>0&&c!=null&&(ov?ov.k!=='bonus':base&&base.k!=='month')? c/h : null;
+  return {h,c,ov,src,base,rate,cash:!!(ov&&ov.cash)};
+}
+
+/* ---------- 한 주 계산 + 노동법 경고 ---------- */
+function reqOf(D,pos,wd){ const p=D.positions.find(x=>x.name===pos); return p&&p.req? (+p.req[wd]||0) : 0; }
+function weekCalc(D,ws,canPay){
+  const rules=rulesSorted(D); const st=D.store; const days=[]; const per={};
+  let reqCells=0, filled=0, shortCells=0, hours=0, cost=0, costKnown=true, sales=0;
+  for(let i=0;i<7;i++){ const d=addDays(ws,i); const R=resolve(D,d,{rules});
+    const by={}; D.positions.forEach(p=>by[p.name]=[]); R.list.forEach(x=>(by[x.pos]=by[x.pos]||[]).push(x));
+    let dh=0, dc=0, dMissing=0, need=0, have=0; const short={};
+    D.positions.forEach(p=>{ const rq=reqOf(D,p.name,R.wd), n=by[p.name].length; need+=rq; have+=Math.min(n,rq); if(rq&&n<rq){ short[p.name]=rq-n; shortCells+=rq-n; } });
+    reqCells+=need; filled+=have;
+    R.list.forEach(x=>{ const k=costOf(D,x,R.key,R.wd); x.h=k.h; x.cost=k; dh+=k.h;
+      if(canPay){ if(k.c==null) dMissing++; else dc+=k.c; }
+      if(x.sid){ const p=per[x.sid]=per[x.sid]||{name:x.name,h:0,days:[]}; p.h+=k.h; p.days.push({key:R.key,h:k.h,rate:k.rate,sh:x.sh}); } });
+    const sv=(D.sales[R.key]||{}).v||0; sales+=sv; hours+=dh; cost+=dc; if(dMissing) costKnown=false;
+    days.push({d,key:R.key,wd:R.wd,R,by,short,hours:dh,cost:dc,costMissing:dMissing,sales:sv,need,have,count:R.list.length});
+  }
+  // 경고
+  const W=[];
+  const P=Object.values(per), nm=l=>l.slice(0,6).join(', ')+(l.length>6?` 외 ${l.length-6}명`:'');
+  const o52=P.filter(p=>p.h>52); if(o52.length) W.push({lv:'bad',t:`주 52시간 넘는 사람 ${o52.length}명`,s:nm(o52.map(p=>`${p.name} ${fmtH(p.h)}h`))+' — 연장근로는 주 12시간까지예요'+(st.fivePlus?'':' (5인 미만 매장은 적용 안 됨)')});
+  P.filter(p=>p.h>=13&&p.h<15).forEach(p=>W.push({lv:'warn',t:`${p.name} 주 ${fmtH(p.h)}시간 — 주휴수당 경계`,s:'주 15시간 이상이면 주휴수당이 생겨요. 의도한 시간인지 확인하세요'}));
+  if(canPay){ const low=[]; P.forEach(p=>{ const d=p.days.filter(x=>x.rate!=null&&x.rate<MINWAGE); if(d.length) low.push(`${p.name} ${won(Math.min(...d.map(x=>x.rate)))}(${d.map(x=>md(x.key)).join(',')})`); });
+    if(low.length) W.push({lv:'bad',t:`시간당 금액이 최저시급(${won(MINWAGE)})보다 낮은 사람 ${low.length}명`,s:low.join(' / ')}); }
+  if(st.fivePlus){ const o8=P.filter(p=>p.days.some(x=>x.h>8)); if(o8.length){ const extra=P.reduce((a,p)=>a+p.days.reduce((b,x)=>b+Math.max(0,x.h-8),0),0);
+    W.push({lv:'info',t:`하루 8시간 넘는 근무 ${o8.length}명 · 연장 합계 ${fmtH(extra)}시간 (가산 50%)`,s:nm(o8.map(p=>p.name))}); } }
+  return {days,per,W,reqCells,filled,shortCells,hours,cost,costKnown,sales,fill:reqCells?filled/reqCells:1};
+}
+const fmtH=h=>(Math.round(h*10)/10).toLocaleString('ko-KR');
+function ratioCls(r,t){ if(r==null) return ''; return r<=t?'ok':r<=t+5?'warn':'bad'; }
+
 
 /* ================= 설정 (파일 이름이 다르면 여기만 고치세요) ================= */
 const FILES={ res:'reserve.html', sch:'ilpum-schedule.html', pay:'pay.html',
               ord:'order.html', notice:'notice.html', board:'board.html' };
-const NEW={url:'https://bdqcrbnbuoujozlpttbe.supabase.co',key:'/*NEWKEY*/'};   // 근무표 · 예약 (둘 다 새 서버, 매장별로 나뉨)
+const NEW={url:'https://bdqcrbnbuoujozlpttbe.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcWNyYm5idW91am96bHB0dGJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTU4NDQsImV4cCI6MjEwNjE5MTg0NH0.L8Yuj46Zjg0XNoWeRr-_9xZWKiyHH3-AyC4_3i5p_X8'};   // 근무표 · 예약 (둘 다 새 서버, 매장별로 나뉨)
 
 /* ================= 메뉴 ================= */
 const ICON={
@@ -222,10 +376,10 @@ async function whoami(){
   let rows;
   try{ try{ rows=await ask(ses.access_token); }catch(e){ if(e.status!==401||!ses.refresh_token) throw e; ses=await refreshSes(ses); rows=await ask(ses.access_token); } }
   catch(e){ ME={mode:(e.status===401||e.message==='refresh')?'none':'in',hq:false,store:null,token:ses.access_token,email:'',err:e.message}; if(ME.mode==='in'){ ME.err=e.message; } return; }
-  const mine=rows.filter(r=>r.role); const hq=mine.some(r=>r.role==='hq'); MYSTORES=mine;
+  const mine=rows.filter(r=>r.role); const hq=mine.some(r=>r.role==='hq');
   ME={mode:'in',orderOnly:mine.length>0&&mine.every(r=>r.role==='order'),hq,canPay:mine.some(r=>r.can_pay),board:mine.some(r=>['hq','owner','manager'].includes(r.role)),acct:mine.some(r=>['hq','owner'].includes(r.role)),store:(hq?mine.find(r=>r.is_hq):mine[0])||null,token:ses.access_token,email:(ses.user&&ses.user.email)||'',pwWarn:pwByHqAt(ses.user),names:Object.fromEntries(mine.map(r=>[r.id,r.name]))};
 }
-let gateFr=null, MYSTORES=[];
+let gateFr=null;
 function showGate(){ gateFr=document.createElement('iframe'); gateFr.id='gate'; gateFr.title='로그인'; gateFr.src='ilpum-schedule.html?embed=1&view=cards';
   gateFr.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:99;background:#fff'; document.body.appendChild(gateFr); }
 function applyMe(){ $$('#menu [data-acct]').forEach(b=>{ if(ME.mode==='in'&&!ME.acct) b.hidden=true; }); if(ME.orderOnly){ $$('#menu .mi').forEach(b=>b.hidden=b.dataset.m!=='ord'); $$('#menu .subm').forEach(b=>b.hidden=true); } else $$('#menu .subm').forEach(b=>b.hidden=false); $$('#menu [data-hqonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.hq)); $$('#menu [data-payonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.canPay)); $$('#menu [data-boardonly]').forEach(b=>b.hidden=!(ME.mode!=='in'||ME.board));
@@ -347,35 +501,11 @@ async function refreshBadges(){ if(ME.orderOnly) return;
     ME.hq?null:get('/rest/v1/board_notices?select=id,created_at&order=created_at.desc&limit=30'),
     ME.board?get(ME.hq?'/rest/v1/board_msgs?from_hq=eq.false&hq_read=eq.false&select=id&limit=200':'/rest/v1/board_msgs?from_hq=eq.true&store_read=eq.false&select=id&limit=200'):null]);
   if(od) orderOpen=od; paintOrderBadge();
-  let ntN=0; if(nt){ let seen=''; try{ seen=localStorage.getItem('ilpum-notice-seen')||''; }catch(e){} ntN=nt.filter(n=>!seen||n.created_at>seen).length; paintBadge('notice',ntN,'새 공지'); }
+  if(nt){ let seen=''; try{ seen=localStorage.getItem('ilpum-notice-seen')||''; }catch(e){} paintBadge('notice',nt.filter(n=>!seen||n.created_at>seen).length,'새 공지'); }
   if(bd) paintBadge('board',bd.length,ME.hq?'안 읽은 점주 글':'본사 답글');
-  const hc=ME.board?await hcList(tk):[];
-  const N=[]; const sname=id=>{ const s=MYSTORES.find(x=>x.id===id); return s?s.name:''; }; const multi=new Set(orderOpen.map(o=>o.store_id)).size>1||ME.hq;
-  hc.filter(x=>x.lv==='over').forEach(x=>N.push({em:'🩺',bad:1,t:`${x.name} 보건증 만료됨`,s:`${md(x.exp)} 만료${multi&&sname(x.sid)?' · '+sname(x.sid):''} · 직원 관리에서 새 날짜를 넣어 주세요`,go:'staff'}));
-  hc.filter(x=>x.lv==='soon').forEach(x=>N.push({em:'🩺',t:`${x.name} 보건증 ${x.days===0?'오늘 만료':x.days+'일 뒤 만료'}`,s:`${md(x.exp)} 만료${multi&&sname(x.sid)?' · '+sname(x.sid):''}`,go:'staff'}));
-  if(orderOpen.length) N.push({em:'📦',t:`진행 중인 발주 ${orderOpen.length}건`,s:'가장 최근 '+ago(orderOpen[0].created_at),go:'ord'});
-  if(ntN) N.push({em:'📢',t:`새 공지 ${ntN}건`,s:'공지사항에서 확인',go:'notice'});
-  if(bd&&bd.length) N.push({em:'💬',t:`${ME.hq?'안 읽은 점주 글':'본사 답글'} ${bd.length}건`,s:'게시판에서 확인',go:'board'});
-  NOTI=N; paintBell();
   if(cur==='dash'&&dashData) renderDash();
 }
 async function refreshOrders(){ return refreshBadges(); }
-// ---- 종 알림: 보건증 만료(30일 전부터)·발주·공지·게시판을 한곳에. 보건증은 직원 목록을 30분에 한 번만 받아요(전송량 절약) ----
-let NOTI=[], hcCache=null;
-async function hcList(tk){
-  const ids=(ME.hq?MYSTORES:MYSTORES.filter(s=>['owner','manager'].includes(s.role))).map(s=>s.id); if(!ids.length) return [];
-  if(!hcCache||Date.now()-hcCache.at>1800000){ try{
-      const rows=await sget(NEW,`/rest/v1/sch_items?kind=eq.staff&deleted=eq.false&store_id=in.(${ids.join(',')})&select=store_id,id,data`,{token:tk});
-      hcCache={at:Date.now(),rows}; }catch(e){ if(!hcCache) return []; } }
-  const today=ds(new Date());
-  return hcCache.rows.map(r=>{ const s=r.data||{}; if(s.active===false||(s.last&&s.last<today)) return null; const h=hcState(s,today); return (h.lv==='over'||h.lv==='soon')?{sid:r.store_id,name:s.name||'',exp:h.exp,days:h.days,lv:h.lv}:null; }).filter(Boolean).sort((a,b)=>a.days-b.days);
-}
-function paintBell(){ const b=$('#bell'); b.hidden=ME.mode!=='in'; const n=NOTI.length, e=$('#bellN'); e.hidden=!n; e.textContent=n>99?'99+':n;
-  b.title=n?`알림 ${n}개`:'알림 없음'; if(!$('#npanel').hidden) paintNoti(); }
-function paintNoti(){ $('#nAt').textContent=new Date().toTimeString().slice(0,5)+' 기준';
-  $('#nList').innerHTML=NOTI.length?NOTI.map((x,i)=>`<button class="ni ${x.bad?'bad':''}" data-ni="${i}"><span class="em">${x.em}</span><span><b>${esc(x.t)}</b><small>${esc(x.s||'')}</small></span></button>`).join(''):'<div class="none">새 알림이 없어요</div>'; }
-$('#bell').onclick=e=>{ e.stopPropagation(); const p=$('#npanel'); p.hidden=!p.hidden; if(!p.hidden){ paintNoti(); hcCache=null; refreshBadges(); } };
-document.addEventListener('click',e=>{ const p=$('#npanel'); if(p.hidden) return; const it=e.target.closest('[data-ni]'); if(it){ const x=NOTI[+it.dataset.ni]; p.hidden=true; if(x&&ROUTES[x.go]&&allowed(x.go)) go(x.go); return; } if(!e.target.closest('.bellw')) p.hidden=true; });
 function orderPanel(){
   if(ME.mode!=='in') return '';
   const by={}; orderOpen.forEach(o=>(by[o.store_id]=by[o.store_id]||[]).push(o)); const ids=Object.keys(by);

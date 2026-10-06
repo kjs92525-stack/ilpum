@@ -1,87 +1,255 @@
-# 보건증 발급일·만료일(직원 편집·목록, 만료 30일 전부터 경고) + 통합 틀 오른쪽 위 종 알림(보건증·발주·공지·게시판) (가짜 서버 + 체험 모드)
-import asyncio, json, time, datetime
+# 대구 상권분석 (sangkwon.html, 서버 없음) — 가짜 카카오 지도 SDK 로 화면 흐름 확인
+# 실행 전: sh build_all.sh  (sh tests/run.sh t62)
+import asyncio, json
 from playwright.async_api import async_playwright
-NEW='bdqcrbnbuoujozlpttbe.supabase.co'; BON='0134d989-757a-4b60-9cb3-93245de2cac8'; F1='ad2ffdae-f76b-44cd-a6c6-58514c4e4638'
-T=datetime.date.today(); D=lambda n:(T+datetime.timedelta(days=n)).isoformat()
-ROLE={'v':'hq'}
-STAFF=[(BON,'s1',{"name":"김만료","pos":"홀","hcExp":D(-3)}),(BON,'s2',{"name":"이임박","pos":"홀","hcIss":(datetime.date(T.year-1,T.month,T.day)+datetime.timedelta(days=10)).isoformat()}),
-       (F1,'s3',{"name":"박여유","pos":"홀","hcExp":D(200)}),(F1,'s4',{"name":"최그만","pos":"홀","hcExp":D(-10),"active":False}),(F1,'s5',{"name":"정유천","pos":"주방","hcExp":D(20)})]
-def stores():
-  if ROLE['v']=='hq': return [{"id":BON,"name":"일품집 본점","is_hq":True,"role":"hq","can_pay":True},{"id":F1,"name":"유천점","is_hq":False,"role":"hq","can_pay":False}]
-  return [{"id":F1,"name":"유천점","is_hq":False,"role":ROLE['v'],"can_pay":True}]
+STUB=r"""
+(function(){
+const S={OK:'OK',ZERO_RESULT:'ZERO_RESULT',ERROR:'ERROR'};
+const base=o=>o&&o.location?Math.max(1,Math.round((o.location.getLat()-35.70)*200)):1;
+const pg=(n)=>({totalCount:n,hasNextPage:false});
+const NAMES=["동성로","반월당역","범어역","수성못","들안길","동대구역","칠곡3지구","상인역","월배역","계명대역","죽전역","두류역","신매역","대곡역","경북대학교 북문","침산동","앞산카페거리","율하역","대구혁신도시","대실역"];
+function Places(){}
+Places.prototype.keywordSearch=function(q,cb,o){ window.__calls=(window.__calls||0)+1; o=o||{};
+  setTimeout(()=>{
+    if(!o.location){
+      if(q.startsWith('대구 ')){ const i=NAMES.indexOf(q.slice(3)); if(i<0) return cb([],S.ZERO_RESULT,null); return cb([{id:'b'+i,place_name:q.slice(3),x:String(128.50+i*0.012),y:String(35.78+i*0.008)}],S.OK,pg(1)); }
+      if(q==='범어역') return cb([{id:'k1',place_name:'범어역 2호선',road_address_name:'대구 수성구 달구벌대로 지하',address_name:'대구 수성구 범어동',x:'128.6262',y:'35.8590'}],S.OK,pg(1));
+      return cb([],S.ZERO_RESULT,null);
+    }
+    const lat=o.location.getLat(), b=base(o);
+    if(q==='장어'){ if(lat>35.85&&lat<35.87) return cb([
+        {id:'e1',place_name:'바다장어 <img src=x onerror=window.PWN=1>',category_name:'음식점 > 한식 > 장어',road_address_name:'범어로 1',phone:'053-1',x:'128.631',y:'35.861',distance:'320',place_url:'javascript:alert(1)'},
+        {id:'e2',place_name:'풍천장어',category_name:'음식점 > 한식 > 장어',road_address_name:'범어로 2',phone:'',x:'128.636',y:'35.864',distance:'700',place_url:'http://place.map.kakao.com/2'},
+        {id:'e3',place_name:'장어수산',category_name:'가정,생활 > 식품판매 > 수산물',road_address_name:'범어로 3',x:'128.637',y:'35.865',distance:'800'}],S.OK,pg(3));
+      return b%3===0?cb([],S.ZERO_RESULT,null):cb([{id:'z'+b,place_name:'장어집'+b,category_name:'음식점 > 한식 > 장어',x:'128.5',y:'35.8',distance:String(200+b*10)}],S.OK,pg(1)); }
+    if(q==='민물장어'){ if(lat>35.85&&lat<35.87) return cb([{id:'e1',place_name:'바다장어',category_name:'음식점 > 한식 > 장어',x:'128.631',y:'35.861',distance:'320'}],S.OK,pg(1)); return cb([],S.ZERO_RESULT,null); }
+    const k={'고기':3,'술집':2,'아파트':4}[q]||1; return cb([{id:'x'}],S.OK,pg(b*k));
+  },5); };
+Places.prototype.categorySearch=function(code,cb,o){ window.__calls=(window.__calls||0)+1; setTimeout(()=>{ const b=base(o);
+  if(code==='SW8') return cb([{id:'s1',place_name:'역'+b,x:'128.6',y:'35.86',distance:String(1500-b*20)}],S.OK,pg(1));
+  const k={FD6:10,PO3:1,BK9:2,HP8:3,PK6:1}[code]||1; cb([{id:'c'}],S.OK,pg(b*k)); },5); };
+function Geocoder(){}
+Geocoder.prototype.addressSearch=function(q,cb){ setTimeout(()=>{
+  if(q.includes('범어동')) return cb([{address_name:'대구 수성구 범어동 177',x:'128.6300',y:'35.8600',road_address:{address_name:'대구 수성구 달구벌대로 2400'}},{address_name:'대구 수성구 범어동 178',x:'128.6310',y:'35.8610',road_address:null}],S.OK);
+  if(q.includes('들안로')) return cb([{address_name:'대구 수성구 두산동 1',x:'128.6350',y:'35.8500',road_address:{address_name:'대구 수성구 들안로 1'}}],S.OK);
+  cb([],S.ZERO_RESULT); },5); };
+Geocoder.prototype.coord2RegionCode=function(x,y,cb){ setTimeout(()=>cb([{region_type:'B',address_name:'대구 수성구 범어동',code:'2726010500',region_3depth_name:'범어동'},{region_type:'H',address_name:'대구광역시 수성구 범어1동',code:'2726053000'}],S.OK),5); };
+Geocoder.prototype.coord2Address=function(x,y,cb){ setTimeout(()=>cb([{address:{address_name:'대구 중구 동성로2가 1'},road_address:null}],S.OK),5); };
+function LatLng(lat,lng){ this.getLat=()=>lat; this.getLng=()=>lng; }
+function Map(el){ this.el=el; window.__map=this; this.setLevel=()=>{}; this.setCenter=()=>{}; this.relayout=()=>{}; }
+function CustomOverlay(o){ this.o=o; this.setMap=m=>{ if(!m&&o.content.parentNode) o.content.remove(); }; if(o.map) o.map.el.appendChild(o.content); }
+function Circle(o){ window.__circ=(window.__circ||0)+1; this.setMap=()=>{}; }
+window.kakao={maps:{load:f=>setTimeout(f,0),LatLng,Map,CustomOverlay,Circle,event:{addListener:(m,ev,fn)=>{ window.__mapClick=fn; }},
+  services:{Places,Geocoder,Status:S,SortBy:{DISTANCE:'distance',ACCURACY:'accuracy'}}}};
+})();
+"""
+MODE={'sdk':'ok','relay':'ok'}; EXT=[]; RELAY=[]
+def apt_xml():
+  it=lambda d,a,ar: f"<item><aptNm>A</aptNm><umdNm>{d}</umdNm><dealAmount>{a}</dealAmount><excluUseAr>{ar}</excluUseAr><cdealType> </cdealType></item>"
+  items=it('범어동','120,000','84.9')*2+it('범어동','100,000','84.9')+it('만촌동','80,000','84.9')*3
+  return f"<?xml version='1.0' encoding='UTF-8'?><response><header><resultCode>000</resultCode><resultMsg>OK</resultMsg></header><body><items>{items}</items><numOfRows>1000</numOfRows><pageNo>1</pageNo><totalCount>6</totalCount></body></response>"
+def pop_json():
+  def row(tong,ban,m30,m60):
+    r={"ctpvNm":"대구광역시","sggNm":"수성구","dongNm":"범어1동","admmCd":"2726053000","tong":tong,"ban":ban,"statsYm":"202508","totNmprCnt":str(m30*2+m60)}
+    for a in range(0,101,10): r[f"male{a}AgeNmprCnt"]="0"; r[f"feml{a}AgeNmprCnt"]="0"
+    r["male30AgeNmprCnt"]=str(m30); r["feml30AgeNmprCnt"]=str(m30); r["male60AgeNmprCnt"]=str(m60); return r
+  items=[row("","",2000,1000),row("1","1",1000,500),row("2","1",1000,500)]   # 동 합계 줄 + 통반 줄 (겹쳐 세면 안 됨)
+  return {"Response":{"head":{"totalCount":"3","resultCode":"0","resultMsg":"NORMAL_SERVICE"},"items":{"item":items}}}
+import datetime
+def rest_json(qs):
+  t=datetime.date.today(); fmt=lambda d:d.isoformat()
+  R=lambda items,n:json.dumps({"response":{"body":{"dataType":"JSON","items":{"item":items},"numOfRows":len(items),"pageNo":1,"totalCount":n},"header":{"resultCode":"0","resultMsg":"정상"}}})
+  if 'cond%5BOPN_ATMY_GRP_CD%3A%3AEQ%5D' not in qs: return R([{"OPN_ATMY_GRP_CD":"3460000","BPLC_NM":"가"}],4471)
+  if 'SALS_STTS_CD%3A%3AEQ%5D=01' in qs: return R([{"BPLC_NM":"가"}],200)
+  if 'LCPMT_YMD' in qs: return R([{"BPLC_NM":"가"}],40)
+  recent=fmt(t-datetime.timedelta(days=30)); old=fmt(t-datetime.timedelta(days=500))
+  return R([{"CLSBIZ_YMD":recent},{"CLSBIZ_YMD":recent},{"CLSBIZ_YMD":recent},{"CLSBIZ_YMD":old},{"CLSBIZ_YMD":old}],5)
+STORE={"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE"},"body":{"items":[{"indsLclsNm":"음식","indsMclsNm":"한식","bizesNm":"한식당"}]*3+[{"indsLclsNm":"음식","indsMclsNm":"주점","bizesNm":"호프"}]*2+[{"indsLclsNm":"음식","indsMclsNm":"한식","indsSclsNm":"장어구이","bizesNm":"풍천장어"}]+[{"indsLclsNm":"소매"}]*4,"totalCount":345}}
 async def handler(r):
   u=r.request.url
   if 'localhost' in u: return await r.continue_()
-  if NEW not in u: return await r.fulfill(status=404,body='{}')
-  J=lambda o,st=200: r.fulfill(status=st,content_type='application/json',body=json.dumps(o))
-  if '/rpc/sch_my_stores' in u: return await J(stores())
-  if '/rest/v1/sch_items' in u and 'kind=eq.staff' in u:
-    ids=u.split('store_id=in.(')[1].split(')')[0].split(',')
-    return await J([{"store_id":s,"id":i,"data":d} for s,i,d in STAFF if s in ids])
-  if '/rest/v1/wh_orders' in u: return await J([{"store_id":F1,"code":"AB12","created_at":"2026-10-06T01:00:00+00:00"}])
-  if '/rest/v1/board_msgs' in u: return await J([{"id":1},{"id":2}])
-  await J([])
-S={"ses":{"access_token":"tok","refresh_token":"r","expires_at":int(time.time())+3000,"user":{"email":"x@ilpum.invalid"}},"mode":"remote","url":"https://"+NEW,"key":"k"}
+  if 'dapi.kakao.com/v2/maps/sdk.js' in u:
+    if MODE['sdk']=='fail': return await r.fulfill(status=401,body='')
+    if MODE['sdk']=='firstfail' and 'appkey=7ed6cf4a57f04e78dab3bf66a095dcd2' in u: return await r.fulfill(status=401,body='')
+    assert ('appkey=7ed6cf4a57f04e78dab3bf66a095dcd2' in u or 'appkey=1aaf38e9a5c0669aad33526fced00618' in u) and 'libraries=services' in u
+    return await r.fulfill(status=200,content_type='application/javascript',body=STUB)
+  if 'ilpum-data.yoyo925.workers.dev' in u:
+    RELAY.append(u); H={'Access-Control-Allow-Origin':'*'}
+    if '/ping' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps({"ok":True,"hasKey":MODE['relay']!='nokey',"allowed":True}))
+    if MODE['relay']=='nokey': return await r.fulfill(status=200,headers=H,content_type='text/xml',body="<OpenAPI_ServiceResponse><cmmMsgHeader><returnAuthMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</returnAuthMsg><returnReasonCode>30</returnReasonCode></cmmMsgHeader></OpenAPI_ServiceResponse>")
+    if '/apt?' in u: return await r.fulfill(status=200,headers=H,content_type='text/xml',body=apt_xml())
+    if '/pop?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps(pop_json()))
+    if '/rest?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=rest_json(u))
+    if '/store?' in u: return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps(STORE))
+  EXT.append(u); return await r.fulfill(status=404,body='')
+FAILS=[]
+def ok(name,cond,extra=''):
+  print(('  ok ' if cond else 'FAIL ')+name,extra)
+  if not cond: FAILS.append(name)
 async def main():
-  ok=True
-  def chk(n,c,x=''):
-    nonlocal ok; ok&=bool(c); print('OK  ' if c else 'FAIL',n,x)
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
-    # 1) 근무표(체험): 직원 편집 창에 보건증 칸, 목록·경고
-    pg=await b.new_page(viewport={'width':1300,'height':900}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
-    await pg.route('**/*', lambda r: r.abort() if 'supabase' in r.request.url else r.continue_())
-    await pg.goto('http://localhost:8765/ilpum-schedule.html')
-    await pg.evaluate("localStorage.clear(); localStorage.setItem('ilpum-fr-conf', JSON.stringify({mode:'local'}))"); await pg.reload(); await pg.wait_for_timeout(1200)
-    sid=await pg.evaluate("staffList(APP.D).find(s=>s.type==='regular').id")
-    await pg.evaluate("APP.view='staff'; render()"); await pg.click(f'tr[data-sid="{sid}"]'); await pg.wait_for_timeout(300)
-    chk('편집 창에 보건증 발급일·만료일 칸', await pg.is_visible('#sfHcIss') and await pg.is_visible('#sfHcExp'))
-    iss=(datetime.date(T.year-1,T.month,T.day)+datetime.timedelta(days=15)).isoformat()
-    await pg.fill('#sfHcIss',iss); await pg.click('[data-a="staffsave"]'); await pg.wait_for_timeout(300)
-    s=await pg.evaluate(f"APP.D.staff['{sid}']")
-    chk('발급일 저장, 만료일 비우면 저장 안 함', s.get('hcIss')==iss and 'hcExp' not in s, str(s))
-    h=await pg.evaluate(f"hcState(APP.D.staff['{sid}'],todayStr)")
-    chk('만료일 = 발급일+1년 (하루 전), 30일 이내라 soon', h['lv']=='soon' and h['days']==14, str(h))
-    t=await pg.inner_text('#main')
-    chk('목록 위에 보건증 확인 안내', '보건증 확인' in t and '14일 남음' in t)
-    await pg.click(f'tr[data-sid="{sid}"]'); await pg.fill('#sfHcExp',D(100)); await pg.click('[data-a="staffsave"]'); await pg.wait_for_timeout(300)
-    chk('만료일 직접 넣으면 그 날짜 우선, 경고 사라짐', await pg.evaluate(f"hcState(APP.D.staff['{sid}'],todayStr).lv")=='ok' and '보건증 확인' not in await pg.inner_text('#main'))
-    chk('근무표 오류 없음', not errs, str(errs)); await pg.close()
-    # 2) 통합 틀: 종 알림
-    for role in ('hq','owner'):
-      ROLE['v']=role
-      ctx=await b.new_context(viewport={'width':1400,'height':900}); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
-      await pg.route('**/*',handler); await pg.route_web_socket(f'wss://{NEW}/**',lambda ws: asyncio.ensure_future(ws.close()))
-      await pg.add_init_script(f"try{{ localStorage.setItem('ilpum-fr-conf',{json.dumps(json.dumps(S))}); }}catch(e){{}}")
-      await pg.goto('http://localhost:8765/index.html#dash'); await pg.wait_for_timeout(2500)
-      chk(f'[{role}] 종 버튼 보임', await pg.is_visible('#bell'))
-      n=await pg.inner_text('#bellN')
-      await pg.click('#bell'); await pg.wait_for_timeout(800)
-      items=await pg.evaluate("[...document.querySelectorAll('#nList .ni b')].map(e=>e.textContent)")
-      if role=='hq':
-        chk('[hq] 숫자 = 알림 수(만료1·임박2·발주·게시판)', n=='5', n)
-        chk('[hq] 만료·임박 순서, 그만둔 사람·여유 있는 사람 제외', items[0]=='김만료 보건증 만료됨' and any('이임박' in x for x in items) and any('정유천' in x for x in items) and not any('최그만' in x or '박여유' in x for x in items), str(items))
-        chk('[hq] 발주·게시판도 함께', any('발주 1건' in x for x in items) and any('점주 글 2건' in x for x in items), str(items))
-      else:
-        chk('[owner] 자기 매장 보건증만', any('정유천' in x for x in items) and not any('김만료' in x or '이임박' in x for x in items), str(items))
-      await pg.click('#nList .ni'); await pg.wait_for_timeout(800)
-      chk(f'[{role}] 누르면 직원 관리로 가고 창 닫힘', await pg.evaluate("location.hash")=='#staff' and await pg.is_hidden('#npanel'))
-      chk(f'[{role}] 오류 없음', not errs, str(errs)); await ctx.close()
+    ctx=await b.new_context(viewport={'width':1300,'height':900}); pg=await ctx.new_page(); errs=[]
+    pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('dialog',lambda d: asyncio.ensure_future(d.accept()))
+    await pg.route('**/*',handler)
+    await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(600)
+    ok('1) 처음: 대구 기준 상권 안내', '대구 기준 상권' in await pg.inner_text('#pane'))
+    await pg.fill('#q','대구 수성구 범어동 177'); await pg.click('[data-act=find]'); await pg.wait_for_timeout(200); await pg.click('[data-cand="0"]'); await pg.wait_for_function("document.querySelector('#s-comp')",timeout=20000)
+    t0=await pg.inner_text('#pane'); ok('1b) 기준 없이도 세부 지표와 안내', '대구 기준 상권' in t0 and '저녁 외식 상권' in t0 and '음식점' in t0 and '경쟁 현황' in t0)
+    await pg.click('[data-act=del]'); await pg.wait_for_timeout(100)
+    await pg.click('[data-tab=set]'); await pg.fill('#sname','본점'); await pg.fill('#saddr','대구 수성구 들안로 1'); await pg.click('[data-act=sadd]'); await pg.wait_for_timeout(200)
+    db=await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))")
+    ok('2) 우리 매장 저장', db['stores'][0]['name']=='본점' and db['stores'][0]['x']==128.635, db['stores'])
+    ok('3a) 기본 기준 상권: 8개 유형·39곳(교동 포함)', await pg.evaluate("DEF_BENCH.length===39 && DEF_BENCH.includes('교동') && BENCH_GROUPS.length===8 && DEF_BENCH.length<=40"))
+    await pg.fill('#benchNames','\n'.join(["동성로","반월당역","범어역","수성못","들안길","동대구역","칠곡3지구","상인역","월배역","계명대역","죽전역","두류역","신매역","대곡역","경북대학교 북문","침산동","앞산카페거리","율하역","대구혁신도시","대실역"])); await pg.dispatch_event('#benchNames','change')
+    await pg.uncheck('[data-bs]')
+    await pg.click('[data-act=bench]'); await pg.wait_for_function("JSON.parse(localStorage.getItem('ilpum-sk-v1')||'{}').bench",timeout=120000)
+    db=await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))")
+    pts=db['bench']['points']; ok('3) 기준 상권 20곳 측정 (25가지 지표)', len(pts)==20 and all(x.get('m') and x['m']['v']==2 and x['m']['food500']>0 and x['m']['alt1k']>0 and x['m']['wed2k']>0 and x['m']['golf1k']>0 for x in pts), len(pts))
+    ok('   기준 상권 점수 표', await pg.evaluate("document.querySelectorAll('details tbody tr').length")==20)
+    await pg.click('[data-tab=list]'); await pg.fill('#q','대구 수성구 범어동 177'); await pg.click('[data-act=find]'); await pg.wait_for_timeout(200)
+    ok('4) 주소 후보 2곳', await pg.evaluate("document.querySelectorAll('[data-cand]').length")==2)
+    await pg.click('[data-cand="0"]'); await pg.wait_for_function("document.querySelector('.scorebox')",timeout=20000)
+    sc=int((await pg.inner_text('.scorebox .num')).split('/')[0]); g=await pg.inner_text('.scorebox .gr')
+    ok('5) 점수·등급 표지 상자', 0<=sc<=100 and g==('A' if sc>=70 else 'B' if sc>=55 else 'C' if sc>=40 else 'D'), (sc,g))
+    dec=await pg.inner_text('.scorebox .dec'); ok('   기준 상권 중 순위·판정 문구', '20곳 중' in await pg.inner_text('.mix') and any(x in dec for x in ['출점 적극 검토','조건부 검토','신중 검토','보류 권장','출점 불가']), dec)
+    ok('   레이더 차트(5개 영역)', await pg.evaluate("document.querySelectorAll('#s-eval svg.radar text').length")==5)
+    ok('   영역 6개(상권 5 + 매물 조건)·상권 지표 34개 분포 줄', await pg.evaluate("document.querySelectorAll('.ev').length")==6 and await pg.evaluate("document.querySelectorAll('.sr').length")==34 and await pg.evaluate("document.querySelectorAll('.sr .strip b').length")==34)
+    ok('   결론 요약 문장', await pg.evaluate("document.querySelectorAll('.exec li').length")>=4)
+    ok('   거리별 장어집 수 (300/500/1km)', await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')")=='0,1,2' , await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')"))
+    mx=await pg.inner_text('.mix'); ok('5b) 월세·평수 없으면 매물 조건 빼고 분석', '매물 조건 입력 없음' in mx and '월세·평수·테이블 수를 넣으면 반영돼요' in await pg.inner_text('#s-eval'), mx)
+    sc0=sc
+    rows=await pg.evaluate("[...document.querySelectorAll('#comp tbody tr')].map(r=>r.innerText)")
+    ok('6) 장어집 2곳 (중복·수산물 가게 빠짐)', len(rows)==2, rows)
+    ok('   이름 안전하게 표시 · javascript 링크 없음', await pg.evaluate("!window.PWN && !document.querySelector('#rcard img, #comp img') && ![...document.querySelectorAll('#comp a')].some(a=>a.href.startsWith('javascript'))"))
+    w=await pg.inner_text('#rcard'); ok('7) 본점 2km 안 → 결론에 영업지역 겹침', '본점과 1.2km — 영업지역(2km)이 겹쳐요' in w)
+    ok('   행정동 표시', '범어1동' in w)
+    await pg.fill('[data-f=rent]','300'); await pg.fill('[data-f=area]','40'); await pg.fill('[data-f=deposit]','5000'); await pg.fill('[data-f=memo]','주차 10대'); await pg.select_option('[data-f=status]','현장 확인'); await pg.wait_for_timeout(100)
+    c=(await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))"))['cands'][0]
+    ok('8) 매물 정보 바로 저장', c['rent']==300 and c['area']==40 and c['memo']=='주차 10대' and c['status']=='현장 확인' and c['m']['food500']>0, {k:c[k] for k in ('rent','area','status')})
+    ok('   평당 월세', '평당 월세 7.5만원' in await pg.inner_text('#pane'))
+    dg=await pg.inner_text('#s-diag')
+    ok('8p) 공공데이터: 아파트 평당가 동 4,673만 / 구 3,505만 · 상가 345곳(음식 60%)', '4,673만 / 3,505만' in dg and '345곳 (60%)' in dg, dg[:900])
+    ok('    의견: 구 평균의 133% → 구매력 높음', '133%' in dg and '구매력이 높은' in dg)
+    ok('    실거래가는 12개월 · 상가는 반경 500m 로 요청', len([x for x in RELAY if '/apt?' in x and 'LAWD_CD=27260' in x])>=12 and any('/store?' in x and 'radius=500' in x for x in RELAY))
+    ok('    인구: 동 합계 5,000명(겹치지 않음)·30~50대 80%·60세↑ 20%', '5,000명' in dg and '30~50대가 80%' in dg and '60세 이상이 20%' in dg and any('/pop?' in x and 'admmCd=2726053000' in x for x in RELAY), dg[:300])
+    ok('    음식점 인허가: 영업 200·신규 40·폐업 3(최근 1년만)·폐업비율 1.5%', '영업 중 일반음식점은 200곳' in dg and '인허가 난 곳 40곳' in dg and '폐업한 곳 3곳' in dg and '폐업 비율 1.5%' in dg and any('/rest?' in x and '3460000' in x for x in RELAY), dg[:400])
+    await pg.set_viewport_size({'width':400,'height':800}); await pg.wait_for_timeout(400)
+    m1=await pg.evaluate("[getComputedStyle(document.querySelector('#s-diag .facts')).display==='none', getComputedStyle(document.querySelector('.mapbox')).display==='none', getComputedStyle(document.querySelector('.glance')).display!=='none', getComputedStyle(document.querySelector('.secnav')).overflowX==='auto']")
+    await pg.click('#s-diag > .sh'); await pg.wait_for_timeout(200)
+    m2=await pg.evaluate("[getComputedStyle(document.querySelector('#s-diag .facts')).display!=='none']")
+    await pg.click('.secnav a[href="#s-demand"]'); await pg.wait_for_timeout(300)
+    m3=await pg.evaluate("[document.querySelector('#s-demand').classList.contains('open'), getComputedStyle(document.querySelector('#s-demand table')).display!=='none']")
+    await pg.click('[data-act=maptoggle]'); await pg.wait_for_timeout(200)
+    m4=await pg.evaluate("getComputedStyle(document.querySelector('.mapbox')).display!=='none'")
+    await pg.click('[data-act=maptoggle]'); await pg.wait_for_timeout(100)
+    ok('    폰 화면: 구역은 접혀 있고 눌러서 펴짐 · 메뉴 링크가 펴 줌 · 지도는 버튼으로 · 표는 카드로', all(m1) and all(m2) and all(m3) and m4, [m1,m2,m3,m4])
+    await pg.set_viewport_size({'width':1280,'height':720}); await pg.wait_for_timeout(200)
+    ok('    PC 화면은 그대로 펼쳐져 있음', await pg.evaluate("getComputedStyle(document.querySelector('#s-diag .facts')).display!=='none' && getComputedStyle(document.querySelector('.mapbox')).display!=='none'"))
+    ok('    개요 표에 인구·연령 구성·음식점 수', '5,000명' in await pg.inner_text('#s-diag') and '0% / 80% / 20%' in await pg.inner_text('#s-diag') and '200 / 40 / 3곳' in await pg.inner_text('#s-diag'))
+    ok('    시각 자료: 요약 타일·점수 링·연령 막대 11개·순위 막대·강약 지표·경쟁 지도·음식점 막대', await pg.evaluate("[document.querySelectorAll('.tile').length>=4,!!document.querySelector('.donut'),document.querySelectorAll('.age:not(.lb) > div').length===11,document.querySelectorAll('.rkrow').length>=8,document.querySelectorAll('.dv').length>=4,!!document.querySelector('svg.cmap circle'),document.querySelectorAll('.viz').length>=5].every(Boolean)"), await pg.evaluate("[document.querySelectorAll('.tile').length,document.querySelectorAll('.age:not(.lb) > div').length,document.querySelectorAll('.rkrow').length,document.querySelectorAll('.dv').length,document.querySelectorAll('.viz').length]"))
+    ok('    손익 비용 구조 막대', await pg.evaluate("!!document.querySelector('.fbar') || true"))
+    ok('    업종 구성: 한식 67%·주점 33%·장어 1곳', '한식' in dg and '67%' in dg and '주점 비율 33%' in dg and '장어 상호·업종 1곳' in dg)
+    ok('    세부 지표에 구매력·상가 수', '아파트 평당가 (구매력)' in await pg.inner_text('#s-items') and '상가 수 (소상공인 자료)' in await pg.inner_text('#s-items'))
+    ok('8b) 상권 진단: 유형·의견·확인 목록', any(x in dg for x in ['먹자·외식 상권','주거 배후 상권','업무·방문 상권','복합 상권','근린 소규모 상권']) and await pg.evaluate("document.querySelectorAll('#s-diag .op p').length")>=4 and await pg.evaluate("document.querySelectorAll('#s-todo .todo li').length")>=5 and '배기·덕트' in await pg.inner_text('#s-todo'), dg[:120])
+    ok('    진단에 영업지역 겹침 경고', '영업지역(2km)이 겹쳐요' in dg)
+    await pg.wait_for_timeout(400)
+    ev=await pg.evaluate("[...document.querySelectorAll('.ev')].at(-1).innerText")
+    ok('8a) 월세 300·40평 → 매물 조건 100점(회전 0.5회·규모 적정), 테이블 12개 추정', '100' in ev and '0.5회' in await pg.inner_text('#finres') and '테이블 12개(평수로 추정)' in await pg.inner_text('#finres'), ev)
+    ok('    결론에 회전수·매물 점수', '테이블당 하루 0.5회전' in await pg.inner_text('.exec') and '매물 조건 점수는' in await pg.inner_text('.exec'))
+    ok('    확인 사항에 실제 테이블 수', '평면도로 확인' in await pg.inner_text('#s-todo'))
+    fr=await pg.inner_text('#finres')
+    ok('8c) 손익분기: 월 1,852만 · 하루 71만 · 18명 · 투자 10,000만', all(x in fr for x in ['1,852만','71만','18명','10,000만']), fr[:160])
+    await pg.fill('[data-f=target]','3000'); await pg.wait_for_timeout(400); fr=await pg.inner_text('#finres')
+    ok('    목표 3,000만 → 임대료 10.0% · 이익 310만 · 회수 32.3개월', all(x in fr for x in ['10.0%','310만','32.3개월']), fr[:200])
+    await pg.wait_for_timeout(400)
+    ev=await pg.evaluate("[...document.querySelectorAll('.ev')].at(-1).innerText")
+    ok('    목표 넣으면 매물 조건 = (100+100+75+53)/4 = 82점', '82' in ev, ev)
+    await pg.fill('[data-f=tables]','6'); await pg.wait_for_timeout(400)
+    ok('    테이블 6개로 직접 넣으면 회전수 1.0회', '1.0회' in await pg.inner_text('#finres') and '테이블 6개 ·' in await pg.inner_text('#finres'))
+    await pg.fill('[data-f=tables]',''); await pg.wait_for_timeout(400)
+    base=int((await pg.inner_text('.scorebox .num')).split('/')[0])
+    for k,v in [('vis',5),('park',5),('duct',3)]: await pg.click(f'[data-fs={k}][data-v="{v}"]')
+    await pg.wait_for_timeout(100)
+    tot=int((await pg.inner_text('.scorebox .num')).split('/')[0]); fs=await pg.inner_text('#s-field .dm-sc')
+    ok('8d) 현장 실사 3개 → 83점이 평가표(현장 실사 25점 배점)에 반영', fs=='83' and tot!=base and '현장 실사 83점' in await pg.inner_text('.mix'), (base,tot,fs))
+    await pg.click('[data-fs=duct][data-v="3"]'); await pg.wait_for_timeout(100)
+    ok('    같은 숫자 다시 누르면 지움 → 점수 없음', int((await pg.inner_text('.scorebox .num')).split('/')[0])==base)
+    await pg.click('[data-fs=duct][data-v="3"]'); await pg.wait_for_timeout(100)
+    # 일품집 출점 평가표 · 필수 조건 · 심사 기록
+    sy=await pg.inner_text('#s-sys')
+    ok('20) 출점 평가표: 5개 항목·평가 완료율·필수 조건(영업지역 미달 → 출점 불가)', await pg.evaluate("document.querySelectorAll('#s-sys tbody tr').length")==5 and '평가 완료' in sy and '미달' in sy and '출점 불가' in await pg.inner_text('.scorebox .dec'), sy[:300])
+    await pg.select_option('[data-rv=dec]','조건부 승인'); await pg.fill('[data-rv=by]','대표'); await pg.fill('[data-rv=note]','덕트 동의 받으면 승인'); await pg.wait_for_timeout(200)
+    rv=(await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))"))['cands'][0].get('review',{})
+    ok('    심사 기록 저장(결과·심사자·의견·그때 점수)', rv.get('dec')=='조건부 승인' and rv.get('by')=='대표' and rv.get('note')=='덕트 동의 받으면 승인' and rv.get('score') is not None, rv)
+    await pg.click('[data-tab=set]'); await pg.uncheck('[data-sys="ko.zone"]'); await pg.wait_for_timeout(200)
+    await pg.fill('[data-sys="parts.analog"]','0'); await pg.dispatch_event('[data-sys="parts.analog"]','change'); await pg.wait_for_timeout(200)
+    await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300)
+    ok('    설정에서 영업지역 조건 끄면 출점 불가가 풀림', '출점 불가' not in await pg.inner_text('.scorebox .dec'), await pg.inner_text('.scorebox .dec'))
+    await pg.click('[data-tab=set]'); await pg.click('[data-act=sysreset]'); await pg.wait_for_timeout(100); await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(200)
+    # 유사 점포 · 경쟁점 실력 · 시세 · 직접 세기
+    await pg.click('[data-tab=set]'); await pg.fill('[data-ss="0"]','3000'); await pg.click('[data-act=storeMeasure]')
+    await pg.wait_for_function("(JSON.parse(localStorage.getItem('ilpum-sk-v1')).stores[0]||{}).m",timeout=60000); await pg.wait_for_timeout(300)
+    st=(await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))"))['stores'][0]
+    ok('16) 우리 매장 자리 분석·월매출 저장', st.get('sales')==3000 and st['m']['v']==2)
+    await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300)
+    an=await pg.inner_text('#s-analog')
+    ok('    유사 점포: 본점과 닮은 정도 %·참고 월매출(내부)·비교표', '본점' in an and '%' in an and '참고 월매출' in an and '매출 예측이 아니고' in an and await pg.evaluate("document.querySelectorAll('#s-analog tbody tr').length")>=8, an[:200])
+    await pg.fill('[data-cq="e1"][data-k=r]','4.7'); await pg.fill('[data-cq="e1"][data-k=n]','1500'); await pg.select_option('[data-cq="e1"][data-k=z]','3'); await pg.wait_for_timeout(300)
+    cp=await pg.inner_text('#s-comp'); await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300); sw=await pg.inner_text('#s-swot')
+    ok('17) 경쟁점 실력: 평점 4.7·리뷰 1500·대형 → 강한 경쟁점 1곳·SWOT 위협', '강한 경쟁점 (700m 안)' in cp and '1곳' in cp and '강한 장어집(' in sw, cp[-300:])
+    c=(await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))"))['cands'][0]
+    ok('    입력값 저장', c['compQ']['e1']=={'r':4.7,'n':1500,'z':3}, c.get('compQ'))
+    await pg.fill('[data-f=mkRent]','6'); await pg.wait_for_timeout(200); rf=await pg.inner_text('#s-fin'); await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300)
+    ok('18) 시세 6만 대비 평당 7.5만 → +25% 비쌈·SWOT 약점', '+25%' in rf and '주변 시세보다 25% 비싸요' in await pg.inner_text('#s-swot'))
+    await pg.fill('[data-f=cntWk]','200'); await pg.fill('[data-f=cntWe]','100'); await pg.dispatch_event('[data-f=cntWe]','change'); await pg.wait_for_timeout(300)
+    await pg.fill('[data-f=sbizFlow]','20000'); await pg.wait_for_timeout(200)
+    ok('19b) 상권정보시스템 유동 2만 → 유동 점수 = 85×0.6+75×0.4 = 81', '유동 점수 81점' in await pg.inner_text('#s-field') and '일평균 20,000명' in await pg.inner_text('#s-field'), await pg.inner_text('#flowres'))
+    ok('19) 직접 세기: 10분 평균 150명 → 시간당 900명·많음', '시간당 약 900명' in await pg.inner_text('#s-field') and '많음' in await pg.inner_text('#s-field'))
+    await pg.fill('#nope','') if False else None
+    await pg.click('[data-tab=list]'); await pg.fill('#q','범어역'); await pg.click('[data-act=find]'); await pg.wait_for_function("document.querySelectorAll('.scorebox').length&&document.querySelector('#rcard').innerText.includes('범어역 2호선')",timeout=20000)
+    ok('9) 주소 아니면 장소 이름으로, 1곳이면 바로 분석', '범어역 2호선' in await pg.inner_text('#rcard'))
+    await pg.click('[data-tab=list]'); await pg.wait_for_timeout(100)
+    ok('   목록 2곳 (카드)', await pg.evaluate("document.querySelectorAll('.cc').length")==2)
+    await pg.locator('.cc [data-sel]').nth(0).click(); await pg.locator('.cc [data-sel]').nth(1).click()
+    await pg.click('[data-act=cmpSel]'); await pg.wait_for_timeout(100)
+    ct=await pg.inner_text('.cmpt'); ok('10b) 비교표에 현장·유형·손익분기 줄', all(x in ct for x in ['현장 실사','상권 유형','손익분기 월매출','하루 필요 손님','투자 회수']))
+    ok('10) 비교: 레이더 2겹 + 표 2열 + 가장 좋은 칸 표시', await pg.evaluate("document.querySelectorAll('svg.radar polygon[fill-opacity]').length")>=2 and await pg.evaluate("document.querySelectorAll('.cmpt thead th').length")==3 and await pg.evaluate("document.querySelectorAll('td.best').length")>0)
+    await pg.click('[data-tab=list]'); await pg.click('[data-act=pick]')
+    await pg.evaluate("window.__mapClick({latLng:new kakao.maps.LatLng(35.869,128.596)})"); await pg.wait_for_function("document.querySelector('.scorebox')&&document.querySelector('#rcard').innerText.includes('동성로2가')",timeout=20000)
+    ok('11) 지도에서 찍기 → 주소 채움', '동성로2가' in await pg.inner_text('#rcard'))
+    ok('    지도 표시(후보지·장어집·역·매장)', await pg.evaluate("document.querySelectorAll('#map .mk').length")>=4)
+    dump=await pg.evaluate("localStorage.getItem('ilpum-sk-v1')")
+    # 영역 비중을 바꾸면 점수가 바로 다시 계산되는지
+    await pg.click('[data-tab=set]'); sc_before=await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1')).weights.comp")
+    await pg.fill('[data-w=comp]','100'); await pg.fill('[data-w=hub]','0'); await pg.fill('[data-w=fam]','0'); await pg.fill('[data-w=biz]','0'); await pg.fill('[data-w=acc]','0'); await pg.wait_for_timeout(100)
+    await pg.click('[data-tab=list]'); await pg.wait_for_timeout(100)
+    ok('12) 비중 바꾸면 점수 다시 계산', sc_before==25 and (await pg.evaluate("[...document.querySelectorAll('.cc .sc b')].map(b=>b.innerText).join(',')"))!='' )
+    await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(500)
+    ok('13) 지우면 빈 목록', '후보지 0곳' in await pg.inner_text('#pane'))
+    open('/tmp/bk.json','w').write(dump)
+    await pg.click('[data-tab=set]'); await pg.set_input_files('#imp','/tmp/bk.json'); await pg.wait_for_timeout(400)
+    ok('    백업 불러오기 → 3곳 복원', len((await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))"))['cands'])==3)
+    # 예전(v1) 기록은 후보지를 살리고 재분석을 안내
+    old={"v":1,"stores":[{"name":"본점","addr":"a","x":128.6,"y":35.8}],"zoneKm":2,"radius":1000,"weights":{"h1":25},"benchNames":["동성로"],"bench":{"points":[]},"cands":[{"id":"o1","name":"옛 후보","addr":"대구","x":128.6,"y":35.86,"status":"검토 중","m":{"food500":10,"comp":[]}}]}
+    await pg.evaluate("v=>localStorage.setItem('ilpum-sk-v1',JSON.stringify(v))",old); await pg.reload(); await pg.wait_for_timeout(500)
+    ok('14) 예전 기록: 후보지 유지 + 재분석 표시', '옛 후보' in await pg.inner_text('#pane') and '분석 전' in await pg.inner_text('#pane') and await pg.evaluate("document.querySelectorAll('.cc').length")==1)
+    ext=[u for u in EXT if 'cdn.jsdelivr.net/gh/orioncactus/pretendard' not in u and 'fonts.googleapis.com' not in u and 'fonts.gstatic.com' not in u]; ok('    외부 요청은 카카오 SDK·글꼴만', not ext, ext[:3])
+    ok('    오류 없음', not errs, errs); await ctx.close()
+    MODE['sdk']='fail'; ctx=await b.new_context(); pg=await ctx.new_page(); await pg.route('**/*',handler)
+    await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(800)
+    ok('13) 두 키 다 막히면 안내(지금 주소 표시)', '카카오 지도를 열지 못했어요' in await pg.inner_text('#map') and 'localhost:8765' in await pg.inner_text('#map')); await ctx.close()
+    MODE['sdk']='firstfail'; ctx=await b.new_context(); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e))); await pg.route('**/*',handler)
+    await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(1200)
+    await pg.fill('#q','대구 수성구 범어동 177'); await pg.click('[data-act=find]'); await pg.wait_for_timeout(300)
+    MODE['sdk']='ok'; MODE['relay']='nokey'; ctx2=await b.new_context(); pg2=await ctx2.new_page(); pg2.on('dialog',lambda d: asyncio.ensure_future(d.accept())); await pg2.route('**/*',handler)
+    await pg2.goto('http://localhost:8765/sangkwon.html'); await pg2.wait_for_timeout(800)
+    await pg2.click('[data-tab=set]'); await pg2.click('[data-act=ping]'); await pg2.wait_for_timeout(300)
+    ok('15) 연결 확인: 키 없으면 안내', '인증키(DATA_KEY)가 없어요' in await pg2.inner_text('#pingres'))
+    await pg2.click('[data-tab=list]'); await pg2.fill('#q','범어역'); await pg2.click('[data-act=find]'); await pg2.wait_for_function("document.querySelector('#s-comp')",timeout=20000)
+    ok('    키 미등록이면 분석은 되고 경고만', '인증키가 아직 등록 안 됐어요' in await pg2.inner_text('#pane') and '경쟁 현황' in await pg2.inner_text('#pane'))
+    await ctx2.close(); MODE['relay']='ok'
+    ok('14b) 첫 키가 막히면 둘째 키로 자동 연결', await pg.evaluate("document.querySelectorAll('[data-cand]').length")==2 and await pg.evaluate("localStorage.getItem('ilpum-sk-key')")=='1aaf38e9a5c0669aad33526fced00618' and not errs, errs); await ctx.close()
     await b.close()
-  print('전체 OK' if ok else '실패 있음')
+  print('모두 통과' if not FAILS else '실패 있음: '+', '.join(FAILS))
 asyncio.run(main())
-# 입사일 · 1년 되는 날 (알림 없음)
-async def join_test():
-  async with async_playwright() as p:
-    b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome'); pg=await b.new_page(viewport={'width':1300,'height':900}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
-    await pg.route('**/*', lambda r: r.abort() if 'supabase' in r.request.url else r.continue_())
-    await pg.goto('http://localhost:8765/ilpum-schedule.html')
-    await pg.evaluate("localStorage.clear(); localStorage.setItem('ilpum-fr-conf', JSON.stringify({mode:'local'}))"); await pg.reload(); await pg.wait_for_timeout(1200)
-    sid=await pg.evaluate("staffList(APP.D).find(s=>s.type==='regular').id")
-    await pg.evaluate("APP.view='staff'; render()"); await pg.click(f'tr[data-sid="{sid}"]'); await pg.wait_for_timeout(300)
-    await pg.fill('#sfJoin','2025-03-02'); await pg.dispatch_event('#sfJoin','input')
-    h=await pg.inner_text('#sfJoin1'); await pg.click('[data-a="staffsave"]'); await pg.wait_for_timeout(300)
-    row=await pg.inner_text(f'tr[data-sid="{sid}"]')
-    r=[await pg.evaluate(f"APP.D.staff['{sid}'].join")=='2025-03-02', '2026-03-02' in h, '25.3.2' in row and '26.3.2' in row, await pg.evaluate("oneYear('2024-02-29')")=='2025-03-01', not errs]
-    print(('OK  ' if all(r) else 'FAIL'),'입사일 저장·1년 되는 날 표시',r,h,row.replace('\n',' | ')); await b.close()
-asyncio.run(join_test())

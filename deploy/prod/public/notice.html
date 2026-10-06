@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<title>일품집 · 공지사항</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#f6f6f4;--panel:#fff;--ink:#1c2420;--sub:#68736d;--line:#e2e5e1;--accent:#14524a;--accent-ink:#fff;--warn:#c0392b;--ok:#2e7d4f;--soft:#eef2ef;--gold:#b88a2a}
+@media (prefers-color-scheme:dark){:root{--bg:#121816;--panel:#1b2420;--ink:#e8ede9;--sub:#9aa7a0;--line:#2c3732;--accent:#2f8f82;--soft:#222d28;--warn:#ff7a6b;--ok:#6fcf97}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+header{background:var(--accent);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:18px}.sp{flex:1}
+#sync{font-size:12px;opacity:.85}
+main{max-width:860px;margin:0 auto;padding:12px 12px 90px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 12px;cursor:pointer;font-weight:600}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.bad{color:var(--warn)}.btn.sm{padding:3px 9px;font-size:13px}.btn:disabled{opacity:.5;cursor:default}
+.empty{color:var(--sub);text-align:center;padding:28px 8px}
+.note{color:var(--sub);font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;border-radius:10px;padding:9px 16px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90vw}
+.toast.on{opacity:1}
+dialog{border:0;border-radius:14px;padding:16px;max-width:520px;width:94vw;background:var(--panel);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+label.f{display:block;margin:8px 0 2px;font-size:13px;font-weight:700;color:var(--sub)}
+dialog input[type=text],dialog textarea,.compose textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;background:var(--panel)}
+textarea{resize:vertical;min-height:90px}
+</style>
+
+<style>
+.nt h3{margin:0 0 4px;font-size:16px}
+.nt .meta{color:var(--sub);font-size:12.5px;margin-bottom:8px}
+.nt .body{white-space:pre-wrap;word-break:break-word}
+.nt.pin{border-color:var(--gold)}
+.pinb{display:inline-block;background:var(--gold);color:#fff;border-radius:6px;padding:0 7px;font-size:12px;font-weight:800;margin-right:6px}
+.newb{display:inline-block;background:#E5533D;color:#fff;border-radius:6px;padding:0 7px;font-size:12px;font-weight:800;margin-right:6px}
+.media{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.media img,.media video{width:100%;max-height:420px;object-fit:contain;background:#000;border-radius:10px;display:block;cursor:zoom-in}
+.media video{cursor:auto;grid-column:1/-1;max-height:480px}
+.media .ph{background:var(--soft);border-radius:10px;min-height:90px;display:grid;place-items:center;color:var(--sub);font-size:12.5px}
+.mgrid{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.mi2{position:relative;width:88px;height:88px;border-radius:10px;overflow:hidden;background:var(--soft);display:grid;place-items:center;font-size:12px;color:var(--sub);text-align:center}
+.mi2 img{width:100%;height:100%;object-fit:cover}
+.mi2 button{position:absolute;top:2px;right:2px;border:0;background:rgba(0,0,0,.65);color:#fff;border-radius:999px;width:22px;height:22px;cursor:pointer}
+.nt .acts{margin-top:10px;display:flex;gap:6px}
+</style>
+</head>
+<body>
+<header><h1>공지사항</h1><span class="sp"></span><span id="sync">연결 중…</span><button class="btn sm" id="reload" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.5)">새로고침</button></header>
+<main id="main"></main>
+<dialog id="dlg"><div id="dlgBody"></div></dialog>
+<div class="toast" id="toast" role="status"></div>
+<script>
+/* ================== Supabase 연결 (새 서버 · 로그인 필요) ================== */
+const SUPABASE_URL = 'https://bdqcrbnbuoujozlpttbe.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcWNyYm5idW91am96bHB0dGJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTU4NDQsImV4cCI6MjEwNjE5MTg0NH0.L8Yuj46Zjg0XNoWeRr-_9xZWKiyHH3-AyC4_3i5p_X8';
+const CONF_KEY='ilpum-fr-conf';
+const readConf=()=>{ try{ return JSON.parse(localStorage.getItem(CONF_KEY))||{}; }catch(e){ return {}; } };
+const readSes=()=>{ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; };
+const writeSes=j=>{ try{ const c=readConf(); if(c.ses){ c.ses=j; localStorage.setItem(CONF_KEY,JSON.stringify(c)); } else sessionStorage.setItem('fr-ses',JSON.stringify(j)); }catch(e){} };
+async function freshToken(force){
+  const run=async()=>{ const s=readSes(); if(!s) return null;
+    if(!force && (s.expires_at||0)*1000>Date.now()+60000) return s.access_token;
+    const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+    const j=await r.json().catch(()=>({})); if(!r.ok||!j.access_token) return null; writeSes(j); return j.access_token; };
+  return navigator.locks?navigator.locks.request('ilpum-refresh',run):run();
+}
+async function fx(path,opt,retry=true){
+  opt=opt||{}; const tok=await freshToken(false); if(!tok) throw Object.assign(new Error('로그인이 필요해요'),{auth:true});
+  const r=await fetch(SUPABASE_URL+path,{...opt,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json',...(opt.headers||{})},cache:'no-store'});
+  if(r.status===401&&retry){ const t2=await freshToken(true); if(t2) return fx(path,opt,false); }
+  return r;
+}
+async function jx(path,opt){ const r=await fx(path,opt); if(!r.ok){ let m='HTTP '+r.status; try{ const j=await r.json(); m=j.message||m; }catch(e){} throw Object.assign(new Error(m),{status:r.status}); } const t=await r.text(); return t?JSON.parse(t):null; }
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tt; function toast(m){ const el=$('#toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),2600); }
+const kst=iso=>{ const d=new Date(iso); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+const tellParent=()=>{ try{ window.parent.postMessage({type:'fr-refresh'},'*'); }catch(e){} };
+function needLogin(msg){ $('#sync').textContent=msg; $('#main').innerHTML=`<div class="card"><b>${esc(msg)}</b><div class="note" style="margin-top:6px">통합관리(index.html)에서 로그인하면 보여요.</div></div>`; }
+let STORES=[], MY=[];
+async function loadStores(){
+  if(!readSes()){ needLogin('로그인이 필요해요'); return false; }
+  try{ const r=await jx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); STORES=r; MY=r.filter(x=>x.role);
+    if(!MY.length){ needLogin('연결된 매장이 없어요 — 본사에 계정 연결을 요청하세요'); return false; } return true;
+  }catch(e){ needLogin(e.auth||e.status===401?'로그인이 필요해요':'연결 실패: '+e.message); return false; }
+}
+const isHqUser=()=>MY.some(x=>x.role==='hq');
+const storeName=id=>(STORES.find(x=>x.id===id)||{}).name||'';
+
+const SEEN_KEY='ilpum-notice-seen';
+let NOTICES=[], SEEN='';
+async function load(){
+  try{
+    $('#sync').textContent='불러오는 중…';
+    NOTICES=(await jx('/rest/v1/board_notices?select=*&order=created_at.desc&limit=100'))||[];
+    NOTICES.sort((a,b)=>((b.pinned?1:0)-(a.pinned?1:0))||(a.created_at<b.created_at?1:-1));
+    try{ SEEN=localStorage.getItem(SEEN_KEY)||''; }catch(e){}
+    render();
+    const newest=NOTICES.reduce((m,n)=>n.created_at>m?n.created_at:m,'');
+    if(newest){ try{ localStorage.setItem(SEEN_KEY,newest); }catch(e){} tellParent(); }
+    $('#sync').textContent='';
+  }catch(e){ $('#sync').textContent='연결 실패: '+e.message; }
+}
+/* ---------- 사진·동영상 (비공개 저장소 notice-media) ---------- */
+const MAX_FILES=6, MAX_VIDEO=50*1024*1024;
+const SIGNED={};
+async function signPaths(paths){
+  const need=paths.filter(p=>!SIGNED[p]); if(!need.length) return;
+  try{ const r=await jx('/storage/v1/object/sign/notice-media',{method:'POST',body:JSON.stringify({expiresIn:3600,paths:need})});
+    (r||[]).forEach(x=>{ if(x&&x.signedURL) SIGNED[x.path||need[0]]=SUPABASE_URL+'/storage/v1'+x.signedURL; }); }catch(e){}
+}
+function mediaHtml(n){
+  const m=Array.isArray(n.media)?n.media:[]; if(!m.length) return '';
+  return '<div class="media">'+m.map(x=>x.type==='video'
+    ?`<video controls preload="none" playsinline data-mp="${esc(x.path)}"></video>`
+    :`<img loading="lazy" alt="${esc(x.name||'사진')}" data-mp="${esc(x.path)}">`).join('')+'</div>';
+}
+async function fillMedia(){
+  const els=[...document.querySelectorAll('[data-mp]')]; if(!els.length) return;
+  await signPaths([...new Set(els.map(e=>e.dataset.mp))]);
+  els.forEach(e=>{ const u=SIGNED[e.dataset.mp]; if(u&&!e.src) e.src=u; });
+}
+function shrinkImage(file){
+  return new Promise(res=>{
+    if(file.type==='image/gif') return res(file);
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{ const k=Math.min(1,1600/Math.max(img.width,img.height)); const c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
+      c.toBlob(b=>res(b&&b.size<file.size?new File([b],'p.jpg',{type:'image/jpeg'}):file),'image/jpeg',0.82); };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(file); }; img.src=url;
+  });
+}
+const EXT={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','video/mp4':'mp4','video/quicktime':'mov','video/webm':'webm'};
+async function uploadOne(file){
+  const isVid=file.type.startsWith('video/');
+  if(isVid&&file.size>MAX_VIDEO) throw new Error(`동영상은 50MB 까지예요 (${file.name})`);
+  const f=isVid?file:await shrinkImage(file); const ext=EXT[f.type]; if(!ext) throw new Error('사진(jpg·png·webp·gif)이나 동영상(mp4·mov·webm)만 올릴 수 있어요');
+  const path=`${new Date().toISOString().slice(0,7)}/${crypto.randomUUID()}.${ext}`;
+  const r=await fx('/storage/v1/object/notice-media/'+path,{method:'POST',headers:{'Content-Type':f.type,'x-upsert':'false'},body:f});
+  if(!r.ok){ let m='HTTP '+r.status; try{ m=(await r.json()).message||m; }catch(e){} throw new Error('올리지 못했어요: '+m); }
+  return {path,type:isVid?'video':'image',name:file.name.slice(0,60)};
+}
+async function removeObjects(paths){ if(!paths.length) return; try{ await jx('/storage/v1/object/notice-media',{method:'DELETE',body:JSON.stringify({prefixes:paths})}); }catch(e){} }
+
+function render(){
+  const hq=isHqUser();
+  $('#main').innerHTML=(hq?'<div style="margin-bottom:10px"><button class="btn pri" data-act="new">+ 공지 쓰기</button> <span class="note">쓰면 모든 매장이 볼 수 있어요</span></div>':'')
+   +(NOTICES.length?NOTICES.map(n=>`<div class="card nt ${n.pinned?'pin':''}">
+      <h3>${n.pinned?'<span class="pinb">고정</span>':''}${!hq&&(!SEEN||n.created_at>SEEN)?'<span class="newb">새 글</span>':''}${esc(n.title)}</h3>
+      <div class="meta">${kst(n.created_at)}</div><div class="body">${esc(n.body)}</div>${mediaHtml(n)}
+      ${hq?`<div class="acts"><button class="btn sm" data-edit="${esc(n.id)}">수정</button><button class="btn sm" data-pin="${esc(n.id)}">${n.pinned?'고정 풀기':'위에 고정'}</button><button class="btn sm bad" data-del="${esc(n.id)}">삭제</button></div>`:''}</div>`).join(''):'<div class="card empty">아직 공지가 없어요</div>');
+  fillMedia();
+}
+function dlg(n){
+  let keep=(n&&Array.isArray(n.media)?n.media:[]).slice(), added=[];            // keep=이미 올린 것, added=새로 고른 파일
+  const gone=[];                                                                  // 지울 저장소 파일 (저장 성공 후 지움)
+  $('#dlgBody').innerHTML=`<h3 style="margin:0 0 8px">${n?'공지 수정':'공지 쓰기'}</h3><label class="f">제목</label><input type="text" id="nTitle" maxlength="100" value="${esc(n?n.title:'')}">
+    <label class="f">내용</label><textarea id="nBody" maxlength="5000" style="min-height:160px">${esc(n?n.body:'')}</textarea>
+    <label class="f">사진·동영상 (최대 ${MAX_FILES}개, 동영상은 50MB까지)</label>
+    <input type="file" id="nFiles" accept="image/*,video/*" multiple hidden><button type="button" class="btn sm" id="nPick">+ 사진·동영상 고르기</button>
+    <div class="mgrid" id="nMg"></div>
+    <label class="f"><input type="checkbox" id="nPin" ${n&&n.pinned?'checked':''}> 맨 위에 고정</label>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="dCancel">취소</button><button class="btn pri" id="dOk">저장</button></div>`;
+  const d=$('#dlg'); if(!d.open) d.showModal(); $('#dCancel').onclick=()=>d.close();
+  const paint=async()=>{
+    await signPaths(keep.map(x=>x.path));
+    $('#nMg').innerHTML=keep.map((x,i)=>`<div class="mi2">${x.type==='video'?'동영상':`<img src="${esc(SIGNED[x.path]||'')}" alt="">`}<button type="button" data-k="${i}" title="빼기">×</button></div>`).join('')
+      +added.map((f,i)=>`<div class="mi2">${f.type.startsWith('video/')?'동영상':'사진'}<br>${Math.max(1,Math.round(f.size/1024/1024*10)/10)}MB<button type="button" data-a="${i}" title="빼기">×</button></div>`).join('');
+  };
+  paint();
+  $('#nPick').onclick=()=>$('#nFiles').click();
+  $('#nFiles').onchange=e=>{ for(const f of e.target.files){ if(keep.length+added.length>=MAX_FILES){ toast(`최대 ${MAX_FILES}개까지예요`); break; } if(f.type.startsWith('video/')&&f.size>MAX_VIDEO){ toast('동영상은 50MB 까지예요: '+f.name); continue; } added.push(f); } e.target.value=''; paint(); };
+  $('#nMg').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; if(b.dataset.k!=null){ const x=keep.splice(+b.dataset.k,1)[0]; gone.push(x.path); } else added.splice(+b.dataset.a,1); paint(); };
+  $('#dOk').onclick=async()=>{ const title=$('#nTitle').value.trim(), body=$('#nBody').value; if(!title) return toast('제목을 넣어 주세요');
+    const ok=$('#dOk'); ok.disabled=true; const up=[];
+    try{
+      for(let i=0;i<added.length;i++){ ok.textContent=`올리는 중 ${i+1}/${added.length}…`; up.push(await uploadOne(added[i])); }
+      ok.textContent='저장 중…';
+      const row=JSON.stringify({title,body,pinned:$('#nPin').checked,media:keep.concat(up)});
+      if(n) await jx('/rest/v1/board_notices?id=eq.'+encodeURIComponent(n.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:row});
+      else await jx('/rest/v1/board_notices',{method:'POST',headers:{Prefer:'return=minimal'},body:row});
+      removeObjects(gone); d.close(); await load(); toast('저장했어요');
+    }catch(e){ removeObjects(up.map(x=>x.path)); ok.disabled=false; ok.textContent='저장'; toast('저장하지 못했어요: '+e.message); } };
+}
+document.addEventListener('click',async e=>{
+  const t=e.target; const im=t.closest('.media img'); if(im&&im.src){ window.open(im.src,'_blank'); return; } if(t.closest('[data-act="new"]')) return dlg(null);
+  const ed=t.closest('[data-edit]'); if(ed) return dlg(NOTICES.find(x=>x.id===ed.dataset.edit));
+  const pn=t.closest('[data-pin]'); if(pn){ const n=NOTICES.find(x=>x.id===pn.dataset.pin); try{ await jx('/rest/v1/board_notices?id=eq.'+encodeURIComponent(n.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({pinned:!n.pinned})}); await load(); }catch(er){ toast(er.message); } return; }
+  const dl=t.closest('[data-del]'); if(dl){ if(!confirm('이 공지를 지울까요?')) return; try{ const nn=NOTICES.find(x=>x.id===dl.dataset.del); await jx('/rest/v1/board_notices?id=eq.'+encodeURIComponent(dl.dataset.del),{method:'DELETE'}); if(nn&&nn.media) removeObjects(nn.media.map(x=>x.path)); await load(); toast('지웠어요'); }catch(er){ toast(er.message); } }
+});
+$('#reload').onclick=()=>load();
+window.pullNow=()=>{ if(MY.length&&!document.hidden) load(); };
+(async function boot(){ if(await loadStores()) load(); })();
+</script>
+</body>
+</html>

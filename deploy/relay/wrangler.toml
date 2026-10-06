@@ -1,0 +1,4 @@
+# 공공데이터 중계 서버 (Cloudflare Worker). 인증키(DATA_KEY)는 여기 넣지 말고 Cloudflare 화면의 Secret 으로만.
+name = "ilpum-data"
+main = "worker.js"
+compatibility_date = "2026-10-01"
