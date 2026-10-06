@@ -638,16 +638,26 @@ function warnings(c,s){
 
 /* ---------------- 현장 실사 (1~5) → 데이터 60% + 현장 40% ---------------- */
 const FIELD=[
-  {k:'vis',t:'가시성',h:'큰길·맞은편에서 간판이 잘 보이나'},
-  {k:'front',t:'전면 · 코너',h:'가게 앞면이 넓거나 코너 자리인가'},
-  {k:'park',t:'주차',h:'전용 주차 또는 가까운 공영주차장'},
-  {k:'floor',t:'층 · 진입',h:'1층이거나 들어오기 쉬운가 (계단·엘리베이터)'},
-  {k:'eve',t:'저녁 유동',h:'평일·주말 저녁 7~9시에 직접 본 사람 흐름'},
-  {k:'mood',t:'주변 분위기',h:'주변 가게와 어울리는가 (고깃집·한식 거리 등)'},
-  {k:'duct',t:'배기 · 덕트',h:'장어 굽는 연기를 뺄 덕트 설치가 가능한가 (민원)'},
-  {k:'util',t:'설비',h:'가스·전기 용량, 급배수, 화장실'}
+  {k:'vis',t:'가시성',h:'큰길·맞은편에서 간판이 잘 보이나',r:['1 간판이 가려져 20m 안에서야 보임','3 맞은편에서 보이나 일부 가림','5 큰길·교차로 멀리서도 간판이 한눈에']},
+  {k:'front',t:'전면 · 코너',h:'가게 앞면이 넓거나 코너 자리인가',r:['1 폭 4m 미만, 안쪽 골목','3 폭 6~8m 한 면','5 폭 10m 이상 또는 코너 두 면']},
+  {k:'park',t:'주차',h:'전용 주차 또는 가까운 공영주차장',r:['1 100m 안에 주차 불가','3 공영·유료 주차장 도보 3분','5 전용 주차 10대 이상']},
+  {k:'floor',t:'층 · 진입',h:'1층이거나 들어오기 쉬운가 (계단·엘리베이터)',r:['1 지하·3층 이상, 엘리베이터 없음','3 2층 또는 반지하, 계단 짧음','5 1층, 문턱 없이 바로 진입']},
+  {k:'eve',t:'저녁 유동',h:'평일·주말 저녁 7~9시에 직접 본 사람 흐름',r:['1 저녁에 거의 사람이 없음','3 띄엄띄엄 계속 지나감','5 계속 붐비고 외식 손님이 많음']},
+  {k:'mood',t:'주변 분위기',h:'주변 가게와 어울리는가 (고깃집·한식 거리 등)',r:['1 유흥·공실이 많거나 업종이 안 맞음','3 평범한 근린 상가','5 고깃집·한식 외식 거리, 간판이 활기참']},
+  {k:'duct',t:'배기 · 덕트',h:'장어 굽는 연기를 뺄 덕트 설치가 가능한가 (민원)',r:['1 옥상·외벽 불가, 위층이 주거','3 공사하면 가능, 건물주 확인 필요','5 이미 고깃집 덕트 설치됨 또는 건물주 허락']},
+  {k:'util',t:'설비',h:'가스·전기 용량, 급배수, 화장실',r:['1 도시가스 없음, 전기 증설 필요','3 일부 보강 필요','5 가스·전기·급배수 모두 충분']}
 ];
-function fieldScore(c){ const f=c.field||{}; const v=FIELD.map(x=>f[x.k]).filter(n=>n>=1&&n<=5); return v.length>=3?Math.round((v.reduce((a,b)=>a+b,0)/v.length-1)/4*100):null; }
+/* 숫자로 잰 사실 → 1~5점 환산 (별점을 안 매겼을 때만 쓰임) */
+const FACTS=[
+  {k:'vis',f:'signM',t:'간판이 또렷이 보이는 거리 (m)',cut:[[20,1],[40,2],[70,3],[120,4],[1e9,5]]},
+  {k:'front',f:'frontM',t:'가게 앞면 폭 (m)',cut:[[4,1],[6,2],[8,3],[10,4],[1e9,5]]},
+  {k:'park',f:'parkN',t:'100m 안 주차 가능 대수',cut:[[0,1],[5,2],[10,3],[30,4],[1e9,5]]}
+];
+function factVal(c,k){ const x=FACTS.find(y=>y.k===k); const fx=c.fx||{}; if(k==='floor'){ const g=fx.ground; return g==='1'?5:g==='2'?3:g==='0'?1:null; } if(!x||fx[x.f]===undefined||fx[x.f]===''||fx[x.f]===null) return null; const v=+fx[x.f]; if(!(v>=0)) return null; return x.cut.find(z=>v<=z[0]||z[0]===1e9)[1]; }
+function starsOf(c,k){ return [c.field,c.field2].map(f=>f&&f[k]).filter(n=>n>=1&&n<=5); }
+function fieldVal(c,k){ const a=starsOf(c,k); if(a.length) return a.reduce((x,y)=>x+y,0)/a.length; return factVal(c,k); }
+function fieldGap(c,k){ const a=starsOf(c,k); return a.length===2&&Math.abs(a[0]-a[1])>=2; }
+function fieldScore(c){ const v=FIELD.map(x=>fieldVal(c,x.k)).filter(n=>n!=null&&n>=1&&n<=5); return v.length>=3?Math.round((v.reduce((a,b)=>a+b,0)/v.length-1)/4*100):null; }
 function flowScore(c){ const f=flowOf(c), a=f?band(f.avg,[[20,10],[60,40],[100,65],[150,85],[250,100]]):null, b=+c.sbizFlow>0?band(+c.sbizFlow,[[2000,15],[5000,35],[10000,55],[20000,75],[40000,90],[80000,100]]):null;
   return a!=null&&b!=null?Math.round(a*0.6+b*0.4):a!=null?Math.round(a):b!=null?Math.round(b):null; }
 function fieldAll(c){ const a=fieldScore(c), b=flowScore(c); return a!=null&&b!=null?Math.round(a*0.75+b*0.25):a!=null?a:b; }
@@ -656,7 +666,7 @@ function compAdjScore(c,s){ const q=compQual(c), x=s.dims.find(y=>y.k==='comp');
 function koList(c,s){
   const K=SYS().ko, d=s?s.d:{}, f=finCalc(c), L=[];
   if(K.zone){ const n=DB.stores.find(x=>x.x&&distM(c,x)<DB.zoneKm*1000); L.push({t:`우리 매장 영업지역(${DB.zoneKm}km) 밖`,st:n?'fail':'ok',why:n?`${n.name} ${fmtM(distM(c,n))}`:''}); }
-  if(K.duct){ const v=(c.field||{}).duct; L.push({t:'배기·덕트 설치 가능 (현장 실사 3점 이상)',st:!v?'unk':v>=3?'ok':'fail',why:v?v+'점':'현장 실사에서 매겨 주세요'}); }
+  if(K.duct){ const ds=starsOf(c,'duct'), v=ds.length?Math.min(...ds):null; L.push({t:'배기·덕트 설치 가능 (현장 실사 3점 이상)',st:!v?'unk':v>=3?'ok':'fail',why:v?(ds.length>1?'두 사람 중 낮은 점수 ':'')+v+'점':'현장 실사에서 매겨 주세요'}); }
   if(K.area&&K.area.on){ L.push({t:`면적 ${K.area.v}평 이상`,st:!(+c.area>0)?'unk':+c.area>=K.area.v?'ok':'fail',why:+c.area>0?c.area+'평':'면적 입력 필요'}); }
   if(K.rr&&K.rr.on){ L.push({t:`임대료 비율 ${K.rr.v}% 이하`,st:!(f&&f.rentRatio!=null)?'unk':f.rentRatio<=K.rr.v?'ok':'fail',why:f&&f.rentRatio!=null?f.rentRatio.toFixed(1)+'%':'월세·목표 매출 입력 필요'}); }
   if(K.eel500&&K.eel500.on){ L.push({t:`500m 안 장어집 ${K.eel500.v}곳 이하`,st:d.n500==null?'unk':d.n500<=K.eel500.v?'ok':'fail',why:d.n500!=null?d.n500+'곳':''}); }
@@ -1138,11 +1148,16 @@ function listHtml(){
   </div>`;
 }
 
+let EVAL='A';
 function fieldHtml(c){
-  const f=c.field||{}, fs=fieldScore(c);
+  const f=(EVAL==='A'?c.field:c.field2)||{}, fs=fieldScore(c), n=c.fnote||{}, fx=c.fx||{};
+  const gaps=FIELD.filter(x=>fieldGap(c,x.k)).map(x=>x.t);
   return `<div class="card" id="s-field"><div class="sh"><span class="no">09</span><h2>현장 실사</h2><span class="aside">${fs!=null?`<span class="dm-sc">${fs}</span><span class="note"> / 100</span>`:'3개 이상 매기면 점수가 나와요'}</span></div>
-    <div class="note" style="margin-bottom:6px">직접 가 보고 1(나쁨)~5(좋음)로 매기세요. 종합 점수에 40% 반영되고, 같은 숫자를 다시 누르면 지워져요.</div>
-    ${FIELD.map(x=>`<div class="fr"><div><b>${x.t}</b><div class="note">${x.h}</div></div><div class="stars">${[1,2,3,4,5].map(n=>`<button data-fs="${x.k}" data-v="${n}" class="${f[x.k]===n?'on':''}" aria-label="${x.t} ${n}점">${n}</button>`).join('')}</div></div>`).join('')}
+    <div class="note" style="margin-bottom:6px">기준 글을 보고 1(나쁨)~5(좋음)로 매기세요. 같은 숫자를 다시 누르면 지워져요. 숫자로 잰 값을 넣으면 별점을 안 매긴 항목은 그 값으로 환산해요. <b>두 사람이 각자 매기면</b> 평균을 쓰고, 2점 이상 갈리면 표시해요.</div>
+    <div class="row" style="margin-bottom:8px;gap:6px"><span class="note" style="font-weight:600">지금 입력하는 사람</span><button class="btn ${EVAL==='A'?'':'ghost'}" data-ev="A">평가자 A</button><button class="btn ${EVAL==='B'?'':'ghost'}" data-ev="B">평가자 B</button><input type="text" data-f="${EVAL==='A'?'evA':'evB'}" value="${esc(EVAL==='A'?(c.evA||''):(c.evB||''))}" maxlength="12" placeholder="이름(선택)" style="width:110px"></div>
+    ${gaps.length?`<div class="note" style="color:#b45309;font-weight:600;margin-bottom:6px">의견 갈림: ${gaps.map(esc).join(' · ')} — 다시 같이 확인해 보세요</div>`:''}
+    ${FIELD.map(x=>{ const fv=factVal(c,x.k), fact=FACTS.find(y=>y.k===x.k), st=starsOf(c,x.k); return `<div class="fr" style="flex-wrap:wrap"><div style="flex:1;min-width:200px"><b>${x.t}</b>${fieldGap(c,x.k)?' <span class="lv lo">의견 갈림</span>':''}<div class="note">${x.h}</div><div class="note" style="font-size:11px;opacity:.8">${x.r.map(esc).join(' · ')}</div></div><div class="stars">${[1,2,3,4,5].map(k=>`<button data-fs="${x.k}" data-v="${k}" class="${f[x.k]===k?'on':''}" aria-label="${x.t} ${k}점">${k}</button>`).join('')}</div>
+      <div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:4px">${fact?`<input type="number" data-fx="${fact.f}" value="${esc(fx[fact.f]??'')}" min="0" placeholder="${fact.t}" style="width:190px">`:''}${x.k==='floor'?`<select data-fx="ground"><option value="">층 (잰 값)</option><option value="1"${fx.ground==='1'?' selected':''}>1층</option><option value="2"${fx.ground==='2'?' selected':''}>2층·반지하</option><option value="0"${fx.ground==='0'?' selected':''}>지하·3층 이상</option></select>`:''}${fv!=null&&!st.length?`<span class="note">숫자 환산 ${fv}점</span>`:''}<input type="text" data-fn="${x.k}" value="${esc(n[x.k]||'')}" maxlength="80" placeholder="근거 메모 (예: 맞은편 70m에서 간판 보임)" style="flex:1;min-width:140px"></div></div>`; }).join('')}
     <h3>직접 세기 (유동인구 대신)</h3><div class="note" style="margin-bottom:6px">가게 앞에서 10분 동안 지나간 사람·차를 세어 넣으세요. 공개된 유동인구 자료가 없어서 이게 가장 정확해요.</div>
     <div class="grid2"><label>평일 저녁 7~8시 · 10분 통행인<input type="number" data-f="cntWk" value="${esc(c.cntWk||'')}" min="0"></label><label>주말 저녁 · 10분 통행인<input type="number" data-f="cntWe" value="${esc(c.cntWe||'')}" min="0"></label><label>가게 앞 10분 차량<input type="number" data-f="cntCar" value="${esc(c.cntCar||'')}" min="0"></label><label>근처 장어집 대기 손님 (저녁 피크)<input type="number" data-f="cntWait" value="${esc(c.cntWait||'')}" min="0"></label><label>상권정보시스템 일평균 유동인구 (명)<input type="number" data-f="sbizFlow" value="${esc(c.sbizFlow||'')}" min="0" placeholder="sg.sbiz.or.kr 보고서"></label></div>
     <div class="note" id="flowres" style="margin-top:8px">${flowTxt(c)}</div>
@@ -1390,7 +1405,8 @@ document.addEventListener('click',async e=>{
   const t=e.target.closest('button,[data-act]'); if(!t) return;
   if(t.dataset.cand!=null) return addCand(CANDS[+t.dataset.cand]);
   if(t.dataset.sc!=null){ const p=window._sc[+t.dataset.sc]; DB.stores.push({name:window._scName,addr:p.addr,x:p.x,y:p.y}); save(); render(); return; }
-  if(t.dataset.fs){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c.field=c.field||{}; const v=+t.dataset.v; c.field[t.dataset.fs]=c.field[t.dataset.fs]===v?0:v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); return; }
+  if(t.dataset.ev){ EVAL=t.dataset.ev; const y=window.scrollY; render(); window.scrollTo(0,y); return; }
+  if(t.dataset.fs){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; const fk=EVAL==='A'?'field':'field2'; c[fk]=c[fk]||{}; const v=+t.dataset.v; c[fk][t.dataset.fs]=c[fk][t.dataset.fs]===v?0:v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(t.dataset.sdel!=null){ if(confirm('이 매장을 지울까요?')){ DB.stores.splice(+t.dataset.sdel,1); save(); render(); } return; }
   const a=t.dataset.act;
   if(a==='find') return find();
@@ -1418,6 +1434,8 @@ document.addEventListener('input',e=>{
   const f=e.target.dataset.f; if(f){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c[f]=e.target.type==='number'?(e.target.value===''?'':+e.target.value):e.target.value; save();
     if(['mkRent','rent','area'].includes(f)){ const el=$('#rentcmp'); if(el) el.innerHTML=rentTxt(c); }
     if(['cntWk','cntWe','cntWait','sbizFlow'].includes(f)){ const el=$('#flowres'); if(el) el.innerHTML=flowTxt(c); } if(['rent','area','premium','target','tables'].includes(f)){ clearTimeout(softT); softT=setTimeout(softRender,250); } return; }
+  const fxk=e.target.dataset.fx; if(fxk){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c.fx=c.fx||{}; c.fx[fxk]=e.target.type==='number'?(e.target.value===''?'':+e.target.value):e.target.value; save(); return; }
+  const fnk=e.target.dataset.fn; if(fnk){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c.fnote=c.fnote||{}; c.fnote[fnk]=e.target.value; save(); return; }
   const rv=e.target.dataset.rv; if(rv){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c.review=c.review||{}; c.review[rv]=e.target.value;
     if(rv==='dec'){ if(!c.review.at) c.review.at=today(); const s=c.m?scoreOf(c.m,c):null, F=s?finalOf(c,s):null; c.review.score=F?F.tot:null; } save(); return; }
   if(e.target.dataset.bs){ DB.benchStores=e.target.checked; save(); return; }
@@ -1433,6 +1451,7 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
   const id=e.target.id;
   if(e.target.dataset.f==='status'||e.target.dataset.w||e.target.dataset.sys) return render();
+  if(e.target.dataset.fx){ const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(e.target.dataset.rv==='dec'){ const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(id==='filter'){ FILTER=e.target.value; render(); }
   if(id==='zone'){ DB.zoneKm=+e.target.value; save(); render(); }

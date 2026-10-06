@@ -176,6 +176,16 @@ async def main():
     await pg.click('[data-fs=duct][data-v="3"]'); await pg.wait_for_timeout(100)
     ok('    같은 숫자 다시 누르면 지움 → 점수 없음', int((await pg.inner_text('.scorebox .num')).split('/')[0])==base)
     await pg.click('[data-fs=duct][data-v="3"]'); await pg.wait_for_timeout(100)
+    # 현장 실사 신뢰도: 평가자 B, 의견 갈림, 숫자 환산, 근거 메모
+    await pg.click('[data-ev=B]'); await pg.click('[data-fs=vis][data-v="2"]'); await pg.wait_for_timeout(100)
+    t41=await pg.inner_text('#s-field')
+    ok('8e) 평가자 B가 가시성 2점 → 5점과 갈려 "의견 갈림" 표시', '의견 갈림' in t41)
+    await pg.click('[data-fs=duct][data-v="1"]'); await pg.wait_for_timeout(100)
+    ok('8f) 덕트는 두 사람 중 낮은 점수(1점)로 필수 조건 미달', '두 사람 중 낮은 점수' in await pg.inner_text('#s-sys'))
+    await pg.click('[data-fs=duct][data-v="1"]'); await pg.click('[data-ev=A]')
+    await pg.fill('[data-fx=frontM]','12'); await pg.press('[data-fx=frontM]','Tab'); await pg.wait_for_timeout(250); await pg.fill('[data-fn=vis]','맞은편 70m'); await pg.press('[data-fn=vis]','Tab'); await pg.wait_for_timeout(250)
+    ok('8g) 앞면 12m → 숫자 환산 5점 · 근거 메모 저장', '숫자 환산 5점' in await pg.inner_text('#s-field') and await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1')).cands.some(c=>c.fnote&&c.fnote.vis==='맞은편 70m')"))
+    await pg.click('[data-ev=B]'); await pg.click('[data-fs=vis][data-v="2"]'); await pg.click('[data-ev=A]'); await pg.wait_for_timeout(100)
     # 일품집 출점 평가표 · 필수 조건 · 심사 기록
     sy=await pg.inner_text('#s-sys')
     ok('20) 출점 평가표: 5개 항목·평가 완료율·필수 조건(영업지역 미달 → 출점 불가)', await pg.evaluate("document.querySelectorAll('#s-sys tbody tr').length")==5 and '평가 완료' in sy and '미달' in sy and '출점 불가' in await pg.inner_text('.scorebox .dec'), sy[:300])
