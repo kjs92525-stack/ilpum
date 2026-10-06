@@ -282,7 +282,7 @@ details summary{cursor:pointer}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag">대구 · 본사 내부 자료</span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료</span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -312,6 +312,26 @@ const BENCH_GROUPS=[
   ['신흥 핫플 (젊은 층·트렌드)',['교동','북성로','삼덕동','대봉동','봉산문화거리']],
   ['교외·드라이브 (보양식·목적형)',['팔공산','가창','화원읍','현풍읍']]];
 const DEF_BENCH=BENCH_GROUPS.flatMap(g=>g[1]);
+/* ---- 도시별 기준 상권 (2026-10-06): 도시마다 기준 목록·측정값을 따로 저장, 상단 선택으로 바꿈 ---- */
+const BUSAN_GROUPS=[
+  ['번화가·상업 중심',['서면','남포동','광복로','부산역','해운대 구남로','센텀시티']],
+  ['먹자·회식 상권',['광안리해변','연산역','동래역','수영역','덕천역','해운대시장']],
+  ['주거 대단지 배후',['장산역','화명역','구서역','사상역','남천역','명지국제신도시']],
+  ['신도시·개발 지구',['정관신도시','에코델타시티','송정해수욕장']],
+  ['업무·산단·행사',['벡스코','부산시청','녹산국가산업단지']],
+  ['대학가',['부산대역','경성대부경대역']],
+  ['신흥 핫플 (젊은 층·트렌드)',['전포카페거리','망리단길','해리단길','영도 흰여울문화마을']],
+  ['교외·드라이브 (보양식·목적형)',['기장 대변항','기장읍','일광해수욕장','금정산성마을']]];
+const CITIES={
+  '대구':{groups:BENCH_GROUPS,box:[128.3,128.95,35.6,36.35],ex:'대구 수성구 범어동 177 / 범어역 / 동성로'},
+  '부산':{groups:BUSAN_GROUPS,box:[128.75,129.35,34.85,35.45],ex:'부산 해운대구 우동 / 서면역 / 광안리'}};
+const CT=()=>DB.city||'대구';
+const cityDef=n=>((CITIES[n]||{}).groups||[]).flatMap(g=>g[1]);
+const sidoKey=t=>{ t=String(t||''); const M={'경상북도':'경북','경상남도':'경남','충청북도':'충북','충청남도':'충남','전라북도':'전북','전북특별자치도':'전북','전라남도':'전남','강원특별자치도':'강원','강원도':'강원'}; return M[t]||t.replace(/(특별자치시|특별자치도|특별시|광역시|도)$/,''); };
+function inCity(o,city){ city=city||CT(); const m=o.m||{}, txt=(m.region||'')+' '+(o.addr||''); if(txt.includes(city)) return true; if(m.bsido&&sidoKey(m.bsido)===city) return true; const b=(CITIES[city]||{}).box; return !!(b&&o.x>b[0]&&o.x<b[1]&&o.y>b[2]&&o.y<b[3]); }
+const ct=h=>String(h).replace(/대구 기준/g,CT()+' 기준').replace(/"대구"/g,'"'+CT()+'"').replace(/대구 주요 상권/g,CT()+' 주요 상권');
+function switchCity(n){ if(!n||n===DB.city) return; DB.cityData=DB.cityData||{}; DB.cityData[DB.city]={benchNames:DB.benchNames,bench:DB.bench}; const d=DB.cityData[n]; DB.city=n; DB.benchNames=d?d.benchNames:cityDef(n); DB.bench=d?d.bench:null; _bc=null; save(); fillCity(); render(); }
+function fillCity(){ const el=$('#city'); if(!el) return; if(!DB.cityList.includes(DB.city)) DB.cityList.push(DB.city); el.innerHTML=DB.cityList.map(x=>`<option${x===DB.city?' selected':''}>${esc(x)}</option>`).join('')+'<option value="__add">+ 도시 추가…</option>'; }
 
 /* ---- 분석 영역과 지표 (d = 한 지점에서 모은 값과 거기서 계산한 값) ---- */
 const fm=v=>v==null?'-':v<1000?Math.round(v)+'m':(v/1000).toFixed(1)+'km';
@@ -384,7 +404,7 @@ const defSys=()=>({parts:{mkt:35,comp:15,prop:15,field:25,analog:10},grades:{A:7
   ko:{zone:true,duct:true,area:{on:true,v:25},rr:{on:true,v:15},eel500:{on:true,v:4},park:{on:true,v:2}}});
 const SYS_PARTS=[['mkt','상권 매력','대구 기준 상권 대비 외식·주거·집객·접근성'],['comp','경쟁','가까운 장어집 (평점·리뷰를 넣으면 실력 반영)'],['prop','매물·수익성','월세·평수·테이블·목표 매출·시세'],['field','현장 실사','별점 8개 + 유동 (직접 세기·상권정보시스템)'],['analog','우리 매장과 닮은 정도','잘되는 우리 매장 자리와 비교']];
 function SYS(){ const d=defSys(), x=DB.sys||{}; return {parts:Object.assign(d.parts,x.parts||{}),grades:Object.assign(d.grades,x.grades||{}),minDone:x.minDone!=null?x.minDone:d.minDone,ko:Object.assign(d.ko,x.ko||{})}; }
-const defDB=()=>({v:2,relay:DEF_RELAY,stores:[],zoneKm:2,weights:defW(),fin:defFin(),benchNames:DEF_BENCH.slice(),bench:null,cands:[]});
+const defDB=()=>({v:2,relay:DEF_RELAY,stores:[],zoneKm:2,weights:defW(),fin:defFin(),benchNames:DEF_BENCH.slice(),bench:null,cands:[],city:'대구',cityList:['대구','부산'],cityData:{}});
 let DB=defDB();
 // 예전(v1) 기록: 후보지·매장·설정은 살리고, 분석값은 새 형식이 아니라 다시 분석하도록 비움
 function migrate(j){
@@ -392,6 +412,7 @@ function migrate(j){
   const o=Object.assign(defDB(),j,{v:2});
   if(Array.isArray(o.benchNames)&&o.benchNames.length<DEF_BENCH.length&&o.benchNames.every(x=>DEF_BENCH.includes(x)||OLD_BENCH.includes(x))) o.benchNames=DEF_BENCH.slice();   // 기본 목록을 그대로 쓰던 기록은 새 기본으로
   if(j.v!==2){ o.bench=null; o.weights=defW(); o.cands=j.cands.map(c=>{ const x=Object.assign({},c); delete x.m; return x; }); }
+  if(!Array.isArray(o.cityList)) o.cityList=['대구','부산']; if(!o.city) o.city='대구'; if(!o.cityData) o.cityData={};
   o.weights=Object.assign(defW(),o.weights||{}); o.fin=Object.assign(defFin(),o.fin||{});
   return o;
 }
@@ -630,7 +651,7 @@ function warnings(c,s){
   const f=finCalc(c);
   if(f&&f.turns!=null&&f.turns>2.5) out.push(`본전을 맞추려면 테이블당 하루 ${f.turns.toFixed(1)}회전이 필요해요 — 장어집 저녁 장사로는 빠듯해요`);
   if(+c.area>0&&+c.area<15) out.push(`${c.area}평은 장어집에 작은 편이에요 — 회식 단체석을 두기 어려워요`);
-  if(!isDaegu(c)) out.push('대구 밖 주소예요 — 점수는 대구 기준 상권과 비교한 값이라 맞지 않아요');
+  { const known=c.m||CITIES[CT()]; if(known&&!inCity(c)) out.push(`${CT()} 밖 주소예요 — 점수는 ${CT()} 기준 상권과 비교한 값이라 맞지 않아요. 위 도시 선택을 바꿔 보세요`); }
   if(s&&s.d.pub){ const P=s.d.pub, lbl={store:'상가',pop:'인구·연령',rest:'음식점 인허가',apt:'아파트 실거래가'}; const bad=Object.keys(lbl).filter(k=>P[k]); if(bad.length) out.push('공공데이터를 못 받았어요: '+bad.map(k=>lbl[k]+' — '+esc(P[k])).join(' / ')+' (설정 → 공공데이터 연결)'); }
   else if(s&&s.d.fail&&s.d.fail.length) out.push('일부 항목을 못 받아 그 항목은 점수에서 뺐어요. "다시 분석"을 눌러 보세요');
   return out;
@@ -781,17 +802,17 @@ async function buildBench(){
   try{
     for(let i=0;i<names.length;i++){
       setProg(`기준 상권 ${i+1}/${names.length} · ${names[i]}`,i/names.length);
-      const k=await retry(()=>kcall(cb=>K.ps.keywordSearch('대구 '+names[i],cb,{size:1})));
+      const k=await retry(()=>kcall(cb=>K.ps.keywordSearch(CT()+' '+names[i],cb,{size:1})));
       const x=k.list[0]; if(!x){ pts.push({name:names[i],err:'못 찾음'}); continue; }
       const p={x:+x.x,y:+x.y};
       try{ const m=await measure(p,(n,t)=>setProg(`기준 상권 ${i+1}/${names.length} · ${names[i]}`,(i+n/t)/names.length)); pts.push({name:names[i],place:x.place_name,x:p.x,y:p.y,m}); }
       catch(e){ pts.push({name:names[i],err:'측정 실패'}); }
     }
-    if(DB.benchStores!==false){ const S=DB.stores.filter(x=>x.x);
+    if(DB.benchStores!==false){ const S=DB.stores.filter(x=>x.x&&inCity(x));
       for(let i=0;i<S.length;i++){ setProg(`우리 매장 ${i+1}/${S.length} · ${S[i].name}`,0.98);
         try{ const m=S[i].m&&S[i].m.v===2?S[i].m:await measure({x:S[i].x,y:S[i].y},()=>{}); S[i].m=m; S[i].at=S[i].at||today(); pts.push({name:'[우리] '+S[i].name,place:S[i].addr,x:S[i].x,y:S[i].y,m,ours:true}); }catch(e){ pts.push({name:'[우리] '+S[i].name,err:'측정 실패'}); } } }
     DB.bench={at:today(),points:pts}; _bc=null; save();
-    toast(`대구 기준 상권 ${pts.filter(b=>b.m).length}곳을 만들었어요`);
+    toast(`${CT()} 기준 상권 ${pts.filter(b=>b.m).length}곳을 만들었어요`);
   }catch(e){ toast(e.message); }
   finally{ benchBusy=false; setProg('',0); render(); }
 }
@@ -1120,20 +1141,20 @@ function applyFold(){ $$('.card[id^="s-"]').forEach(c=>c.classList.toggle('open'
 function openSec(id){ OPENSET.add(id); applyFold(); }
 function render(){
   $$('#nav button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.tab===TAB));
-  $('#pane').innerHTML={list:listHtml,detail:detailHtml,cmp:cmpHtml,set:setHtml}[TAB]();
+  $('#pane').innerHTML=ct({list:listHtml,detail:detailHtml,cmp:cmpHtml,set:setHtml}[TAB]());
   applyFold();
   drawMap();
 }
 const benchOk=()=>!!DB.bench&&benchCache().list.length>=5;
 function progHtml(){ return `<div id="prog" ${benchBusy?'':'hidden'}><div class="note"><span></span></div><div class="prog"><i style="width:0"></i></div></div>`; }
-function needBench(){ return benchOk()?'':`<div class="infobox"><b>먼저 "대구 기준 상권"을 한 번 만들어 주세요.</b><br>동성로·범어역 같은 대구 주요 상권 ${DB.benchNames.length}곳을 같은 방법으로 측정해 두고, 후보지가 그 안에서 어느 정도인지로 점수를 매겨요. (약 3~5분, 한 번만 하면 돼요)<div style="margin-top:8px"><button class="btn pri" data-act="bench" ${benchBusy||!K?'disabled':''}>${benchBusy?'만드는 중…':'대구 기준 상권 만들기'}</button></div>${progHtml()}</div>`; }
+function needBench(){ return benchOk()?'':`<div class="infobox"><b>먼저 "대구 기준 상권"을 한 번 만들어 주세요.</b><br>동성로·범어역 같은 대구 주요 상권 ${DB.benchNames.length}곳을 같은 방법으로 측정해 두고, 후보지가 그 안에서 어느 정도인지로 점수를 매겨요. (약 3~5분, 한 번만 하면 돼요)<div style="margin-top:8px"><button class="btn pri" data-act="bench" ${benchBusy||!K?'disabled':''}>${benchBusy?'만드는 중…':CT()+' 기준 상권 만들기'}</button></div>${progHtml()}</div>`; }
 const stale=c=>c.m&&c.m.v!==2;
 
 function listHtml(){
   const L=DB.cands.filter(c=>!FILTER||c.status===FILTER).map(c=>({c,s:c.m?scoreOf(c.m,c):null})).sort((a,b)=>(finalOf(b.c,b.s).tot??-1)-(finalOf(a.c,a.s).tot??-1));
   return `${needBench()}
   <div class="card noprint"><div class="sh"><h2>후보지 추가</h2><span class="aside">주소 · 장소 이름 검색 또는 지도에서 찍기</span></div>
-    <div class="row"><input type="text" id="q" placeholder="예: 대구 수성구 범어동 177 / 범어역 / 동성로" style="flex:1;min-width:200px" autocomplete="off">
+    <div class="row"><input type="text" id="q" placeholder="예: ${esc((CITIES[CT()]||{}).ex||CT()+' ○○구 ○○동')}" style="flex:1;min-width:200px" autocomplete="off">
       <button class="btn pri" data-act="find">찾기</button><button class="btn${PICK?' pri':''}" data-act="pick">${PICK?'지도를 누르세요…':'지도에서 찍기'}</button></div>
     <div class="cands" id="cands">${CANDS.map((c,i)=>`<button data-cand="${i}"><b>${esc(c.name)}</b><br><small>${esc(c.addr)}</small></button>`).join('')}</div></div>
   <div class="card"><div class="sh" style="flex-wrap:wrap"><h2>후보지 ${DB.cands.length}곳</h2><span class="aside" style="display:flex;gap:8px">
@@ -1212,7 +1233,7 @@ function detailHtml(){
   ${full?`<div class="card" id="s-diag"><div class="sh"><span class="no">02</span><h2>상권 개요</h2></div>
     <div class="typeline"><span class="type">${esc(t.name)}</span><div class="chips">${t.tags.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></div>
     <div class="facts">
-      <div><span>행정동</span><b>${esc((c.m.region||'-').replace('대구광역시 ',''))}</b></div>
+      <div><span>행정동</span><b>${esc((c.m.region||'-').replace(/^(대구|부산|서울|인천|광주|대전|울산)광역시 |^서울특별시 /,''))}</b></div>
       <div><span>가까운 지하철역</span><b>${s.d.subway&&s.d.subway[0]?esc(s.d.subway[0].name)+' '+fmtM(s.d.subD):'2km 안 없음'}</b></div>
       <div><span>주차장 (500m)</span><b>${fmtN(s.d.park500)}곳</b></div>
       <div><span>장어집 (300m / 500m / 1km)</span><b>${s.d.n300??'-'} / ${s.d.n500??'-'} / ${s.d.n1k??'-'}${c.m.compMore?'+':''}</b></div>
@@ -1297,8 +1318,8 @@ function setHtml(){
     <div class="row" style="margin-top:8px"><input type="text" id="sname" placeholder="매장 이름 (예: 본점)" style="width:140px" maxlength="20"><input type="text" id="saddr" placeholder="주소" style="flex:1;min-width:180px"><button class="btn" data-act="sadd">추가</button></div>
     <div class="cands" id="scands"></div></div>
   ${sysSetHtml()}
-  <div class="card"><div class="sh"><h2>대구 기준 상권</h2></div>
-    <div class="note">점수는 이 상권들과 비교한 위치예요. 한 줄에 하나씩 (앞에 "대구"를 붙여 검색해요), 최대 40곳. 기본 목록은 후보지가 될 만한 <b>자리 유형을 골고루</b> 담았어요: ${BENCH_GROUPS.map(g=>`${g[0]} ${g[1].length}곳`).join(' · ')}. 못 찾은 이름은 "못 찾음"으로 빠지니 지도에서 검색되는 이름으로 고치세요.</div>
+  <div class="card"><div class="sh"><h2>${esc(CT())} 기준 상권</h2></div>
+    <div class="note">점수는 이 상권들과 비교한 위치예요. 한 줄에 하나씩 (앞에 "${esc(CT())}"를 붙여 검색해요), 최대 40곳. 기본 목록은 후보지가 될 만한 <b>자리 유형을 골고루</b> 담았어요: ${((CITIES[CT()]||{}).groups||[]).length?((CITIES[CT()].groups).map(g=>`${g[0]} ${g[1].length}곳`).join(' · ')):'이 도시는 기본 목록이 없어요. 그 도시 대표 자리 30~40곳(번화가·먹자·주거·신도시·업무·대학가·핫플·교외)을 직접 넣으세요'}. 못 찾은 이름은 "못 찾음"으로 빠지니 지도에서 검색되는 이름으로 고치세요.</div>
     <label class="row note" style="margin:6px 0"><input type="checkbox" class="chk" data-bs="1"${DB.benchStores!==false?' checked':''}> 우리 매장 자리도 기준에 함께 넣기 ("잘되는 자리" 기준이 돼요)</label>
     <button class="btn sm" data-act="benchdef" style="margin-bottom:6px">기본 목록으로 되돌리기</button>
     <textarea id="benchNames" style="min-height:140px;margin-top:6px">${esc(DB.benchNames.join('\n'))}</textarea>
@@ -1345,7 +1366,7 @@ function drawMap(){
     const list=TAB==='cmp'?DB.cands.filter(x=>SEL.has(x.id)):DB.cands;
     list.forEach(x=>{ const s=x.m?scoreOf(x.m,x):null, F=finalOf(x,s); const el=mk(x,(F.grade?F.grade+' ':'')+x.name,F.grade?GC[F.grade]:'#777',false,x.addr); el.style.cursor='pointer'; el.addEventListener('click',()=>go('detail',x.id)); });
     if(TAB==='set'&&DB.bench) DB.bench.points.filter(b=>b.m).forEach(b=>mk(b,'','#b88a2a',true,'기준 · '+b.name));
-    L=TAB==='set'?lg('#b88a2a','대구 기준 상권')+lg('#14524a','우리 매장'):lg(GC.A,'A')+lg(GC.B,'B')+lg(GC.C,'C')+lg(GC.D,'D')+lg('#14524a','우리 매장');
+    L=TAB==='set'?lg('#b88a2a',CT()+' 기준 상권')+lg('#14524a','우리 매장'):lg(GC.A,'A')+lg(GC.B,'B')+lg(GC.C,'C')+lg(GC.D,'D')+lg('#14524a','우리 매장');
   }
   $('#legend').innerHTML=L;
   setTimeout(()=>MAP.relayout(),0);
@@ -1357,7 +1378,7 @@ let softT=null;
 function softRender(){
   if(TAB!=='detail') return;
   const c=DB.cands.find(x=>x.id===CUR); if(!c) return;
-  const tmp=document.createElement('div'); tmp.innerHTML=detailHtml();
+  const tmp=document.createElement('div'); tmp.innerHTML=ct(detailHtml());
   ['rcard','s-diag','s-eval','s-items','s-comp','s-todo'].forEach(id=>{ const a=document.getElementById(id), b=tmp.querySelector('#'+id); if(a&&b) a.replaceWith(b); });
   const fr=$('#finres'); if(fr) fr.innerHTML=finRes(c);
   const tb=$('[data-f=tables]'); if(tb) tb.placeholder=c.area?'비우면 '+Math.max(1,Math.round(c.area/(+DB.fin.pyPerTable||3.3)))+'개로 추정':'모르면 비움';
@@ -1365,7 +1386,7 @@ function softRender(){
 async function find(){
   const q=$('#q').value.trim(); if(q.length<2) return toast('주소나 장소를 두 글자 이상 넣어 주세요');
   if(!K) return toast('카카오 지도가 아직 안 열렸어요');
-  try{ CANDS=await geocode(q); if(!CANDS.length) toast('찾지 못했어요. "대구 ○○구 ○○동" 처럼 넣어 보세요'); else if(CANDS.length===1) return addCand(CANDS[0]); render(); }
+  try{ CANDS=await geocode(q); if(!CANDS.length) toast('찾지 못했어요. "'+CT()+' ○○구 ○○동" 처럼 넣어 보세요'); else if(CANDS.length===1) return addCand(CANDS[0]); render(); }
   catch(e){ toast(e.message); }
 }
 function addCand(p,fromMap){
@@ -1381,7 +1402,7 @@ async function analyze(id){
     show(0,STEPS); c.m=await measure(c,show); save();
   }catch(e){ toast(e.message); }
   finally{ busy=false; render(); }
-  if(!benchOk()&&!benchBusy) toast('점수를 보려면 "대구 기준 상권 만들기"를 한 번 눌러 주세요');
+  if(!benchOk()&&!benchBusy) toast('점수를 보려면 "'+CT()+' 기준 상권 만들기"를 한 번 눌러 주세요');
 }
 function exportFile(){
   const blob=new Blob([JSON.stringify(DB,null,1)],{type:'application/json'}); const a=document.createElement('a');
@@ -1413,7 +1434,7 @@ document.addEventListener('click',async e=>{
   if(a==='pick'){ PICK=!PICK; render(); if(PICK) toast('지도에서 후보지 위치를 누르세요'); return; }
   if(a==='bench') return buildBench();
   if(a==='storeMeasure') return measureStores();
-  if(a==='benchdef'){ DB.benchNames=DEF_BENCH.slice(); save(); render(); return; }
+  if(a==='benchdef'){ DB.benchNames=cityDef(CT()).slice(); save(); render(); return; }
   if(a==='sysreset'){ DB.sys=defSys(); save(); render(); return; }
   if(a==='cmpSel') return go('cmp');
   if(a==='redo') return analyze(CUR);
@@ -1450,6 +1471,7 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
   const id=e.target.id;
+  if(id==='city'){ if(e.target.value==='__add'){ const n=(prompt('추가할 도시 이름 (예: 서울, 창원, 대전)')||'').trim().slice(0,10); if(n&&!DB.cityList.includes(n)){ DB.cityList.push(n); } if(n) return switchCity(n); fillCity(); return; } return switchCity(e.target.value); }
   if(e.target.dataset.f==='status'||e.target.dataset.w||e.target.dataset.sys) return render();
   if(e.target.dataset.fx){ const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(e.target.dataset.rv==='dec'){ const y=window.scrollY; render(); window.scrollTo(0,y); return; }
@@ -1461,7 +1483,7 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.id==='q'){ e.preventDefault(); find(); } });
 
-load(); render();
+load(); fillCity(); render();
 $('#sdk').textContent='카카오 지도 여는 중…';
 loadSdk().then(ok=>{
   $('#sdk').textContent=ok?'':'카카오 지도 연결 실패';
