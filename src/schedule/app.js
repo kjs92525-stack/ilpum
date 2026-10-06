@@ -304,7 +304,7 @@ function vStaff(){
   const D=APP.D, ed=canEdit(), cp=canPay(); const all=staffList(D,true); const ws=weekStart(APP.anchor); const W=weekCalc(D,ws,cp);
   const hcWarn=all.filter(s=>s.active!==false&&!(s.last&&s.last<todayStr)).map(s=>({s,h:hcState(s,todayStr)})).filter(x=>x.h.lv==='over'||x.h.lv==='soon').sort((x,y)=>x.h.days-y.h.days);
   const q=APP.q.trim(); const list=all.filter(s=>(!APP.pf||s.pos===APP.pf)&&(!q||s.name.includes(q)));
-  return `<div class="vh"><div><h1>직원</h1><div class="sub">${all.filter(s=>s.active!==false).length}명 · 이름을 누르면 요일 패턴·급여를 바꿀 수 있어요</div></div><span class="sp"></span>${payToggle()}${ed?'<button class="btn pri" data-a="staffnew">+ 직원 추가</button>':''}</div>
+  return `<div class="vh"><div><h1>직원</h1><div class="sub">${all.filter(s=>s.active!==false).length}명 · 이름을 누르면 요일 패턴·급여를 바꿀 수 있어요</div></div><span class="sp"></span>${payToggle()}${ed?'<button class="btn" data-a="rosteropen">명부 붙여넣기</button><button class="btn pri" data-a="staffnew">+ 직원 추가</button>':''}</div>
     <div class="row" style="margin-bottom:12px"><div class="seg" style="overflow-x:auto;max-width:100%">${['',...D.positions.map(p=>p.name)].map(p=>`<button data-a="pf" data-v="${esc(p)}" aria-pressed="${APP.pf===p}">${esc(p||'전체')}</button>`).join('')}</div>
       <input type="text" id="staffQ" placeholder="이름 찾기" value="${esc(APP.q)}" style="width:140px"></div>
     ${hcWarn.length?`<div class="card" style="border-color:var(--warn);background:var(--warn-soft);margin-bottom:10px"><b>🩺 보건증 확인</b> · ${hcWarn.map(x=>`<button class="lnk" data-a="staff" data-sid="${x.s.id}">${esc(x.s.name)} (${x.h.lv==='over'?'만료 지남':x.h.days+'일 남음'})</button>`).join(' · ')}</div>`:''}

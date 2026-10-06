@@ -149,6 +149,35 @@ function dStaff(sid){
       <input type="text" id="sfPv" class="grow" value="${b?b.v:''}" placeholder="예: 1.1 → 11,000 / 13 → 13만" inputmode="decimal"></div></div>`:''}`,
     ed?`<button class="btn pri grow" data-a="staffsave" data-sid="${sid||''}">${sid?'저장':'추가'}</button>${sid?`<button class="btn" data-a="staffact" data-sid="${sid}">${s.active===false?'다시 근무':'그만둠'}</button><button class="btn bad" data-a="staffdel" data-sid="${sid}">삭제</button>`:''}`:'');
 }
+
+/* ---------- 직원명부(스프레드시트) 붙여넣기 ---------- */
+// 열 순서: 구분 · 성명 · 입사일 · 입사 1년 · 퇴사일 · 보건증시작일 · 보건증만료일 · 근로계약서 · 연차 대상 (구글 시트에서 복사하면 탭으로 나뉨)
+function rosterDate(v){ const m=String(v||'').trim().match(/^(\d{4})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{1,2})\.?$/); if(!m) return ''; const k=`${m[1]}-${String(+m[2]).padStart(2,'0')}-${String(+m[3]).padStart(2,'0')}`; return ds(pd(k))===k?k:''; }
+function rosterPos(g){ const P=APP.D.positions.map(p=>p.name); g=String(g||'').trim(); if(!g) return ''; if(P.includes(g)) return g; return P.find(n=>n.includes(g)||g.includes(n))||''; }
+function rosterParse(text){
+  const out=[]; for(const line of String(text||'').split(/\r?\n/)){ const c=line.split('\t').map(x=>x.trim()); const name=c[1]||''; if(!name||name==='성명') continue;
+    const ox=v=>{ v=(v||'').toUpperCase(); return v==='O'||v==='X'?v:''; };
+    out.push({g:c[0]||'',name,join:rosterDate(c[2]),last:rosterDate(c[4]),hcIss:rosterDate(c[5]),hcExp:rosterDate(c[6]),contract:ox(c[7]),annual:ox(c[8])}); }
+  return out; }
+function rosterOpen(){
+  openDrawer('직원명부 붙여넣기','구글 시트·엑셀에서 표를 복사해서 붙여넣으세요',
+    `<p class="help" style="margin:0 0 8px">열 순서: <b>구분 · 성명 · 입사일 · 입사 1년 · 퇴사일 · 보건증 시작일 · 보건증 만료일 · 근로계약서 · 연차 대상</b> (맨 위 제목 줄은 있어도 없어도 돼요). 이름이 같은 직원은 날짜만 채우고, 없는 이름은 새로 추가해요.</p>
+    <textarea id="rosterTx" rows="9" style="width:100%" placeholder="여기에 붙여넣기 (Ctrl+V)"></textarea>
+    <label class="chk" style="display:flex;gap:6px;margin:8px 0"><input type="checkbox" id="rosterJoin"> 입사일·퇴사일도 가져오기 <small class="muted">(시트의 입사일이 임시값이면 끄세요)</small></label>
+    <div id="rosterOut"></div>`,
+    `<button class="btn grow" data-a="rosterprev">미리보기</button><button class="btn pri grow" data-a="rosterapply">적용</button>`,true); }
+function rosterRows(){ const rows=rosterParse($('#rosterTx').value); const jn=$('#rosterJoin').checked; const byName={}; staffList(APP.D,true).forEach(s=>{ byName[s.name]=s; });
+  return rows.map(r=>{ const ex=byName[r.name]||null; const pos=rosterPos(r.g); return Object.assign({},r,{ex,pos,posOk:!!pos||!!ex,jn}); }); }
+function rosterPrev(){ const rows=rosterRows(); const el=$('#rosterOut'); if(!rows.length){ el.innerHTML='<p class="empty">읽은 줄이 없어요. 표를 복사해서 붙여넣었는지 확인해 주세요.</p>'; return; }
+  const cell=v=>v?esc(v):'<span class="muted">-</span>';
+  el.innerHTML=`<div class="scroll"><table class="t"><thead><tr><th>성명</th><th>구분</th><th>처리</th>${rows[0].jn?'<th>입사일</th><th>퇴사일</th>':''}<th>보건증 시작</th><th>보건증 만료</th><th>근로계약서</th><th>연차</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.g)||'-'}${!r.ex&&!r.pos?' <span class="tag warn">포지션 없음→첫 포지션</span>':''}</td><td><span class="tag ${r.ex?'':'ok'}">${r.ex?'기존 직원 갱신':'새로 추가'}</span></td>${r.jn?`<td>${cell(r.join)}</td><td>${cell(r.last)}</td>`:''}<td>${cell(r.hcIss)}</td><td>${cell(r.hcExp)}</td><td>${cell(r.contract)}</td><td>${cell(r.annual)}</td></tr>`).join('')}</tbody></table></div><p class="help">${rows.filter(r=>r.ex).length}명 갱신 · ${rows.filter(r=>!r.ex).length}명 새로 추가. 맞으면 아래 “적용”을 누르세요.</p>`; }
+function rosterApply(){ const rows=rosterRows(); if(!rows.length) return toast('붙여넣은 내용이 없어요'); const D=APP.D; let upd=0, add=0;
+  for(const r of rows){ const id=r.ex?r.ex.id:uid(); const s=Object.assign({},r.ex||{id,active:true,order:Object.keys(D.staff).length,type:'regular',pos:r.pos||D.positions[0].name,off:[],name:r.name});
+    if(r.hcIss) s.hcIss=r.hcIss; if(r.hcExp){ s.hcExp=r.hcExp; const t=Object.assign({},s); delete t.hcExp; if(hcExpOf(t)===r.hcExp) delete s.hcExp; }
+    if(r.contract) s.contract=r.contract; if(r.annual) s.annual=r.annual;
+    if(r.jn){ if(r.join) s.join=r.join; if(r.last) s.last=r.last; }
+    put('staff',id,s); if(r.ex) upd++; else add++; }
+  closeDrawer(); render(); toast(`${upd}명 갱신 · ${add}명 추가했어요`); }
 function saveStaff(sid){
   const D=APP.D; const name=$('#sfName').value.trim(); if(!name) return toast('이름을 넣어주세요');
   const id=sid||uid(); const s=Object.assign({},D.staff[id]||{id,active:true,order:Object.keys(D.staff).length});
@@ -319,6 +348,9 @@ document.addEventListener('click',async e=>{
       put('aw',WD.wk,out); dWeekly(WD.wk); render(); toast('이번 주 입력을 저장했어요'); break; }
     case 'staff': dStaff(d.sid); break;
     case 'staffnew': dStaff(null); break;
+    case 'rosteropen': rosterOpen(); break;
+    case 'rosterprev': rosterPrev(); break;
+    case 'rosterapply': rosterApply(); break;
     case 'staffsave': saveStaff(d.sid||null); break;
     case 'staffact': { const s={...D.staff[d.sid]}; s.active=s.active===false; put('staff',d.sid,s); closeDrawer(); render(); toast(s.active?'다시 근무로 바꿨어요':'그만둠으로 바꿨어요 (기록은 남아요)'); break; }
     case 'staffdel': if(!confirm('이 직원을 지울까요? 기록을 남기려면 ‘그만둠’을 쓰세요.')) return; put('staff',d.sid,null); putPay('staff:'+d.sid,null); closeDrawer(); render(); toast('지웠어요'); break;
