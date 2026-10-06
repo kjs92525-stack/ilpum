@@ -174,11 +174,11 @@ function itRow(x){
     <div class="step"><button data-q="${esc(x.id)}" data-d="-1" aria-label="줄이기">−</button><input inputmode="numeric" value="${q||''}" placeholder="0" data-qi="${esc(x.id)}" aria-label="${esc(x.name)} 수량"><button data-q="${esc(x.id)}" data-d="1" aria-label="늘리기">+</button><span class="u">${esc(u)}</span></div></div>`;
 }
 function extraHtml(){
-  return `<div class="cat">목록에 없는 물건</div><div class="card">${EXTRA.map((x,i)=>`<div class="it"><div><div class="nm">${esc(x.name)}</div><div class="st">${esc(x.qty)}${esc(x.unit)}${x.save?' · 품목에도 저장':''}</div></div><button class="btn sm bad" data-xdel="${i}">빼기</button></div>`).join('')}
+  return `<div class="cat">목록에 없는 물건</div><div class="card">${EXTRA.map((x,i)=>`<div class="it"><div><div class="nm">${esc(x.name)}</div><div class="st">${esc(x.qty)}${esc(x.unit)}${''}</div></div><button class="btn sm bad" data-xdel="${i}">빼기</button></div>`).join('')}
     <div style="margin-top:8px"><button class="btn" data-act="xadd">+ 물건 직접 적기</button></div></div>`;
 }
 function selected(){ const out=[]; ITEMS.forEach(x=>{ const q=QTY[x.id]||0; if(q>0) out.push({id:x.id,qty:q,done:false,name:x.name,unit:unitOf(x.stock),links:linksOf(x),buy_url:safeUrl(x.buy_url)||null}); });
-  EXTRA.forEach((x,i)=>out.push({id:'n'+Date.now()+i,qty:+x.qty,done:false,name:x.name,unit:x.unit,links:x.url?[{n:'구매',u:x.url}]:[],buy_url:x.url||null,_save:x.save,_cat:x.cat})); return out; }
+  EXTRA.forEach((x,i)=>out.push({id:'n'+Date.now()+i,qty:+x.qty,done:false,name:x.name,unit:x.unit,links:x.url?[{n:'구매',u:x.url}]:[],buy_url:x.url||null})); return out; }
 function updateBar(){ const n=selected().length; $('#sum').textContent=n?`${n}개 품목`:'수량을 넣어 주세요'; $('#send').disabled=!n; $('#clear').disabled=!n; }
 function vItems(){
   const g=groups(ITEMS); const ed=canEditItems();
@@ -236,7 +236,6 @@ document.addEventListener('change',async e=>{
 async function sendOrder(){
   const lines=selected(); if(!lines.length) return; const btn=$('#send'); btn.disabled=true;
   try{
-    for(const l of lines.filter(x=>x._save)){ await jx('/rest/v1/wh_items?on_conflict=store_id,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({store_id:SID,id:l.id,category:l._cat||'기타',name:l.name,stock:'',buy_url:l.buy_url,links:l.links,sort:ITEMS.length+1})}); }
     const clean=lines.map(({_save,_cat,...r})=>r);
     let code='', ok=false; const alpha='ABCDEFGHJKLMNPQRSTUVWXYZ';
     for(let k=0;k<5&&!ok;k++){ code=Array.from({length:4},()=>alpha[Math.floor(Math.random()*alpha.length)]).join('');
@@ -278,12 +277,17 @@ function dlgExtra(){
   openDlg(`<h2>목록에 없는 물건</h2><label class="f">이름</label><input id="xName" placeholder="예: 깻잎">
     <div class="lk"><div><label class="f">수량</label><input id="xQty" inputmode="numeric" value="1"></div><div><label class="f">단위</label><input id="xUnit" value="개"></div></div>
     <label class="f">구매 링크 (있으면)</label><input id="xUrl" placeholder="https://…">
-    <label class="f"><input type="checkbox" id="xSave" style="width:auto" checked> 다음에도 쓰게 품목에 저장</label>
-    <label class="f">분류</label><input id="xCat" list="cats" value="${esc(cats[0]||'기타')}"><datalist id="cats">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+    ${canEditItems()?`<label class="f"><input type="checkbox" id="xSave" style="width:auto" checked> 다음에도 쓰게 품목에 바로 등록</label>
+    <label class="f">분류</label><input id="xCat" list="cats" value="${esc(cats[0]||'기타')}"><datalist id="cats">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>`:''}
     <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="dCancel">취소</button><button class="btn pri" id="dOk">담기</button></div>`);
   $('#dCancel').onclick=closeDlg;
-  $('#dOk').onclick=()=>{ const name=$('#xName').value.trim(), qty=parseInt($('#xQty').value,10)||0, url=$('#xUrl').value.trim(); if(!name||qty<1) return toast('이름과 수량을 넣어 주세요'); if(url&&!safeUrl(url)) return toast('링크는 http 로 시작해야 해요');
-    EXTRA.push({name,qty,unit:$('#xUnit').value.trim()||'개',url,save:$('#xSave').checked,cat:$('#xCat').value.trim()||'기타'}); closeDlg(); render(); };
+  $('#dOk').onclick=async()=>{ const name=$('#xName').value.trim(), qty=parseInt($('#xQty').value,10)||0, url=$('#xUrl').value.trim(); if(!name||qty<1) return toast('이름과 수량을 넣어 주세요'); if(url&&!safeUrl(url)) return toast('링크는 http 로 시작해야 해요');
+    const unit=$('#xUnit').value.trim()||'개', save=!!($('#xSave')&&$('#xSave').checked), cat=save?($('#xCat').value.trim()||'기타'):'기타';
+    if(save){ const id='n'+Date.now(); const btn=$('#dOk'); btn.disabled=true;
+      try{ await jx('/rest/v1/wh_items?on_conflict=store_id,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({store_id:SID,id,category:cat,name,stock:unit==='개'?'':'0'+unit,buy_url:url||null,links:url?[{n:'구매',u:url}]:[],sort:Math.max(-1,...ITEMS.map(x=>x.sort||0))+1,updated_at:new Date().toISOString()})});
+        const keep=QTY; await loadAll(); QTY=keep; QTY[id]=qty; closeDlg(); render(); toast(`‘${name}’ 품목에 등록하고 ${qty}${unit} 담았어요`); return;
+      }catch(e){ btn.disabled=false; toast('품목 등록은 못 했어요 — 이번 발주에만 담아요 ('+e.message+')'); } }
+    EXTRA.push({name,qty,unit,url,cat}); closeDlg(); render(); toast(`‘${name}’ ${qty}${unit} 담았어요 — 아래 [발주 넣기]를 눌러야 들어가요`); };
 }
 function dlgItem(it){
   const cats=[...new Set(ITEMS.map(x=>x.category).filter(Boolean))]; const ls=it?linksOf(it):[]; while(ls.length<3) ls.push({n:'',u:''});
