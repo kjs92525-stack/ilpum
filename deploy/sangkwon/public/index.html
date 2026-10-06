@@ -309,6 +309,7 @@ const BENCH_GROUPS=[
   ['신도시·개발 지구',['대구혁신도시','대실역','테크노폴리스','다사읍']],
   ['업무·산단·행사',['성서산업단지','엑스코']],
   ['대학가',['경북대학교 북문','계명대역']],
+  ['신흥 핫플 (젊은 층·트렌드)',['교동','북성로','삼덕동','대봉동','봉산문화거리']],
   ['교외·드라이브 (보양식·목적형)',['팔공산','가창','화원읍','현풍읍']]];
 const DEF_BENCH=BENCH_GROUPS.flatMap(g=>g[1]);
 
@@ -389,7 +390,7 @@ let DB=defDB();
 function migrate(j){
   if(!j||!Array.isArray(j.cands)) return null;
   const o=Object.assign(defDB(),j,{v:2});
-  if(Array.isArray(o.benchNames)&&o.benchNames.length===OLD_BENCH.length&&o.benchNames.every((x,i)=>x===OLD_BENCH[i])) o.benchNames=DEF_BENCH.slice();
+  if(Array.isArray(o.benchNames)&&o.benchNames.length<DEF_BENCH.length&&o.benchNames.every(x=>DEF_BENCH.includes(x)||OLD_BENCH.includes(x))) o.benchNames=DEF_BENCH.slice();   // 기본 목록을 그대로 쓰던 기록은 새 기본으로
   if(j.v!==2){ o.bench=null; o.weights=defW(); o.cands=j.cands.map(c=>{ const x=Object.assign({},c); delete x.m; return x; }); }
   o.weights=Object.assign(defW(),o.weights||{}); o.fin=Object.assign(defFin(),o.fin||{});
   return o;

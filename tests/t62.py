@@ -100,7 +100,7 @@ async def main():
     await pg.click('[data-tab=set]'); await pg.fill('#sname','본점'); await pg.fill('#saddr','대구 수성구 들안로 1'); await pg.click('[data-act=sadd]'); await pg.wait_for_timeout(200)
     db=await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))")
     ok('2) 우리 매장 저장', db['stores'][0]['name']=='본점' and db['stores'][0]['x']==128.635, db['stores'])
-    ok('3a) 기본 기준 상권: 7개 유형·34곳', await pg.evaluate("DEF_BENCH.length>=34 && BENCH_GROUPS.length===7 && DEF_BENCH.length<=40"))
+    ok('3a) 기본 기준 상권: 8개 유형·39곳(교동 포함)', await pg.evaluate("DEF_BENCH.length===39 && DEF_BENCH.includes('교동') && BENCH_GROUPS.length===8 && DEF_BENCH.length<=40"))
     await pg.fill('#benchNames','\n'.join(["동성로","반월당역","범어역","수성못","들안길","동대구역","칠곡3지구","상인역","월배역","계명대역","죽전역","두류역","신매역","대곡역","경북대학교 북문","침산동","앞산카페거리","율하역","대구혁신도시","대실역"])); await pg.dispatch_event('#benchNames','change')
     await pg.uncheck('[data-bs]')
     await pg.click('[data-act=bench]'); await pg.wait_for_function("JSON.parse(localStorage.getItem('ilpum-sk-v1')||'{}').bench",timeout=120000)
