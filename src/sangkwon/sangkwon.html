@@ -478,7 +478,7 @@ body.ui-notion .mapbox #map{border-radius:4px}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07i</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07j</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -560,7 +560,7 @@ const DIMS=[
   {k:'prop',t:'매물 조건',w:15,prop:true,why:'월세·규모로 본 수익 구조 (넣은 것만 반영)',subs:[
     {k:'turns',t:'본전 회전수 (테이블당 하루)',u:'',r:'',low:true,hint:'1회 이하 여유 · 2회 넘으면 빠듯',abs:v=>band(v,[[0.5,100],[1,90],[1.5,70],[2,50],[2.5,30],[3,15],[4,0]]),get:d=>d.turns,fmt:v=>(+v).toFixed(1)+'회'},
     {k:'area',t:'규모',u:'평',r:'',hint:'장어집 40~70평 적정',abs:v=>band(v,[[10,20],[20,50],[30,80],[40,100],[70,100],[100,70],[150,40]]),get:d=>d.area},
-    {k:'rentRatio',t:'임대료 비율 (목표 매출 대비)',u:'',r:'',low:true,hint:'10% 이하 권장',abs:v=>band(v,[[6,100],[8,90],[10,75],[12,55],[15,30],[20,0]]),get:d=>d.rentRatio,fmt:v=>(+v).toFixed(1)+'%'},
+    {k:'rentRatio',t:'임대료 비율 (환산 매출 대비)',u:'',r:'',low:true,hint:'10% 이하 권장',abs:v=>band(v,[[6,100],[8,90],[10,75],[12,55],[15,30],[20,0]]),get:d=>d.rentRatio,fmt:v=>(+v).toFixed(1)+'%'},
     {k:'payback',t:'투자 회수 기간',u:'',r:'',low:true,hint:'24개월 이내 양호',abs:v=>band(v,[[12,100],[18,85],[24,70],[36,45],[48,25],[60,10]]),get:d=>d.payback,fmt:v=>(+v).toFixed(1)+'개월'},
     {k:'rentMk',t:'월세 시세 대비',u:'',r:'',low:true,hint:'시세 이하면 좋음',abs:v=>band(v,[[-20,100],[-10,90],[0,75],[10,55],[20,35],[40,0]]),get:d=>d.rentMk,fmt:v=>(v>0?'+':'')+v+'%'}]}
 ];
@@ -614,9 +614,9 @@ const SEASON=[0.96,0.93,0.92,0.87,1.24,1.0,1.26,1.2,1.04,0.89,0.69,1.01];
 const OLD_SEASON='0.85,0.8,0.85,0.9,1,1.1,1.35,1.4,1.05,0.95,0.85,0.9';
 const defFin=()=>({v:2,cost:PF().fin.cost,labor:PF().fin.labor,var:8,royalty:0,other:200,depM:60,ticket:PF().fin.ticket,days:26,interior:250,party:3,pyPerTable:3.3,season:SEASON.slice()});
 const DEF_RELAY='https://ilpum-data.yoyo925.workers.dev';
-const defSys=()=>({parts:{mkt:35,comp:15,prop:15,field:25,analog:10},grades:{A:70,B:55,C:40},minDone:70,
-  ko:{zone:true,duct:true,area:{on:true,v:25},rr:{on:true,v:15},eel500:{on:true,v:4},park:{on:true,v:2},ovl:{on:true,v:40}}});
-const SYS_PARTS=[['mkt','상권 매력','대구 기준 상권 대비 외식·주거·집객·접근성'],['comp','경쟁','가까운 장어집 (평점·리뷰를 넣으면 실력 반영)'],['prop','매물·수익성','월세·평수·테이블·목표 매출·시세'],['field','현장 실사','별점 8개 + 유동 (직접 세기·상권정보시스템)'],['analog','우리 매장과 닮은 정도','잘되는 우리 매장 자리와 비교 (분석한 매장 3곳 이상일 때)']];
+const defSys=()=>({parts:{mkt:45,comp:20,prop:25,analog:10},grades:{A:70,B:55,C:40},minDone:70,
+  ko:{zone:true,duct:false,area:{on:true,v:25},rr:{on:true,v:15},eel500:{on:true,v:4},park:{on:true,v:2},ovl:{on:true,v:40}}});
+const SYS_PARTS=[['mkt','상권 매력','외식·주거·집객·접근·차량 상권 (장어집 기준표)'],['comp','경쟁','가까운 장어집 수·거리 (자동)'],['prop','매물·수익성','월세·평수·권리금 + 환산 매출'],['analog','우리 매장과 닮은 정도','잘되는 우리 매장 자리와 비교 (분석한 매장 3곳 이상일 때)']];
 function SYS(){ const d=defSys(), x=DB.sys||{}; return {parts:Object.assign(d.parts,x.parts||{}),grades:Object.assign(d.grades,x.grades||{}),minDone:x.minDone!=null?x.minDone:d.minDone,ko:Object.assign(d.ko,x.ko||{})}; }
 const defDB=()=>({v:2,relay:DEF_RELAY,stores:[],zoneKm:2,weights:defW(),fin:defFin(),cands:[],city:'대구',cityList:['대구','부산'],biz:'outlet'});
 let DB=defDB();
@@ -638,7 +638,8 @@ function migrate(j){
 // 본점 홀 매출 월평균(2025-11~2026-09 POS, 직판장 제외, 만원) — 사용자 요청으로 기본값으로 넣음(2026-10-07). 한 번만 채우고, 사용자가 지우거나 바꾸면 그대로 둠.
 const HQ_SALES=12490;
 function seedSales(){ if(DB.salesSeed) return; const st=DB.stores.find(x=>/본점|본사/.test(x.name||''))||(DB.stores.length===1?DB.stores[0]:null); if(!st) return; if(!(+st.sales>0)) st.sales=HQ_SALES; DB.salesSeed=1; save(); }
-function load(){ try{ const j=migrate(JSON.parse(localStorage.getItem(STORE_KEY))); if(j) DB=j; }catch(e){} try{ seedSales(); }catch(e){} }
+function fixSysParts(){ const P=DB.sys&&DB.sys.parts; if(P&&+P.mkt===35&&+P.comp===15&&+P.prop===15&&+P.field===25&&+P.analog===10) delete DB.sys.parts; else if(P) delete P.field; }
+function load(){ try{ const j=migrate(JSON.parse(localStorage.getItem(STORE_KEY))); if(j) DB=j; }catch(e){} try{ seedSales(); }catch(e){} try{ fixSysParts(); }catch(e){} }
 function save(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(DB)); }catch(e){ toast('이 브라우저에 저장하지 못했어요. 설정 → 백업 파일로 받아 두세요'); } }
 
 /* ---------------- 카카오 SDK ---------------- */
@@ -977,11 +978,13 @@ const FACTS=[
   {k:'road',f:'lanes',t:'앞 도로 차선 수 (왕복)',cut:[[1,1],[2,2],[4,3],[6,4],[1e9,5]]}
 ];
 function factVal(c,k){ const x=FACTS.find(y=>y.k===k); const fx=c.fx||{}; if(k==='floor'){ const g=fx.ground; return g==='1'?5:g==='2'?3:g==='0'?1:null; } if(!x||fx[x.f]===undefined||fx[x.f]===''||fx[x.f]===null) return null; const v=+fx[x.f]; if(!(v>=0)) return null; return x.cut.find(z=>v<=z[0]||z[0]===1e9)[1]; }
-function starsOf(c,k){ return [c.field,c.field2].map(f=>f&&f[k]).filter(n=>n>=1&&n<=5); }
+function starsOf(c,k){ return []; }   // 현장 별점 입력 폐지(2026-10-07): 예전 값도 무시
 function fieldVal(c,k){ const a=starsOf(c,k); if(a.length) return a.reduce((x,y)=>x+y,0)/a.length; return factVal(c,k); }
 function fieldGap(c,k){ const a=starsOf(c,k); return a.length===2&&Math.abs(a[0]-a[1])>=2; }
-function fieldScore(c){ const v=FIELD.map(x=>fieldVal(c,x.k)).filter(n=>n!=null&&n>=1&&n<=5); return v.length>=3?Math.round((v.reduce((a,b)=>a+b,0)/v.length-1)/4*100):null; }
-function flowScore(c){ const f=flowOf(c), a=f?band(f.avg,[[20,10],[60,40],[100,65],[150,85],[250,100]]):null, b=+c.sbizFlow>0?band(+c.sbizFlow,[[2000,15],[5000,35],[10000,55],[20000,75],[40000,90],[80000,100]]):null;
+function fieldScore(c){ return null; }
+function fieldScoreOld(c){ const v=FIELD.map(x=>fieldVal(c,x.k)).filter(n=>n!=null&&n>=1&&n<=5); return v.length>=3?Math.round((v.reduce((a,b)=>a+b,0)/v.length-1)/4*100):null; }
+function flowScore(c){ return null; }
+function flowScoreOld(c){ const f=flowOf(c), a=f?band(f.avg,[[20,10],[60,40],[100,65],[150,85],[250,100]]):null, b=+c.sbizFlow>0?band(+c.sbizFlow,[[2000,15],[5000,35],[10000,55],[20000,75],[40000,90],[80000,100]]):null;
   return a!=null&&b!=null?Math.round(a*0.6+b*0.4):a!=null?Math.round(a):b!=null?Math.round(b):null; }
 function fieldAll(c){ const a=fieldScore(c), b=flowScore(c); return a!=null&&b!=null?Math.round(a*0.75+b*0.25):a!=null?a:b; }
 function compAdjScore(c,s){ const q=compQual(c), x=s.dims.find(y=>y.k==='comp'); if(!q||!q.filled) return x?x.score:null; const cp=band(q.adj,AB.compIdx), other=x?x.subs.filter(y=>y.k!=='compIdx'&&y.p!=null).map(y=>y.p):[]; const all=[cp,...other]; return Math.round(all.reduce((a,b)=>a+b,0)/all.length); }
@@ -989,13 +992,10 @@ function koList(c,s){
   const K=SYS().ko, d=s?s.d:{}, f=finCalc(c), L=[];
   if(K.zone){ const n=otherStores(c).find(x=>distM(c,x)<DB.zoneKm*1000); L.push({t:`우리 매장 영업지역(${DB.zoneKm}km) 밖`,st:n?'fail':'ok',why:n?`${n.name} ${fmtM(distM(c,n))}`:''}); }
   if(K.ovl&&K.ovl.on){ const o=overlaps(c)[0]; L.push({t:`우리 매장과 3km 상권 겹침 ${K.ovl.v}% 이하 (자기잠식)`,st:o&&o.pct>K.ovl.v?'fail':'ok',why:o?`${o.name}과 ${o.pct}% 겹침`:'겹치는 매장 없음'}); }
-  if(K.duct){ const ds=starsOf(c,'duct'), v=ds.length?Math.min(...ds):null; L.push({t:'배기·덕트 설치 가능 (현장 실사 3점 이상)',st:!v?'unk':v>=3?'ok':'fail',why:v?(ds.length>1?'두 사람 중 낮은 점수 ':'')+v+'점':'현장 실사에서 매겨 주세요'}); }
   if(K.area&&K.area.on){ L.push({t:`면적 ${K.area.v}평 이상`,st:!(+c.area>0)?'unk':+c.area>=K.area.v?'ok':'fail',why:+c.area>0?c.area+'평':'면적 입력 필요'}); }
-  if(K.rr&&K.rr.on){ L.push({t:`임대료 비율 ${K.rr.v}% 이하`,st:!(f&&f.rentRatio!=null)?'unk':f.rentRatio<=K.rr.v?'ok':'fail',why:f&&f.rentRatio!=null?f.rentRatio.toFixed(1)+'%':'월세·목표 매출 입력 필요'}); }
+  if(K.rr&&K.rr.on){ L.push({t:`임대료 비율 ${K.rr.v}% 이하`,st:!(f&&f.rentRatio!=null)?'unk':f.rentRatio<=K.rr.v?'ok':'fail',why:f&&f.rentRatio!=null?f.rentRatio.toFixed(1)+'%':'월세 입력 + 우리 매장 매출 필요'}); }
   if(K.eel500&&K.eel500.on){ L.push({t:`500m 안 장어집 ${K.eel500.v}곳 이하`,st:d.n500==null?'unk':d.n500<=K.eel500.v?'ok':'fail',why:d.n500!=null?d.n500+'곳':''}); }
-  if(K.park&&K.park.on){ const pn=(c.fx||{}).parkN, nn=+K.park.n||PF().park;
-    if(pn!==undefined&&pn!==''&&pn!==null) L.push({t:`주차 ${nn}대 이상 (100m 안 실제 대수)`,st:+pn>=nn?'ok':'fail',why:pn+'대'});
-    else L.push({t:`주차 ${nn}대 이상 (100m 안 실제 대수)`,st:d.park500==null?'unk':d.park500>=K.park.v?'unk':'fail',why:d.park500==null?'현장 실사에서 주차 대수 입력':d.park500>=K.park.v?`대수 미입력 · 500m 안 주차장 ${d.park500}곳 — 현장에서 대수 확인`:`500m 안 주차장 ${d.park500}곳뿐 (${K.park.v}곳 미만)`}); }
+  if(K.park&&K.park.on){ L.push({t:`주차장 500m 안 ${K.park.v}곳 이상`,st:d.park500==null?'unk':d.park500>=K.park.v?'ok':'fail',why:d.park500!=null?d.park500+'곳':''}); }
   return L;
 }
 function sysEval(c,s){
@@ -1013,14 +1013,15 @@ function finalOf(c,s){ if(!s||s.total==null) return {tot:null,grade:'',fs:fieldS
 function finalOfOld(c,s){ if(!s||s.total==null) return {tot:null,grade:'',fs:fieldScore(c)}; const fs=fieldScore(c); const tot=fs==null?s.total:Math.round(s.total*0.6+fs*0.4); return {tot,grade:gradeOf(tot),fs}; }
 
 /* ---------------- 손익분기 (예상 매출이 아니라 비용 계산) ---------------- */
-function tablesOf(c){ if(+c.tables>0) return {n:+c.tables,est:false}; if(+c.area>0) return {n:Math.max(1,Math.round(+c.area/(+DB.fin.pyPerTable||3.3))),est:true}; return null; }
+function tablesOf(c){ if(+c.area>0) return {n:Math.max(1,Math.round(+c.area/(+DB.fin.pyPerTable||3.3))),est:true}; return null; }
+function convTarget(c){ try{ const E=convEst(c); return E?E.v:0; }catch(e){ return 0; } }
 function finCalc(c){
   const rent=+c.rent; if(!rent) return null; const F=DB.fin;
   const margin=1-(+F.cost+ +F.labor+ +F.var+ +(F.royalty||0))/100; if(margin<=0.02) return null;
   const interior=c.area?(+c.area)*(+F.interior||0):0, dep=interior&&+F.depM?interior/+F.depM:0;
   const fixed=rent+(+F.other||0)+dep, need=fixed/margin, perDay=need/(+F.days||26), guests=perDay/(+F.ticket||4);
   const invest=(+c.premium||0)+interior;
-  const r={fixed,need,perDay,guests,invest,margin,dep,target:+c.target||0};
+  const r={fixed,need,perDay,guests,invest,margin,dep,target:convTarget(c)};
   const se=(Array.isArray(F.season)&&F.season.length===12?F.season:SEASON).map(Number), sAvg=se.reduce((a,b)=>a+b,0)/12, sMin=Math.min(...se)/sAvg;
   r.season=se.map(x=>x/sAvg); r.needOff=need/sMin;
   const T=tablesOf(c); if(T){ r.tables=T.n; r.tablesEst=T.est; r.turns=guests*(1-TAKE()/100)/(+F.party||3)/T.n; r.take=TAKE(); }
@@ -1033,7 +1034,7 @@ function finRes0(c){
   const r=finCalc(c), F=DB.fin; if(!r) return '<div class="note"><b>월세</b>를 넣으면 계산돼요. 평수·테이블 수까지 넣으면 점수의 "매물 조건"에도 반영돼요. 모르면 비워 두세요.</div>';
   const t=(v,l,sub,bad)=>`<div class="kpi${bad?' bad':''}"><span>${l}</span><b>${v}</b>${sub?`<small>${sub}</small>`:''}</div>`;
   return `<div class="kpis">${t(fmtN(Math.round(r.need))+'만','손익분기 월매출','이만큼 팔아야 본전')}${t(fmtN(Math.round(r.perDay))+'만','하루 필요 매출',F.days+'일 영업 기준')}${t(Math.ceil(r.guests)+'명','하루 필요 손님','객단가 '+F.ticket+'만원')}${t(r.invest?fmtN(Math.round(r.invest))+'만':'-','초기 투자 (보증금 제외)','권리금 + 인테리어')}</div>
-  ${r.turns!=null||r.target?`<div class="kpis">${r.turns!=null?t(r.turns.toFixed(1)+'회','본전 회전수',`테이블 ${r.tables}개${r.tablesEst?'(평수로 추정)':''} · 일행 ${F.party}명${r.take?` · 포장 ${r.take}% 빼고`:''}`,r.turns>2):''}${r.target?t(r.rentRatio.toFixed(1)+'%','임대료 비율',r.rentRatio>12?'높음 · 10% 이하 권장':'적정 (10% 이하 권장)',r.rentRatio>12)+t(fmtN(Math.round(r.profit))+'만','월 영업이익 (추정)','목표 매출 기준',r.profit<=0)+t(r.payback?r.payback.toFixed(1)+'개월':r.profit<=0?'적자':'-','투자 회수 기간',r.payback?'초기 투자 ÷ 월 영업이익':'',!r.payback&&r.profit<=0):''}</div>`:''}${r.target?'':'<div class="note">목표 월매출을 넣으면 임대료 비율 · 영업이익 · 투자 회수 기간도 계산해요</div>'}
+  ${r.turns!=null||r.target?`<div class="kpis">${r.turns!=null?t(r.turns.toFixed(1)+'회','본전 회전수',`테이블 ${r.tables}개${r.tablesEst?'(평수로 추정)':''} · 일행 ${F.party}명${r.take?` · 포장 ${r.take}% 빼고`:''}`,r.turns>2):''}${r.target?t(r.rentRatio.toFixed(1)+'%','임대료 비율',r.rentRatio>12?'높음 · 10% 이하 권장':'적정 (10% 이하 권장)',r.rentRatio>12)+t(fmtN(Math.round(r.profit))+'만','월 영업이익 (추정)','환산 매출 기준',r.profit<=0)+t(r.payback?r.payback.toFixed(1)+'개월':r.profit<=0?'적자':'-','투자 회수 기간',r.payback?'초기 투자 ÷ 월 영업이익':'',!r.payback&&r.profit<=0):''}</div>`:''}${r.target?'':'<div class="note">우리 매장 월매출을 넣고 분석하면 환산 매출로 임대료 비율 · 영업이익 · 투자 회수 기간도 계산해요</div>'}
   ${finBar(c)}${scenarioHtml(c)}
   <div class="note" style="margin-top:6px">${r.turns==null?'평수나 테이블 수를 넣으면 본전 회전수도 계산해요. ':''}가정: 원가율 ${F.cost}% · 인건비 ${F.labor}% · 기타 변동비 ${F.var}%${+F.royalty?` · 로열티 ${F.royalty}%`:''} · 월세 외 고정비 ${F.other}만원${r.dep?` · 인테리어 감가상각 월 ${fmtN(Math.round(r.dep))}만원(${F.depM}개월)`:''} · 인테리어 평당 ${F.interior}만원 (설정에서 바꿔요). <b>예상 매출이 아니라 비용으로 계산한 본전 기준이에요.</b></div>`;
 }
@@ -1077,7 +1078,7 @@ function opinion(c,s,fin){
   if(d.popTot!=null) P.push(`${esc(d.bdong||'이 동')} 주민등록 인구는 ${fmtN(d.popTot)}명이고, 장어 주 고객층인 30~50대가 ${d.pCore}%, 60세 이상이 ${d.pOld}%예요.`);
   if(d.store500!=null&&d.foodRatio!=null) P.push(`소상공인 상가 자료로 500m 안 상가는 ${fmtN(d.store500)}곳이고 그중 음식업이 ${d.foodRatio}%예요.`);
   const sp=satP(d); if(sp!=null) P.push(sp<=35?'배후 수요(아파트·관공서·병원)에 비해 음식점이 많은 편이라 외식 경쟁이 치열해요.':sp>=65?'배후 수요에 비해 음식점이 적은 편이라 외식 수요를 흡수할 여지가 있어요.':'배후 수요와 음식점 수는 대구 기준 상권과 비슷한 수준이에요.');
-  if(fin) P.push(`월세 ${fmtN(c.rent)}만원 기준 손익분기 월매출은 약 <b>${fmtN(Math.round(fin.need))}만원</b>, 하루 손님 약 <b>${Math.ceil(fin.guests)}명</b>이 필요해요.${fin.target?(fin.rentRatio>12?` 목표 매출 대비 임대료 비율이 ${fin.rentRatio.toFixed(1)}%로 높은 편이에요(10% 이하 권장).`:` 목표 매출 대비 임대료 비율은 ${fin.rentRatio.toFixed(1)}%로 적정해요.`):''}`);
+  if(fin) P.push(`월세 ${fmtN(c.rent)}만원 기준 손익분기 월매출은 약 <b>${fmtN(Math.round(fin.need))}만원</b>, 하루 손님 약 <b>${Math.ceil(fin.guests)}명</b>이 필요해요.${fin.target?(fin.rentRatio>12?` 환산 매출 대비 임대료 비율이 ${fin.rentRatio.toFixed(1)}%로 높은 편이에요(10% 이하 권장).`:` 환산 매출 대비 임대료 비율은 ${fin.rentRatio.toFixed(1)}%로 적정해요.`):''}`);
   if(fin&&fin.turns!=null){ const tn=fin.turns, txt=tn<=1?'여유 있는 편이에요':tn<=2?'보통 수준이에요':'빠듯해요. 월세에 비해 가게가 작거나 월세가 높은 편이에요';
     let add=''; if(s.mkt!=null&&s.mkt<45&&tn>1.5) add=' 상권 점수도 평균 아래라 이 조건은 위험할 수 있어요.'; else if(s.mkt!=null&&s.mkt>=60&&tn>2) add=' 상권은 좋지만 그만큼 임대 조건이 비싼 자리예요. 객단가를 높이거나 월세 협상이 필요해요.'; else if(s.mkt!=null&&s.mkt>=60&&tn<=1.2) add=' 상권 수준에 비해 임대 조건이 좋은 편이에요.';
     P.push(`본전을 맞추려면 테이블 ${fin.tables}개${fin.tablesEst?'(평수로 추정)':''}가 하루 <b>${tn.toFixed(1)}회전</b>해야 해요. ${txt}.${add}`); }
@@ -1095,6 +1096,7 @@ function todoList(s,c){
   if(sc.hub<45) L.push('저녁에 거리가 어둡거나 한산해지지 않는지');
   if(c&&!c.rent) L.push('월세·관리비·보증금·권리금 조건');
   if(c){ const T=tablesOf(c); if(!T) L.push('평수와 배치 가능한 테이블 수'); else if(T.est) L.push(`실제 배치 가능한 테이블 수 — 지금은 평수로 ${T.n}개로 추정 (평면도로 확인)`); }
+  L.push('간판이 큰길·맞은편에서 보이는지, 앞 도로에서 차가 바로 들어올 수 있는지(유턴·좌회전·진입로)');
   L.push('건물 용도(일반음식점 가능)·불법 건축물 여부, 간판 위치·크기 제한');
   L.push('가스·전기 용량, 급배수, 정화조 용량(음식점 허가 기준), 화장실 위치');
   L.push('주변 재개발·재건축, 신규 아파트 입주, 도로·지하철 공사 계획 (구청 도시계획 열람)');
@@ -1181,7 +1183,7 @@ function finBar(c){
   const r=finCalc(c); if(!r) return ''; const F=DB.fin, base=r.target||r.need;
   const segs=[['원가',+F.cost,'#1c3557'],['인건비',+F.labor,'#2d5282'],['기타 변동비',+F.var,'#5b8bc4'],...(+F.royalty?[['로열티·광고',+F.royalty,'#7a8fb0']]:[]),['고정비 (월세·감가상각 등)',r.fixed/base*100,'#a8822e']];
   let sum=segs.reduce((a,x)=>a+x[1],0), profit=100-sum; const loss=profit<0; if(loss){ segs.forEach(x=>x[1]=x[1]/sum*100); profit=0; } else segs.push(['영업이익',profit,'#2f6b4f']);
-  return `<div class="viz" style="margin-top:12px"><h4>매출 100원이 어디로 가나</h4><div class="cap">${r.target?`목표 월매출 ${fmtN(r.target)}만원 기준`:`손익분기 월매출 ${fmtN(Math.round(r.need))}만원 기준 (이익 0)`}${loss?' · 비용이 매출을 넘는 적자 구간':''}</div>
+  return `<div class="viz" style="margin-top:12px"><h4>매출 100원이 어디로 가나</h4><div class="cap">${r.target?`환산 월매출 ${fmtN(r.target)}만원 기준`:`손익분기 월매출 ${fmtN(Math.round(r.need))}만원 기준 (이익 0)`}${loss?' · 비용이 매출을 넘는 적자 구간':''}</div>
     <div class="fbar" role="img" aria-label="비용 구조">${segs.filter(x=>x[1]>0).map(x=>`<i style="width:${x[1].toFixed(1)}%;background:${x[2]}" title="${x[0]} ${x[1].toFixed(1)}%"></i>`).join('')}</div>
     <div class="flg">${segs.map(x=>`<span style="--c:${x[2]}">${x[0]} ${x[1].toFixed(0)}%</span>`).join('')}</div></div>`;
 }
@@ -1241,11 +1243,11 @@ function swotData(s,c){
   if(d.corePerEel!=null){ const b=bmStat('corePerEel',d.corePerEel); if(b&&b.p>=70) O.push('장어집 1곳당 주 고객 인구가 많아 수요가 남아요'); if(b&&b.p<=30) T.push('장어집 1곳당 주 고객 인구가 적어 수요를 나눠야 해요'); }
   if(d.pull!=null){ const b=bmStat('pull',d.pull); if(b&&b.p>=70) O.push('병원·관공서·예식장 등 집객시설이 많아 회식·모임 수요를 노릴 수 있어요'); }
   const sat=satP(d); if(sat!=null&&sat<=35) T.push('배후 수요에 비해 음식점이 많아 외식 경쟁이 치열해요');
-  const f=finCalc(c); if(f){ if(f.turns!=null&&f.turns>2) W.push(`본전 맞추려면 테이블당 하루 ${f.turns.toFixed(1)}회전이 필요해 빠듯해요`); if(f.rentRatio!=null&&f.rentRatio>12) T.push(`임대료가 목표 매출의 ${f.rentRatio.toFixed(1)}%로 높아요`); if(f.rentRatio!=null&&f.rentRatio<=10) S.push(`임대료 비율 ${f.rentRatio.toFixed(1)}%로 부담이 적어요`); }
+  const f=finCalc(c); if(f){ if(f.turns!=null&&f.turns>2) W.push(`본전 맞추려면 테이블당 하루 ${f.turns.toFixed(1)}회전이 필요해 빠듯해요`); if(f.rentRatio!=null&&f.rentRatio>12) T.push(`임대료가 환산 매출의 ${f.rentRatio.toFixed(1)}%로 높아요`); if(f.rentRatio!=null&&f.rentRatio<=10) S.push(`임대료 비율 ${f.rentRatio.toFixed(1)}%로 부담이 적어요`); }
   if(d.pubPct!=null&&d.pubPct>=25) O.push(`500m 안 음식점 중 주점이 ${d.pubPct}%라 저녁 술자리 수요가 있어요 (2차 전 1차 장어 수요)`);
   if(d.eelStore!=null&&d.n500!=null&&d.eelStore>d.n500) T.push(`상가정보에는 500m 안 장어 관련 가게가 ${d.eelStore}곳으로 카카오(${d.n500}곳)보다 많아요 — 지도에 안 나온 경쟁점 확인`);
   const cq=compQual(c); if(cq&&cq.strong[0]){ const x=cq.strong[0]; T.push(`${fmtM(x.p.dist)} 거리에 강한 장어집(${esc(x.p.name)}${x.q.r?` 평점 ${x.q.r}`:''}${x.q.n?` · 리뷰 ${fmtN(x.q.n)}개`:''})이 있어요`); }
-  { const P=c.compQ||{}, near=((cm(c)||{}).comp||[]).filter(x=>x.dist<=1000), pr=near.filter(x=>P[x.id]&&+P[x.id].p>0), cheap=pr.filter(x=>+P[x.id].p===3), dear=pr.filter(x=>+P[x.id].p===1);
+  { const P={}, near=((cm(c)||{}).comp||[]).filter(x=>x.dist<=1000), pr=near.filter(x=>P[x.id]&&+P[x.id].p>0), cheap=pr.filter(x=>+P[x.id].p===3), dear=pr.filter(x=>+P[x.id].p===1);
     if(BIZ()==='outlet'){ if(pr.length>=2&&dear.length===pr.length) O.push(`1km 안 장어집(가격 입력 ${pr.length}곳)이 모두 우리보다 비싸요 — 가성비 장어 빈자리라 직판장 강점이 살아요`); if(cheap.length) T.push(`우리보다 싼 장어집이 1km 안에 ${cheap.length}곳(${esc(cheap[0].name)} 등) — 가격 강점이 약해져요`); }
     else if(pr.length>=2&&cheap.length>=pr.length/2) T.push(`주변 장어집 다수가 우리보다 싸요 — 가격 경쟁에 휘말리지 않을 차별점이 필요해요`); }
   if(cq&&cq.filled>=2&&!cq.strong.length) O.push('입력한 주변 장어집들의 평점·리뷰가 강하지 않아 실력으로 이길 여지가 있어요');
@@ -1278,10 +1280,10 @@ function scenarioHtml(c){
   const mx=Math.max(...rows.map(x=>x.profit),1);
   const tick=[3,4,5,6].map(t=>({t,g:r.perDay/t})), gm=Math.max(...tick.map(x=>x.g));
   const mon=['1','2','3','4','5','6','7','8','9','10','11','12'];
-  const seas=r.target?`<div class="viz" style="margin:12px 0 0"><h4>계절별 월 영업이익 — 목표 월매출 ${fmtN(r.target)}만원을 연평균으로 볼 때</h4><div class="cap">장어는 여름(7~8월 복날)에 몰리고 겨울에 줄어요 · 적자 달 <b>${r.lossM}개월</b> · 1년 합계 ${fmtN(Math.round(r.year))}만원 (월별 지수는 설정에서 바꿔요)</div>
+  const seas=r.target?`<div class="viz" style="margin:12px 0 0"><h4>계절별 월 영업이익 — 환산 월매출 ${fmtN(r.target)}만원을 연평균으로 볼 때</h4><div class="cap">장어는 여름(7~8월 복날)에 몰리고 겨울에 줄어요 · 적자 달 <b>${r.lossM}개월</b> · 1년 합계 ${fmtN(Math.round(r.year))}만원 (월별 지수는 설정에서 바꿔요)</div>
     <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;height:120px;margin-top:8px">${r.months.map((v,i)=>{ const mx=Math.max(...r.months.map(Math.abs),1); return `<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%" title="${i+1}월 ${fmtN(Math.round(v))}만"><i style="display:block;height:${Math.max(2,Math.abs(v)/mx*100)}%;background:${v<0?'#b4473a':'#2f6b4f'};border-radius:3px 3px 0 0"></i></div>`; }).join('')}</div>
     <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px;font-size:11px;color:var(--sub);text-align:center;margin-top:3px">${mon.map(x=>`<span>${x}월</span>`).join('')}</div></div>`
-    :`<div class="note" style="margin-top:10px">계절 편차: 비수기(겨울)에도 적자가 안 나려면 <b>연평균 월매출 약 ${fmtN(Math.round(r.needOff))}만원</b>이 필요해요 (손익분기 ${fmtN(Math.round(r.need))}만원 × 비수기 보정). 목표 월매출을 넣으면 달별 이익을 그려 드려요.</div>`;
+    :`<div class="note" style="margin-top:10px">계절 편차: 비수기(겨울)에도 적자가 안 나려면 <b>연평균 월매출 약 ${fmtN(Math.round(r.needOff))}만원</b>이 필요해요 (손익분기 ${fmtN(Math.round(r.need))}만원 × 비수기 보정). 우리 매장 월매출을 넣고 분석하면 환산 매출로 달별 이익을 보여 줘요</div>`;
   return seas+`<h3>시나리오 분석 — 매출이 달라지면</h3><div class="note" style="margin-bottom:8px">월매출을 손익분기의 1.0~2.0배로 가정했을 때예요. <b>예상 매출이 아니라</b> 가정에 따른 계산이에요.</div>
     <div class="tw"><table class="dt"><thead><tr><th>월매출 가정</th><th style="text-align:right">월 영업이익</th><th style="text-align:right">임대료 비율</th><th style="text-align:right">하루 손님</th><th style="text-align:right">투자 회수</th></tr></thead><tbody>
     ${rows.map(x=>`<tr><td>${fmtN(Math.round(x.S))}만 <span class="note">(${x.k}배)</span></td><td class="v">${fmtN(Math.round(x.profit))}만<div class="bar" style="height:6px;background:var(--soft);margin-top:4px;border-radius:3px;overflow:hidden"><i style="display:block;height:100%;width:${Math.max(0,x.profit)/mx*100}%;background:var(--ok)"></i></div></td><td class="num ${x.rr>12?'rk lo':x.rr<=10?'rk hi':''}">${x.rr.toFixed(1)}%</td><td class="num">${Math.ceil(x.guests)}명</td><td class="num">${x.pay?x.pay.toFixed(0)+'개월':'-'}</td></tr>`).join('')}</tbody></table></div>
@@ -1327,8 +1329,7 @@ function salesBullet(c){
     <div class="sb-big">${E?`<div><span>본점 기준 환산 월매출</span><strong>${fmtN(E.v)}<small>만</small></strong><em>${fmtN(E.lo)} ~ ${fmtN(E.hi)}</em></div>`:''}${f?`<div><span>손익분기 월매출</span><strong class="mut">${fmtN(Math.round(f.need))}<small>만</small></strong><em>하루 손님 ${Math.ceil(f.guests)}명</em></div>`:''}${ratio!=null?`<div class="sb-x ${tone}"><span>여유</span><strong>${ratio.toFixed(1)}<small>배</small></strong><em>${ratio>=1.5?'넉넉함':ratio>=1.1?'빠듯함':'위험'}</em></div>`:''}</div>
     <div class="bul" role="img" aria-label="환산 매출 범위와 손익분기 비교">
       ${E?`<i class="bul-band" style="left:${X(E.lo)};width:calc(${X(E.hi)} - ${X(E.lo)})" title="환산 범위 ${fmtN(E.lo)}~${fmtN(E.hi)}만원"></i><i class="bul-pt" style="left:${X(E.v)}" title="환산 가운데 ${fmtN(E.v)}만원"></i>`:''}
-      ${f?`<i class="bul-be" style="left:${X(f.need)}" title="손익분기 ${fmtN(Math.round(f.need))}만원"><u>손익분기</u></i>`:''}
-      ${f&&f.target?`<i class="bul-tg" style="left:${X(f.target)}" title="목표 ${fmtN(f.target)}만원"><u>목표</u></i>`:''}</div>
+      ${f?`<i class="bul-be" style="left:${X(f.need)}" title="손익분기 ${fmtN(Math.round(f.need))}만원"><u>손익분기</u></i>`:''}</div>
     <div class="bul-ax"><span>0</span><span>${fmtN(Math.round(mx/2))}</span><span>${fmtN(Math.round(mx))}</span></div>
     ${!E?'<div class="note">설정 → 우리 매장에 월매출을 넣고 "우리 매장 분석하기"를 누르면 환산 매출이 함께 나와요</div>':!f?'<div class="note">매물 칸에 월세를 넣으면 손익분기선이 그려져요</div>':''}`;
 }
@@ -1423,7 +1424,7 @@ const CONV=[
   {k:'near',t:'가까운 경쟁 지수 (적을수록 유리)',e:0.15,lo:0.8,hi:1.2,inv:true,get:d=>d.compIdx,fmt:v=>(+v).toFixed(1)},
   {k:'park',t:'주차장 500m',e:0.15,lo:0.8,hi:1.25,get:d=>d.park500,fmt:v=>v+'곳'}];
 function convEst(c){
-  if(!c||!c.m||c.m.v!==2) return null; const dc=scoreOf(c.m,c).d;
+  if(!c||!c.m||c.m.v!==2) return null; const dc=derive(c.m,{ex:c.compEx||{}});
   const L=DB.stores.filter(st=>st.m&&st.m.v===2&&+st.sales>0).map(st=>{
     const ds=derive(st.m,{self:'__self'}); let mul=1; const parts=[];
     CONV.forEach(f=>{ let a=f.get(dc), b=f.get(ds); if(a==null||b==null) return; if(f.same&&f.same(dc)!==f.same(ds)) return;
@@ -1445,7 +1446,7 @@ function convHtml(c,inFin){
     return `<div class="infobox" style="margin:10px 0">${!has?'설정 → 우리 매장에 <b>월매출</b>을 넣으면':'설정 → 우리 매장 → <b>"우리 매장 분석하기"</b>를 누르면'} 그 매장 매출을 이 후보지 조건으로 바꿔 본 <b>환산 매출</b>을 보여 줘요.${has&&!meas?'':''}</div>`; }
   const fin=finCalc(c), base=E.list.map(x=>esc(x.st.name)).join('·');
   const line=`<b>${base} 기준 환산 월매출: 약 ${fmtN(E.lo)}~${fmtN(E.hi)}만원</b> (가운데 ${fmtN(E.v)}만원)${fin?` · 손익분기 ${fmtN(Math.round(fin.need))}만원의 <b>${(E.v/fin.need).toFixed(1)}배</b>${E.lo<fin.need?' — <b style="color:var(--bad)">아래쪽이면 적자</b>':''}`:''}`;
-  if(inFin) return `<div class="note" style="margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper2,#f7f7f5)">${line}${+c.target!==E.v?` <button class="btn sm ghost" data-act="convtarget">가운데 값을 목표 매출로</button>`:''}<div style="margin-top:4px">우리 매장 실제 매출을 수요·경쟁·주차 차이로 보정한 <b>내부 참고값</b>이에요. 예측 아님 · 가맹 희망자에게 보여 주면 안 돼요.</div></div>`;
+  if(inFin) return `<div class="note" style="margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper2,#f7f7f5)">${line}<div style="margin-top:4px">우리 매장 실제 매출을 수요·경쟁·주차 차이로 보정한 <b>내부 참고값</b>이에요. 예측 아님 · 가맹 희망자에게 보여 주면 안 돼요.</div></div>`;
   const rows=E.list.map(x=>`<div class="tw" style="margin-top:8px"><table class="dt"><thead><tr><th>${esc(x.st.name)} → 후보지</th><th style="text-align:right">후보지</th><th style="text-align:right">${esc(x.st.name)}</th><th style="text-align:right">보정</th></tr></thead><tbody>
     ${x.parts.map(p=>`<tr><td>${p.f.t}</td><td class="num">${p.f.fmt(p.a)}</td><td class="num">${p.f.fmt(p.b)}</td><td class="num"><b style="color:${p.x>=1?'var(--good,#1a7f37)':'var(--bad)'}">×${p.x.toFixed(2)}</b></td></tr>`).join('')}
     <tr><td><b>합계</b> · 월매출 ${fmtN(x.sales)}만원 × ${x.mul.toFixed(2)}</td><td class="num" colspan="3"><b>${fmtN(Math.round(x.est))}만원</b>${x.sim!=null?` <span class="note">(닮은 정도 ${x.sim}%)</span>`:''}</td></tr></tbody></table></div>`).join('');
@@ -1462,7 +1463,8 @@ function compThreat(p,q){
   const pf=PF().price[+q.p]||1;
   return {w,rf,nf,zf,pf,t:w*rf*nf*zf*pf,has:!!(q.r||q.n||q.z||q.p)};
 }
-function compQual(c){
+function compQual(c){ return null; }   // 경쟁점 평점·리뷰 입력 폐지
+function compQualOld(c){
   const m=cm(c); if(!m||!m.comp||!m.comp.length) return null; const Q=c.compQ||{};
   const L=m.comp.map(p=>Object.assign({p,q:Q[p.id]||{}},compThreat(p,Q[p.id])));
   const base=L.reduce((a,x)=>a+x.w,0), adj=L.reduce((a,x)=>a+x.t,0), filled=L.filter(x=>x.has).length;
@@ -1483,8 +1485,10 @@ function compQualHtml(c){
 /* ---------------- 임대료 시세 · 현장 유동 ---------------- */
 function rentTxt(c){ const r=rentCmp(c); return r?` · 주변 시세 ${r.mk}만원 대비 <b style="color:${r.diff>15?'var(--warn)':r.diff<-10?'var(--ok)':'var(--ink)'}">${r.diff>0?'+':''}${r.diff}%</b> ${r.diff>15?'(비싸요 · 협상 여지 확인)':r.diff<-10?'(시세보다 싸요 · 이유 확인)':'(시세 수준)'}`:' · 주변 시세를 넣으면 비싼지 알려 줘요'; }
 function flowTxt(c){ const f=flowOf(c), sb=+c.sbizFlow>0?` · 상권정보시스템 일평균 ${fmtN(c.sbizFlow)}명`:''; if(!f) return sb?`유동 점수 ${flowScore(c)}점${sb}`:''; return f?`유동 점수 ${flowScore(c)}점 · `+`평균 10분 ${Math.round(f.avg)}명 → 시간당 약 ${fmtN(f.hr)}명 · <b>${f.lv}</b> (대략 기준: 10분 60명 미만 적음 · 150명 이상 많음)${+c.cntWait>0?` · 경쟁점 대기 ${c.cntWait}명 = 수요가 넘쳐요`:''}${sb}`:''; }
-function rentCmp(c){ if(!(c.rent>0&&c.area>0&&c.mkRent>0)) return null; const my=c.rent/c.area; return {my,mk:+c.mkRent,diff:Math.round((my/c.mkRent-1)*100)}; }
-function flowOf(c){ const v=[c.cntWk,c.cntWe].map(Number).filter(x=>x>0); if(!v.length) return null; const avg=v.reduce((a,b)=>a+b,0)/v.length; return {avg,lv:avg>=150?'많음':avg>=60?'보통':'적음',hr:Math.round(avg*6)}; }
+function rentCmp(c){ return null; }
+function rentCmpOld(c){ if(!(c.rent>0&&c.area>0&&c.mkRent>0)) return null; const my=c.rent/c.area; return {my,mk:+c.mkRent,diff:Math.round((my/c.mkRent-1)*100)}; }
+function flowOf(c){ return null; }
+function flowOfOld(c){ const v=[c.cntWk,c.cntWe].map(Number).filter(x=>x>0); if(!v.length) return null; const avg=v.reduce((a,b)=>a+b,0)/v.length; return {avg,lv:avg>=150?'많음':avg>=60?'보통':'적음',hr:Math.round(avg*6)}; }
 
 
 /* ---------------- 일품집 출점 평가표 ---------------- */
@@ -1531,12 +1535,11 @@ function sysSetHtml(){
     <h3>필수 조건 (하나라도 미달이면 출점 불가)</h3>
     <div class="ks">
       <label>${chk('ko.zone',K.zone)} 우리 매장 영업지역 밖</label>
-      <label>${chk('ko.duct',K.duct)} 배기·덕트 설치 가능 (현장 실사 3점 이상)</label>
       <label>${chk('ko.area.on',K.area.on)} 면적 <input type="number" data-sys="ko.area.v" value="${K.area.v}"> 평 이상</label>
       <label>${chk('ko.rr.on',K.rr.on)} 임대료 비율 <input type="number" data-sys="ko.rr.v" value="${K.rr.v}"> % 이하</label>
       <label>${chk('ko.eel500.on',K.eel500.on)} 500m 안 장어집 <input type="number" data-sys="ko.eel500.v" value="${K.eel500.v}"> 곳 이하</label>
       <label>${chk('ko.ovl.on',(K.ovl||{}).on)} 우리 매장과 3km 상권 겹침 <input type="number" data-sys="ko.ovl.v" value="${(K.ovl||{}).v??40}"> % 이하</label>
-      <label>${chk('ko.park.on',K.park.on)} 주차 <input type="number" data-sys="ko.park.n" value="${K.park.n||PF().park}"> 대 이상 (현장 실사 대수, 없으면 500m 안 주차장 <input type="number" data-sys="ko.park.v" value="${K.park.v}"> 곳 미만이면 탈락)</label></div>
+      <label>${chk('ko.park.on',K.park.on)} 500m 안 주차장 <input type="number" data-sys="ko.park.v" value="${K.park.v}"> 곳 이상</label></div>
     <button class="btn sm" data-act="sysreset" style="margin-top:10px">처음 값으로</button>
     ${ver.length?`<h3>기준 검증 — 우리 매장에 이 평가표를 적용하면</h3><div class="note" style="margin-bottom:6px">잘되는 매장일수록 상권·경쟁 점수가 높게 나와야 기준이 맞는 거예요. 매장이 3곳 넘게 쌓이면 배점을 조정하세요.</div>
       <div class="tw"><table><thead><tr><th>매장</th><th class="num">월매출</th><th class="num">상권 매력</th><th class="num">경쟁</th></tr></thead><tbody>${ver.map(st=>{ const e=evalD(derive(st.m)); const cs=(e.dims.find(y=>y.k==='comp')||{}).score; return `<tr><td>${esc(st.name)}</td><td class="num">${st.sales?fmtN(st.sales)+'만':'-'}</td><td class="num">${e.mkt??'-'}</td><td class="num">${cs??'-'}</td></tr>`; }).join('')}</tbody></table></div>`:''}</div>`;
@@ -1575,9 +1578,9 @@ function miniRing(v,grade){
 }
 function listStats(L){
   const sc=L.map(x=>finalOf(x.c,x.s)).filter(F=>F.tot!=null), avg=sc.length?Math.round(sc.reduce((a,F)=>a+F.tot,0)/sc.length):null;
-  const nA=sc.filter(F=>F.grade==='A').length, nOk=L.filter(x=>x.c.review&&/승인/.test(x.c.review.dec||'')).length, nNo=sc.filter(F=>F.fail&&F.fail.length).length;
+  const nA=sc.filter(F=>F.grade==='A').length, nOk=L.filter(x=>x.c.status==='계약').length, nNo=sc.filter(F=>F.fail&&F.fail.length).length;
   const t=(ic,l,v,u)=>`<div class="ls"><span class="kc-ic">${icon(ic)}</span><div><span>${l}</span><b>${v}<small>${u}</small></b></div></div>`;
-  return `<div class="ls-g">${t('target','후보지',L.length,'곳')}${t('pulse','평균 점수',avg??'-',avg!=null?'점':'')}${t('home','A등급',nA,'곳')}${t('brief','승인',nOk,'곳')}${nNo?t('fish','필수 조건 미달',nNo,'곳'):''}</div>`;
+  return `<div class="ls-g">${t('target','후보지',L.length,'곳')}${t('pulse','평균 점수',avg??'-',avg!=null?'점':'')}${t('home','A등급',nA,'곳')}${t('brief','계약',nOk,'곳')}${nNo?t('fish','필수 조건 미달',nNo,'곳'):''}</div>`;
 }
 function candCard(c,s){
   const w=warnings(c,s), F=finalOf(c,s), d=s&&s.d||{};
@@ -1647,7 +1650,7 @@ function detailHtml(){
   const s=c.m?scoreOf(c.m,c):null, w=warnings(c,s), near=nearStores(c), fin=finCalc(c);
   const ext=`https://map.kakao.com/link/map/${encodeURIComponent(c.name)},${c.y},${c.x}`;
   const ok=s&&!stale(c), full=ok&&s.has&&s.total!=null, F=full?finalOf(c,s):null;
-  const nav=`<div class="secnav noprint"><a href="#s-sum">결론</a>${full?'<a href="#s-sys">평가표</a>':''}${full?'<a href="#s-diag">상권 개요</a><a href="#s-eval">영역 평가</a><a href="#s-demand">수요·공급</a><a href="#s-swot">SWOT</a><a href="#s-analog">우리 매장 비교</a>':''}${ok?'<a href="#s-items">세부 지표</a><a href="#s-comp">경쟁</a>':''}<a href="#s-field">현장 실사</a><a href="#s-fin">매물·손익</a>${full?'<a href="#s-todo">확인 사항</a>':''}<a href="#s-review">심사 기록</a><button type="button" class="mobonly" data-act="foldall">모두 펴기·접기</button></div>`;
+  const nav=`<div class="secnav noprint"><a href="#s-sum">결론</a>${full?'<a href="#s-sys">평가표</a>':''}${full?'<a href="#s-diag">상권 개요</a><a href="#s-eval">영역 평가</a><a href="#s-demand">수요·공급</a><a href="#s-swot">SWOT</a><a href="#s-analog">우리 매장 비교</a>':''}${ok?'<a href="#s-items">세부 지표</a><a href="#s-comp">경쟁</a>':''}<a href="#s-fin">매물·손익</a>${full?'<a href="#s-todo">확인 사항</a>':''}<button type="button" class="mobonly" data-act="foldall">모두 펴기·접기</button></div>`;
   const cover=`<div class="cover"><div><div class="eyebrow">출점 검토 보고서</div><h1>${esc(c.name)}</h1>
       <div class="meta">${esc(c.addr)}${c.m&&c.m.region?' · '+esc(c.m.region):''}</div>
       <div class="meta" style="margin-top:4px"><span class="st" data-s="${esc(c.status)}">${esc(c.status)}</span>${c.m?` &nbsp;자료 기준 ${esc(c.m.at)}`:''}</div></div>
@@ -1692,28 +1695,25 @@ function detailHtml(){
   ${ok?`<div class="card" id="s-items"><div class="sh"><span class="no">07</span><h2>세부 지표</h2><span class="aside">지표값을 장어집 기준표로 0~100점으로 바꿔요</span></div>${detailTable(s)}</div>
   <div class="card" id="s-comp"><div class="sh"><span class="no">08</span><h2>경쟁 현황</h2><span class="aside">장어 · 민물장어 음식점</span></div>
     <div class="cmprow">${compMap(c)}<div><div class="ring" style="margin:0 0 12px"><div><b>${s.d.n300??'-'}</b><span>300m 안</span></div><div><b>${s.d.n500??'-'}</b><span>500m 안</span></div><div><b>${s.d.n1k??'-'}${c.m.compMore?'+':''}</b><span>1km 안</span></div></div>${compBands(c)}</div></div>
-    ${c.m.comp&&c.m.comp.length?`<div class="tw"><table id="comp"><thead><tr><th>상호</th><th class="num">거리</th><th>주소</th><th>경쟁 아님</th></tr></thead><tbody>${c.m.comp.map(p=>{ const u=safeUrl(p.url), x=(c.compEx||{})[p.id]; return `<tr${x?' style="opacity:.45;text-decoration:line-through"':''}><td>${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:var(--navy)">${esc(p.name)}</a>`:esc(p.name)}${p.tel?`<div class="note">${esc(p.tel)}</div>`:''}</td><td class="num">${fmtM(p.dist)}</td><td class="note">${esc(p.addr)}${p.cat?`<div>${esc(String(p.cat).split(' > ').slice(-1)[0])}</div>`:''}</td><td><input type="checkbox" class="chk" data-cx="${esc(String(p.id))}"${x?' checked':''} aria-label="${esc(p.name)} 경쟁에서 빼기"></td></tr>`; }).join('')}</tbody></table></div><div class="note" style="margin-top:4px">장어덮밥만 파는 일식집·횟집처럼 직접 경쟁이 아닌 곳은 "경쟁 아님"을 체크하면 점수·지도에서 빠져요.</div>${c.m.compMore?'<div class="note" style="margin-top:6px">1km 안에 45곳이 넘어 가까운 순 45곳만 보여요</div>':''}`:'<div class="note">반경 1km 안에 장어집이 없어요</div>'}${compQualHtml(c)}</div>`:''}
-  ${fieldHtml(c)}
-  <div class="card" id="s-fin"><div class="sh"><span class="no">10</span><h2>매물 조건 · 손익분기</h2><span class="aside">넣은 만큼만 점수에 반영 · 모르면 비워 두세요</span></div>
+    ${c.m.comp&&c.m.comp.length?`<div class="tw"><table id="comp"><thead><tr><th>상호</th><th class="num">거리</th><th>주소</th><th>경쟁 아님</th></tr></thead><tbody>${c.m.comp.map(p=>{ const u=safeUrl(p.url), x=(c.compEx||{})[p.id]; return `<tr${x?' style="opacity:.45;text-decoration:line-through"':''}><td>${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:var(--navy)">${esc(p.name)}</a>`:esc(p.name)}${p.tel?`<div class="note">${esc(p.tel)}</div>`:''}</td><td class="num">${fmtM(p.dist)}</td><td class="note">${esc(p.addr)}${p.cat?`<div>${esc(String(p.cat).split(' > ').slice(-1)[0])}</div>`:''}</td><td><input type="checkbox" class="chk" data-cx="${esc(String(p.id))}"${x?' checked':''} aria-label="${esc(p.name)} 경쟁에서 빼기"></td></tr>`; }).join('')}</tbody></table></div><div class="note" style="margin-top:4px">장어덮밥만 파는 일식집·횟집처럼 직접 경쟁이 아닌 곳은 "경쟁 아님"을 체크하면 점수·지도에서 빠져요.</div>${c.m.compMore?'<div class="note" style="margin-top:6px">1km 안에 45곳이 넘어 가까운 순 45곳만 보여요</div>':''}`:'<div class="note">반경 1km 안에 장어집이 없어요</div>'}</div>`:''}
+  <div class="card" id="s-fin"><div class="sh"><span class="no">09</span><h2>매물 조건 · 손익분기</h2><span class="aside">매물 사실(평수·월세·권리금)만 넣어요 · 매출은 우리 매장 기준으로 자동 환산</span></div>
     <div class="grid2">
       <label>이름<input type="text" data-f="name" value="${esc(c.name)}" maxlength="40"></label>
       <label>상태<select data-f="status">${STATUSES.map(x=>`<option${c.status===x?' selected':''}>${x}</option>`).join('')}</select></label>
       <label>층<input type="text" data-f="floor" value="${esc(c.floor||'')}" placeholder="1층" maxlength="20"></label>
-      <label>면적 (평)<input type="number" data-f="area" value="${esc(c.area||'')}" min="0" placeholder="예: 12490"></label>
-      <label>테이블 수<input type="number" data-f="tables" value="${esc(c.tables||'')}" min="0" placeholder="${c.area?'비우면 '+Math.max(1,Math.round(c.area/(+DB.fin.pyPerTable||3.3)))+'개로 추정':'모르면 비움'}"></label>
+      <label>면적 (평)<input type="number" data-f="area" value="${esc(c.area||'')}" min="0" placeholder="예: 40"></label>
       <label>보증금 (만원)<input type="number" data-f="deposit" value="${esc(c.deposit||'')}" min="0"></label>
-      <label>월세 (만원)<input type="number" data-f="rent" value="${esc(c.rent||'')}" min="0" placeholder="예: 12490"></label>
+      <label>월세 (만원)<input type="number" data-f="rent" value="${esc(c.rent||'')}" min="0" placeholder="예: 300"></label>
       <label>권리금 (만원)<input type="number" data-f="premium" value="${esc(c.premium||'')}" min="0"></label>
       <label>문의한 사람<input type="text" data-f="contact" value="${esc(c.contact||'')}" maxlength="40"></label>
-      <label>목표 월매출 (만원)<input type="number" data-f="target" value="${esc(c.target||'')}" min="0"></label>
-      <label>주변 평당 월세 시세 (만원)<input type="number" step="0.1" data-f="mkRent" value="${esc(c.mkRent||'')}" min="0" placeholder="부동산·매물 사이트 보고"></label></div>
-    ${c.rent&&c.area?`<div class="note" style="margin-top:8px">평당 월세 ${(c.rent/c.area).toFixed(1)}만원<span id="rentcmp">${rentTxt(c)}</span></div>`:''}
+</div>
+    ${c.rent&&c.area?`<div class="note" style="margin-top:8px">평당 월세 ${(c.rent/c.area).toFixed(1)}만원</div>`:''}
     <h3>손익분기</h3><div id="finres">${finRes(c)}</div>
     <h3>메모</h3><textarea data-f="memo" maxlength="3000" placeholder="현장 느낌 · 건물 상태 · 협상 내용 등">${esc(c.memo||'')}</textarea>
     <div class="row sb noprint" style="margin-top:12px"><span class="note">고친 내용은 바로 저장돼요</span><button class="btn sm bad" data-act="del">후보지 삭제</button></div></div>
-  ${full?`<div class="card" id="s-todo"><div class="sh"><span class="no">11</span><h2>현장에서 확인할 사항</h2></div><ul class="todo">${todoList(s,c).map(x=>`<li>${x}</li>`).join('')}</ul>
-    <div class="disc">이 보고서는 카카오 지도 장소 수와 공공데이터(인구·실거래가·음식점 인허가)를 대구 기준 상권과 비교해 만든 참고 자료예요. 유동인구·카드 매출은 포함되지 않았어요. 손익분기는 예상 매출이 아니라 비용으로 계산한 본전 기준이에요. <b>본사 내부 판단용이며 가맹 희망자에게 예상 매출처럼 보여 주지 마세요.</b></div></div>`:''}
-  ${reviewHtml(c)}`;
+  ${full?`<div class="card" id="s-todo"><div class="sh"><span class="no">10</span><h2>현장에서 확인할 사항</h2><span class="aside">점수에는 안 들어가는 항목 — 계약 전에 꼭 직접 확인</span></div><ul class="todo">${todoList(s,c).map(x=>`<li>${x}</li>`).join('')}</ul>
+    <div class="disc">이 보고서는 카카오 지도 장소 수와 공공데이터(인구·실거래가·음식점 인허가·사업체)를 장어집 기준표로 점수화한 참고 자료예요. 사람이 매기는 점수는 넣지 않았어요. 유동인구·카드 매출은 포함되지 않았어요. 손익분기는 예상 매출이 아니라 비용으로 계산한 본전 기준이에요. <b>본사 내부 판단용이며 가맹 희망자에게 예상 매출처럼 보여 주지 마세요.</b></div></div>`:''}
+`;
 }
 function cmpHtml(){
   const L=DB.cands.filter(c=>SEL.has(c.id)).slice(0,4);
@@ -1727,7 +1727,6 @@ function cmpHtml(){
     <div class="tw"><table class="cmpt"><thead><tr><th></th>${L.map(c=>`<th class="num">${esc(c.name)}</th>`).join('')}</tr></thead><tbody>
     ${row('종합 점수',L.map((c,i)=>{ const F=finalOf(c,S[i]); return F.tot!=null?{v:F.tot,t:`<span class="gr g${F.grade}">${F.grade}</span> ${F.tot}`}:{v:null,t:'-'}; }),maxIdx)}
     ${row('데이터 점수',S.map(s=>s&&s.total!=null?{v:s.total,t:s.total+'점'}:{v:null,t:'-'}),maxIdx)}
-    ${row('현장 실사',L.map(c=>{ const f=fieldScore(c); return f!=null?{v:f,t:f+'점'}:{v:null,t:'-'}; }),maxIdx)}
     ${row('상권 유형',S.map(s=>s&&s.has&&s.total!=null?{v:null,t:esc(typeOf(s).name)}:{v:null,t:'-'}))}
     ${DIMS.map((dm,i)=>row(esc(dm.t),S.map(s=>s&&s.dims[i].score!=null?{v:s.dims[i].score,t:s.dims[i].score+'점'}:{v:null,t:'-'}),maxIdx)).join('')}
     ${row('장어집 300m / 500m / 1km',S.map(s=>s&&s.d.n1k!=null?{v:s.d.compIdx,t:`${s.d.n300} / ${s.d.n500} / ${s.d.n1k}`}:{v:null,t:'-'}),minIdx)}
