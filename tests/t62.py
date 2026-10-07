@@ -136,7 +136,7 @@ async def main():
     ok('   이름 안전하게 표시 · javascript 링크 없음', await pg.evaluate("!window.PWN && !document.querySelector('#rcard img, #comp img') && ![...document.querySelectorAll('#comp a')].some(a=>a.href.startsWith('javascript'))"))
     w=await pg.inner_text('#rcard'); ok('7) 본점 2km 안 → 결론에 영업지역 겹침', '본점과 1.2km — 영업지역(2km)이 겹쳐요' in w)
     ok('   행정동 표시', '범어1동' in w)
-    await pg.evaluate("DB.fin.cost=40; DB.fin.depM=0; save()")  # 예전 가정으로 계산 숫자 검증 (새 기본값은 t65)
+    await pg.evaluate("DB.fin.cost=40; DB.fin.labor=25; DB.fin.ticket=4; DB.fin.depM=0; save()")  # 예전 가정으로 계산 숫자 검증 (새 기본값은 t65)
     await pg.fill('[data-f=rent]','300'); await pg.fill('[data-f=area]','40'); await pg.fill('[data-f=deposit]','5000'); await pg.fill('[data-f=memo]','주차 10대'); await pg.select_option('[data-f=status]','현장 확인'); await pg.wait_for_timeout(100)
     c=(await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))"))['cands'][0]
     ok('8) 매물 정보 바로 저장', c['rent']==300 and c['area']==40 and c['memo']=='주차 10대' and c['status']=='현장 확인' and c['m']['food500']>0, {k:c[k] for k in ('rent','area','status')})
@@ -247,7 +247,7 @@ async def main():
     await pg.click('[data-tab=set]'); sc_before=await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1')).weights.comp")
     await pg.fill('[data-w=comp]','100'); await pg.fill('[data-w=hub]','0'); await pg.fill('[data-w=fam]','0'); await pg.fill('[data-w=biz]','0'); await pg.fill('[data-w=acc]','0'); await pg.fill('[data-w=trade]','0'); await pg.wait_for_timeout(100)
     await pg.click('[data-tab=list]'); await pg.wait_for_timeout(100)
-    ok('12) 비중 바꾸면 점수 다시 계산', sc_before==20 and (await pg.evaluate("[...document.querySelectorAll('.cc .sc b')].map(b=>b.innerText).join(',')"))!='' )
+    ok('12) 비중 바꾸면 점수 다시 계산', sc_before==15 and (await pg.evaluate("[...document.querySelectorAll('.cc .sc b')].map(b=>b.innerText).join(',')"))!='' )
     await pg.evaluate("localStorage.clear()"); await pg.reload(); await pg.wait_for_timeout(500)
     ok('13) 지우면 빈 목록', '후보지 0곳' in await pg.inner_text('#pane'))
     open('/tmp/claude-0/-home-user-ilpum/84939bee-6935-52c6-a313-b33888ccf60e/scratchpad/bk.json','w').write(dump)
