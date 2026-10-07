@@ -42,7 +42,7 @@ async def main():
     ok('7) 손익(원가 47%·감가상각 60개월): 손익분기 3,333만 · 비수기 보정 안내', '3,333만' in fr and '감가상각 월 167만원' in fr and '연평균 월매출 약' in fr, fr[:200])
     await pg.fill('[data-f=target]','3000'); await pg.wait_for_timeout(500)
     fr=await pg.inner_text('#finres')
-    ok('8) 목표 3,000만 → 계절 막대: 적자 달 10개월 · 1년 합계 -800만', '적자 달 10개월' in fr and '-800만원' in fr)
+    ok('8) 목표 3,000만 → 계절 막대: 적자 달 9개월(본점 지수) · 1년 합계 -800만', '적자 달 9개월' in fr and '-800만원' in fr)
     await pg.select_option('[data-rv=dec]','승인'); await pg.wait_for_timeout(300)
     sn=await pg.evaluate("DB.cands[0].review.snap")
     ok('9) 심사 결정 때 기준(비중·배점·손익 가정)을 같이 저장', sn and sn['weights']['comp']==20 and '심사 당시' in await pg.inner_text('#s-review'))

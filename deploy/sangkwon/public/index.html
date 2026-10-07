@@ -413,7 +413,9 @@ function overlapPct(d,r=TRADE_R){ if(d>=2*r) return 0; const A=2*r*r*Math.acos(d
 function overlaps(c){ return otherStores(c).map(s=>({name:s.name,d:distM(c,s),pct:overlapPct(distM(c,s))})).filter(x=>x.pct>0).sort((a,b)=>b.pct-a.pct); }
 const defW=()=>Object.fromEntries(DIMS.map(i=>[i.k,PF().w[i.k]??i.w]));
 // 장어 원가는 시세 변동이 커서 47% 기본(2026-10-06 검토), 로열티·광고분담(%)·인테리어 감가상각(개월) 포함, 월별 매출 지수(여름 복날 성수기)
-const SEASON=[0.85,0.8,0.85,0.9,1.0,1.1,1.35,1.4,1.05,0.95,0.85,0.9];
+// 본점 실제 홀 매출(2025-11~2026-09, POS)의 달별 비율. 10월은 일부만 있어 9·11월과 초순 하루 매출로 추정. 금액은 넣지 않음.
+const SEASON=[0.96,0.93,0.92,0.87,1.24,1.0,1.26,1.2,1.04,0.89,0.69,1.01];
+const OLD_SEASON='0.85,0.8,0.85,0.9,1,1.1,1.35,1.4,1.05,0.95,0.85,0.9';
 const defFin=()=>({v:2,cost:PF().fin.cost,labor:PF().fin.labor,var:8,royalty:0,other:200,depM:60,ticket:PF().fin.ticket,days:26,interior:250,party:3,pyPerTable:3.3,season:SEASON.slice()});
 const DEF_RELAY='https://ilpum-data.yoyo925.workers.dev';
 const defSys=()=>({parts:{mkt:35,comp:15,prop:15,field:25,analog:10},grades:{A:70,B:55,C:40},minDone:70,
@@ -434,7 +436,7 @@ function migrate(j){
   if(!j.biz){ o.biz='outlet'; const SW=PROFILES.std.w, w=o.weights||{}; if(Object.keys(SW).every(k=>w[k]==null||+w[k]===SW[k])) o.weights=null;
     const f=o.fin||{}; if(f.cost==null||(+f.cost===47&&+f.labor===25&&+f.ticket===4)){ o.fin=Object.assign({},f,PROFILES.outlet.fin); } }
   { const keep=DB; DB=o; o.weights=Object.assign(defW(),o.weights||{}); o.fin=Object.assign(defFin(),o.fin||{}); DB=keep; }
-  if(!(j.fin&&j.fin.v)){ if(+o.fin.cost===40) o.fin.cost=47; o.fin.v=2; } if(!Array.isArray(o.fin.season)||o.fin.season.length!==12) o.fin.season=SEASON.slice();
+  if(!(j.fin&&j.fin.v)){ if(+o.fin.cost===40) o.fin.cost=47; o.fin.v=2; } if(!Array.isArray(o.fin.season)||o.fin.season.length!==12||o.fin.season.map(Number).join(',')===OLD_SEASON) o.fin.season=SEASON.slice();
   return o;
 }
 function load(){ try{ const j=migrate(JSON.parse(localStorage.getItem(STORE_KEY))); if(j) DB=j; }catch(e){} }
@@ -1438,7 +1440,7 @@ function setHtml(){
     <div id="pingres" class="note" style="margin-top:6px"></div></div>
   <div class="card"><div class="sh"><h2>손익분기 가정</h2></div><div class="note">모든 후보지의 손익분기 계산에 쓰여요. 우리 매장 실제 수치로 맞추면 정확해져요.</div>
     <div class="grid2" style="margin-top:8px">${[['cost','원가율(%) 장어는 45~50%'],['labor','인건비 비율(%)'],['var','기타 변동비(%) 카드수수료·소모품'],['royalty','로열티·광고분담(%) 가맹점이면'],['other','월세 외 고정비(만원/월) 관리비·공과금'],['depM','인테리어 감가상각(개월)'],['ticket','객단가(만원)'],['days','월 영업일'],['interior','인테리어 평당(만원)'],['party','한 테이블 평균 일행(명)'],['pyPerTable','테이블 1개당 평수 (추정용)']].map(([k,l])=>`<label>${l}<input type="number" data-fin="${k}" value="${esc(DB.fin[k])}" min="0" step="any"></label>`).join('')}</div>
-    <label class="note" style="display:block;margin-top:10px;font-weight:600">월별 매출 지수 (1월~12월, 평균 1 기준으로 맞춰 계산)<input type="text" data-season="1" value="${esc((DB.fin.season||SEASON).join(', '))}" style="width:100%"></label>
+    <label class="note" style="display:block;margin-top:10px;font-weight:600">월별 매출 지수 (1월~12월, 평균 1 기준으로 맞춰 계산 · 기본값 = 본점 실제 홀 매출 비율)<input type="text" data-season="1" value="${esc((DB.fin.season||SEASON).join(', '))}" style="width:100%"></label>
     <button class="btn sm" data-act="finreset" style="margin-top:10px">처음 값으로</button></div>
   <div class="card"><div class="sh"><h2>백업</h2></div><div class="note">기록은 이 컴퓨터 브라우저에만 있어요. 다른 컴퓨터로 옮기거나 지워질 때를 대비해 가끔 파일로 받아 두세요.</div>
     <div class="row" style="margin-top:8px"><button class="btn" data-act="export">백업 파일 받기</button><label class="btn">백업 불러오기<input type="file" id="imp" accept=".json,application/json" hidden></label></div></div>`;
