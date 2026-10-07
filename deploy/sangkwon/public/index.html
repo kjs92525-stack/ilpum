@@ -367,6 +367,18 @@ body.ui-notion .lc{border-radius:4px;box-shadow:none}body.ui-notion .lc:hover{tr
 body.ui-notion .ls{border-radius:4px}body.ui-notion .lc-f>span{border-radius:3px;background:var(--nC)}body.ui-notion .lc-w{border-radius:3px;background:var(--nR);color:var(--nRt)}
 body.ui-notion .lc-f .emo{font-size:12px}body.ui-notion .lc-f svg{display:none}body.ui-notion .ls .kc-ic{font-size:20px}
 
+/* 대시보드형 상단 = 연보라 (2026-10-07 사용자) */
+header{background:linear-gradient(100deg,#f1ecfd,#e6ddfb 55%,#dccff8);box-shadow:0 4px 18px rgba(109,79,209,.12);border-bottom:1px solid #d9cdf5}
+header h1{color:#3b2a6b}header h1::before{background:linear-gradient(135deg,#a98bf0,#6d4fd1)}
+header .tag{color:rgba(59,42,107,.62);border-left-color:rgba(59,42,107,.18)}header .tag b{color:#6d4fd1}
+header select{background:rgba(255,255,255,.7);color:#3b2a6b;border-color:rgba(109,79,209,.25)}
+header #sdk,header .note{color:rgba(59,42,107,.6)}
+nav button{color:#5b4a8a}nav button:hover{color:#3b2a6b;background:rgba(109,79,209,.10)}
+nav button[aria-current]{color:#fff;background:#6d4fd1;box-shadow:0 3px 10px rgba(109,79,209,.3)}
+header [data-act=maptoggle]{background:rgba(255,255,255,.7)!important;color:#3b2a6b!important;border-color:rgba(109,79,209,.3)!important}
+@media (prefers-color-scheme:dark){header{background:linear-gradient(100deg,#231c38,#2c2347 55%,#352a57);border-bottom-color:#3a2f5c}header h1{color:#ece6ff}header .tag{color:rgba(236,230,255,.6)}header .tag b{color:#c4b2ff}header select{background:rgba(255,255,255,.08);color:#ece6ff}nav button{color:#c9bdf0}nav button:hover{color:#fff;background:rgba(196,178,255,.12)}nav button[aria-current]{background:#8b6cf0}header [data-act=maptoggle]{background:rgba(255,255,255,.08)!important;color:#ece6ff!important}}
+
+.btn.pri{background:linear-gradient(135deg,#8b6cf0,#6d4fd1);box-shadow:0 4px 14px rgba(109,79,209,.28)}.btn.pri:hover{background:#5d40c0}.sh .no{background:linear-gradient(135deg,#8b6cf0,#6d4fd1)}
 body:not(.ui-notion) .emo{display:none!important}
 /* ---- 노션형 화면 스타일 (설정 → 화면 스타일, body.ui-notion) — 2026-10-07 사용자 요청 ---- */
 .emo{display:none}
@@ -448,7 +460,7 @@ body.ui-notion .mapbox #map{border-radius:4px}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07f</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07g</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
