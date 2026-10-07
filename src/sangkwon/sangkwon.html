@@ -379,6 +379,24 @@ header [data-act=maptoggle]{background:rgba(255,255,255,.7)!important;color:#3b2
 @media (prefers-color-scheme:dark){header{background:linear-gradient(100deg,#231c38,#2c2347 55%,#352a57);border-bottom-color:#3a2f5c}header h1{color:#ece6ff}header .tag{color:rgba(236,230,255,.6)}header .tag b{color:#c4b2ff}header select{background:rgba(255,255,255,.08);color:#ece6ff}nav button{color:#c9bdf0}nav button:hover{color:#fff;background:rgba(196,178,255,.12)}nav button[aria-current]{background:#8b6cf0}header [data-act=maptoggle]{background:rgba(255,255,255,.08)!important;color:#ece6ff!important}}
 
 .btn.pri{background:linear-gradient(135deg,#8b6cf0,#6d4fd1);box-shadow:0 4px 14px rgba(109,79,209,.28)}.btn.pri:hover{background:#5d40c0}.sh .no{background:linear-gradient(135deg,#8b6cf0,#6d4fd1)}
+/* 대시보드 배치: 화면 폭이 아니라 대시보드 칸 폭에 맞춰 바뀜 (좁은 PC 창·큰 글씨에서도 안 잘림) */
+body{word-break:keep-all;overflow-wrap:break-word}
+.dwrap{container-type:inline-size;container-name:dsh;min-width:0}
+.dash>.db{grid-column:span 12}
+.db-score{gap:18px}.sc-r{flex:1;min-width:0}.sc-d{font-size:18px;line-height:1.35}
+.kos{gap:5px 5px}.kos span{margin-left:6px}
+.kcg{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.db-h b{white-space:nowrap}.db-comp .db-sub{display:none}
+.db-dims{display:flex;flex-direction:column}.db-dims .dmb{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}.dmb-r{padding:7px 0}
+@container dsh (min-width:520px){.dash>.db-pro,.dash>.db-con{grid-column:span 6}}
+@container dsh (min-width:600px){.dash>.db-dims{grid-column:span 7}.dash>.db-comp{grid-column:span 5}.cr-m .cmap{max-width:100%}.cr-n{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container dsh (min-width:780px){
+  .dash>.db-sales{grid-column:span 7}.dash>.db-comp{grid-column:span 5}.cr-n{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .dash>.db-dims{grid-column:1/8;grid-row:span 2}.dash>.db-pro,.dash>.db-con{grid-column:8/13}
+  .db-score{padding:20px 24px}.sring{width:150px;height:150px}.sc-d{font-size:20px}
+}
+@container dsh (max-width:430px){.sring{width:96px;height:96px}.sr-n{font-size:34px}.db-score{gap:12px}.sc-d{font-size:16px}.sb-big{gap:14px}.cr-n{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 body:not(.ui-notion) .emo{display:none!important}
 /* ---- 노션형 화면 스타일 (설정 → 화면 스타일, body.ui-notion) — 2026-10-07 사용자 요청 ---- */
 .emo{display:none}
@@ -460,7 +478,7 @@ body.ui-notion .mapbox #map{border-radius:4px}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07g</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07i</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -1341,7 +1359,7 @@ function compRing(c,s){
 function dashHtml(s,c,F){
   const t=typeOf(s), x=swotData(s,c), none='특이 사항이 없어요', good=x.S.filter(v=>v!==none).slice(0,3), bad=[...x.W,...x.T].filter(v=>v!==none).slice(0,3);
   const ko=F.ko||[], nOk=ko.filter(k=>k.st==='ok').length, nF=ko.filter(k=>k.st==='fail').length, nU=ko.filter(k=>k.st==='unk').length;
-  return `<div class="dash">
+  return `<div class="dwrap"><div class="dash">
     <div class="db db-score"><div class="sc-l">${scoreRing(F.tot,F.grade)}</div><div class="sc-r"><span class="pill g${F.grade}">${F.grade}등급</span><div class="sc-d${F.fail&&F.fail.length?' bad':''}">${esc(F.decision)}</div><div class="sc-t">${esc(t.name)}</div>
       <div class="sc-p"><span>평가 완료 ${F.done}%</span><div><i style="width:${F.done}%"></i></div></div>
       <div class="kos">${ko.map(k=>`<i class="${k.st}" title="${esc(k.t)} · ${esc(k.why||'')}"></i>`).join('')}<span>필수 조건 ${nOk} 통과${nF?` · <b class="bad">${nF} 미달</b>`:''}${nU?` · ${nU} 확인`:''}</span></div></div></div>
@@ -1351,7 +1369,7 @@ function dashHtml(s,c,F){
     <div class="db db-kpi">${kpiCards(s)}</div>
     <div class="db db-pro"><div class="db-h"><span class="db-ic ok"><span class="emo">👍</span><span class="sym">+</span></span><b>좋은 점</b></div>${good.length?`<ul>${good.map(v=>`<li>${v}</li>`).join('')}</ul>`:'<p class="note">뚜렷한 강점이 없어요</p>'}</div>
     <div class="db db-con"><div class="db-h"><span class="db-ic no"><span class="emo">🤔</span><span class="sym">!</span></span><b>걸리는 점</b></div>${bad.length?`<ul>${bad.map(v=>`<li>${v}</li>`).join('')}</ul>`:'<p class="note">큰 걸림돌이 없어요</p>'}</div>
-  </div>`;
+  </div></div>`;
 }
 
 /* ---------------- 유사 점포 비교 (우리 매장과 닮은 정도) ---------------- */
