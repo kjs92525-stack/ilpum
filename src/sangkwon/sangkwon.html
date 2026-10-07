@@ -346,11 +346,88 @@ nav button:hover{color:#fff;background:rgba(255,255,255,.08)}nav button[aria-cur
   body:not(.showmap) .mapbox{display:none}
   nav button{padding:10px 9px}
 }
+
+/* ---- 노션형 화면 스타일 (설정 → 화면 스타일, body.ui-notion) — 2026-10-07 사용자 요청 ---- */
+.emo{display:none}
+body.ui-notion{--bg:#fff;--paper:#fff;--ink:#37352f;--ink2:#37352f;--sub:rgba(55,53,47,.65);--faint:rgba(55,53,47,.45);--line:rgba(55,53,47,.09);--line2:rgba(55,53,47,.16);--soft:rgba(55,53,47,.04);--track:rgba(55,53,47,.08);
+  --navy:#37352f;--navy2:#2383e2;--navyT:rgba(35,131,226,.10);--ok:#448361;--warn:#d44c47;--gold:#cb912f;--gA:#4dab9a;--gB:#529cca;--gC:#ffa344;--gD:#ff7369;
+  --nG:#dbeddb;--nGt:#1c3829;--nO:#fadec9;--nOt:#49290e;--nR:#ffe2dd;--nRt:#5d1715;--nB:#d3e5ef;--nBt:#183347;--nY:#fdecc8;--nYt:#402c1b;--nC:#f1f1ef;
+  background:#fff;font-size:15.5px;letter-spacing:0}
+body.ui-notion .emo{display:inline}body.ui-notion .kc-ic svg,body.ui-notion .db-ic svg,body.ui-notion .sym{display:none}
+body.ui-notion header{background:#fff;border-bottom:1px solid var(--line);box-shadow:none}
+body.ui-notion header h1{color:var(--ink);font-weight:700;font-size:16px}body.ui-notion header h1::before{content:"🐟";background:none;width:auto;height:auto;margin-right:6px;font-size:16px;vertical-align:0}
+body.ui-notion header .tag{color:var(--sub);border-left-color:var(--line2)}body.ui-notion header .tag b{color:var(--sub)}
+body.ui-notion header select{background:#fff;color:var(--ink);border-color:var(--line2)}
+body.ui-notion nav button{color:var(--sub);border-radius:4px;padding:6px 10px}body.ui-notion nav button:hover{background:var(--soft);color:var(--ink)}
+body.ui-notion nav button[aria-current]{background:rgba(55,53,47,.08);color:var(--ink);font-weight:700}
+body.ui-notion [data-act=maptoggle]{background:#fff!important;color:var(--ink)!important;border-color:var(--line2)!important}
+body.ui-notion main{max-width:1240px;padding-top:28px}
+body.ui-notion .card{background:transparent;border:0;box-shadow:none;border-radius:0;padding:4px 2px 8px;margin-bottom:34px}
+body.ui-notion .sh{border-bottom:0;padding-bottom:2px;margin-bottom:10px}
+body.ui-notion .sh .no{background:none;color:var(--faint);padding:0;font-weight:600}
+body.ui-notion .card h2{font-size:22px;font-weight:700;letter-spacing:-.01em}
+body.ui-notion .card h3{font-size:16px;font-weight:700;margin-top:22px}
+body.ui-notion #rcard .sh h2::before{content:"📋 "}body.ui-notion #s-sys h2::before{content:"⭐ "}body.ui-notion #s-diag h2::before{content:"📍 "}
+body.ui-notion #s-eval h2::before{content:"📊 "}body.ui-notion #s-demand h2::before{content:"👥 "}body.ui-notion #s-swot h2::before{content:"🧭 "}
+body.ui-notion #s-analog h2::before{content:"🏪 "}body.ui-notion #s-items h2::before{content:"🔎 "}body.ui-notion #s-comp h2::before{content:"🐟 "}
+body.ui-notion #s-field h2::before{content:"👟 "}body.ui-notion #s-fin h2::before{content:"💰 "}body.ui-notion #s-todo h2::before{content:"✅ "}body.ui-notion #s-review h2::before{content:"📝 "}
+body.ui-notion .cover{border-bottom:0;padding-bottom:6px}
+body.ui-notion .cover h1{font-size:38px;font-weight:700;letter-spacing:-.02em;margin:6px 0 10px}
+body.ui-notion .cover h1::before{content:"🐟";display:block;font-size:64px;line-height:1.1;margin-bottom:8px}
+body.ui-notion .eyebrow{color:var(--sub);letter-spacing:.02em;font-weight:600}
+body.ui-notion .btn{border-radius:4px;border-color:var(--line2);box-shadow:none;color:var(--ink);background:#fff}body.ui-notion .btn:hover{background:var(--soft);border-color:var(--line2);color:var(--ink)}
+body.ui-notion .btn.pri{background:#2383e2;color:#fff;border-color:#2383e2}body.ui-notion .btn.pri:hover{background:#0077d4}
+body.ui-notion input[type=text],body.ui-notion input[type=number],body.ui-notion select,body.ui-notion textarea{border-radius:4px;border-color:var(--line2);background:#fff}
+body.ui-notion .secnav{background:#fff;border-bottom:1px solid var(--line);padding:6px 0 8px}
+body.ui-notion .secnav a{border:0!important;border-radius:4px;background:transparent;color:var(--sub);padding:4px 8px}body.ui-notion .secnav a:hover{background:var(--soft);color:var(--ink)}
+/* 콜아웃 · 태그 */
+body.ui-notion .warnbox,body.ui-notion .okbox,body.ui-notion .infobox{border:0;border-radius:4px;padding:14px 16px 14px 46px;position:relative;font-weight:400;color:var(--ink)}
+body.ui-notion .warnbox{background:var(--nR)}body.ui-notion .okbox{background:var(--nG)}body.ui-notion .infobox{background:var(--nC)}
+body.ui-notion .warnbox::before,body.ui-notion .okbox::before,body.ui-notion .infobox::before{position:absolute;left:16px;top:13px;font-size:18px;line-height:1.3}
+body.ui-notion .warnbox::before{content:"⚠️"}body.ui-notion .okbox::before{content:"✅"}body.ui-notion .infobox::before{content:"💡"}
+body.ui-notion .chip,body.ui-notion .st{border:0;border-radius:3px;background:var(--nC);color:var(--ink);padding:1px 7px}
+body.ui-notion .gr,body.ui-notion .pill{border-radius:3px;font-weight:600}
+body.ui-notion .gA,body.ui-notion .pill.gA{background:var(--nG);color:var(--nGt)}body.ui-notion .gB,body.ui-notion .pill.gB{background:var(--nB);color:var(--nBt)}
+body.ui-notion .gC,body.ui-notion .pill.gC{background:var(--nO);color:var(--nOt)}body.ui-notion .gD,body.ui-notion .pill.gD{background:var(--nR);color:var(--nRt)}
+/* 표 */
+body.ui-notion .dt th,body.ui-notion th{border-bottom:1px solid var(--line2);color:var(--sub);font-weight:500}
+body.ui-notion .dt tr.grp td{color:var(--ink);background:var(--soft)}
+body.ui-notion .facts,body.ui-notion .kpis{border-radius:0;border-color:var(--line)}
+body.ui-notion .facts div,body.ui-notion .kpi{border-color:var(--line)}
+/* 대시보드 = 노션 갤러리 카드 */
+body.ui-notion .dash{gap:12px}
+body.ui-notion .db,body.ui-notion .kc{border:1px solid var(--line);border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(15,15,15,.04)}
+body.ui-notion .db-score{background:#fff}body.ui-notion .kc::after{display:none}
+body.ui-notion .db-pro{border-top:1px solid var(--line);background:var(--nG)}body.ui-notion .db-con{border-top:1px solid var(--line);background:var(--nR)}
+body.ui-notion .db-pro ul,body.ui-notion .db-con ul{color:var(--ink)}
+body.ui-notion .db-ic,body.ui-notion .kc-ic{background:transparent!important;width:auto;height:auto;font-size:18px}
+body.ui-notion .kc-v,body.ui-notion .sb-big strong{font-weight:700}body.ui-notion .sb-big strong{color:var(--ink)}
+body.ui-notion .sring circle:last-of-type{stroke-linecap:butt}
+body.ui-notion .tile,body.ui-notion .an-c,body.ui-notion .sys-top>div,body.ui-notion .viz,body.ui-notion .swot{border-radius:4px}
+body.ui-notion .tile{background:var(--soft);border-left:0}body.ui-notion .swot{border-top-width:1px}
+body.ui-notion .swot.s{background:var(--nG)}body.ui-notion .swot.w{background:var(--nR)}body.ui-notion .swot.o{background:var(--nB)}body.ui-notion .swot.t{background:var(--nY)}
+body.ui-notion .mapbox #map{border-radius:4px}
+@media (max-width:700px){
+  body.ui-notion .card{padding:2px 0 6px;margin-bottom:6px;border-bottom:1px solid var(--line);border-radius:0}
+  body.ui-notion .card[id^="s-"] > .sh{padding:10px 0}
+  body.ui-notion .card[id^="s-"] > .sh::after{content:"▸";order:-1;margin:0 4px 0 0;transform:none}
+  body.ui-notion .card[id^="s-"].open > .sh{border-bottom:0;padding-bottom:6px;margin-bottom:6px}
+  body.ui-notion .card[id^="s-"].open > .sh::after{transform:rotate(90deg)}
+  body.ui-notion .card h2{font-size:18px}body.ui-notion .cover h1{font-size:28px}body.ui-notion .cover h1::before{font-size:48px}
+  body.ui-notion .secnav a{border:1px solid var(--line2)!important}
+}
+@media (prefers-color-scheme:dark){
+  body.ui-notion{--bg:#191919;--paper:#191919;--ink:rgba(255,255,255,.81);--ink2:rgba(255,255,255,.81);--sub:rgba(255,255,255,.46);--faint:rgba(255,255,255,.3);--line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.16);--soft:rgba(255,255,255,.04);--track:rgba(255,255,255,.1);
+    --nG:#2b3b31;--nGt:#c9e7d1;--nO:#4a3524;--nOt:#f2cfb0;--nR:#4b2a29;--nRt:#f7c6c2;--nB:#28394a;--nBt:#c5ddf1;--nY:#4a3d22;--nYt:#f3dfae;--nC:#2a2a2a;background:#191919}
+  body.ui-notion header,body.ui-notion .secnav,body.ui-notion .db,body.ui-notion .kc,body.ui-notion .btn,body.ui-notion header select,body.ui-notion input[type=text],body.ui-notion input[type=number],body.ui-notion select,body.ui-notion textarea,body.ui-notion [data-act=maptoggle]{background:#191919!important}
+  body.ui-notion .db-pro{background:var(--nG)!important}body.ui-notion .db-con{background:var(--nR)!important}
+}
+@media print{body.ui-notion .card{margin-bottom:14px}}
 </style>
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07d</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07e</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -1183,7 +1260,8 @@ const ICO={
   home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   shop:'<path d="M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>',
   pulse:'<path d="M3 12h4l3-7 4 14 3-7h4"/>'};
-const icon=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[k]||''}</svg>`;
+const EMO={people:'👥',target:'🎯',brief:'💼',fish:'🐟',car:'🚗',train:'🚇',home:'🏠',shop:'🍽️',pulse:'📈'};
+const icon=(k)=>`<span class="emo">${EMO[k]||''}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[k]||''}</svg>`;
 const lvOf=p=>p==null?'na':p>=65?'hi':p<=38?'lo':'md';
 function scoreRing(v,grade){
   const R=54, C=2*Math.PI*R, off=C*(1-Math.max(0,Math.min(100,v))/100);
@@ -1238,8 +1316,8 @@ function dashHtml(s,c,F){
     <div class="db db-dims">${dimBars(s)}</div>
     <div class="db db-comp">${compRing(c,s)}</div>
     <div class="db db-kpi">${kpiCards(s)}</div>
-    <div class="db db-pro"><div class="db-h"><span class="db-ic ok">+</span><b>좋은 점</b></div>${good.length?`<ul>${good.map(v=>`<li>${v}</li>`).join('')}</ul>`:'<p class="note">뚜렷한 강점이 없어요</p>'}</div>
-    <div class="db db-con"><div class="db-h"><span class="db-ic no">!</span><b>걸리는 점</b></div>${bad.length?`<ul>${bad.map(v=>`<li>${v}</li>`).join('')}</ul>`:'<p class="note">큰 걸림돌이 없어요</p>'}</div>
+    <div class="db db-pro"><div class="db-h"><span class="db-ic ok"><span class="emo">👍</span><span class="sym">+</span></span><b>좋은 점</b></div>${good.length?`<ul>${good.map(v=>`<li>${v}</li>`).join('')}</ul>`:'<p class="note">뚜렷한 강점이 없어요</p>'}</div>
+    <div class="db db-con"><div class="db-h"><span class="db-ic no"><span class="emo">🤔</span><span class="sym">!</span></span><b>걸리는 점</b></div>${bad.length?`<ul>${bad.map(v=>`<li>${v}</li>`).join('')}</ul>`:'<p class="note">큰 걸림돌이 없어요</p>'}</div>
   </div>`;
 }
 
@@ -1428,6 +1506,7 @@ const OPENSET=new Set(), isMob=()=>window.matchMedia&&window.matchMedia('(max-wi
 function applyFold(){ $$('.card[id^="s-"]').forEach(c=>c.classList.toggle('open',OPENSET.has(c.id))); }
 function openSec(id){ OPENSET.add(id); applyFold(); }
 function render(){
+  document.body.classList.toggle('ui-notion',DB.ui==='notion');
   $$('#nav button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.tab===TAB));
   $('#pane').innerHTML=ct({list:listHtml,detail:detailHtml,cmp:cmpHtml,set:setHtml}[TAB]());
   applyFold();
@@ -1601,7 +1680,9 @@ function cmpHtml(){
 
 function setHtml(){
   const br=benchCache().list;
-  return `<div class="card"><div class="sh"><h2>우리 가게 형태</h2></div>
+  return `<div class="card"><div class="sh"><h2>화면 스타일</h2></div>
+    <div class="row" style="gap:16px">${[['dash','대시보드형 (색·그림 강조)'],['notion','노션형 (깔끔한 문서)']].map(([k,t])=>`<label class="note" style="font-weight:600"><input type="radio" name="ui" data-ui="${k}"${(DB.ui||'dash')===k?' checked':''}> ${t}</label>`).join('')}</div></div>
+  <div class="card"><div class="sh"><h2>우리 가게 형태</h2></div>
     <div class="row" style="gap:16px;margin:4px 0 8px">${Object.entries(PROFILES).map(([k,v])=>`<label class="note" style="font-weight:600"><input type="radio" name="biz" data-biz="${k}"${BIZ()===k?' checked':''}> ${esc(v.name)}</label>`).join('')}</div>
     <div class="note">${esc(PF().desc)}. 바꾸면 <b>영역 비중</b>·<b>손익 기본값</b>(원가율 ${PF().fin.cost}% · 인건비 ${PF().fin.labor}% · 객단가 ${PF().fin.ticket}만원)·구매력 기준·주차 필수 대수(${PF().park}대)·경쟁점 가격대 무게가 그 형태 기본값으로 바뀌어요. 직판장형 숫자는 <b>추정값</b>이라 우리 매장 실제 숫자로 아래에서 고치세요.</div>
     <label class="note" style="display:block;margin-top:10px;font-weight:600">포장·구매 매출 비중 <input type="number" data-take="1" value="${esc(TAKE())}" min="0" max="90" style="width:80px"> % <span style="font-weight:400">(추정 ${PF().take}% · 높을수록 주차·주거·차량 상권 비중↑, 외식·회식 비중↓, 테이블 회전은 매장 식사분만 계산)</span></label></div>
@@ -1767,6 +1848,7 @@ document.addEventListener('change',e=>{
   if(id==='city'){ if(e.target.value==='__add'){ const n=(prompt('추가할 도시 이름 (예: 서울, 창원, 대전)')||'').trim().slice(0,10); if(n&&!DB.cityList.includes(n)){ DB.cityList.push(n); } if(n) return switchCity(n); fillCity(); return; } return switchCity(e.target.value); }
   if(e.target.dataset.f==='status'||e.target.dataset.w||e.target.dataset.sys) return render();
   if(e.target.dataset.take){ DB.takePct=e.target.value===''?null:+e.target.value; save(); render(); return; }
+  if(e.target.dataset.ui){ DB.ui=e.target.dataset.ui; save(); render(); return; }
   if(e.target.dataset.biz){ DB.biz=e.target.dataset.biz; DB.takePct=null; DB.weights=defW(); Object.assign(DB.fin,PF().fin); if(DB.sys&&DB.sys.ko&&DB.sys.ko.park) delete DB.sys.ko.park.n; save(); render(); toast(`${PF().name} 기본값(비중·원가율·인건비·객단가)으로 바꿨어요`); return; }
   if(e.target.dataset.fx){ const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(e.target.dataset.cx){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c.compEx=c.compEx||{}; if(e.target.checked) c.compEx[e.target.dataset.cx]=1; else delete c.compEx[e.target.dataset.cx]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); return; }
