@@ -71,6 +71,18 @@ async def main():
     await pg.evaluate("DB.stores=[{name:'본점',addr:'다른 곳',x:128.64,y:35.865}]; save(); render()"); await pg.wait_for_timeout(300)
     zk=await pg.evaluate("koList(DB.cands[0],scoreOf(DB.cands[0].m,DB.cands[0])).find(x=>x.t.includes('영업지역')).st")
     ok('    다른 자리(약 1km)면 경고 그대로', zk=='fail', zk)
+    ov=await pg.evaluate("[overlapPct(0),overlapPct(3000),overlapPct(6000)]")
+    ok('15) 3km 상권 겹침: 같은 자리 100% · 3km 떨어지면 39% · 6km면 0%', ov==[100,39,0], ov)
+    await pg.evaluate("DB.stores=[{name:'본점',addr:'다른 곳',x:128.65,y:35.86}]; save(); go('detail',DB.cands[0].id)"); await pg.wait_for_timeout(400)
+    pane=await pg.inner_text('#pane'); o=await pg.evaluate("overlaps(DB.cands[0])[0].pct")
+    ok('    1.8km 떨어진 본점과 겹침 표시·경고·필수 조건', o>40 and '3km 상권이 겹쳐요' in pane and '상권 겹침 40% 이하' in await pg.inner_text('#s-sys'), o)
+    wt=await pg.evaluate("(()=>{ DB.takePct=50; const s=scoreOf(DB.cands[0].m,DB.cands[0]); const g=k=>s.dims.find(x=>x.k===k).w; const r=[g('hub'),g('trade')]; DB.takePct=null; return r; })()")
+    ok('16) 포장 비중 50% → 외식 비중 10→5, 차량 상권 25→37.5', wt==[5,37.5], wt)
+    ok('17) 앞 도로 6차선 → 4점 (현장 실사 숫자 환산)', await pg.evaluate("factVal({fx:{lanes:6}},'road')")==4)
+    G['MODE']['drive']='ok'
+    cs=await pg.evaluate("catchStats({x:128.63,y:35.86},'2726053000').then(o=>[o.drive,o.driveReach,o.catchN])")
+    ok('18) 차로 시간 자료가 있으면 12분 넘는 점(강 건너)은 빼고 동을 셈', cs[0] is True and 8<=cs[1]<19, cs)
+    G['MODE']['drive']=''
     # 예전 기록(비교 기준이 있던 것)을 불러와도 문제없이 열림
     old={"v":2,"stores":[],"zoneKm":2,"weights":{"hub":20,"fam":20,"biz":15,"acc":20,"comp":25,"prop":15},"benchNames":["동성로"],"bench":{"at":"2026-10-05","mode":"area","points":[]},"cands":[]}
     await pg.evaluate("o=>{ localStorage.setItem('ilpum-sk-v1',JSON.stringify(o)); }",old); await pg.reload(); await pg.wait_for_timeout(500)

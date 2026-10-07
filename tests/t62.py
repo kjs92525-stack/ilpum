@@ -83,6 +83,9 @@ async def handler(r):
     return await r.fulfill(status=200,content_type='application/javascript',body=STUB)
   if 'ilpum-data.yoyo925.workers.dev' in u:
     RELAY.append(u); H={'Access-Control-Allow-Origin':'*'}
+    if '/drive?' in u:
+      if MODE.get('drive')!='ok': return await r.fulfill(status=503,headers=H,content_type='application/json',body=json.dumps({"error":"KAKAO_REST(카카오 REST API 키)가 아직 없어요"}))
+      ox=float(u.split('ox=')[1].split('&')[0]); return await r.fulfill(status=200,headers=H,content_type='application/json',body=json.dumps({"sec":2000 if ox>128.645 else 600}))
     if '/sgis?' in u:
       if MODE.get('sgis')=='nokey': return await r.fulfill(status=503,headers=H,content_type='application/json',body=json.dumps({"error":"SGIS_KEY·SGIS_SECRET(통계청 SGIS 키)가 아직 없어요"}))
       if 'p=stage' in u and 'cd=' not in u: res=[{"cd":"22","addr_name":"대구광역시"}]
@@ -136,7 +139,7 @@ async def main():
     ok('   이름 안전하게 표시 · javascript 링크 없음', await pg.evaluate("!window.PWN && !document.querySelector('#rcard img, #comp img') && ![...document.querySelectorAll('#comp a')].some(a=>a.href.startsWith('javascript'))"))
     w=await pg.inner_text('#rcard'); ok('7) 본점 2km 안 → 결론에 영업지역 겹침', '본점과 1.2km — 영업지역(2km)이 겹쳐요' in w)
     ok('   행정동 표시', '범어1동' in w)
-    await pg.evaluate("DB.fin.cost=40; DB.fin.labor=25; DB.fin.ticket=4; DB.fin.depM=0; save()")  # 예전 가정으로 계산 숫자 검증 (새 기본값은 t65)
+    await pg.evaluate("DB.fin.cost=40; DB.fin.labor=25; DB.fin.ticket=4; DB.fin.depM=0; DB.takePct=0; save()")  # 예전 가정으로 계산 숫자 검증 (새 기본값은 t65)
     await pg.fill('[data-f=rent]','300'); await pg.fill('[data-f=area]','40'); await pg.fill('[data-f=deposit]','5000'); await pg.fill('[data-f=memo]','주차 10대'); await pg.select_option('[data-f=status]','현장 확인'); await pg.wait_for_timeout(100)
     c=(await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))"))['cands'][0]
     ok('8) 매물 정보 바로 저장', c['rent']==300 and c['area']==40 and c['memo']=='주차 10대' and c['status']=='현장 확인' and c['m']['food500']>0, {k:c[k] for k in ('rent','area','status')})
@@ -205,10 +208,10 @@ async def main():
     await pg.select_option('[data-rv=dec]','조건부 승인'); await pg.fill('[data-rv=by]','대표'); await pg.fill('[data-rv=note]','덕트 동의 받으면 승인'); await pg.wait_for_timeout(200)
     rv=(await pg.evaluate("JSON.parse(localStorage.getItem('ilpum-sk-v1'))"))['cands'][0].get('review',{})
     ok('    심사 기록 저장(결과·심사자·의견·그때 점수)', rv.get('dec')=='조건부 승인' and rv.get('by')=='대표' and rv.get('note')=='덕트 동의 받으면 승인' and rv.get('score') is not None, rv)
-    await pg.click('[data-tab=set]'); await pg.uncheck('[data-sys="ko.zone"]'); await pg.wait_for_timeout(200)
+    await pg.click('[data-tab=set]'); await pg.uncheck('[data-sys="ko.zone"]'); await pg.wait_for_timeout(200); await pg.uncheck('[data-sys="ko.ovl.on"]'); await pg.wait_for_timeout(200)
     await pg.fill('[data-sys="parts.analog"]','0'); await pg.dispatch_event('[data-sys="parts.analog"]','change'); await pg.wait_for_timeout(200)
     await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(300)
-    ok('    설정에서 영업지역 조건 끄면 출점 불가가 풀림', '출점 불가' not in await pg.inner_text('.scorebox .dec'), await pg.inner_text('.scorebox .dec'))
+    ok('    설정에서 영업지역·상권 겹침 조건 끄면 출점 불가가 풀림', '출점 불가' not in await pg.inner_text('.scorebox .dec'), await pg.inner_text('.scorebox .dec'))
     await pg.click('[data-tab=set]'); await pg.click('[data-act=sysreset]'); await pg.wait_for_timeout(100); await pg.click('[data-tab=detail]'); await pg.wait_for_timeout(200)
     # 유사 점포 · 경쟁점 실력 · 시세 · 직접 세기
     await pg.click('[data-tab=set]'); await pg.fill('[data-ss="0"]','3000'); await pg.click('[data-act=storeMeasure]')

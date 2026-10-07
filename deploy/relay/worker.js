@@ -2,6 +2,7 @@
 // 화면(sangkwon)이 이 서버에 물어보면, 이 서버가 공공데이터포털 키를 붙여 대신 받아 와서 돌려줌.
 // 키는 코드에 넣지 않고 Cloudflare → 이 Worker → Settings → Variables and Secrets 에 DATA_KEY(공공데이터포털 "일반 인증키(Decoding)")로 넣기.
 // 통계청 SGIS(사업체·종사자 수 = 직장인 수): SGIS_KEY / SGIS_SECRET (sgis.kostat.go.kr 개발지원센터 → 서비스 신청의 서비스 ID / 보안 Key) 도 Secret 으로.
+// 차로 몇 분(카카오모빌리티 길찾기): KAKAO_REST (카카오 개발자 → 내 애플리케이션 → 앱 키의 REST API 키) 도 Secret 으로. 화면에는 절대 넣지 않음.
 // 네이버 블로그 글 수(장어집 인기도): NAVER_ID / NAVER_SECRET (네이버 개발자센터 → 애플리케이션 → 검색 API 의 Client ID / Client Secret) 도 Secret 으로.
 const ALLOW = [
   'https://sangkwon.yoyo925.workers.dev',
@@ -44,8 +45,23 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     const u = new URL(req.url), name = u.pathname.replace(/^\/+/, '');
     const out = (status, obj) => new Response(JSON.stringify(obj), { status, headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8' } });
-    if (name === 'ping') return out(200, { ok: true, hasKey: !!env.DATA_KEY, hasNaver: !!(env.NAVER_ID && env.NAVER_SECRET), hasSgis: !!(env.SGIS_KEY && env.SGIS_SECRET), origin, allowed: ok });
+    if (name === 'ping') return out(200, { ok: true, hasKey: !!env.DATA_KEY, hasNaver: !!(env.NAVER_ID && env.NAVER_SECRET), hasSgis: !!(env.SGIS_KEY && env.SGIS_SECRET), hasDrive: !!env.KAKAO_REST, origin, allowed: ok });
     if (!ok) return out(403, { error: '허용되지 않은 주소에서 온 요청이에요 (' + origin + ')' });
+    // 카카오모빌리티 자동차 길찾기 — /drive?ox=&oy=&dx=&dy= → {sec} (출발→도착 걸리는 초). 30일 캐시
+    if (name === 'drive') {
+      if (!env.KAKAO_REST) return out(503, { error: 'KAKAO_REST(카카오 REST API 키)가 아직 없어요' });
+      const f = k => { const v = +u.searchParams.get(k); return isFinite(v) ? v.toFixed(4) : null; }, ox = f('ox'), oy = f('oy'), dx = f('dx'), dy = f('dy');
+      if (!ox || !oy || !dx || !dy) return out(400, { error: '좌표 없음' });
+      const ck = new Request(`https://cache.local/drive?${ox},${oy},${dx},${dy}`), hit = await caches.default.match(ck);
+      if (hit) { const h = new Response(hit.body, hit); Object.entries(cors).forEach(([k, v]) => h.headers.set(k, v)); return h; }
+      let j;
+      try { const r = await fetch(`https://apis-navi.kakaomobility.com/v1/directions?origin=${ox},${oy}&destination=${dx},${dy}&priority=RECOMMEND&summary=true`, { headers: { Authorization: 'KakaoAK ' + env.KAKAO_REST } }); j = await r.json().catch(() => ({})); if (!r.ok) return out(r.status, { error: '카카오 길찾기 오류: ' + (j.msg || j.message || r.status) }); }
+      catch (e) { return out(502, { error: '카카오 길찾기에 연결하지 못했어요: ' + e.message }); }
+      const rt = (j.routes || [])[0] || {}, sec = rt.summary && rt.summary.duration;
+      const res = new Response(JSON.stringify(sec != null ? { sec } : { sec: null, code: rt.result_code, msg: rt.result_msg }), { headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'max-age=2592000' } });
+      if (sec != null) ctx.waitUntil(caches.default.put(ck, res.clone()));
+      return res;
+    }
     // 통계청 SGIS — /sgis?p=stage&cd=22 · /sgis?p=company&adm_cd=22040&low_search=1&year=2023 . 7일 캐시
     if (name === 'sgis') {
       if (!env.SGIS_KEY || !env.SGIS_SECRET) return out(503, { error: 'SGIS_KEY·SGIS_SECRET(통계청 SGIS 키)가 아직 없어요' });
