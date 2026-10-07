@@ -717,10 +717,15 @@ function verdict(g){
   return g==='A'?'출점 적극 검토':g==='B'?'조건부 검토':g==='C'?'신중 검토':'보류 권장';
 }
 function fv(x){ if(x.v==null) return '-'; return x.fmt?x.fmt(x.v):fmtN(x.v)+x.u; }
-function nearStores(p){ return DB.stores.filter(s=>s.x).map(s=>({name:s.name,d:distM(p,s)})).sort((a,b)=>a.d-b.d); }
+// 후보지가 등록된 우리 매장 자리(50m 안 또는 같은 주소)면 그 매장은 영업지역 경고에서 뺌 (2026-10-07 사용자 요청)
+const normAddr=a=>String(a||'').replace(/\s+/g,'').replace(/^(대구광역시|대구시|대구|부산광역시|부산시|부산)/,'');
+function selfStore(c){ return DB.stores.find(s=>s.x&&(distM(c,s)<50||(normAddr(s.addr)&&normAddr(s.addr)===normAddr(c.addr)))); }
+function otherStores(c){ const me=selfStore(c); return DB.stores.filter(s=>s.x&&s!==me); }
+function nearStores(p){ const me=selfStore(p); return DB.stores.filter(s=>s.x&&s!==me).map(s=>({name:s.name,d:distM(p,s)})).sort((a,b)=>a.d-b.d); }
 function warnings(c,s){
   const out=[]; const zone=(+DB.zoneKm||2)*1000;
   const clash=nearStores(c).filter(n=>n.d<zone);
+  { const me=selfStore(c); if(me) out.push(`등록된 우리 매장 <b>${esc(me.name)}</b> 자리예요 — 이 매장과의 영업지역 경고는 빼고 봐요`); }
   if(clash.length) out.push(`영업지역 ${DB.zoneKm}km 안에 우리 매장: `+clash.map(n=>esc(n.name)+' '+fmtM(n.d)).join(', '));
   if(s&&s.d.n500>=3) out.push(`500m 안에 장어집이 ${s.d.n500}곳이에요`);
   if(s&&s.d.n300>=1) out.push(`300m 안에 장어집이 ${s.d.n300}곳이에요 (가장 가까운 곳 ${fmtM(s.d.comp[0].dist)})`);
@@ -762,7 +767,7 @@ function fieldAll(c){ const a=fieldScore(c), b=flowScore(c); return a!=null&&b!=
 function compAdjScore(c,s){ const q=compQual(c), x=s.dims.find(y=>y.k==='comp'); if(!q||!q.filled) return x?x.score:null; const cp=band(q.adj,AB.compIdx), other=x?x.subs.filter(y=>y.k!=='compIdx'&&y.p!=null).map(y=>y.p):[]; const all=[cp,...other]; return Math.round(all.reduce((a,b)=>a+b,0)/all.length); }
 function koList(c,s){
   const K=SYS().ko, d=s?s.d:{}, f=finCalc(c), L=[];
-  if(K.zone){ const n=DB.stores.find(x=>x.x&&distM(c,x)<DB.zoneKm*1000); L.push({t:`우리 매장 영업지역(${DB.zoneKm}km) 밖`,st:n?'fail':'ok',why:n?`${n.name} ${fmtM(distM(c,n))}`:''}); }
+  if(K.zone){ const n=otherStores(c).find(x=>distM(c,x)<DB.zoneKm*1000); L.push({t:`우리 매장 영업지역(${DB.zoneKm}km) 밖`,st:n?'fail':'ok',why:n?`${n.name} ${fmtM(distM(c,n))}`:''}); }
   if(K.duct){ const ds=starsOf(c,'duct'), v=ds.length?Math.min(...ds):null; L.push({t:'배기·덕트 설치 가능 (현장 실사 3점 이상)',st:!v?'unk':v>=3?'ok':'fail',why:v?(ds.length>1?'두 사람 중 낮은 점수 ':'')+v+'점':'현장 실사에서 매겨 주세요'}); }
   if(K.area&&K.area.on){ L.push({t:`면적 ${K.area.v}평 이상`,st:!(+c.area>0)?'unk':+c.area>=K.area.v?'ok':'fail',why:+c.area>0?c.area+'평':'면적 입력 필요'}); }
   if(K.rr&&K.rr.on){ L.push({t:`임대료 비율 ${K.rr.v}% 이하`,st:!(f&&f.rentRatio!=null)?'unk':f.rentRatio<=K.rr.v?'ok':'fail',why:f&&f.rentRatio!=null?f.rentRatio.toFixed(1)+'%':'월세·목표 매출 입력 필요'}); }
@@ -1026,7 +1031,7 @@ function swotData(s,c){
   const fl=flowOf(c); if(fl&&fl.lv==='많음') S.push(`직접 센 저녁 유동이 많아요 (10분 평균 ${Math.round(fl.avg)}명)`); if(fl&&fl.lv==='적음') W.push(`직접 센 저녁 유동이 적어요 (10분 평균 ${Math.round(fl.avg)}명)`);
   if(+c.cntWait>0) O.push(`근처 장어집에 저녁 대기 손님(${c.cntWait}명)이 있어 넘치는 수요를 받을 수 있어요`);
   const an=analogData(s); if(an[0]&&an[0].sim>=75) S.push(`잘되는 우리 ${esc(an[0].st.name)} 자리와 ${an[0].sim}% 닮았어요`); if(an[0]&&an[0].sim<55) W.push(`우리 매장들과 닮지 않은 자리예요 (최고 ${an[0].sim}%)`);
-  if(DB.stores.some(x=>x.x&&distM(c,x)<DB.zoneKm*1000)) T.push(`우리 매장과 ${DB.zoneKm}km 안이라 영업지역이 겹쳐요 (가맹 계약 검토 필요)`);
+  if(otherStores(c).some(x=>distM(c,x)<DB.zoneKm*1000)) T.push(`우리 매장과 ${DB.zoneKm}km 안이라 영업지역이 겹쳐요 (가맹 계약 검토 필요)`);
   const pad=a=>a.length?a:['특이 사항이 없어요'];
   return {S:pad(S),W:pad(W),O:pad(O),T:pad(T)};
 }

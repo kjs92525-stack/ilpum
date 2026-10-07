@@ -64,6 +64,13 @@ async def main():
     await pg.select_option('[data-cq=e2][data-k=p]','3'); await pg.wait_for_timeout(200); await pg.evaluate("render()"); await pg.wait_for_timeout(300)
     ok('    우리보다 싼 장어집이 있으면 SWOT 위협', '우리보다 싼 장어집이 1km 안에 1곳' in await pg.inner_text('#pane'))
     ok('    주차 필수 조건이 직판장형 15대', '주차 15대 이상' in await pg.inner_text('#s-sys'))
+    await pg.evaluate("DB.stores=[{name:'본점',addr:'대구 수성구 범어동 177',x:128.63,y:35.86},{name:'유천점',addr:'대구 달서구',x:128.5,y:35.8}]; save(); go('detail',DB.cands[0].id)"); await pg.wait_for_timeout(400)
+    zk=await pg.evaluate("koList(DB.cands[0],scoreOf(DB.cands[0].m,DB.cands[0])).find(x=>x.t.includes('영업지역')).st")
+    pane=await pg.inner_text('#pane')
+    ok('14) 등록된 우리 매장 자리면 영업지역 경고 없음 + 안내 문구', zk=='ok' and '등록된 우리 매장 본점 자리예요' in pane and '영업지역이 겹쳐요' not in pane, zk)
+    await pg.evaluate("DB.stores=[{name:'본점',addr:'다른 곳',x:128.64,y:35.865}]; save(); render()"); await pg.wait_for_timeout(300)
+    zk=await pg.evaluate("koList(DB.cands[0],scoreOf(DB.cands[0].m,DB.cands[0])).find(x=>x.t.includes('영업지역')).st")
+    ok('    다른 자리(약 1km)면 경고 그대로', zk=='fail', zk)
     # 예전 기록(비교 기준이 있던 것)을 불러와도 문제없이 열림
     old={"v":2,"stores":[],"zoneKm":2,"weights":{"hub":20,"fam":20,"biz":15,"acc":20,"comp":25,"prop":15},"benchNames":["동성로"],"bench":{"at":"2026-10-05","mode":"area","points":[]},"cands":[]}
     await pg.evaluate("o=>{ localStorage.setItem('ilpum-sk-v1',JSON.stringify(o)); }",old); await pg.reload(); await pg.wait_for_timeout(500)
