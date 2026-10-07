@@ -347,6 +347,27 @@ nav button:hover{color:#fff;background:rgba(255,255,255,.08)}nav button[aria-cur
   nav button{padding:10px 9px}
 }
 
+/* 후보지 목록 카드 */
+.ls-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.ls{display:flex;gap:10px;align-items:center;background:var(--soft);border-radius:14px;padding:10px 12px}.ls>div>span{display:block;font-size:11.5px;color:var(--sub);font-weight:600}.ls b{font:800 20px/1.2 var(--sans)}.ls b small{font-size:12px;color:var(--sub);margin-left:1px}
+.lc-g{display:grid;gap:10px}
+.lc{display:grid;grid-template-columns:60px minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:16px;cursor:pointer;background:var(--paper);transition:border-color .15s,box-shadow .15s,transform .15s}
+.lc:hover{border-color:var(--navy2);box-shadow:0 6px 18px rgba(31,58,110,.10);transform:translateY(-1px)}
+.mring{width:56px;height:56px}.mring text{font:800 17px var(--sans);fill:var(--ink)}
+.lc-na{width:56px;height:56px;border-radius:50%;border:2px dashed var(--line2);display:grid;place-items:center;font-size:10.5px;color:var(--sub);text-align:center;line-height:1.2}
+.lc-t{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.lc-t .nm{font-weight:800;font-size:15.5px}.lc-t .pill{font-size:11px;padding:1px 8px}
+.lc-w{font-size:11.5px;font-weight:700;color:var(--warn);background:rgba(224,83,61,.1);border-radius:999px;padding:1px 8px}
+.lc-a{font-size:12.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.lc-d{font-size:13px;font-weight:700;color:var(--navy2);margin-top:3px}.lc-d.bad{color:var(--warn)}
+.lc-f{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}.lc-f>span{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ink2);background:var(--soft);border-radius:999px;padding:2px 9px}.lc-f svg{width:13px;height:13px;color:var(--navy2)}
+.eq{display:flex;align-items:flex-end;gap:3px;height:44px;padding:0 4px;border-bottom:1px solid var(--line2)}.eq i{display:block;width:7px;border-radius:3px 3px 0 0;background:var(--gold)}.eq i.hi{background:var(--ok)}.eq i.lo{background:var(--warn)}.eq i.na{background:var(--line2)}
+.lc-empty{display:flex;flex-direction:column;align-items:center;gap:6px;padding:40px 10px}.lc-empty svg{width:40px;height:40px;color:var(--navy2);opacity:.6}.lc-empty b{color:var(--ink);font-size:15px}
+@media (max-width:700px){.lc{grid-template-columns:52px minmax(0,1fr) auto;gap:10px;padding:11px 12px}.lc .eq{display:none}.mring,.lc-na{width:50px;height:50px}}
+body.ui-notion .lc{border-radius:4px;box-shadow:none}body.ui-notion .lc:hover{transform:none;background:var(--soft);border-color:var(--line2);box-shadow:none}
+body.ui-notion .ls{border-radius:4px}body.ui-notion .lc-f>span{border-radius:3px;background:var(--nC)}body.ui-notion .lc-w{border-radius:3px;background:var(--nR);color:var(--nRt)}
+body.ui-notion .lc-f .emo{font-size:12px}body.ui-notion .lc-f svg{display:none}body.ui-notion .ls .kc-ic{font-size:20px}
+
+body:not(.ui-notion) .emo{display:none!important}
 /* ---- 노션형 화면 스타일 (설정 → 화면 스타일, body.ui-notion) — 2026-10-07 사용자 요청 ---- */
 .emo{display:none}
 body.ui-notion{--bg:#fff;--paper:#fff;--ink:#37352f;--ink2:#37352f;--sub:rgba(55,53,47,.65);--faint:rgba(55,53,47,.45);--line:rgba(55,53,47,.09);--line2:rgba(55,53,47,.16);--soft:rgba(55,53,47,.04);--track:rgba(55,53,47,.08);
@@ -427,7 +448,7 @@ body.ui-notion .mapbox #map{border-radius:4px}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07e</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07f</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -1517,6 +1538,30 @@ function progHtml(){ return `<div id="prog" ${benchBusy?'':'hidden'}><div class=
 function needBench(){ return ''; }
 const stale=c=>c.m&&c.m.v!==2;
 
+
+function miniRing(v,grade){
+  const R=22, C=2*Math.PI*R, off=C*(1-Math.max(0,Math.min(100,v))/100);
+  return `<svg class="mring" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="${R}" fill="none" stroke="var(--track)" stroke-width="6"/><circle cx="28" cy="28" r="${R}" fill="none" stroke="var(--g${grade})" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 28 28)"/><text x="28" y="33" text-anchor="middle">${v}</text></svg>`;
+}
+function listStats(L){
+  const sc=L.map(x=>finalOf(x.c,x.s)).filter(F=>F.tot!=null), avg=sc.length?Math.round(sc.reduce((a,F)=>a+F.tot,0)/sc.length):null;
+  const nA=sc.filter(F=>F.grade==='A').length, nOk=L.filter(x=>x.c.review&&/승인/.test(x.c.review.dec||'')).length, nNo=sc.filter(F=>F.fail&&F.fail.length).length;
+  const t=(ic,l,v,u)=>`<div class="ls"><span class="kc-ic">${icon(ic)}</span><div><span>${l}</span><b>${v}<small>${u}</small></b></div></div>`;
+  return `<div class="ls-g">${t('target','후보지',L.length,'곳')}${t('pulse','평균 점수',avg??'-',avg!=null?'점':'')}${t('home','A등급',nA,'곳')}${t('brief','승인',nOk,'곳')}${nNo?t('fish','필수 조건 미달',nNo,'곳'):''}</div>`;
+}
+function candCard(c,s){
+  const w=warnings(c,s), F=finalOf(c,s), d=s&&s.d||{};
+  const facts=[d.n500!=null?['fish',`장어집 ${d.n500}곳`]:null,d.park500!=null?['car',`주차장 ${d.park500}곳`]:null,d.core3k!=null?['people',`30~59세 ${fmtN(Math.round(d.core3k/1000))}천명`]:null,c.area?['home',`${c.area}평`]:null,c.rent?['shop',`월세 ${fmtN(c.rent)}만`]:null].filter(Boolean);
+  const bars=s&&s.total!=null&&s.has?`<div class="eq" title="영역별 점수">${s.dims.map(x=>`<i class="${lvOf(x.score)}" style="height:${Math.max(6,x.score||0)}%" title="${esc(x.t)} ${x.score??'-'}점"></i>`).join('')}</div>`:'';
+  return `<div class="lc" data-open="${esc(c.id)}">
+    <div class="lc-sc">${F.tot!=null?miniRing(F.tot,F.grade):`<div class="lc-na">${stale(c)?'재분석':c.m?'점수 없음':'분석 전'}</div>`}</div>
+    <div class="lc-b"><div class="lc-t"><span class="nm">${esc(c.name)}</span><span class="st" data-s="${esc(c.status)}">${esc(c.status)}</span>${F.tot!=null?`<span class="pill g${F.grade}">${F.grade}</span>`:''}${w.length?`<span class="lc-w" title="${esc(w.join(' / ').replace(/<[^>]+>/g,''))}">주의 ${w.length}</span>`:''}</div>
+      <div class="lc-a">${esc(c.addr)}${c.floor?' · '+esc(c.floor):''}</div>
+      ${F.decision?`<div class="lc-d${F.fail&&F.fail.length?' bad':''}">${esc(F.decision)}</div>`:''}
+      ${facts.length?`<div class="lc-f">${facts.map(([ic,t])=>`<span>${icon(ic)}${t}</span>`).join('')}</div>`:''}</div>
+    ${bars}
+    <input class="chk" type="checkbox" data-sel="${esc(c.id)}" ${SEL.has(c.id)?'checked':''} title="비교에 넣기"></div>`;
+}
 function listHtml(){
   const L=DB.cands.filter(c=>!FILTER||c.status===FILTER).map(c=>({c,s:c.m?scoreOf(c.m,c):null})).sort((a,b)=>(finalOf(b.c,b.s).tot??-1)-(finalOf(a.c,a.s).tot??-1));
   return `${needBench()}${benchWarn()}${backupWarn()}
@@ -1527,12 +1572,7 @@ function listHtml(){
   <div class="card"><div class="sh" style="flex-wrap:wrap"><h2>후보지 ${DB.cands.length}곳</h2><span class="aside" style="display:flex;gap:8px">
     <select id="filter"><option value="">전체 상태</option>${STATUSES.map(s=>`<option${FILTER===s?' selected':''}>${s}</option>`).join('')}</select>
     <button class="btn sm" data-act="cmpSel" ${SEL.size<2?'disabled':''}>선택 ${SEL.size}곳 비교</button></span></div>
-    ${L.length?L.map(({c,s})=>{ const w=warnings(c,s), F=finalOf(c,s); return `<div class="cc" data-open="${esc(c.id)}">
-      <div class="sc ${F.tot!=null?'':'none'}">${F.tot!=null?`<b>${F.tot}</b><small><span class="gr g${F.grade}" style="height:18px;font-size:11px">${F.grade}</span>${F.fs!=null?' 현장':''}</small>`:'<b>'+(stale(c)?'재분석':c.m?'기준 필요':'분석 전')+'</b>'}</div>
-      <div style="min-width:0"><span class="nm">${esc(c.name)}</span> <span class="st" data-s="${esc(c.status)}">${esc(c.status)}</span>${w.length?`<span class="warnmark" title="${esc(w.join(' / ').replace(/<[^>]+>/g,''))}">주의 ${w.length}</span>`:''}
-        <div class="note" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.addr)}${c.floor?' · '+esc(c.floor):''}${c.area?' · '+esc(c.area)+'평':''}${c.rent?' · 월세 '+fmtN(c.rent)+'만':''}</div>
-        ${s&&s.total!=null&&s.has?`<div class="mini">${s.dims.map(x=>`<i title="${esc(x.t)} ${x.score??'-'}"><b style="width:${x.score||0}%"></b></i>`).join('')}</div>`:''}</div>
-      <input class="chk" type="checkbox" data-sel="${esc(c.id)}" ${SEL.has(c.id)?'checked':''} title="비교에 넣기"></div>`; }).join(''):'<div class="empty">위에서 주소를 찾아 후보지를 추가하세요</div>'}
+    ${L.length?listStats(L)+`<div class="lc-g">${L.map(({c,s})=>candCard(c,s)).join('')}</div>`:`<div class="empty lc-empty">${icon('target')}<b>아직 후보지가 없어요</b><span>위 칸에 주소나 장소 이름을 넣고 찾기를 누르세요</span></div>`}
   </div>`;
 }
 
