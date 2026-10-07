@@ -94,6 +94,8 @@ async def main():
     ok('    테이블 5개면 하루 3회전 최대 매출로 자름', e[3] and e[1]==e[0] and e[2]==e[0], e)
     an=await pg.inner_text('#s-analog'); fr=await pg.inner_text('#finres')
     ok('    유사 점포 구역·손익 칸에 환산 월매출 + 내부 참고 문구', '기준 환산 월매출' in an and '가맹 희망자' in an and '기준 환산 월매출' in fr, fr[-200:])
+    dz=await pg.evaluate("[!!document.querySelector('.dash .sring'),document.querySelectorAll('.dash .kc').length,!!document.querySelector('.dash .bul-pt'),document.querySelectorAll('.dash .dmb-r').length]")
+    ok('    한눈에 대시보드: 점수 링·환산 매출 막대·영역 막대·지표 카드', dz[0] and dz[1]>=6 and dz[2] and dz[3]>=6, dz)
     await pg.click('[data-act=convtarget]'); await pg.wait_for_timeout(300)
     ok('    "가운데 값을 목표 매출로" → 목표 월매출에 들어감', await pg.evaluate("DB.cands[0].target===convEst(DB.cands[0]).v"))
     await pg.evaluate("DB.stores=[]; DB.cands[0].target=''; save(); render()")
