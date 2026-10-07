@@ -98,6 +98,8 @@ async def main():
     ok('    "가운데 값을 목표 매출로" → 목표 월매출에 들어감', await pg.evaluate("DB.cands[0].target===convEst(DB.cands[0]).v"))
     await pg.evaluate("DB.stores=[]; DB.cands[0].target=''; save(); render()")
     r=await pg.evaluate("(()=>{ DB.stores=[{name:'일품집 본점',addr:'x'}]; DB.salesSeed=0; seedSales(); const a=DB.stores[0].sales; DB.stores[0].sales=''; seedSales(); const b=DB.stores[0].sales; DB.stores=[]; save(); return [a,b]; })()")
+    r2=await pg.evaluate("(()=>{ DB.stores=[{name:'일품집 범어',addr:'x'}]; DB.salesSeed=0; seedSales(); const a=DB.stores[0].sales; DB.stores=[{name:'유천점'},{name:'다른점'}]; DB.salesSeed=0; seedSales(); const b=DB.stores[0].sales; DB.stores=[]; DB.salesSeed=0; save(); return [a,b??''] })()")
+    ok('    이름에 본점이 없어도 매장이 1곳뿐이면 채움, 여러 곳이면 안 채움', r2==[12490,''], r2)
     ok('20) 본점 월매출 기본값 12,490만원을 한 번만 채움(지우면 다시 안 채움)', r==[12490,''], r)
     # 예전 기록(비교 기준이 있던 것)을 불러와도 문제없이 열림
     old={"v":2,"stores":[],"zoneKm":2,"weights":{"hub":20,"fam":20,"biz":15,"acc":20,"comp":25,"prop":15},"benchNames":["동성로"],"bench":{"at":"2026-10-05","mode":"area","points":[]},"cands":[]}

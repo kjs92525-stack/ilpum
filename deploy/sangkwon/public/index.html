@@ -282,7 +282,7 @@ details summary{cursor:pointer}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료</span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07c</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -441,7 +441,7 @@ function migrate(j){
 }
 // 본점 홀 매출 월평균(2025-11~2026-09 POS, 직판장 제외, 만원) — 사용자 요청으로 기본값으로 넣음(2026-10-07). 한 번만 채우고, 사용자가 지우거나 바꾸면 그대로 둠.
 const HQ_SALES=12490;
-function seedSales(){ if(DB.salesSeed) return; const st=DB.stores.find(x=>/본점/.test(x.name||'')); if(!st) return; if(!(+st.sales>0)) st.sales=HQ_SALES; DB.salesSeed=1; save(); }
+function seedSales(){ if(DB.salesSeed) return; const st=DB.stores.find(x=>/본점|본사/.test(x.name||''))||(DB.stores.length===1?DB.stores[0]:null); if(!st) return; if(!(+st.sales>0)) st.sales=HQ_SALES; DB.salesSeed=1; save(); }
 function load(){ try{ const j=migrate(JSON.parse(localStorage.getItem(STORE_KEY))); if(j) DB=j; }catch(e){} try{ seedSales(); }catch(e){} }
 function save(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(DB)); }catch(e){ toast('이 브라우저에 저장하지 못했어요. 설정 → 백업 파일로 받아 두세요'); } }
 
@@ -1410,10 +1410,10 @@ function detailHtml(){
       <label>이름<input type="text" data-f="name" value="${esc(c.name)}" maxlength="40"></label>
       <label>상태<select data-f="status">${STATUSES.map(x=>`<option${c.status===x?' selected':''}>${x}</option>`).join('')}</select></label>
       <label>층<input type="text" data-f="floor" value="${esc(c.floor||'')}" placeholder="1층" maxlength="20"></label>
-      <label>면적 (평)<input type="number" data-f="area" value="${esc(c.area||'')}" min="0" placeholder="월평균, 직판장 포함"></label>
+      <label>면적 (평)<input type="number" data-f="area" value="${esc(c.area||'')}" min="0" placeholder="예: 12490"></label>
       <label>테이블 수<input type="number" data-f="tables" value="${esc(c.tables||'')}" min="0" placeholder="${c.area?'비우면 '+Math.max(1,Math.round(c.area/(+DB.fin.pyPerTable||3.3)))+'개로 추정':'모르면 비움'}"></label>
       <label>보증금 (만원)<input type="number" data-f="deposit" value="${esc(c.deposit||'')}" min="0"></label>
-      <label>월세 (만원)<input type="number" data-f="rent" value="${esc(c.rent||'')}" min="0" placeholder="월평균, 직판장 포함"></label>
+      <label>월세 (만원)<input type="number" data-f="rent" value="${esc(c.rent||'')}" min="0" placeholder="예: 12490"></label>
       <label>권리금 (만원)<input type="number" data-f="premium" value="${esc(c.premium||'')}" min="0"></label>
       <label>문의한 사람<input type="text" data-f="contact" value="${esc(c.contact||'')}" maxlength="40"></label>
       <label>목표 월매출 (만원)<input type="number" data-f="target" value="${esc(c.target||'')}" min="0"></label>
@@ -1468,7 +1468,7 @@ function setHtml(){
   <div class="card"><div class="sh"><h2>우리 매장 위치 · 영업지역</h2></div>
     <div class="note">후보지가 영업지역 안이면 빨갛게 알려 줘요. 반경은 가맹계약서와 같게 맞추세요.</div>
     <div class="row" style="margin:8px 0">영업지역 반경 <select id="zone">${[0.5,1,1.5,2,3,5].map(k=>`<option value="${k}"${+DB.zoneKm===k?' selected':''}>${k}km</option>`).join('')}</select></div>
-    <table><tbody>${DB.stores.map((s,i)=>`<tr><td><b>${esc(s.name)}</b><div class="note">${esc(s.addr||'')}${s.m?` · 자리 분석 ${esc(s.at||'')}`:' · 자리 분석 전'}</div></td><td style="white-space:nowrap"><label class="note">월매출(만원) <input type="number" data-ss="${i}" value="${esc(s.sales||'')}" min="0" style="width:96px" placeholder="월평균, 직판장 포함"></label></td><td style="white-space:nowrap;text-align:right"><button class="btn sm bad" data-sdel="${i}">지우기</button></td></tr>`).join('')||'<tr><td class="note">아직 없어요</td></tr>'}</tbody></table>
+    <table><tbody>${DB.stores.map((s,i)=>`<tr><td><b>${esc(s.name)}</b><div class="note">${esc(s.addr||'')}${s.m?` · 자리 분석 ${esc(s.at||'')}`:' · 자리 분석 전'}</div></td><td style="white-space:nowrap"><label class="note">월매출(만원) <input type="number" data-ss="${i}" value="${esc(s.sales||'')}" min="0" style="width:96px" placeholder="예: 12490"></label></td><td style="white-space:nowrap;text-align:right"><button class="btn sm bad" data-sdel="${i}">지우기</button></td></tr>`).join('')||'<tr><td class="note">아직 없어요</td></tr>'}</tbody></table>
     ${DB.stores.length?`<div class="row" style="margin-top:8px"><button class="btn pri" data-act="storeMeasure" ${storeBusy||!K?'disabled':''}>${storeBusy?'분석 중…':'우리 매장 분석하기'}</button><span class="note">우리 매장 자리를 같은 방식으로 재서 후보지와 "닮은 정도"를 비교해요 (매장당 약 10초)</span></div>`:''}
     <div class="row" style="margin-top:8px"><input type="text" id="sname" placeholder="매장 이름 (예: 본점)" style="width:140px" maxlength="20"><input type="text" id="saddr" placeholder="주소" style="flex:1;min-width:180px"><button class="btn" data-act="sadd">추가</button></div>
     <div class="cands" id="scands"></div></div>
