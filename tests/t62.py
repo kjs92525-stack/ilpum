@@ -129,7 +129,7 @@ async def main():
     ok('5) 점수·등급 표지 상자', 0<=sc<=100 and g==('A' if sc>=70 else 'B' if sc>=55 else 'C' if sc>=40 else 'D'), (sc,g))
     dec=await pg.inner_text('.scorebox .dec'); ok('   판정 문구·기준표 점수 설명', '장어집 기준표' in await pg.inner_text('.mix') and any(x in dec for x in ['출점 적극 검토','조건부 검토','신중 검토','보류 권장','출점 불가']), dec)
     ok('   레이더 차트(5개 영역)', await pg.evaluate("document.querySelectorAll('#s-eval svg.radar text').length")==6)
-    ev=await pg.evaluate("document.querySelectorAll('.ev').length"); sr=await pg.evaluate("document.querySelectorAll('.sr').length"); ok('   영역 7개(상권 6 + 매물 조건)·상권 지표 38개에 점수', ev==7 and sr==38, (ev,sr))
+    ev=await pg.evaluate("document.querySelectorAll('.ev').length"); sr=await pg.evaluate("document.querySelectorAll('.sr').length"); ok('   영역 7개(상권 6 + 매물 조건)·상권 지표 39개(허프 포함)에 점수', ev==7 and sr==39, (ev,sr))
     ok('   결론 요약 문장', await pg.evaluate("document.querySelectorAll('.exec li').length")>=4)
     ok('   거리별 장어집 수 (300/500/1km)', await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.textContent).join(',')")=='0,1,2' , await pg.evaluate("[...document.querySelectorAll('.ring b')].map(b=>b.innerText).join(',')"))
     mx=await pg.inner_text('.mix'); ok('5b) 월세·평수 없으면 매물 조건 빼고 분석', '매물 조건 입력 없음' in mx and '월세·평수·테이블 수를 넣으면 반영돼요' in await pg.inner_text('#s-eval'), mx)

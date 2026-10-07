@@ -478,7 +478,7 @@ body.ui-notion .mapbox #map{border-radius:4px}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07j</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07k</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -546,6 +546,7 @@ const DIMS=[
     {k:'subD',t:'가까운 지하철역',u:'',r:'',low:true,get:d=>d.subD,fmt:fm},
     {k:'bus300',t:'버스정류장',u:'곳',r:'300m',get:d=>d.bus300}]},
   {k:'trade',t:'차량 상권 (3km)',w:20,why:'장어는 차로 10~15분 거리에서 일부러 오는 손님이 많아요',subs:[
+    {k:'huff',t:'포착 수요 (허프 모형)',u:'명',r:'3km',w:3,get hint(){ const R=huffRef(); return R?'우리 매장 평균 '+fmtN(Math.round(R))+'명 = 70점 · 0.5배 30점 · 1.3배 85점':'우리 매장 분석 전 · 추정 기준 (6천명 55점 · 1만명 72점)'; },abs:v=>huffScore(v),get:d=>d.huff},
     {k:'pop3k',t:'주민 수',u:'명',r:'3km 동 합계',get:d=>d.pop3k},
     {k:'core3k',t:'30~59세 주민 수 (주 고객층)',u:'명',r:'3km 동 합계',w:1.5,get:d=>d.core3k},
     {k:'acad3k',t:'학원 (가족 수요·구매력)',u:'곳',r:'3km',w:0.5,get:d=>d.acad3k}]},
@@ -640,7 +641,7 @@ const HQ_SALES=12490;
 function seedSales(){ if(DB.salesSeed) return; const st=DB.stores.find(x=>/본점|본사/.test(x.name||''))||(DB.stores.length===1?DB.stores[0]:null); if(!st) return; if(!(+st.sales>0)) st.sales=HQ_SALES; DB.salesSeed=1; save(); }
 function fixSysParts(){ const P=DB.sys&&DB.sys.parts; if(P&&+P.mkt===35&&+P.comp===15&&+P.prop===15&&+P.field===25&&+P.analog===10) delete DB.sys.parts; else if(P) delete P.field; }
 function load(){ try{ const j=migrate(JSON.parse(localStorage.getItem(STORE_KEY))); if(j) DB=j; }catch(e){} try{ seedSales(); }catch(e){} try{ fixSysParts(); }catch(e){} }
-function save(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(DB)); }catch(e){ toast('이 브라우저에 저장하지 못했어요. 설정 → 백업 파일로 받아 두세요'); } }
+function save(){ _hrefC=null; try{ localStorage.setItem(STORE_KEY,JSON.stringify(DB)); }catch(e){ toast('이 브라우저에 저장하지 못했어요. 설정 → 백업 파일로 받아 두세요'); } }
 
 /* ---------------- 카카오 SDK ---------------- */
 let K=null;
@@ -793,7 +794,7 @@ async function catchDongs(p){
       if(ok>=Math.ceil((pts.length-1)*0.7)){ info.drive=true; mins[0]=0; info.reach=mins.filter(v=>v!=null&&v<=DRIVE_MIN).length; } }catch(e){ info.driveErr=e.message; } }
   await Promise.all(Array.from({length:4},async()=>{ while(i<pts.length){ const q=i++, P=pts[q]; if(info.drive&&mins[q]!=null&&mins[q]>DRIVE_MIN) continue;
     try{ const r=await retry(()=>kcall(cb=>K.geo.coord2RegionCode(P.x,P.y,cb))); const h=r.list.find(x=>x.region_type==='H'); if(!h) continue;
-      const w=q<=6?1:0.5, o=map.get(h.code); if(o) o.w=Math.max(o.w,w); else map.set(h.code,{code:h.code,sido:h.region_1depth_name,gu:h.region_2depth_name,dong:h.region_3depth_name,w}); }catch(e){} } }));
+      const w=q<=6?1:0.5, o=map.get(h.code); if(o){ o.w=Math.max(o.w,w); o.pts.push(P); } else map.set(h.code,{code:h.code,sido:h.region_1depth_name,gu:h.region_2depth_name,dong:h.region_3depth_name,w,pts:[P]}); }catch(e){} } }));
   const L=[...map.values()]; L.info=info; return L;
 }
 async function popOfDong(code){ if(_popC[code]) return _popC[code]; return _popC[code]=await popStats(code); }
@@ -813,7 +814,8 @@ async function catchStats(p,hcode){
   const D=await catchDongs(p); if(!D.length) throw new Error('주변 행정동을 못 찾았어요');
   const I=D.info||{}, W=D.reduce((a,x)=>a+x.w,0), out={catchN:D.length, catchDongs:D.map(x=>x.dong+(x.w<1?'(일부)':'')), drive:!!I.drive, driveReach:I.reach, driveErr:I.driveErr||''}, errs=[];
   let pop=0, core=0, gw=0, i=0;
-  await Promise.all(Array.from({length:3},async()=>{ while(i<D.length){ const x=D[i++]; try{ const r=await popOfDong(x.code); pop+=r.popTot*x.w; core+=r.popTot*r.pCore/100*x.w; gw+=x.w; }catch(e){ errs.push(e.message); } } }));
+  await Promise.all(Array.from({length:3},async()=>{ while(i<D.length){ const x=D[i++]; try{ const r=await popOfDong(x.code); x.core=r.popTot*r.pCore/100; pop+=r.popTot*x.w; core+=x.core*x.w; gw+=x.w; }catch(e){ errs.push(e.message); } } }));
+  out.catchD=D.filter(x=>x.core!=null&&x.pts&&x.pts.length).map(x=>({d:x.dong,w:x.w,core:Math.round(x.core),x:+(x.pts.reduce((a,q)=>a+q.x,0)/x.pts.length).toFixed(5),y:+(x.pts.reduce((a,q)=>a+q.y,0)/x.pts.length).toFixed(5)}));
   if(gw>=W*0.7){ out.pop3k=Math.round(pop*W/gw); out.core3k=Math.round(core*W/gw); } else out.popErr=errs[0]||'인구 자료 부족';
   try{ let w=0,c=0,hw=0,me=null, yr=null; const gus=[...new Set(D.map(x=>x.sido+'|'+x.gu))];
     for(const g of gus){ const [sd,gu]=g.split('|'); const R=await sgisGu(sd,gu); yr=R.yr;
@@ -847,7 +849,7 @@ function taskList(p){
     d('ghosp2k',()=>kwCount('종합병원',p,2000)), d('wed2k',()=>kwCount('예식장',p,2000)), d('fun2k',()=>kwCount('장례식장',p,2000)), d('golf1k',()=>kwCount('골프',p,1000)), d('univ2k',()=>kwCount('대학교',p,2000)),
     d('park300',()=>count('PK6',p,300)), d('park500',()=>count('PK6',p,500)), d('bus300',()=>kwCount('버스정류장',p,300)),
     d('alt_duck',()=>kwCount('오리',p,1000,'FD6')), d('alt_chicken',()=>kwCount('백숙',p,1000,'FD6')), d('alt_sam',()=>kwCount('삼계탕',p,1000,'FD6')), d('alt_stew',()=>kwCount('매운탕',p,1000,'FD6')),
-    d('acad3k',()=>count('AC5',p,3000)), d('eel3k',()=>kwCount('장어',p,3000,'FD6')),
+    d('acad3k',()=>count('AC5',p,3000)), d('eel3k',()=>kwCount('장어',p,3000,'FD6')), d('eel3L',()=>kwAll('장어',p,3000)),
     d('subway',()=>kcall(cb=>K.ps.categorySearch('SW8',cb,{location:LL(p),radius:2000,sort:kakao.maps.services.SortBy.DISTANCE,size:3}))),
     d('region',()=>kcall(cb=>K.geo.coord2RegionCode(p.x,p.y,cb)))
   ];
@@ -857,7 +859,7 @@ async function measure(p,onStep){
   await Promise.all(Array.from({length:4},async()=>{ while(i<tasks.length){ const [k,f]=tasks[i++];
     try{ res[k]=await retry(f); }catch(e){ fail.push(k); } onStep&&onStep(++done,tasks.length); await sleep(30); } }));
   if(fail.length>=tasks.length-2) throw new Error('카카오 검색이 계속 실패해요. 잠시 뒤 다시 해 주세요');
-  const m={v:2,at:today(),fail};
+  const m={v:2,at:today(),fail,x:+p.x,y:+p.y};
   ['food500','meat500','pub500','apt500','apt1k','acad1k','gov1k','bank1k','hosp1k','lodge1k','mart1k','ghosp2k','wed2k','fun2k','golf1k','univ2k','park300','park500','bus300','acad3k','eel3k'].forEach(k=>{ m[k]=res[k]; });
   const alts=['alt_duck','alt_chicken','alt_sam','alt_stew'].filter(k=>res[k]!=null); m.alt1k=alts.length?alts.reduce((a,k)=>a+res[k],0):null;
   if(res.eelA){
@@ -870,6 +872,10 @@ async function measure(p,onStep){
     }
     m.comp.sort((a,b)=>a.dist-b.dist); m.compMore=res.eelA.total>45;
   }else m.comp=null;
+  if(res.eel3L){ const seen=new Set(); m.comp3=[];
+    for(const x of res.eel3L.list){ const cat=String(x.category_name||''); if(seen.has(x.id)||!cat.startsWith('음식점')) continue; seen.add(x.id);
+      if(!cat.includes('장어')&&/일식|초밥|횟집|해산물|수산|회집|복어/.test(cat)) continue;
+      m.comp3.push({id:x.id,x:+x.x,y:+x.y,dist:x.distance===''||x.distance==null?Math.round(distM(p,{x:+x.x,y:+x.y})):+x.distance}); } }
   m.subway=res.subway?res.subway.list.map(x=>({name:x.place_name,x:+x.x,y:+x.y,dist:x.distance===''||x.distance==null?Math.round(distM(p,{x:+x.x,y:+x.y})):+x.distance})):null;
   const h=res.region&&(res.region.list.find(x=>x.region_type==='H')||res.region.list[0]); m.region=h?h.address_name:'';
   if(h) m.hcode=h.code; const bR=res.region&&res.region.list.find(x=>x.region_type==='B'); if(bR){ m.bcode=bR.code; m.bdong=bR.region_3depth_name; const ad=String(bR.address_name||'').split(' '); m.bsido=bR.region_1depth_name||'대구광역시'; m.bgu=bR.region_2depth_name||ad[1]||''; }
@@ -896,9 +902,29 @@ function derive(m,opt){
   if(m.popTot&&m.pCore!=null){ d.corePop=Math.round(m.popTot*m.pCore/100); if(m.restOn!=null) d.restPer1k=Math.round(m.restOn/m.popTot*10000)/10; if(d.n1k!=null) d.corePerEel=Math.round(d.corePop/Math.max(1,d.n1k)); }
   if(m.restOpen12!=null&&m.restClose12!=null) d.restNet=m.restOpen12-m.restClose12;
   if(m.aptPy!=null&&m.aptGu) d.aptRel=Math.round(m.aptPy/m.aptGu*100);
+  { const hf=huffOf(m,opt); if(hf) Object.assign(d,hf); }
   d.pull=['gov1k','hosp1k','ghosp2k','wed2k','fun2k','golf1k','univ2k'].some(k=>m[k]!=null)?['gov1k','hosp1k','ghosp2k','wed2k','fun2k','golf1k','univ2k'].reduce((a,k)=>a+(+m[k]||0),0):null;
   return d;
 }
+
+/* ---------------- 허프 모형 (Huff 1963): 3km 안 동마다 "우리 가게를 고를 확률"을 거리로 계산해 끌어올 손님 수를 셈 ----------------
+   확률 = (1/우리 가게까지 거리²) ÷ (우리 + 각 장어집 + 다른 우리 매장 + 기타 선택지 1개(1.5km 거리로 가정)의 1/거리² 합)
+   거리 지수 2 · 최소 거리 300m 는 상권분석에서 흔히 쓰는 값. 동 중심 = 그 동에 걸린 표본점 평균 */
+const HUFF={lam:2,minKm:0.3,altKm:1.5};
+function huffOf(m,opt){
+  if(!m||!m.catchD||!m.catchD.length||!m.comp3||m.x==null) return null;
+  const ex=opt.ex||{}, site={x:m.x,y:m.y};
+  const comps=m.comp3.filter(k=>!ex[k.id]&&!(opt.self&&k.dist<25)).map(k=>({x:k.x,y:k.y}));
+  (DB.stores||[]).forEach(st=>{ if(st.x&&distM(site,st)>=50) comps.push({x:st.x,y:st.y}); });
+  const f=dm=>Math.pow(Math.max(dm/1000,HUFF.minKm),-HUFF.lam), alt=f(HUFF.altKm*1000);
+  let H=0,T=0;
+  m.catchD.forEach(z=>{ const dem=z.core*z.w, a=f(distM(z,site)); let sum=a+alt; comps.forEach(k=>{ sum+=f(distM(z,k)); }); H+=dem*a/sum; T+=dem; });
+  return T>0?{huff:Math.round(H),huffT:Math.round(T),huffShare:Math.round(H/T*1000)/10,huffN:comps.length}:null;
+}
+// 기준 = 분석해 둔 우리 매장들의 포착 수요 평균 (잘되는 자리 = 70점)
+let _hrefC=null;
+function huffRef(){ if(_hrefC!==null) return _hrefC||null; const L=(DB.stores||[]).filter(st=>st.m&&st.m.v===2).map(st=>derive(st.m,{self:'__self'}).huff).filter(v=>v>0); _hrefC=L.length?L.reduce((a,b)=>a+b,0)/L.length:0; return _hrefC||null; }
+function huffScore(v){ const R=huffRef(); if(R) return band(v/R,[[0.3,10],[0.5,30],[0.75,52],[1,70],[1.3,85],[1.7,100]]); return band(v,[[1000,15],[3000,35],[6000,55],[10000,72],[16000,88],[25000,100]]); }
 // 기준 값들 속 위치 (0~100, 클수록 좋음). 같은 값이 많으면 가운데로 계산
 function pct(v,arr,low){ if(!arr.length) return null; let less=0,eq=0; arr.forEach(a=>{ if(a<v) less++; else if(a===v) eq++; }); const p=(less+eq/2)/arr.length*100; return Math.round(low?100-p:p); }
 
@@ -1341,6 +1367,7 @@ function dimBars(s){
 function kpiCards(s){
   const d=s.d, T=[];
   const add=(ic,l,v,u,sub,p)=>T.push(`<div class="kc ${lvOf(p)}"><div class="kc-top"><span class="kc-ic">${icon(ic)}</span><span class="kc-l">${l}</span></div><div class="kc-v">${v}<small>${u}</small></div><div class="kc-m" title="기준표 점수 ${p??'-'}"><i style="width:${p??0}%"></i></div><div class="kc-s">${sub}${p!=null?` · <b>${p}점</b>`:''}</div></div>`);
+  if(d.huff!=null) add('target','포착 수요 (허프)',fmtN(d.huff),'명',`3km 30~59세의 ${d.huffShare}% · 장어집 ${d.huffN}곳과 나눔`,subP(s,'huff'));
   if(d.core3k!=null) add('people',`${d.drive?`차로 ${DRIVE_MIN}분`:'3km'} 30~59세`,fmtN(d.core3k),'명',`주민 ${fmtN(d.pop3k)}명`,subP(s,'core3k'));
   if(d.work3k!=null) add('brief','3km 직장인',fmtN(d.work3k),'명',`사업체 ${fmtN(d.corp3k)}곳`,subP(s,'work3k'));
   if(d.n500!=null) add('fish','장어집 500m',d.n500,'곳',`1km ${d.n1k}곳${d.eel3k!=null?` · 3km ${d.eel3k}곳`:''}`,subP(s,'n500'));
@@ -1423,22 +1450,24 @@ const CONV=[
   {k:'eel',t:'3km 안 장어집 (적을수록 유리)',e:0.3,lo:0.7,hi:1.4,inv:true,get:d=>d.eel3k!=null?d.eel3k:d.n1k,same:d=>d.eel3k!=null?'3':'1',fmt:v=>v+'곳'},
   {k:'near',t:'가까운 경쟁 지수 (적을수록 유리)',e:0.15,lo:0.8,hi:1.2,inv:true,get:d=>d.compIdx,fmt:v=>(+v).toFixed(1)},
   {k:'park',t:'주차장 500m',e:0.15,lo:0.8,hi:1.25,get:d=>d.park500,fmt:v=>v+'곳'}];
+const HUFF_F={k:'huff',t:'포착 수요 (허프 모형: 3km 30~59세 × 우리 가게를 고를 확률)',fmt:v=>fmtN(v)+'명'};
 function convEst(c){
   if(!c||!c.m||c.m.v!==2) return null; const dc=derive(c.m,{ex:c.compEx||{}});
   const L=DB.stores.filter(st=>st.m&&st.m.v===2&&+st.sales>0).map(st=>{
     const ds=derive(st.m,{self:'__self'}); let mul=1; const parts=[];
+    if(dc.huff>0&&ds.huff>0){ mul=Math.min(2.5,Math.max(0.3,dc.huff/ds.huff)); return {st,sales:+st.sales,mul,est:+st.sales*mul,parts:[{f:HUFF_F,a:dc.huff,b:ds.huff,x:mul}],sim:analogSim(dc,ds),huff:true}; }
     CONV.forEach(f=>{ let a=f.get(dc), b=f.get(ds); if(a==null||b==null) return; if(f.same&&f.same(dc)!==f.same(ds)) return;
       if(f.k!=='dem'){ a+=1; b+=1; } if(b<=0||a<=0) return;
       const x=Math.min(f.hi,Math.max(f.lo,Math.pow(f.inv?b/a:a/b,f.e))); mul*=x; parts.push({f,a:f.get(dc),b:f.get(ds),x}); });
     mul=Math.min(2,Math.max(0.4,mul)); const sim=analogSim(dc,ds);
-    return {st,sales:+st.sales,mul,est:+st.sales*mul,parts,sim}; }).filter(x=>x.parts.length>=2);
+    return {st,sales:+st.sales,mul,est:+st.sales*mul,parts,sim}; }).filter(x=>x.huff||x.parts.length>=2);
   if(!L.length) return null;
   const w=L.map(x=>x.sim!=null?Math.pow(Math.max(20,x.sim)/100,2):0.3), ws=w.reduce((a,b)=>a+b,0);
   let v=L.reduce((a,x,i)=>a+x.est*w[i],0)/ws; const band=Math.max(15,Math.round(35/Math.sqrt(L.length)));
   let lo=v*(1-band/100), hi=v*(1+band/100), cap=null; const tb=tablesOf(c), F=DB.fin;
   if(tb){ cap=tb.n*(+F.party||3)*3*(+F.ticket||4)*(+F.days||26)/Math.max(0.3,1-TAKE()/100); hi=Math.min(hi,cap); lo=Math.min(lo,cap); v=Math.min(v,cap); }
   const r=x=>Math.round(x/100)*100;
-  return {list:L,v:r(v),lo:r(lo),hi:r(hi),band,cap:cap&&r(cap),capped:cap!=null&&r(v)>=r(cap),tb};
+  return {list:L,v:r(v),lo:r(lo),hi:r(hi),band,cap:cap&&r(cap),capped:cap!=null&&r(v)>=r(cap),tb,huff:L.every(x=>x.huff)};
 }
 function convHtml(c,inFin){
   const E=convEst(c);
@@ -1452,6 +1481,7 @@ function convHtml(c,inFin){
     <tr><td><b>합계</b> · 월매출 ${fmtN(x.sales)}만원 × ${x.mul.toFixed(2)}</td><td class="num" colspan="3"><b>${fmtN(Math.round(x.est))}만원</b>${x.sim!=null?` <span class="note">(닮은 정도 ${x.sim}%)</span>`:''}</td></tr></tbody></table></div>`).join('');
   return `<div class="okbox" style="color:var(--ink);margin:10px 0">${line}
     <div class="note" style="margin-top:6px">범위 ±${E.band}% = 매장 ${E.list.length}곳 기준 오차 (매장 매출이 늘수록 좁아져요)${E.cap?` · 테이블 ${E.tb.n}개${E.tb.est?'(평수로 추정)':''}로 하루 3회전 했을 때 최대 약 ${fmtN(E.cap)}만원${E.capped?' — <b>환산값이 자리 크기를 넘어 최대값으로 잘랐어요</b>':''}`:''}</div>
+    <div class="note" style="margin-top:4px">${E.huff?'계산법: <b>허프 모형</b> — 3km 안 동마다 30~59세 주민 × "우리 가게를 고를 확률"(거리² 에 반비례, 주변 장어집·우리 다른 매장과 나눠 가짐)을 더한 <b>포착 수요</b>를 우리 매장과 비교해 그 매장 실제 매출에 곱했어요.':'계산법: 간이 보정(수요·경쟁·주차 차이). <b>후보지와 우리 매장을 "다시 분석"하면 허프 모형으로 더 정확히 계산돼요.</b>'}</div>
     <div class="note" style="margin-top:4px">현장 실사(간판·덕트·주차 대수)·매물 층수·운영 실력은 반영 안 됨 · <b>내부 참고값</b>, 매출 예측이 아니고 가맹 희망자에게 보여 주면 안 돼요 (가맹사업법).</div></div>${rows}`;
 }
 
@@ -1560,6 +1590,7 @@ const OPENSET=new Set(), isMob=()=>window.matchMedia&&window.matchMedia('(max-wi
 function applyFold(){ $$('.card[id^="s-"]').forEach(c=>c.classList.toggle('open',OPENSET.has(c.id))); }
 function openSec(id){ OPENSET.add(id); applyFold(); }
 function render(){
+  _hrefC=null;
   document.body.classList.toggle('ui-notion',DB.ui==='notion');
   $$('#nav button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.tab===TAB));
   $('#pane').innerHTML=ct({list:listHtml,detail:detailHtml,cmp:cmpHtml,set:setHtml}[TAB]());
