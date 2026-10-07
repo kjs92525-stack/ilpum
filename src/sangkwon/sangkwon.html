@@ -439,7 +439,10 @@ function migrate(j){
   if(!(j.fin&&j.fin.v)){ if(+o.fin.cost===40) o.fin.cost=47; o.fin.v=2; } if(o.biz==='outlet'&&+o.fin.ticket===3) o.fin.ticket=3.6; if(!Array.isArray(o.fin.season)||o.fin.season.length!==12||o.fin.season.map(Number).join(',')===OLD_SEASON) o.fin.season=SEASON.slice();
   return o;
 }
-function load(){ try{ const j=migrate(JSON.parse(localStorage.getItem(STORE_KEY))); if(j) DB=j; }catch(e){} }
+// 본점 홀 매출 월평균(2025-11~2026-09 POS, 직판장 제외, 만원) — 사용자 요청으로 기본값으로 넣음(2026-10-07). 한 번만 채우고, 사용자가 지우거나 바꾸면 그대로 둠.
+const HQ_SALES=12490;
+function seedSales(){ if(DB.salesSeed) return; const st=DB.stores.find(x=>/본점/.test(x.name||'')); if(!st) return; if(!(+st.sales>0)) st.sales=HQ_SALES; DB.salesSeed=1; save(); }
+function load(){ try{ const j=migrate(JSON.parse(localStorage.getItem(STORE_KEY))); if(j) DB=j; }catch(e){} try{ seedSales(); }catch(e){} }
 function save(){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(DB)); }catch(e){ toast('이 브라우저에 저장하지 못했어요. 설정 → 백업 파일로 받아 두세요'); } }
 
 /* ---------------- 카카오 SDK ---------------- */
@@ -1575,7 +1578,7 @@ document.addEventListener('click',async e=>{
   const cc=e.target.closest('[data-open]'); if(cc&&!e.target.closest('input')) return go('detail',cc.dataset.open);
   const t=e.target.closest('button,[data-act]'); if(!t) return;
   if(t.dataset.cand!=null) return addCand(CANDS[+t.dataset.cand]);
-  if(t.dataset.sc!=null){ const p=window._sc[+t.dataset.sc]; DB.stores.push({name:window._scName,addr:p.addr,x:p.x,y:p.y}); save(); render(); return; }
+  if(t.dataset.sc!=null){ const p=window._sc[+t.dataset.sc]; DB.stores.push({name:window._scName,addr:p.addr,x:p.x,y:p.y}); save(); seedSales(); render(); return; }
   if(t.dataset.ev){ EVAL=t.dataset.ev; const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(t.dataset.fs){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; const fk=EVAL==='A'?'field':'field2'; c[fk]=c[fk]||{}; const v=+t.dataset.v; c[fk][t.dataset.fs]=c[fk][t.dataset.fs]===v?0:v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(t.dataset.sdel!=null){ if(confirm('이 매장을 지울까요?')){ DB.stores.splice(+t.dataset.sdel,1); save(); render(); } return; }
@@ -1590,7 +1593,7 @@ document.addEventListener('click',async e=>{
   if(a==='del'){ const c=DB.cands.find(x=>x.id===CUR); if(c&&confirm(`"${c.name}" 후보지를 지울까요?`)){ DB.cands=DB.cands.filter(x=>x.id!==CUR); SEL.delete(CUR); save(); go('list',null); } return; }
   if(a==='sadd'){ const n=$('#sname').value.trim(), q=$('#saddr').value.trim(); if(!n||q.length<2) return toast('매장 이름과 주소를 넣어 주세요'); if(!K) return;
     try{ const L=await geocode(q); if(!L.length) return toast('주소를 찾지 못했어요');
-      if(L.length===1){ DB.stores.push({name:n,addr:L[0].addr,x:L[0].x,y:L[0].y}); save(); render(); return; }
+      if(L.length===1){ DB.stores.push({name:n,addr:L[0].addr,x:L[0].x,y:L[0].y}); save(); seedSales(); render(); return; }
       window._sc=L; window._scName=n; $('#scands').innerHTML='<div class="note">어느 곳인가요?</div>'+L.map((p,i)=>`<button data-sc="${i}"><b>${esc(p.name)}</b><br><small>${esc(p.addr)}</small></button>`).join(''); }catch(err){ toast(err.message); } return; }
   if(a==='wreset'){ DB.weights=defW(); save(); render(); return; }
   if(a==='ping'){ const el=$('#pingres'); el.textContent='확인 중…';
