@@ -11,7 +11,7 @@ async def main():
     pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('dialog',lambda d: asyncio.ensure_future(d.accept()))
     await pg.route('**/*',G['handler']); await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(600)
     ok('0) 새 기계(저장소 비어 있음)에서도 기준 만들기 없이 바로 분석', '기준 만들기' not in await pg.inner_text('#pane'))
-    ok('0b) 처음 가게 형태 = 가성비 직판장형 (비중 차량25·주거20·회식10, 원가 55%·인건비 20%·객단가 3만)', await pg.evaluate("BIZ()==='outlet' && DB.weights.trade===25 && DB.weights.fam===20 && DB.weights.biz===10 && DB.fin.cost===55 && DB.fin.labor===20 && DB.fin.ticket===3"))
+    ok('0b) 처음 가게 형태 = 가성비 직판장형 (비중 차량25·주거20·회식10, 원가 55%·인건비 20%·객단가 3.6만, 본점 홀+직판장)', await pg.evaluate("BIZ()==='outlet' && DB.weights.trade===25 && DB.weights.fam===20 && DB.weights.biz===10 && DB.fin.cost===55 && DB.fin.labor===20 && DB.fin.ticket===3.6"))
     await pg.click('[data-tab=set]'); await pg.check('[data-biz=std]'); await pg.wait_for_timeout(200)
     ok('0c) 일반 전문점형으로 바꾸면 비중·손익 기본값이 바뀜', await pg.evaluate("BIZ()==='std' && DB.weights.comp===20 && DB.weights.trade===20 && DB.fin.cost===47 && DB.fin.labor===25 && DB.fin.ticket===4"))
     await pg.click('[data-tab=list]'); await pg.wait_for_timeout(200)

@@ -400,7 +400,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 /* ---------------- 저장 ---------------- */
 // 우리 가게 형태 (2026-10-07 사용자: 일품집은 직판장이라 장어집 중 싸다는 이미지) — 형태마다 영역 비중·손익 기본값·구매력 기준·주차 기준·경쟁점 가격대 무게가 다름. 직판장형 숫자는 추정값(설정에서 바꿈)
 const PROFILES={
-  outlet:{name:'가성비 직판장형',desc:'싸게 많이 파는 직판장 — 가족·차로 오는 손님·주차가 핵심, 회식·고소득 동네는 덜 중요',w:{hub:10,fam:20,biz:10,acc:20,trade:25,comp:15,prop:15},fin:{cost:55,labor:20,ticket:3},take:30,park:15,apt:[[70,40],[85,70],[95,90],[100,100],[140,100]],price:{1:0.5,2:1,3:1.4}},
+  outlet:{name:'가성비 직판장형',desc:'싸게 많이 파는 직판장 — 가족·차로 오는 손님·주차가 핵심, 회식·고소득 동네는 덜 중요',w:{hub:10,fam:20,biz:10,acc:20,trade:25,comp:15,prop:15},fin:{cost:55,labor:20,ticket:3.6},take:30,park:15,apt:[[70,40],[85,70],[95,90],[100,100],[140,100]],price:{1:0.5,2:1,3:1.4}},
   std:{name:'일반 전문점형',desc:'객단가 높은 장어 전문점 — 회식·구매력 높은 동네가 중요',w:{hub:15,fam:15,biz:15,acc:15,trade:20,comp:20,prop:15},fin:{cost:47,labor:25,ticket:4},take:5,park:10,apt:[[70,20],[90,45],[100,60],[115,80],[140,100]],price:{1:1,2:1,3:0.8}}};
 const BIZ=()=>{ try{ return (DB&&PROFILES[DB.biz])?DB.biz:'outlet'; }catch(e){ return 'outlet'; } }, PF=()=>PROFILES[BIZ()];
 const PRICES=['','우리보다 비쌈','비슷','우리보다 쌈'];
@@ -436,7 +436,7 @@ function migrate(j){
   if(!j.biz){ o.biz='outlet'; const SW=PROFILES.std.w, w=o.weights||{}; if(Object.keys(SW).every(k=>w[k]==null||+w[k]===SW[k])) o.weights=null;
     const f=o.fin||{}; if(f.cost==null||(+f.cost===47&&+f.labor===25&&+f.ticket===4)){ o.fin=Object.assign({},f,PROFILES.outlet.fin); } }
   { const keep=DB; DB=o; o.weights=Object.assign(defW(),o.weights||{}); o.fin=Object.assign(defFin(),o.fin||{}); DB=keep; }
-  if(!(j.fin&&j.fin.v)){ if(+o.fin.cost===40) o.fin.cost=47; o.fin.v=2; } if(!Array.isArray(o.fin.season)||o.fin.season.length!==12||o.fin.season.map(Number).join(',')===OLD_SEASON) o.fin.season=SEASON.slice();
+  if(!(j.fin&&j.fin.v)){ if(+o.fin.cost===40) o.fin.cost=47; o.fin.v=2; } if(o.biz==='outlet'&&+o.fin.ticket===3) o.fin.ticket=3.6; if(!Array.isArray(o.fin.season)||o.fin.season.length!==12||o.fin.season.map(Number).join(',')===OLD_SEASON) o.fin.season=SEASON.slice();
   return o;
 }
 function load(){ try{ const j=migrate(JSON.parse(localStorage.getItem(STORE_KEY))); if(j) DB=j; }catch(e){} }
