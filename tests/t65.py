@@ -83,6 +83,20 @@ async def main():
     cs=await pg.evaluate("catchStats({x:128.63,y:35.86},'2726053000').then(o=>[o.drive,o.driveReach,o.catchN])")
     ok('18) 차로 시간 자료가 있으면 12분 넘는 점(강 건너)은 빼고 동을 셈', cs[0] is True and 8<=cs[1]<19, cs)
     G['MODE']['drive']=''
+    # 19) 우리 매장 기준 환산 매출
+    await pg.evaluate("(()=>{ const m=JSON.parse(JSON.stringify(DB.cands[0].m)); DB.stores=[{name:'본점',addr:'다른 곳',x:128.9,y:35.9,sales:12500,m}]; DB.cands[0].compEx={}; DB.cands[0].area=''; save(); go('detail',DB.cands[0].id); })()"); await pg.wait_for_timeout(400)
+    e=await pg.evaluate("(()=>{const E=convEst(DB.cands[0]); return [E.v,E.list[0].mul,E.band]})()")
+    ok('19) 본점과 같은 조건이면 환산 = 본점 매출 그대로(×1.00), 1곳이라 ±35%', abs(e[0]-12500)<=100 and abs(e[1]-1)<0.001 and e[2]==35, e)
+    await pg.evaluate("(()=>{ const st=DB.stores[0]; st.m.core3k=Math.round(st.m.core3k/4); if(st.m.work3k!=null) st.m.work3k=Math.round(st.m.work3k/4); save(); render(); })()"); await pg.wait_for_timeout(300)
+    e=await pg.evaluate("(()=>{const E=convEst(DB.cands[0]); return [E.list[0].parts.find(p=>p.f.k==='dem').x, E.v, E.lo, E.hi]})()")
+    ok('    본점 3km 수요가 1/4 → 후보지 수요 보정 ×1.6(상한), 범위 표시', abs(e[0]-1.6)<0.001 and e[2]<e[1]<=e[3], e)
+    e=await pg.evaluate("(()=>{ DB.cands[0].tables=5; const E=convEst(DB.cands[0]); DB.cands[0].tables=''; return [E.cap,E.v,E.hi,E.capped]; })()")
+    ok('    테이블 5개면 하루 3회전 최대 매출로 자름', e[3] and e[1]==e[0] and e[2]==e[0], e)
+    an=await pg.inner_text('#s-analog'); fr=await pg.inner_text('#finres')
+    ok('    유사 점포 구역·손익 칸에 환산 월매출 + 내부 참고 문구', '기준 환산 월매출' in an and '가맹 희망자' in an and '기준 환산 월매출' in fr, fr[-200:])
+    await pg.click('[data-act=convtarget]'); await pg.wait_for_timeout(300)
+    ok('    "가운데 값을 목표 매출로" → 목표 월매출에 들어감', await pg.evaluate("DB.cands[0].target===convEst(DB.cands[0]).v"))
+    await pg.evaluate("DB.stores=[]; DB.cands[0].target=''; save(); render()")
     # 예전 기록(비교 기준이 있던 것)을 불러와도 문제없이 열림
     old={"v":2,"stores":[],"zoneKm":2,"weights":{"hub":20,"fam":20,"biz":15,"acc":20,"comp":25,"prop":15},"benchNames":["동성로"],"bench":{"at":"2026-10-05","mode":"area","points":[]},"cands":[]}
     await pg.evaluate("o=>{ localStorage.setItem('ilpum-sk-v1',JSON.stringify(o)); }",old); await pg.reload(); await pg.wait_for_timeout(500)
