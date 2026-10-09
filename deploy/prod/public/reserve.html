@@ -242,6 +242,9 @@ body.resizing iframe{pointer-events:none}
 .cell.st-res{border-color:var(--res);background:var(--res-bg)} .cell.st-res .cn,.cell.st-res .no{color:var(--res)}
 .cell.st-soon{border:1.5px dashed var(--soon);background:var(--soon-bg)} .cell.st-soon .cn,.cell.st-soon .no{color:var(--soon)}
 .cell.st-past{border-color:var(--past);background:var(--soft)} .cell.st-past .cn,.cell.st-past .no{color:var(--past)}
+.cell .pctb{position:absolute;top:3px;left:4px;font-size:10.5px;font-weight:800;background:#E5484D;color:#fff;border-radius:4px;padding:0 4px;line-height:1.35;z-index:1}
+.cell.st-use .pctb{top:20px}.cell.st-dup .pctb{top:22px}
+.fpos .cell .pctb{top:auto;bottom:2px;left:50%;transform:translateX(-50%);font-size:clamp(9px,.62em,12px)}.fpos.round .cell .pctb{bottom:6%}
 .cell .more{position:absolute;top:3px;right:4px;font-size:10.5px;font-weight:700;background:var(--ink);color:var(--panel);border-radius:4px;padding:0 4px}
 .cell .clash{position:absolute;bottom:3px;right:4px;font-size:10.5px;font-weight:700;background:var(--warn);color:#fff;border-radius:4px;padding:0 4px}
 .bar29{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
@@ -455,6 +458,7 @@ const isCxl=x=>/취소/.test(x.tnote||'');
 // 예약금을 이미 받은 예약만: 요청사항에 '예약금' 과 '입완'(입금 완료)이 같이 있을 때 (예: 예약금 5만원(입완), 예약금(입완))
 // '예약금x', '예약금 X', '예약금 없음', '예약금 안받음' 처럼 예약금이 없다는 뜻은 제외
 // 받았다는 표시는 '입완'(입금 완료) 또는 '확인필'
+const hasPct=x=>/(^|[^0-9])10\s*[%％]/.test(String((x&&x.req)||''));
 const hasDep=x=>{ const t=String((x&&x.req)||''); return /입완|확인필/.test(t)&&/예약금(?!\s*[xX×✕]|\s*(?:없|무|안|미))/.test(t); };
 function active(d){ return items(d).filter(x=>!isCxl(x)); }   // 현황판·중복 계산용 (취소 제외)
 function tableShow(x){ const ts=tablesText(x.tables); return [...ts, ...(x.tnote?[x.tnote]:[])].join(', '); }
@@ -678,16 +682,18 @@ function cellHtml(t,map){
   if(dup.length>1){
     dup.sort((a,b)=>toMin(a.time)-toMin(b.time));
     const depD=dup.some(hasDep);
+    const pctD=dup.some(hasPct);
     return `<div class="cell st-dup${depD?' dep':''}" data-cell="${t}" data-pick="${t}" title=""${esc(dup.map(x=>x.name+' '+x.time+' '+x.pp+'명').join(' / '))}">
-      ${depD?'<span class="depb">💰 예약금</span>':''}<span class="dupb">⚠ 중복</span><span class="no">${esc(tLabel(t))}</span>
+      ${depD?'<span class="depb">💰 예약금</span>':''}<span class="dupb">⚠ 중복</span>${pctD?'<span class="pctb">10%</span>':''}<span class="no">${esc(tLabel(t))}</span>
       ${dup.slice(0,3).map(x=>`<span class="dn">${esc(x.name)} <small>${esc(x.time)}·${esc(x.pp)}명</small></span>`).join('')}${dup.length>3?`<small>외 ${dup.length-3}건</small>`:''}</div>`;
   }
   const tight = TIGHT.table[t]? [...TIGHT.table[t].values()] : [];
   const tightNote = tight.length? `<span class="tightb">⏰ 다음팀 ${esc(tight.filter(x=>x.id!==it.id).map(x=>x.time).join('·'))}</span>` : '';
   const dep=list.some(l=>hasDep(l.it));
+  const pct=list.some(l=>hasPct(l.it));
   return `<div class="cell st-${top.st} ${seatCls(t)}${dep?' dep':''}" data-cell="${t}" data-pick="${t}" title=""${esc(it.name)} ${esc(it.time)} ${esc(it.pp)}명${it.req?' · '+esc(it.req):''}${tight.length?' · 2시간 뒤 다음팀 있음':''}">
     ${list.length>1?`<span class="more">+${list.length-1}</span>`:''}
-    ${top.st==='use'?'<span class="arr">✓ 도착</span>':''}<span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}<span class="cn">${esc(it.name)}</span><span class="ci">${esc(it.pp)}명·${esc(it.time)}</span>${dep?'<span class="depb">💰 예약금</span>':''}${it.req&&!dep?'<span class="memo">📝 메모</span>':''}${tightNote}</div>`;
+    ${pct?'<span class="pctb" title="10% 할인 이벤트">10%</span>':''}${top.st==='use'?'<span class="arr">✓ 도착</span>':''}<span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}<span class="cn">${esc(it.name)}</span><span class="ci">${esc(it.pp)}명·${esc(it.time)}</span>${dep?'<span class="depb">💰 예약금</span>':''}${it.req&&!dep?'<span class="memo">📝 메모</span>':''}${tightNote}</div>`;
 }
 const BIG6={ '1층':['6','7','8','9','10'], '2층':['42','43','44','45','51','52','53'] };
 const BIG8=[['29','30'],['31','32'],['33','34']];
