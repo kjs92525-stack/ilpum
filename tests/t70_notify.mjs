@@ -41,6 +41,6 @@ chk('변경: 10/11 → 10/12 19:00 3명', j.ok&&!day('2026-10-11').some(x=>x.nam
 [s,j]=await call('일품집 본점, 예약취소\n우상태님, 일품집 본점 예약, 2026.10.12.(월) 오후 7:00, 3명 (성인3), 예약이 취소되었습니다.');
 const w=day('2026-10-12').find(x=>x.name==='우상태'); chk('취소: 지우지 않고 테이블 칸에 네이버취소', j.ok&&w&&w.tnote==='네이버취소'&&w.auto==='cxl', JSON.stringify(j));
 [s,j]=await call('일품집 본점, 예약취소\n우상태님, 일품집 본점 예약, 2026.10.12.(월) 오후 7:00, 3명 (성인3), 예약이 취소되었습니다.'); chk('또 취소 알림 → 이미 취소', j.cancel==='이미 취소돼 있음', JSON.stringify(j));
-[s,j]=await call('유천점, 예약신청\n김유천님, 유천점 예약, 2026.10.13.(화) 오후 6:00, 2명 (성인2), 새로운 예약이 접수되었습니다.'); chk('유천점 알림은 유천점에', j.ok&&day('2026-10-13',YC).length===1&&day('2026-10-13',HQ).length===0, JSON.stringify(j));
+[s,j]=await call('유천점, 예약신청\n김유천님, 유천점 예약, 2026.10.13.(화) 오후 6:00, 2명 (성인2), 새로운 예약이 접수되었습니다.'); chk('유천점 알림은 무시', j.skip==='본점 알림 아님'&&day('2026-10-13',YC).length===0&&day('2026-10-13',HQ).length===0, JSON.stringify(j));
 chk('기록 남김', (DB.sync_state.find(x=>x.key==='naver_log')||{val:[]}).val.length>=8);
 console.log(ok?'전체 OK':'실패 있음');

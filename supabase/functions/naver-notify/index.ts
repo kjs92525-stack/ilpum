@@ -34,10 +34,9 @@ Deno.serve(async (req: Request) => {
   };
   if (!/예약/.test(text) || !/(접수|신청|확정|취소|변경)/.test(text)) return log({ skip: "예약 알림 아님" });
 
-  // 어느 매장인지: 알림에 매장 이름이 있으면 그 매장, 없으면 본점
-  const stores = (await db.from("stores").select("id,name")).data || [];
-  const st = stores.filter((s: any) => s.name && text.includes(s.name.replace(/^일품집\s*/, ""))).sort((a: any, b: any) => b.name.length - a.name.length)[0];
-  const SID = st ? st.id : HQ_STORE;
+  // 지금은 본점 알림만 처리 (같은 폰에 유천점 알림도 옴 — 사용자 지시 2026-10-10)
+  if (!/본점/.test(text)) return log({ skip: "본점 알림 아님" });
+  const SID = HQ_STORE;
   const today = kstToday();
   const r: any = parseResText(text, today);
 
