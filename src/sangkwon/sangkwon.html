@@ -389,11 +389,13 @@ body{word-break:keep-all;overflow-wrap:break-word}
 .kcg{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
 .db-h b{white-space:nowrap}.db-comp .db-sub{display:none}
 .db-dims{display:flex;flex-direction:column}.db-dims .dmb{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}.dmb-r{padding:7px 0}
-@container dsh (min-width:520px){.dash>.db-pro,.dash>.db-con{grid-column:span 6}}
+@container dsh (min-width:520px){.dash>.db-pro,.dash>.db-con{grid-column:span 6}.dash>.db-kpi{order:9}}
 @container dsh (min-width:600px){.dash>.db-dims{grid-column:span 7}.dash>.db-comp{grid-column:span 5}.cr-m .cmap{max-width:100%}.cr-n{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @container dsh (min-width:780px){
   .dash>.db-sales{grid-column:span 7}.dash>.db-comp{grid-column:span 5}.cr-n{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .dash>.db-dims{grid-column:1/8;grid-row:span 2}.dash>.db-pro,.dash>.db-con{grid-column:8/13}
+  .dash>.db-score{grid-column:1/-1;grid-row:1}
+  .dash>.db-sales{grid-column:1/8;grid-row:2}.dash>.db-comp{grid-column:8/13;grid-row:2/4}.dash>.db-dims{grid-column:1/8;grid-row:3}
+  .dash>.db-pro{grid-column:1/7;grid-row:4}.dash>.db-con{grid-column:7/13;grid-row:4}.dash>.db-kpi{grid-column:1/-1;grid-row:5}
   .db-score{padding:20px 24px}.sring{width:150px;height:150px}.sc-d{font-size:20px}
 }
 @container dsh (max-width:430px){.sring{width:96px;height:96px}.sr-n{font-size:34px}.db-score{gap:12px}.sc-d{font-size:16px}.sb-big{gap:14px}.cr-n{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -490,7 +492,7 @@ body.pub [data-tab=set]{display:none}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.08d</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.08f</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
