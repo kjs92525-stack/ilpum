@@ -132,6 +132,16 @@ async def main():
     ok('    본점 등록 → 매출 40,480 자동 · 자리 자동 측정 · 예상 매출 바로 나옴', hq==['본점',40480,True] and '예상 월매출' in await pg.inner_text('#finres'), hq)
     await pg.evaluate("DB.stores[0].mv=1; save()"); await pg.reload(); await pg.wait_for_function("DB.stores[0].mv===STORE_MV",timeout=60000)
     ok('    예전 방식으로 잰 우리 매장은 열 때 자동으로 다시 잼', True)
+    # 24) 지도 숨기기(컴퓨터 화면)
+    await pg.set_viewport_size({'width':1280,'height':900}); await pg.evaluate("document.body.classList.remove('nomap'); mapBtn()")
+    v0=await pg.is_visible('.mapbox'); t0=await pg.inner_text('[data-act=maptoggle]')
+    await pg.click('[data-act=maptoggle]'); await pg.wait_for_timeout(150)
+    v1=await pg.is_visible('.mapbox'); t1=await pg.inner_text('[data-act=maptoggle]'); st=await pg.evaluate("localStorage.getItem('ilpum-sk-map')")
+    ok('24) 지도 숨기기 버튼(컴퓨터): 보임 → 숨김, 글자 바뀜, 기억', v0 and not v1 and t0=='지도 숨기기' and t1=='지도 보기' and st=='0', [v0,v1,t0,t1,st])
+    await pg.reload(); await pg.wait_for_timeout(500)
+    ok('    새로고침해도 숨김 유지 → 다시 누르면 보임', not await pg.is_visible('.mapbox'))
+    await pg.click('[data-act=maptoggle]'); await pg.wait_for_timeout(300)
+    ok('    다시 보임', await pg.is_visible('.mapbox'))
     await pg.evaluate("DB.stores=[]; DB.salesSeed=0; save(); render()")
     # 예전 기록(비교 기준이 있던 것)을 불러와도 문제없이 열림
     old={"v":2,"stores":[],"zoneKm":2,"weights":{"hub":20,"fam":20,"biz":15,"acc":20,"comp":25,"prop":15},"benchNames":["동성로"],"bench":{"at":"2026-10-05","mode":"area","points":[]},"cands":[]}

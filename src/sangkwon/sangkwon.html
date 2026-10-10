@@ -311,6 +311,7 @@ nav button:hover{color:#fff;background:rgba(255,255,255,.08)}nav button[aria-cur
 @media (max-width:700px){.dash{gap:10px}.db{padding:13px 13px;border-radius:14px}.db-score{flex-direction:row}.sring{width:104px;height:104px}.sb-big strong{font-size:24px}.dmb-r{grid-template-columns:86px 1fr 26px 22px;gap:7px}.kc-v{font-size:21px}.cr-n{gap:6px}}
 @media (max-width:700px){nav{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}nav button{white-space:nowrap;padding:7px 11px!important;font-size:13.5px}header h1::before{display:none}}
 @media (prefers-color-scheme:dark){:root{--bg:#0e1116;--paper:#161b23;--ink:#e6e9ee;--ink2:#c7ccd5;--sub:#8d95a3;--faint:#6c7480;--line:#262d38;--line2:#323a47;--navy:#7fa6d8;--navy2:#9bbbe4;--navyT:rgba(127,166,216,.12);--soft:#1c222c;--gold:#e0a94a;--warn:#f07a68;--ok:#3cc68e;--track:#252c38;--bg:#0b0f16;--navy2:#7aa2ff;--gA:#3cc68e;--gB:#7aa2ff;--gC:#e0a94a;--gD:#f07a68}body{background:var(--bg)}.btn.pri{color:#0e1116}.stars button.on{color:#0e1116}}
+body.nomap .mapbox{display:none}body.nomap .wrap{grid-template-columns:minmax(0,1fr)}
 @media print{header,.noprint,.mapbox,nav,.secnav{display:none!important}.wrap{display:block}main{max-width:none;padding:0}body{background:#fff}.card{border:0;border-bottom:1px solid #ccc;padding:14px 0;break-inside:avoid}.ponly{display:block}}
 
 /* ---- 폰 전용: 구역 접기·가로 스크롤 메뉴·표를 카드로·지도 접기 ---- */
@@ -489,9 +490,9 @@ body.pub [data-tab=set]{display:none}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.08c</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.08d</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
-  <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
+  <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
 <main><div class="wrap"><div id="pane"></div><div class="mapbox"><div id="map"></div><div class="legend" id="legend"></div></div></div></main>
 <div class="toast" id="toast" role="status"></div>
@@ -1639,7 +1640,7 @@ function applyFold(){ $$('.card[id^="s-"]').forEach(c=>c.classList.toggle('open'
 function openSec(id){ OPENSET.add(id); applyFold(); }
 function render(){
   _hrefC=null;
-  document.body.classList.toggle('ui-notion',DB.ui==='notion');
+  document.body.classList.toggle('ui-notion',DB.ui==='notion'); mapBtn();
   document.body.classList.toggle('pub',PUB); if(PUB&&TAB==='set') TAB='list';
   { const t=$('#pubtag'); if(t) t.textContent=PUB?'가맹 상담용 보기':'본사 내부 자료'; const b=$('[data-act=pub]'); if(b){ b.textContent=PUB?'점주용 보기 끄기':'점주용 보기'; b.setAttribute('aria-pressed',PUB); } }
   $$('#nav button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.tab===TAB));
@@ -1888,6 +1889,8 @@ function mk(p,label,color,dot,title){
 }
 function circ(p,r,color,dash,fill){ OVL.push(new kakao.maps.Circle({center:LL(p),radius:r,strokeWeight:1.5,strokeColor:color,strokeOpacity:.85,strokeStyle:dash?'dashed':'solid',fillColor:color,fillOpacity:fill||0,map:MAP})); }
 const lg=(c,t)=>`<span><i style="background:${c}"></i>${t}</span>`;
+function mapBtn(){ const b=$('[data-act=maptoggle]'); if(!b) return; const mob=matchMedia('(max-width:700px)').matches, on=mob?document.body.classList.contains('showmap'):!document.body.classList.contains('nomap'); b.textContent=on?'지도 숨기기':'지도 보기'; b.setAttribute('aria-pressed',on); }
+try{ if(localStorage.getItem('ilpum-sk-map')==='0') document.body.classList.add('nomap'); }catch(_){}
 function drawMap(){
   if(!K) return;
   if(!MAP){ MAP=new kakao.maps.Map($('#map'),{center:new kakao.maps.LatLng(35.8714,128.6014),level:8});
@@ -1964,7 +1967,7 @@ document.addEventListener('click',async e=>{
   }
   if(e.target.closest('[data-act=pub]')){ if(PUB&&!confirm('점주용 보기를 끄면 본사 내부 숫자(우리 매장 매출·환산 매출·메모)가 다시 보여요. 끌까요?')) return; PUB=!PUB; try{ localStorage.setItem('ilpum-sk-pub',PUB?'1':'0'); }catch(_){} const y=window.scrollY; render(); window.scrollTo(0,y); toast(PUB?'점주용 보기: 내부 숫자를 숨겼어요':'본사 보기로 돌아왔어요'); return; }
   { const ck=e.target.closest('[data-ck]'); if(ck){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; c.chk=c.chk||{}; const k=ck.dataset.ck, v=ck.dataset.v; if(c.chk[k]===v) delete c.chk[k]; else c.chk[k]=v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); return; } }
-  if(e.target.closest('[data-act=maptoggle]')){ document.body.classList.toggle('showmap'); drawMap(); return; }
+  if(e.target.closest('[data-act=maptoggle]')){ const mob=matchMedia('(max-width:700px)').matches; document.body.classList.toggle(mob?'showmap':'nomap'); if(!mob){ try{ localStorage.setItem('ilpum-sk-map',document.body.classList.contains('nomap')?'0':'1'); }catch(_){} } mapBtn(); drawMap(); if(MAP) setTimeout(()=>{ try{ MAP.relayout(); }catch(_){} },60); return; }
   if(e.target.closest('[data-act=foldall]')){ const ids=$$('.card[id^="s-"]').map(c=>c.id); if(ids.every(i=>OPENSET.has(i))) OPENSET.clear(); else ids.forEach(i=>OPENSET.add(i)); applyFold(); return; }
   if(e.target.matches('[data-sel]')){ const id=e.target.dataset.sel; e.target.checked?SEL.add(id):SEL.delete(id); const b=$('[data-act=cmpSel]'); if(b){ b.disabled=SEL.size<2; b.textContent=`선택 ${SEL.size}곳 비교`; } e.stopPropagation(); return; }
   const cc=e.target.closest('[data-open]'); if(cc&&!e.target.closest('input')) return go('detail',cc.dataset.open);
