@@ -82,11 +82,12 @@ async def main():
     items=await pg.evaluate("items('2026-10-12').map(x=>[x.name,x.time,x.pp,x.tables.join(),x.phone,x.req])")
     chk('Enter로 10/12에 추가됨', ['홍길동','18:30','4+1','7','010-1234-5678','아기의자 부탁드려요'] in items, str(items))
     chk('추가 뒤 붙여넣기 칸 비움', await pg.input_value('#qPaste')=='' )
-    # 4) 취소 문자 경고
-    await pg.fill('#qPaste', [c for c in CASES if c[1].get('cancel')][-1][0]); await pg.wait_for_timeout(1000)
-    chk('취소 문자 경고', '취소 안내' in await pg.inner_text('#qPasteRes'))
-    await pg.fill('#qPaste', NAVER); await pg.wait_for_timeout(800)
+    # 4) 같은 예약 다시 붙이면 경고 → 취소 문자는 자동 취소 처리
+    await pg.fill('#qPaste', NAVER); await pg.wait_for_timeout(1200)
     chk('이미 있는 예약 경고', '이미 있는 예약' in await pg.inner_text('#qPasteRes'), await pg.inner_text('#qPasteRes'))
+    await pg.fill('#qPaste', [c for c in CASES if c[1].get('cancel')][-1][0]); await pg.wait_for_timeout(2500)
+    msg=await pg.inner_text('#qPasteRes')
+    chk('취소 문자 → 취소 처리', '취소' in msg and await pg.evaluate("items('2026-10-12').some(x=>x.name==='홍길동'&&isCxl(x))"), msg)
     chk('오류 없음', not errs, str(errs)); await ctx.close(); await b.close()
   print('전체 OK' if ok else '실패 있음')
 asyncio.run(main())

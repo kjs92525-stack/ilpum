@@ -424,14 +424,13 @@ function tablesInput(ts){
 /* ---------- 문자·네이버 예약 알림 붙여넣기 → 예약 칸 채우기 ---------- */
 // 결과: {date:'YYYY-MM-DD'|'', time:'HH:MM'|'', pp:'4'|'4+2'|'', name, phone, req, cancel:bool}
 function parseResText(text, todayKey){
-  const raw=String(text||'').replace(/\r/g,''); const out={date:'',time:'',pp:'',name:'',phone:'',req:'',cancel:false};
+  const raw=String(text||'').replace(/\r/g,''); const out={date:'',time:'',pp:'',name:'',phone:'',req:'',cancel:false,change:false};
   if(!raw.trim()) return out;
   const today=todayKey?new Date(todayKey+'T00:00'):new Date(); today.setHours(0,0,0,0);
   const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean)
     .filter(l=>!/(예약|주문|결제|승인)\s*번호|금액|결제|쿠폰|포인트|https?:\/\//.test(l));   // 번호·금액 줄은 무시 (전화·인원으로 잘못 읽지 않게)
   const body=lines.join('\n');
   const val=re=>{ for(const l of lines){ const m=l.match(re); if(m&&m[1]&&m[1].trim()) return m[1].trim(); } return ''; };
-  out.cancel=/취소(되었|됐|완료|요청|하였|했)|예약\s*취소/.test(body);
   const ph=body.match(/(?:^|[^\d])(01[016789])[\s.\-]?(\d{3,4})[\s.\-]?(\d{4})(?!\d)/) || body.match(/(?:^|[^\d])(0\d{1,2})[\s\-.](\d{3,4})[\s\-.](\d{4})(?!\d)/);
   if(ph) out.phone=fmtPhone(ph[1]+ph[2]+ph[3]);
   const noPh=ph?body.replace(ph[0],' '):body;
@@ -465,6 +464,9 @@ function parseResText(text, todayKey){
     for(let i=0;i<lines.length;i++){ const m=lines[i].match(LB); if(!m) continue;
       let v=m[1].trim(); if(!v&&lines[i+1]&&!OTHER.test(lines[i+1])&&!LB.test(lines[i+1])) v=lines[i+1];
       if(v&&!/^(없음|없습니다|-)$/.test(v)){ out.req=v.slice(0,200); break; } } }
+  { const nb=out.req?body.split(out.req).join(' '):body;
+    out.cancel=/취소(되었|됐|완료|하였|했|처리)|예약\s*취소/.test(nb);
+    out.change=!out.cancel&&/변경(되었|됐|완료|하였|했|처리)|예약\s*변경/.test(nb); }
   return out;
 }
 // 빈 테이블 추천: 앞뒤 2시간 예약 없는 자리 중 인원에 맞는 것 (최대 3개, 각 항목은 테이블 묶음)
@@ -1105,9 +1107,56 @@ function syncBoardFromInput(timeStr, tablesStr){
 }
 function quickRead(){ ['time','name','pp','tables','phone','req'].forEach(k=>{ const el=document.getElementById('q'+{time:'Time',name:'Name',pp:'PP',tables:'Tables',phone:'Phone',req:'Req'}[k]); if(el) quick[k]=el.value; }); }
 const mdLbl=k=>{ const d=new Date(k+'T00:00'); return `${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`; };
+// 취소·변경 알림 → 기존 예약을 찾아 자동 처리 (후보가 하나일 때만 자동, 여러 개면 고르게)
+let noticeUndo=null, noticeCands=[];
+function noticeFind(r,src){
+  const from=ds(new Date(Date.now()-864e5)); const out=[];
+  Object.keys(src).forEach(d=>{ if(d<from) return; (src[d]||[]).forEach(x=>{ if(x.deleted) return;
+    const byName=r.name&&x.name===r.name, byPh=r.phone&&x.phone&&x.phone.replace(/\D/g,'')===r.phone.replace(/\D/g,'');
+    if(byName||byPh) out.push({d,x}); }); });
+  return out.sort((a,b)=>a.d.localeCompare(b.d)||(toMin(a.x.time)||0)-(toMin(b.x.time)||0));
+}
+function noticeLbl(c){ return `${mdLbl(c.d)} ${c.x.time} ${c.x.name} ${c.x.pp||''}명${(c.x.tables||[]).length?' · '+tablesText(c.x.tables).join(','):''}`; }
+function noticeCancel(c){
+  const it=dayDoc(c.d).items.find(y=>y.id===c.x.id)||c.x; const before=JSON.parse(JSON.stringify(it));
+  it.tnote=((it.tnote||'').replace(/취소/g,'').trim()+' 취소').trim(); saveItem(c.d,it);
+  noticeUndo={label:'취소',acts:[{d:c.d,item:before}]}; return `<b>취소 처리했어요:</b> ${esc(noticeLbl(c))}`;
+}
+function noticeChange(c,r){
+  const it=dayDoc(c.d).items.find(y=>y.id===c.x.id)||c.x; const before=JSON.parse(JSON.stringify(it));
+  const nd=r.date||c.d, nt=r.time||it.time; const nx=Object.assign({},it,{time:nt}); if(r.pp) nx.pp=r.pp; if(r.req) nx.req=r.req; if(r.phone) nx.phone=r.phone;
+  const busy=busyTables(nd,nt,it.id); const lost=(it.tables||[]).filter(t=>busy[t]);
+  if(lost.length){ nx.tables=[]; }
+  const was=noticeLbl(c);
+  if(nd!==c.d){ const old=dayDoc(c.d).items.find(y=>y.id===it.id); if(old){ old.deleted=true; saveItem(c.d,old); } nx.id=uid(); delete nx.deleted; saveItem(nd,nx);
+    noticeUndo={label:'변경',acts:[{d:c.d,item:before},{d:nd,item:Object.assign({},nx,{deleted:true})}]}; }
+  else { Object.assign(it,nx); saveItem(nd,it); noticeUndo={label:'변경',acts:[{d:c.d,item:before}]}; }
+  return `<b>변경했어요:</b> ${esc(was)} → <b>${esc(mdLbl(nd))} ${esc(nt)} ${esc(nx.pp||'')}명</b>${lost.length?` <span class="bad">· ${esc(tablesText(lost).join(','))} 자리가 그 시간에 차 있어서 테이블을 비웠어요</span>`:''}`;
+}
+function noticeUndoDo(){ const u=noticeUndo; if(!u) return; u.acts.forEach(a=>{ const doc=dayDoc(a.d); const i=doc.items.findIndex(y=>y.id===a.item.id); const v=JSON.parse(JSON.stringify(a.item)); if(i>=0) doc.items[i]=v; else doc.items.push(v); saveItem(a.d,v); });
+  noticeUndo=null; quickPasteMsg=`${u.label}을(를) 되돌렸어요`; const b=document.getElementById('qPasteRes'); if(b) b.innerHTML=quickPasteMsg; toast(`${u.label}을(를) 되돌렸어요`); }
+async function noticeApply(r,kind){
+  const box=()=>document.getElementById('qPasteRes'); const show=h=>{ quickPasteMsg=h; const b=box(); if(b) b.innerHTML=h; };
+  show(`${kind==='cancel'?'취소':'변경'} 알림이에요 · 해당 예약 찾는 중…`); await loadAll(true); const src=searchSource();
+  let cs=noticeFind(r,src); const live=cs.filter(c=>!isCxl(c.x));
+  if(kind==='cancel'){
+    let pick=live; if(r.date) pick=pick.filter(c=>c.d===r.date); if(r.time&&pick.length>1) pick=pick.filter(c=>c.x.time===r.time);
+    if(!pick.length){ const done=cs.find(c=>isCxl(c.x)&&(!r.date||c.d===r.date)); return show(done?`이미 취소돼 있어요: ${esc(noticeLbl(done))}`:`<span class="bad">취소할 예약을 찾지 못했어요 (${esc([r.name,r.date&&mdLbl(r.date),r.time].filter(Boolean).join(' '))}). 목록에서 직접 찾아 주세요.</span>`); }
+    if(pick.length>1){ noticeCands=pick.map(c=>({c,kind,r})); return show(`<b>어느 예약을 취소할까요?</b><br>${pick.map((c,i)=>`<button class="sugchip" data-ncand="${i}">${esc(noticeLbl(c))}</button>`).join(' ')}`); }
+    const h=noticeCancel(pick[0]); noticeGo(pick[0].d); return show(h+' <button class="sugchip" data-nundo="1">되돌리기</button>');
+  }
+  // 변경: 이미 새 내용과 같은 예약이 있으면 끝
+  const same=live.find(c=>c.d===(r.date||c.d)&&c.x.time===(r.time||c.x.time)&&(!r.pp||c.x.pp===r.pp));
+  if(same) return show(`이미 반영돼 있어요: ${esc(noticeLbl(same))}`);
+  if(!live.length) return show(`<span class="bad">바꿀 예약을 찾지 못했어요 (${esc(r.name||r.phone||'이름 없음')}). 새 예약이면 위 칸에 직접 넣어 주세요.</span>`);
+  if(live.length>1){ noticeCands=live.map(c=>({c,kind,r})); return show(`<b>어느 예약을 ${esc(mdLbl(r.date||live[0].d))} ${esc(r.time||'')}(으)로 바꿀까요?</b><br>${live.map((c,i)=>`<button class="sugchip" data-ncand="${i}">${esc(noticeLbl(c))}</button>`).join(' ')}`); }
+  const h=noticeChange(live[0],r); noticeGo(r.date||live[0].d); show(h+' <button class="sugchip" data-nundo="1">되돌리기</button>');
+}
+function noticeGo(d){ if(d&&d!==ui.date){ const keep=document.getElementById('qPaste')?.value||''; ui.date=d; loadDate(); const pa=document.getElementById('qPaste'); if(pa&&!pa.value) pa.value=keep; } else render(); }
 function quickPaste(text){
   const box=document.getElementById('qPasteRes'); if(!String(text||'').trim()){ quickPasteMsg=''; if(box) box.innerHTML=''; return; }
   const r=parseResText(text,todayStr()); quickRead();
+  if(r.cancel||r.change){ quickPasteOpen=true; noticeApply(r,r.cancel?'cancel':'change'); return; }
   const set=(k,v)=>{ if(!v) return; quick[k]=k==='time'?v.replace(':',''):v; const el=document.getElementById('q'+{time:'Time',name:'Name',pp:'PP',phone:'Phone',req:'Req'}[k]); if(el) el.value=quick[k]; };
   set('name',r.name); set('time',r.time); set('pp',r.pp); set('phone',r.phone); set('req',r.req);
   const got=[r.date&&mdLbl(r.date), r.time, r.pp&&r.pp+'명', r.name, r.phone].filter(Boolean);
@@ -1133,6 +1182,8 @@ function quickAdd(){
 document.getElementById('listPanel').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.closest('#quick') && !e.isComposing){ e.preventDefault(); quickAdd(); } });
 document.getElementById('listPanel').addEventListener('click',e=>{
   const b=e.target.closest('button');
+  if(b&&b.dataset.nundo){ noticeUndoDo(); return; }
+  if(b&&b.dataset.ncand!=null){ const k=noticeCands[+b.dataset.ncand]; if(!k) return; const h=k.kind==='cancel'?noticeCancel(k.c):noticeChange(k.c,k.r); noticeCands=[]; noticeGo(k.kind==='cancel'?k.c.d:(k.r.date||k.c.d)); quickPasteMsg=h+' <button class="sugchip" data-nundo="1">되돌리기</button>'; const bx=document.getElementById('qPasteRes'); if(bx) bx.innerHTML=quickPasteMsg; return; }
   if(b&&b.dataset.sug){ const ts=b.dataset.sug.split(' '); quick.tables=tablesInput(ts); const qt=document.getElementById('qTables'); if(qt){ qt.value=quick.tables; qt.dispatchEvent(new Event('input',{bubbles:true})); }
     toast(`${tablesText(ts).join(', ')} 을(를) 넣었어요`); const nx=document.getElementById(quick.name?'qPhone':'qName'); if(nx) nx.focus(); return; }
   if(!b){   // 줄 아무 곳이나 누르면 수정 (체크박스·전화번호 링크 제외)
@@ -1160,7 +1211,7 @@ document.getElementById('listPanel').addEventListener('change',e=>{
   if(e.target.dataset.done){ const it=dayDoc(ui.date).items.find(x=>x.id===e.target.dataset.done); if(it){ it.done=e.target.checked; saveItem(ui.date,it); } }
 });
 document.getElementById('listPanel').addEventListener('input',e=>{
-  if(e.target.id==='qPaste'){ quickPaste(e.target.value); return; }
+  if(e.target.id==='qPaste'){ clearTimeout(window._qpT); const v=e.target.value; window._qpT=setTimeout(()=>quickPaste(v),400); return; }
   if(e.target.closest && e.target.closest('#quick')){ quickRead(); syncBoardFromInput(quick.time, quick.tables); const t=normTime(quick.time); const ts=parseTables(quick.tables);
     const busy=t? busyTables(ui.date,t,null):{}; document.getElementById('qprev').innerHTML=quickPrev(t,ts,ts.filter(x=>busy[x]).map(x=>`${tLabel(x)}(${busy[x].name} ${busy[x].time})`)); return; }
 });
