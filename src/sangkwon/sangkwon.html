@@ -492,7 +492,7 @@ body.pub [data-tab=set]{display:none}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.08h</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.08i</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -1740,7 +1740,7 @@ function detailHtml(){
   const s=c.m?scoreOf(c.m,c):null, w=warnings(c,s), near=nearStores(c), fin=finCalc(c);
   const ext=`https://map.kakao.com/link/map/${encodeURIComponent(c.name)},${c.y},${c.x}`;
   const ok=s&&!stale(c), full=ok&&s.has&&s.total!=null, F=full?finalOf(c,s):null;
-  const nav=`<div class="secnav noprint"><a href="#s-sum">결론</a>${full?'<a href="#s-sys">평가표</a>':''}${full?'<a href="#s-diag">상권 개요</a><a href="#s-eval">영역 평가</a><a href="#s-demand">수요·공급</a><a href="#s-swot">SWOT</a><a href="#s-analog">우리 매장 비교</a>':''}${ok?'<a href="#s-items">세부 지표</a><a href="#s-comp">경쟁</a>':''}<a href="#s-fin">매물·예상 매출</a><a href="#s-check">현장 점검</a>${full?'<a href="#s-todo">확인 사항</a>':''}<a href="#s-method">분석 방법</a><button type="button" class="mobonly" data-act="foldall">모두 펴기·접기</button></div>`;
+  const nav=`<div class="secnav noprint"><a href="#s-sum">결론</a>${full?'<a href="#s-sys">평가표</a>':''}${full?'<a href="#s-diag">상권 개요</a><a href="#s-eval">영역 평가</a><a href="#s-demand">수요·공급</a><a href="#s-swot">SWOT</a><a href="#s-analog">우리 매장 비교</a>':''}${ok?'<a href="#s-comp">경쟁</a>':''}<a href="#s-fin">매물·예상 매출</a><a href="#s-check">현장 점검</a>${full?'<a href="#s-todo">확인 사항</a>':''}<a href="#s-method">분석 방법</a><button type="button" class="mobonly" data-act="foldall">모두 펴기·접기</button></div>`;
   const cover=`<div class="cover"><div><div class="eyebrow">${PUB?'일품집 출점 상권 보고서':'출점 검토 보고서'}</div><h1>${esc(c.name)}</h1>
       <div class="meta">${esc(c.addr)}${c.m&&c.m.region?' · '+esc(c.m.region):''}</div>
       <div class="meta" style="margin-top:4px">${PUB?'':`<span class="st" data-s="${esc(c.status)}">${esc(c.status)}</span>`}${c.m?` &nbsp;자료 기준 ${esc(c.m.at)}`:''}</div></div>
@@ -1782,11 +1782,10 @@ function detailHtml(){
     <div class="evgrid"><div>${evalRows(s)}</div><div>${radar([s.dims.filter(x=>!x.prop).map(x=>x.score)])}</div></div>
     ${rankChart(s)||swChart(s)?`<div class="vizrow" style="margin-top:18px">${rankChart(s)}${swChart(s)}</div>`:''}</div>`:''}
   ${full?demandHtml(s,c)+`<div class="card" id="s-swot"><div class="sh"><span class="no">05</span><h2>종합 진단 · SWOT</h2><span class="aside">자료에서 자동으로 뽑은 문장</span></div>${swotHtml(s,c)}<div style="margin-top:14px">${matrixHtml(s)}</div></div>`+analogHtml(s,c):''}
-  ${ok?`<div class="card" id="s-items"><div class="sh"><span class="no">07</span><h2>세부 지표</h2><span class="aside">지표값을 장어집 기준표로 0~100점으로 바꿔요</span></div>${detailTable(s)}</div>
-  <div class="card" id="s-comp"><div class="sh"><span class="no">08</span><h2>경쟁 현황</h2><span class="aside">장어 · 민물장어 음식점</span></div>
+  ${ok?`<div class="card" id="s-comp"><div class="sh"><span class="no">07</span><h2>경쟁 현황</h2><span class="aside">장어 · 민물장어 음식점</span></div>
     <div class="cmprow">${compMap(c)}<div><div class="ring" style="margin:0 0 12px"><div><b>${s.d.n300??'-'}</b><span>300m 안</span></div><div><b>${s.d.n500??'-'}</b><span>500m 안</span></div><div><b>${s.d.n1k??'-'}${c.m.compMore?'+':''}</b><span>1km 안</span></div></div>${compBands(c)}</div></div>
     ${c.m.comp&&c.m.comp.length?`<div class="tw"><table id="comp"><thead><tr><th>상호</th><th class="num">거리</th><th>주소</th>${PUB?'':'<th>경쟁 아님</th>'}</tr></thead><tbody>${c.m.comp.map(p=>{ const u=safeUrl(p.url), x=(c.compEx||{})[p.id]; return `<tr${x?' style="opacity:.45;text-decoration:line-through"':''}><td>${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:var(--navy)">${esc(p.name)}</a>`:esc(p.name)}${p.tel?`<div class="note">${esc(p.tel)}</div>`:''}</td><td class="num">${fmtM(p.dist)}</td><td class="note">${esc(p.addr)}${p.cat?`<div>${esc(String(p.cat).split(' > ').slice(-1)[0])}</div>`:''}</td>${PUB?'':`<td><input type="checkbox" class="chk" data-cx="${esc(String(p.id))}"${x?' checked':''} aria-label="${esc(p.name)} 경쟁에서 빼기"></td>`}</tr>`; }).join('')}</tbody></table></div>${PUB?'':'<div class="note" style="margin-top:4px">장어덮밥만 파는 일식집·횟집처럼 직접 경쟁이 아닌 곳은 "경쟁 아님"을 체크하면 점수·지도에서 빠져요.</div>'}${c.m.compMore?'<div class="note" style="margin-top:6px">1km 안에 45곳이 넘어 가까운 순 45곳만 보여요</div>':''}`:'<div class="note">반경 1km 안에 장어집이 없어요</div>'}</div>`:''}
-  <div class="card" id="s-fin"><div class="sh"><span class="no">09</span><h2>매물 조건 · 예상 매출</h2><span class="aside">${PUB?'매물 사실(평수·월세·권리금)':'매물 사실(평수·월세·권리금)만 넣어요 · 매출은 우리 매장 기준으로 자동 환산'}</span></div>
+  <div class="card" id="s-fin"><div class="sh"><span class="no">08</span><h2>매물 조건 · 예상 매출</h2><span class="aside">${PUB?'매물 사실(평수·월세·권리금)':'매물 사실(평수·월세·권리금)만 넣어요 · 매출은 우리 매장 기준으로 자동 환산'}</span></div>
     <div class="grid2">
       <label>이름<input type="text" data-f="name" value="${esc(c.name)}" maxlength="40"></label>
       ${PUB?'':`<label>상태<select data-f="status">${STATUSES.map(x=>`<option${c.status===x?' selected':''}>${x}</option>`).join('')}</select></label>`}
@@ -1803,21 +1802,21 @@ function detailHtml(){
     ${PUB?'':`<h3>메모</h3><textarea data-f="memo" maxlength="3000" placeholder="현장 느낌 · 건물 상태 · 협상 내용 등">${esc(c.memo||'')}</textarea>
     <div class="row sb noprint" style="margin-top:12px"><span class="note">고친 내용은 바로 저장돼요</span><button class="btn sm bad" data-act="del">후보지 삭제</button></div>`}</div>
   ${checkHtml(c)}
-  ${full?`<div class="card" id="s-todo"><div class="sh"><span class="no">11</span><h2>현장에서 확인할 사항</h2><span class="aside">점수에는 안 들어가는 항목 — 계약 전에 꼭 직접 확인</span></div><ul class="todo">${todoList(s,c).map(x=>`<li>${x}</li>`).join('')}</ul>
+  ${full?`<div class="card" id="s-todo"><div class="sh"><span class="no">10</span><h2>현장에서 확인할 사항</h2><span class="aside">점수에는 안 들어가는 항목 — 계약 전에 꼭 직접 확인</span></div><ul class="todo">${todoList(s,c).map(x=>`<li>${x}</li>`).join('')}</ul>
     <div class="disc">이 보고서는 카카오 지도 장소 수와 공공데이터(인구·실거래가·음식점 인허가·사업체)를 장어집 기준표로 점수화한 참고 자료예요. 사람이 매기는 점수는 넣지 않았어요. 유동인구·카드 매출은 포함되지 않았어요. ${PUB?'':'예상 매출은 우리 매장 실제 매출을 이 자리 조건으로 환산한 참고값이에요. '}${PUB?'<b>이 자료는 예상 매출액이나 수익을 약속하지 않아요.</b> 가맹사업법의 예상매출액 산정서가 아니며, 출점 판단은 현장 확인과 상담을 함께 거쳐 주세요.':'<b>본사 내부 판단용이며 가맹 희망자에게 보여 주지 마세요.</b> 점주에게 보여 줄 때는 위쪽 "점주용 보기"를 켜세요.'}</div></div>`:''}
   ${methodHtml(c,s)}
 `;
 }
 function checkHtml(c){
   const k=chkOf(c), lab={y:'됨',n:'안 됨'};
-  return `<div class="card" id="s-check"><div class="sh"><span class="no">10</span><h2>현장 필수 점검</h2><span class="aside">${k.done}/${CHK.length} 확인${k.bad.length?` · <b style="color:var(--warn)">${k.bad.length}개 안 됨</b>`:''}</span></div>
+  return `<div class="card" id="s-check"><div class="sh"><span class="no">09</span><h2>현장 필수 점검</h2><span class="aside">${k.done}/${CHK.length} 확인${k.bad.length?` · <b style="color:var(--warn)">${k.bad.length}개 안 됨</b>`:''}</span></div>
     <div class="note" style="margin-bottom:8px">한 번 방문 + 건물주·중개사 문의 + 건축물대장으로 확인하는 <b>사실</b>이에요. 점수가 아니라 됨/안 됨으로만 기록해요. <b>필수</b> 표시 항목이 "안 됨"이면 점수와 상관없이 출점 불가예요. 같은 버튼을 다시 누르면 지워져요.</div>
     <div class="ckl">${k.L.map(x=>`<div class="ck ${x.v}"><div><b>${esc(x.t)}</b>${chkKo(x)&&SYS().ko.field!==false?' <span class="ckm">필수</span>':''}<div class="note">${esc(x.h)}</div></div><div class="ckb">${['y','n'].map(v=>`<button type="button" data-ck="${x.k}" data-v="${v}" class="${x.v===v?'on '+v:''}" aria-pressed="${x.v===v}">${lab[v]}</button>`).join('')}</div></div>`).join('')}</div></div>`;
 }
 function methodHtml(c,s){
   const n=s?s.dims.reduce((a,dm)=>a+dm.subs.length,0):0;
   const src=[['카카오 지도','장어집·음식점·주차장·지하철·병원·예식장 등 30여 가지 장소를 반경별로 셈'],['행정안전부 주민등록 인구','행정동별 인구·연령 (30~59세 주 고객층)'],['국토교통부 아파트 실거래가','최근 1년 동네 평당가 — 구매력'],['행정안전부 음식점 인허가','동네 음식점 개업·폐업, 장어집 3년 생존율'],['소상공인시장진흥공단 상가정보','500m 안 상가·음식업 구성'],['통계청 사업체·종사자','3km 안 직장인 수 — 회식 수요']];
-  return `<div class="card" id="s-method"><div class="sh"><span class="no">12</span><h2>분석 방법 · 자료 출처</h2><span class="aside">누가 봐도 같은 결과가 나오는 방식</span></div>
+  return `<div class="card" id="s-method"><div class="sh"><span class="no">11</span><h2>분석 방법 · 자료 출처</h2><span class="aside">누가 봐도 같은 결과가 나오는 방식</span></div>
     <div class="mth">${src.map(([a,b])=>`<div><b>${a}</b><span>${b}</span></div>`).join('')}</div>
     <ul class="todo" style="margin-top:12px">
       <li>지표 ${n||'40여'}개를 <b>장어집 기준표</b>(50 = 보통)로 0~100점으로 바꾸고, 외식·주거·집객·접근·차량 상권·경쟁·매물 7개 영역으로 묶어요. 사람이 매기는 별점은 넣지 않아요.</li>
@@ -1875,7 +1874,7 @@ function setHtml(){
     <div class="cands" id="scands"></div></div>
   ${sysSetHtml()}
   <div class="card"><div class="sh"><h2>점수 기준 — 장어집 기준표</h2></div>
-    <div class="note">다른 상권과 비교하지 않고, <b>장어집에 필요한 조건</b>을 기준표로 바로 0~100점으로 바꿔요(50 = 보통). 예: 500m 안 주차장 12곳 → 80점, 가까운 지하철 1km → 55점, 500m 안 장어집 2곳 → 60점. 지표별 기준은 후보지 상세 → <b>세부 지표</b> 표의 "점수 기준" 칸에 그대로 나와 있어요. 기준 숫자는 내 판단으로 정한 값이라, 우리 매장 실제 결과를 보며 조정해야 해요.</div></div>
+    <div class="note">다른 상권과 비교하지 않고, <b>장어집에 필요한 조건</b>을 기준표로 바로 0~100점으로 바꿔요(50 = 보통). 예: 500m 안 주차장 12곳 → 80점, 가까운 지하철 1km → 55점, 500m 안 장어집 2곳 → 60점. 기준 숫자는 내 판단으로 정한 값이라, 우리 매장 실제 결과를 보며 조정해야 해요.</div></div>
   <div class="card"><div class="sh"><h2>영역 비중</h2></div><div class="note">영역별 중요도. 합이 100이 아니어도 비율로 계산해요. 바꾸면 저장된 후보지 점수도 바로 다시 계산돼요.</div>
     <div class="grid2" style="margin-top:8px">${DIMS.map(i=>`<label>${esc(i.t)}<input type="number" data-w="${i.k}" value="${esc(DB.weights[i.k])}" min="0" max="100"></label>`).join('')}</div>
     <button class="btn sm" data-act="wreset" style="margin-top:10px">처음 값으로</button></div>
@@ -1931,7 +1930,7 @@ function softRender(){
   if(TAB!=='detail') return;
   const c=DB.cands.find(x=>x.id===CUR); if(!c) return;
   const tmp=document.createElement('div'); tmp.innerHTML=ct(detailHtml());
-  ['rcard','s-diag','s-eval','s-items','s-comp','s-todo'].forEach(id=>{ const a=document.getElementById(id), b=tmp.querySelector('#'+id); if(a&&b) a.replaceWith(b); });
+  ['rcard','s-diag','s-eval','s-comp','s-todo'].forEach(id=>{ const a=document.getElementById(id), b=tmp.querySelector('#'+id); if(a&&b) a.replaceWith(b); });
   const fr=$('#finres'); if(fr) fr.innerHTML=finRes(c);
   const tb=$('[data-f=tables]'); if(tb) tb.placeholder=c.area?'비우면 '+Math.max(1,Math.round(c.area/(+DB.fin.pyPerTable||3.3)))+'개로 추정':'모르면 비움';
 }
