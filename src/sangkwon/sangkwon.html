@@ -478,7 +478,7 @@ body.ui-notion .mapbox #map{border-radius:4px}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07k</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · 본사 내부 자료 · <b title="화면 버전">v10.07l</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -637,8 +637,9 @@ function migrate(j){
   return o;
 }
 // 본점 홀 매출 월평균(2025-11~2026-09 POS, 직판장 제외, 만원) — 사용자 요청으로 기본값으로 넣음(2026-10-07). 한 번만 채우고, 사용자가 지우거나 바꾸면 그대로 둠.
-const HQ_SALES=12490;
-function seedSales(){ if(DB.salesSeed) return; const st=DB.stores.find(x=>/본점|본사/.test(x.name||''))||(DB.stores.length===1?DB.stores[0]:null); if(!st) return; if(!(+st.sales>0)) st.sales=HQ_SALES; DB.salesSeed=1; save(); }
+// 본점 월매출(만원) = 홀(상차림·식사·주류) 11개월 평균 12,490 + 장어(일품수산 POS, 6~9월 평균 31,489를 홀 계절 지수 평균 1.125로 나눠 연평균 27,990) — 2026-10 사용자 제공
+const HQ_HALL=12490, HQ_EEL=27990, HQ_SALES=HQ_HALL+HQ_EEL;
+function seedSales(){ if(DB.salesSeed>=2) return; const st=DB.stores.find(x=>/본점|본사/.test(x.name||''))||(DB.stores.length===1?DB.stores[0]:null); if(!st) return; if(!DB.salesSeed){ if(!(+st.sales>0)) st.sales=HQ_SALES; } else if(+st.sales===HQ_HALL) st.sales=HQ_SALES; DB.salesSeed=2; save(); }
 function fixSysParts(){ const P=DB.sys&&DB.sys.parts; if(P&&+P.mkt===35&&+P.comp===15&&+P.prop===15&&+P.field===25&&+P.analog===10) delete DB.sys.parts; else if(P) delete P.field; }
 function load(){ try{ const j=migrate(JSON.parse(localStorage.getItem(STORE_KEY))); if(j) DB=j; }catch(e){} try{ seedSales(); }catch(e){} try{ fixSysParts(); }catch(e){} }
 function save(){ _hrefC=null; try{ localStorage.setItem(STORE_KEY,JSON.stringify(DB)); }catch(e){ toast('이 브라우저에 저장하지 못했어요. 설정 → 백업 파일로 받아 두세요'); } }

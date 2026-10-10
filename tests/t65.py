@@ -98,8 +98,10 @@ async def main():
     await pg.evaluate("DB.stores=[]; save(); render()")
     r=await pg.evaluate("(()=>{ DB.stores=[{name:'일품집 본점',addr:'x'}]; DB.salesSeed=0; seedSales(); const a=DB.stores[0].sales; DB.stores[0].sales=''; seedSales(); const b=DB.stores[0].sales; DB.stores=[]; save(); return [a,b]; })()")
     r2=await pg.evaluate("(()=>{ DB.stores=[{name:'일품집 범어',addr:'x'}]; DB.salesSeed=0; seedSales(); const a=DB.stores[0].sales; DB.stores=[{name:'유천점'},{name:'다른점'}]; DB.salesSeed=0; seedSales(); const b=DB.stores[0].sales; DB.stores=[]; DB.salesSeed=0; save(); return [a,b??''] })()")
-    ok('    이름에 본점이 없어도 매장이 1곳뿐이면 채움, 여러 곳이면 안 채움', r2==[12490,''], r2)
-    ok('20) 본점 월매출 기본값 12,490만원을 한 번만 채움(지우면 다시 안 채움)', r==[12490,''], r)
+    ok('    이름에 본점이 없어도 매장이 1곳뿐이면 채움, 여러 곳이면 안 채움', r2==[40480,''], r2)
+    ok('20) 본점 월매출 기본값 40,480만원(홀+장어)을 한 번만 채움(지우면 다시 안 채움)', r==[40480,''], r)
+    r3=await pg.evaluate("(()=>{ DB.stores=[{name:'일품집 본점',sales:12490},{name:'유천점',sales:12490}]; DB.salesSeed=1; seedSales(); const a=[DB.stores[0].sales,DB.stores[1].sales]; DB.stores=[{name:'일품집 본점',sales:9000}]; DB.salesSeed=1; seedSales(); a.push(DB.stores[0].sales); DB.stores=[]; DB.salesSeed=0; save(); return a })()")
+    ok('    예전 기본값 12,490(홀만)은 40,480으로 바꾸고, 직접 고친 값은 그대로', r3==[40480,12490,9000], r3)
     # 예전 기록(비교 기준이 있던 것)을 불러와도 문제없이 열림
     old={"v":2,"stores":[],"zoneKm":2,"weights":{"hub":20,"fam":20,"biz":15,"acc":20,"comp":25,"prop":15},"benchNames":["동성로"],"bench":{"at":"2026-10-05","mode":"area","points":[]},"cands":[]}
     await pg.evaluate("o=>{ localStorage.setItem('ilpum-sk-v1',JSON.stringify(o)); }",old); await pg.reload(); await pg.wait_for_timeout(500)
