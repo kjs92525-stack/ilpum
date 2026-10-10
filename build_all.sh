@@ -19,6 +19,7 @@ for src,dst in [('src/reserve/reserve.html','dist/reserve.html'),('src/order/ord
     open(dst,'w',encoding='utf-8').write(s)
 PY
 python3 src/payroll/build.py
+python3 tools/gen_notify_parse.py
 python3 - <<'PY'
 import json
 k=json.load(open('keys.json')); m=open('src/migrate/mig.js',encoding='utf-8').read().replace('if (typeof module','if (false && typeof module')
