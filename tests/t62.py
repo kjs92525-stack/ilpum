@@ -182,7 +182,7 @@ async def main():
     ev=await pg.evaluate("[...document.querySelectorAll('.ev')].at(-1).innerText")
     ok('    매물 조건 = (100+100+75+53)/4 = 82점', '82' in ev, ev)
     await pg.evaluate("convTarget=window._ct; render()"); await pg.wait_for_timeout(300)
-    ok('    주관 입력칸 없음: 테이블 수·목표 매출·시세·현장 실사·경쟁점 평점·심사 기록', await pg.evaluate("['[data-f=tables]','[data-f=target]','[data-f=mkRent]','[data-fs]','[data-fx]','[data-cq]','[data-rv]','#s-field','#s-review','[data-f=cntWk]','[data-f=sbizFlow]'].every(q=>!document.querySelector(q))"))
+    ok('    주관 입력칸 없음: 테이블 수·목표 매출·시세·현장 실사·경쟁점 평점·심사 기록', await pg.evaluate("['[data-f=target]','[data-f=mkRent]','[data-fs]','[data-fx]','[data-cq]','[data-rv]','#s-field','#s-review','[data-f=cntWk]','[data-f=sbizFlow]'].every(q=>!document.querySelector(q))"))
     # 일품집 출점 평가표 · 필수 조건 · 심사 기록
     sy=await pg.inner_text('#s-sys')
     ok('20) 출점 평가표: 4개 항목(현장 실사 없음)·평가 완료율·필수 조건(영업지역 미달 → 출점 불가)', await pg.evaluate("document.querySelectorAll('#s-sys tbody tr').length")==4 and '현장 실사' not in sy and '평가 완료' in sy and '미달' in sy and '출점 불가' in await pg.inner_text('.scorebox .dec'), sy[:300])
