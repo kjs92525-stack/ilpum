@@ -27,12 +27,12 @@ NAVER="""[네이버 예약] 새로운 예약이 접수되었습니다.
 예약번호 : 1234567890
 이용일시 : 2026.10.12.(월) 오후 6:30
 상품명 : 장어 정식
-인원 : 성인 4명, 어린이 1명
+인원 : 성인 3명, 어린이 1명
 요청사항 : 아기의자 부탁드려요
 연락처 : 010-1234-5678
 결제금액 : 0원"""
 CASES=[
- (NAVER, dict(date='2026-10-12',time='18:30',pp='4+1',name='홍길동',phone='010-1234-5678',req='아기의자 부탁드려요')),
+ (NAVER, dict(date='2026-10-12',time='18:30',pp='3+1',name='홍길동',phone='010-1234-5678',req='아기의자 부탁드려요')),
  ("안녕하세요 10/12 저녁 7시에 4명 예약 가능할까요? 김철수 01098765432", dict(date='2026-10-12',time='19:00',pp='4',name='김철수',phone='010-9876-5432')),
  ("내일 6시반 3명 이영희입니다 010 2222 3333", dict(date='2026-10-11',time='18:30',pp='3',name='이영희',phone='010-2222-3333')),
  ("10월 15일 18시 성인6 아이2 박민수님", dict(date='2026-10-15',time='18:00',pp='6+2',name='박민수')),
@@ -64,9 +64,10 @@ async def main():
     # 2) 화면: 붙여넣기 → 칸 채움·날짜 이동
     await pg.click('#qPasteBox summary'); await pg.fill('#qPaste', NAVER); await pg.wait_for_timeout(1200)
     v=await pg.evaluate("({n:qName.value,t:qTime.value,p:qPP.value,ph:qPhone.value,r:qReq.value,d:ui.date})")
-    chk('칸 채움 + 날짜 10/12로 이동', v=={'n':'홍길동','t':'1830','p':'4+1','ph':'010-1234-5678','r':'아기의자 부탁드려요','d':'2026-10-12'}, str(v))
+    chk('칸 채움 + 날짜 10/12로 이동', v=={'n':'홍길동','t':'1830','p':'3+1','ph':'010-1234-5678','r':'아기의자 부탁드려요','d':'2026-10-12'}, str(v))
     res=await pg.inner_text('#qPasteRes'); chk('읽은 내용 안내', '10/12' in res and '옮겼어요' in res, res)
     # 3) 추천: 5명, 18:30 → 1번은 18:00 예약이라 제외, 6번은 19:00 예약이라 제외, 6인석 7번 추천
+    await pg.fill('#qPP','4+1'); await pg.wait_for_timeout(300)
     sg=await pg.evaluate("[...document.querySelectorAll('#qprev .sugchip')].map(b=>b.dataset.sug)")
     chk('추천 칩에 바쁜 자리 없음', sg and '1' not in [x for s in sg for x in s.split()] and '6' not in [x for s in sg for x in s.split()], str(sg))
     chk('5명이면 6인석 7번이 먼저', sg and sg[0]=='7', str(sg))
@@ -77,11 +78,20 @@ async def main():
     await pg.fill('#qTables',''); await pg.fill('#qPP','2'); await pg.wait_for_timeout(300)
     sg2=await pg.evaluate("[...document.querySelectorAll('#qprev .sugchip')].map(b=>b.dataset.sug)")
     chk('2명이면 작은 자리, 큰 자리·룸은 뒤로', sg2 and all(s in ('2','3','4','5') for s in sg2), str(sg2))
-    await pg.fill('#qPP','4+1'); await pg.wait_for_timeout(200); await pg.click('#qprev .sugchip >> nth=0'); await pg.wait_for_timeout(200)
+    await pg.fill('#qPP','3+1'); await pg.wait_for_timeout(200); await pg.click('#qprev .sugchip >> nth=0'); await pg.wait_for_timeout(200)
     n0=len(SAVED); await pg.press('#qName','Enter'); await pg.wait_for_timeout(1500)
     items=await pg.evaluate("items('2026-10-12').map(x=>[x.name,x.time,x.pp,x.tables.join(),x.phone,x.req])")
-    chk('Enter로 10/12에 추가됨', ['홍길동','18:30','4+1','7','010-1234-5678','아기의자 부탁드려요'] in items, str(items))
+    chk('Enter로 10/12에 추가됨', any(x[:3]==['홍길동','18:30','3+1'] and x[3] and x[4:]==['010-1234-5678','아기의자 부탁드려요'] for x in items), str(items))
     chk('추가 뒤 붙여넣기 칸 비움', await pg.input_value('#qPaste')=='' )
+    chk('자동 입력 표시 + 확인 버튼', await pg.evaluate("items('2026-10-12').find(x=>x.name==='홍길동').auto")=='new' and await pg.is_visible('.res.auto [data-autook]'))
+    await pg.click('.res.auto [data-autook]'); await pg.wait_for_timeout(300)
+    chk('확인 누르면 원래 색', await pg.evaluate("!items('2026-10-12').find(x=>x.name==='홍길동').auto && !document.querySelector('.res.auto')"))
+    await pg.fill('#qPaste', NAVER.replace('성인 3명, 어린이 1명','성인 5명')); await pg.wait_for_timeout(900)
+    chk('5인 이상은 자동 입력 안 함', '5인 이상' in await pg.inner_text('#qPasteRes') and await pg.input_value('#qName')=='', await pg.inner_text('#qPasteRes'))
+    r=await pg.evaluate("t=>parseResText(t,'2026-10-10')", "예약자\n김창가\n이용일시\n2026.10.12.(월) 오후 6:00\n인원\n2명\n요청사항\n창가 자리로 부탁드려요\n아이 의자 1개도요\n연락처\n010-1111-0000")
+    w=await pg.evaluate("(()=>{ const st=STORES.find(z=>z.id===SID); const was=st.is_hq; st.is_hq=true; const a=suggestTables('2026-10-12','12:00','2','창가 자리 부탁').map(x=>x.ts.join()); st.is_hq=was; return a; })()")
+    chk('창가 요청이면 창가 자리(1~5) 먼저', w and all(x in ('1','2','3','4','5') for x in w), str(w))
+    chk('요청사항 여러 줄 모두', r['req']=='창가 자리로 부탁드려요 아이 의자 1개도요', r['req'])
     # 4) 같은 예약 다시 붙이면 경고 → 취소 문자는 자동 취소 처리
     await pg.fill('#qPaste', NAVER); await pg.wait_for_timeout(1200)
     chk('이미 있는 예약 경고', '이미 있는 예약' in await pg.inner_text('#qPasteRes'), await pg.inner_text('#qPasteRes'))

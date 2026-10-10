@@ -29,7 +29,7 @@ async def handler(r):
   await J([])
 S={"ses":{"access_token":"tok","refresh_token":"r","expires_at":int(datetime.datetime(2026,10,10,15,0).timestamp())+3000,"user":{"email":"x@ilpum.invalid"}}}
 CXL="일품집 본점, 예약취소\n우상태님, 일품집 본점 예약, 2026.10.11.(일) 오후 5:30, 4명 (성인4), 예약이 취소되었습니다."
-CHG="일품집 본점, 예약변경\n우상태님, 일품집 본점 예약, 2026.10.12.(월) 오후 6:00, 5명 (성인5), 예약이 변경되었습니다."
+CHG="일품집 본점, 예약변경\n우상태님, 일품집 본점 예약, 2026.10.12.(월) 오후 6:00, 3명 (성인3), 예약이 변경되었습니다."
 def live(d): return [x for x in DB.get(d,{"items":[]})["items"] if not x.get("deleted")]
 async def main():
   ok=True
@@ -50,6 +50,7 @@ async def main():
     m=await paste(CXL)
     w=[x for x in live("2026-10-11") if x["name"]=="우상태"]
     chk('취소 알림 → 서버 예약에 취소 표시', w and '취소' in w[0]["tnote"], str(w)+' | '+m)
+    chk('테이블 칸에 네이버취소, 삭제 안 함, 자동 취소 표시', w and w[0]['tnote']=='네이버취소' and not w[0].get('deleted') and w[0].get('auto')=='cxl', str(w))
     chk('다른 손님은 그대로', [x["tnote"] for x in live("2026-10-11") if x["name"]=="다른손님"]==[""])
     chk('입력 칸은 안 채움(새 예약 아님)', await pg.input_value('#qName')=='')
     chk('그 날짜로 이동', await pg.evaluate("ui.date")=='2026-10-11')
@@ -59,7 +60,8 @@ async def main():
     # 2) 변경 (날짜 이동 + 인원·시간)
     m=await paste(CHG)
     old=[x for x in live("2026-10-11") if x["name"]=="우상태"]; new=[x for x in live("2026-10-12") if x["name"]=="우상태"]
-    chk('변경 → 10/11에서 빠지고 10/12 18:00 5명으로', not old and new and new[0]["time"]=='18:00' and new[0]["pp"]=='5', str(new)+' | '+m)
+    chk('변경 → 10/11에서 빠지고 10/12 18:00 3명으로', not old and new and new[0]["time"]=='18:00' and new[0]["pp"]=='3', str(new)+' | '+m)
+    chk('변경 예약에 자동 변경 표시', new and new[0].get('auto')=='chg')
     m2=await paste(CHG+" ")
     chk('같은 변경을 다시 붙이면 "이미 반영"', '이미 반영' in m2 and len([x for x in live("2026-10-12") if x["name"]=="우상태"])==1, m2)
     # 3) 후보 여러 개 → 고르기
@@ -68,6 +70,12 @@ async def main():
     chk('같은 날 김철수 2건 → 고르기 버튼 2개, 자동 취소 안 함', n==2 and all('취소' not in x["tnote"] for x in live("2026-10-13")), m)
     await pg.click('#qPasteRes [data-ncand="1"]'); await pg.wait_for_timeout(1500)
     chk('고른 18:00 예약만 취소', [(x["time"],'취소' in x["tnote"]) for x in live("2026-10-13")]==[("12:00",False),("18:00",True)], str(live("2026-10-13")))
+    # 3-1) 5인 이상은 취소·변경 안 함
+    DB["2026-10-14"]={"rev":1,"items":[item(5,"단체손님","18:00",["6"],"8")]}
+    m=await paste("단체손님님, 일품집 본점 예약, 2026.10.14.(수) 오후 6:00, 8명 (성인8), 예약이 취소되었습니다.")
+    chk('8명 예약은 자동 취소 안 함', '5인 이상' in m and live("2026-10-14")[0]["tnote"]=="", m)
+    m=await paste("우상태님, 일품집 본점 예약, 2026.10.12.(월) 오후 7:00, 6명 (성인6), 예약이 변경되었습니다.")
+    chk('6명으로 바뀌는 변경도 안 함', '5인 이상' in m and [x["time"] for x in live("2026-10-12") if x["name"]=="우상태"]==["18:00"], m)
     # 4) 요청사항에 "취소" 글자가 있어도 새 예약으로 처리
     r=await pg.evaluate("t=>parseResText(t,'2026-10-10')", "박영희님 10/20 6시 2명\n요청사항 : 늦으면 취소될 수 있나요")
     chk('요청사항 속 "취소"는 무시', not r['cancel'] and not r['change'] and r['req']=='늦으면 취소될 수 있나요', str(r))
