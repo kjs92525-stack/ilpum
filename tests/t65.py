@@ -124,6 +124,15 @@ async def main():
     ok('20) 본점 월매출 기본값 40,480만원(홀+장어)을 한 번만 채움(지우면 다시 안 채움)', r==[40480,''], r)
     r3=await pg.evaluate("(()=>{ DB.stores=[{name:'일품집 본점',sales:12490},{name:'유천점',sales:12490}]; DB.salesSeed=1; seedSales(); const a=[DB.stores[0].sales,DB.stores[1].sales]; DB.stores=[{name:'일품집 본점',sales:9000}]; DB.salesSeed=1; seedSales(); a.push(DB.stores[0].sales); DB.stores=[]; DB.salesSeed=0; save(); return a })()")
     ok('    예전 기본값 12,490(홀만)은 40,480으로 바꾸고, 직접 고친 값은 그대로', r3==[40480,12490,9000], r3)
+    await pg.evaluate("DB.stores=[]; DB.salesSeed=0; save(); go('detail',DB.cands[0].id)"); await pg.wait_for_timeout(300)
+    ok('23) 우리 매장이 없으면 예상 매출 칸에 "본점 주소만" 입력칸', await pg.is_visible('#hqaddr') and '본점 주소만' in await pg.inner_text('#finres'))
+    await pg.fill('#hqaddr','대구 수성구 들안로 5'); await pg.click('[data-act=hqadd]')
+    await pg.wait_for_function("DB.stores.length===1 && DB.stores[0].m && DB.stores[0].mv===STORE_MV",timeout=60000); await pg.wait_for_timeout(400)
+    hq=await pg.evaluate("[DB.stores[0].name, DB.stores[0].sales, !!convEst(DB.cands[0])]")
+    ok('    본점 등록 → 매출 40,480 자동 · 자리 자동 측정 · 예상 매출 바로 나옴', hq==['본점',40480,True] and '예상 월매출' in await pg.inner_text('#finres'), hq)
+    await pg.evaluate("DB.stores[0].mv=1; save()"); await pg.reload(); await pg.wait_for_function("DB.stores[0].mv===STORE_MV",timeout=60000)
+    ok('    예전 방식으로 잰 우리 매장은 열 때 자동으로 다시 잼', True)
+    await pg.evaluate("DB.stores=[]; DB.salesSeed=0; save(); render()")
     # 예전 기록(비교 기준이 있던 것)을 불러와도 문제없이 열림
     old={"v":2,"stores":[],"zoneKm":2,"weights":{"hub":20,"fam":20,"biz":15,"acc":20,"comp":25,"prop":15},"benchNames":["동성로"],"bench":{"at":"2026-10-05","mode":"area","points":[]},"cands":[]}
     await pg.evaluate("o=>{ localStorage.setItem('ilpum-sk-v1',JSON.stringify(o)); }",old); await pg.reload(); await pg.wait_for_timeout(500)

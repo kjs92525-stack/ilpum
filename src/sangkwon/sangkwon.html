@@ -489,7 +489,7 @@ body.pub [data-tab=set]{display:none}
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.08b</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.08c</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm mobonly noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -664,7 +664,8 @@ function migrate(j){
 // 본점 홀 매출 월평균(2025-11~2026-09 POS, 직판장 제외, 만원) — 사용자 요청으로 기본값으로 넣음(2026-10-07). 한 번만 채우고, 사용자가 지우거나 바꾸면 그대로 둠.
 // 본점 월매출(만원) = 홀(상차림·식사·주류) 11개월 평균 12,490 + 장어(일품수산 POS, 6~9월 평균 31,489를 홀 계절 지수 평균 1.125로 나눠 연평균 27,990) — 2026-10 사용자 제공
 const HQ_HALL=12490, HQ_EEL=27990, HQ_SALES=HQ_HALL+HQ_EEL;
-function seedSales(){ if(DB.salesSeed>=2) return; const st=DB.stores.find(x=>/본점|본사/.test(x.name||''))||(DB.stores.length===1?DB.stores[0]:null); if(!st) return; if(!DB.salesSeed){ if(!(+st.sales>0)) st.sales=HQ_SALES; } else if(+st.sales===HQ_HALL) st.sales=HQ_SALES; DB.salesSeed=2; save(); }
+function hqStore(){ return DB.stores.find(x=>/본점|본사/.test(x.name||''))||DB.stores.find(x=>!/점$/.test((x.name||'').trim()))||(DB.stores.length===1?DB.stores[0]:null); }
+function seedSales(){ if(DB.salesSeed>=2) return; const st=hqStore(); if(!st) return; if(!DB.salesSeed){ if(!(+st.sales>0)) st.sales=HQ_SALES; } else if(+st.sales===HQ_HALL) st.sales=HQ_SALES; DB.salesSeed=2; save(); }
 function fixSysParts(){ const P=DB.sys&&DB.sys.parts; if(P&&+P.mkt===35&&+P.comp===15&&+P.prop===15&&+P.field===25&&+P.analog===10) delete DB.sys.parts; else if(P) delete P.field; }
 function load(){ try{ const j=migrate(JSON.parse(localStorage.getItem(STORE_KEY))); if(j) DB=j; }catch(e){} try{ seedSales(); }catch(e){} try{ fixSysParts(); }catch(e){} }
 function save(){ _hrefC=null; try{ localStorage.setItem(STORE_KEY,JSON.stringify(DB)); }catch(e){ toast('이 브라우저에 저장하지 못했어요. 설정 → 백업 파일로 받아 두세요'); } }
@@ -1387,7 +1388,7 @@ function scoreRing(v,grade){
 }
 function salesBullet(c){
   const E=PUB?null:convEst(c);
-  if(!E) return `<div class="db-empty">${icon('pulse')}<div><b>${PUB?'매출 안내':'예상 월매출'}</b><p>${PUB?'예상 매출은 본사 상담에서 따로 안내해요.':'설정 → 우리 매장에 <b>월매출</b>을 넣고 "우리 매장 분석하기"를 누르면 예상 월매출이 여기 나와요.'}</p></div></div>`;
+  if(!E) return `<div class="db-empty">${icon('pulse')}<div><b>${PUB?'매출 안내':'예상 월매출'}</b><p>${PUB?'예상 매출은 본사 상담에서 따로 안내해요.':!DB.stores.length?'아래 "매물 조건 · 예상 매출"에서 <b>본점 주소만</b> 한 번 등록하면 자동으로 나와요.':(storeBusy||DB.stores.some(needMeasure))?'우리 매장 자리를 재는 중이에요…':'"다시 분석"을 누르면 나와요.'}</p></div></div>`;
   const mx=E.hi*1.15, X=v=>(v/mx*100).toFixed(1)+'%', days=+DB.fin.days||26;
   return `<div class="db-h"><span class="db-ic">${icon('pulse')}</span><b>예상 월매출</b><span class="db-sub">만원 · 우리 매장 기준 환산 · 내부 참고값</span></div>
     <div class="sb-big"><div><span>예상 월매출</span><strong>${fmtN(E.v)}<small>만</small></strong><em>${fmtN(E.lo)} ~ ${fmtN(E.hi)}</em></div><div><span>하루 예상 매출</span><strong class="mut">${fmtN(Math.round(E.v/days))}<small>만</small></strong><em>${days}일 영업 기준</em></div></div>
@@ -1439,12 +1440,17 @@ function dashHtml(s,c,F){
 const ANALOG=[['food500','음식점 500m'],['meat500','고깃집 500m'],['pub500','술집 500m'],['apt1k','아파트 1km'],['popTot','주민 인구'],['pCore','30~50대 비율'],['aptPy','아파트 평당가'],['subD','지하철 거리'],['park500','주차장 500m'],['n500','장어집 500m'],['compIdx','경쟁 지수'],['restOn','영업 음식점'],['pull','집객시설'],['bus300','버스정류장 300m']];
 const ANALOG_FMT={pCore:v=>v+'%',aptPy:v=>fmtN(v)+'만',subD:v=>fmtM(v),compIdx:v=>(+v).toFixed(1)};
 let storeBusy=false;
-async function measureStores(){
+// 우리 매장 자리 측정 형식이 바뀌면(허프 모형용 자료 추가 등) 올림 → 자동으로 다시 잼
+const STORE_MV=2;
+const needMeasure=st=>st.x&&(!st.m||st.m.v!==2||st.mv!==STORE_MV);
+// 우리 매장 자리는 자동으로 잼 (2026-10-10 사용자: 매출 다 줬는데 내가 또 해야 해?) — 지도 열릴 때·매장 추가할 때
+function autoStores(){ if(K&&!storeBusy&&DB.stores.some(needMeasure)) measureStores(true); }
+async function measureStores(auto){
   if(!K) return toast('카카오 지도가 아직 안 열렸어요'); if(storeBusy) return;
-  const L=DB.stores.filter(x=>x.x); if(!L.length) return toast('먼저 우리 매장 주소를 넣어 주세요');
+  const L=DB.stores.filter(x=>x.x&&(auto!==true||needMeasure(x))); if(!L.length) return auto===true?0:toast('먼저 우리 매장 주소를 넣어 주세요');
   storeBusy=true; render();
-  try{ for(let i=0;i<L.length;i++){ toast(`우리 매장 ${i+1}/${L.length} · ${L[i].name} 분석 중…`); try{ L[i].m=await measure({x:L[i].x,y:L[i].y},()=>{}); L[i].at=today(); }catch(e){ L[i].err='측정 실패'; } }
-    save(); toast('우리 매장 분석을 마쳤어요'); }
+  try{ for(let i=0;i<L.length;i++){ toast(`우리 매장 ${i+1}/${L.length} · ${L[i].name} 분석 중…`); try{ L[i].m=await measure({x:L[i].x,y:L[i].y},()=>{}); L[i].at=today(); L[i].mv=STORE_MV; delete L[i].err; }catch(e){ L[i].err='측정 실패'; } }
+    save(); toast(auto===true?'우리 매장 자리를 재서 예상 매출을 계산했어요':'우리 매장 분석을 마쳤어요'); }
   finally{ storeBusy=false; render(); }
 }
 function analogSim(dc,ds){
@@ -1504,11 +1510,16 @@ function convEst(c){
   const r=x=>Math.round(x/100)*100;
   return {list:L,v:r(v),lo:r(lo),hi:r(hi),band,cap:cap&&r(cap),capped:cap!=null&&r(v)>=r(cap),tb,huff:L.every(x=>x.huff)};
 }
+function estMissing(){
+  if(!DB.stores.length) return `<div class="infobox" style="margin:10px 0"><b>본점 주소만 한 번 넣어 주세요.</b> 본점 매출(월 ${fmtN(HQ_SALES)}만원)은 이미 들어 있어서, 자리만 알면 예상 매출을 자동으로 계산해요.<div class="row" style="margin-top:8px"><input type="text" id="hqaddr" placeholder="본점 주소 (예: 대구 ○○구 ○○로 123)" style="flex:1;min-width:200px"><button class="btn pri" data-act="hqadd">본점 등록</button></div></div>`;
+  if(storeBusy||DB.stores.some(needMeasure)) return `<div class="infobox" style="margin:10px 0">우리 매장 자리를 재는 중이에요… 끝나면 예상 매출이 바로 나와요 (매장당 약 10초).</div>`;
+  if(!DB.stores.some(x=>+x.sales>0)) return `<div class="infobox" style="margin:10px 0">설정 → 우리 매장에 월매출이 비어 있어요. 본점 칸에 월매출을 넣어 주세요.</div>`;
+  return `<div class="infobox" style="margin:10px 0">이 후보지는 예전 방식으로 분석돼 있어요. 위의 <b>"다시 분석"</b>을 누르면 예상 매출이 나와요.</div>`;
+}
 function convHtml(c,inFin){
   if(PUB) return '';
   const E=convEst(c);
-  if(!E){ if(inFin) return ''; const has=DB.stores.some(x=>+x.sales>0), meas=DB.stores.some(x=>x.m&&x.m.v===2);
-    return `<div class="infobox" style="margin:10px 0">${!has?'설정 → 우리 매장에 <b>월매출</b>을 넣으면':'설정 → 우리 매장 → <b>"우리 매장 분석하기"</b>를 누르면'} 그 매장 매출을 이 후보지 조건으로 바꿔 본 <b>예상 매출</b>을 보여 줘요.${has&&!meas?'':''}</div>`; }
+  if(!E){ if(inFin) return ''; return estMissing(); }
   const fin=finCalc(c), base=E.list.map(x=>esc(x.st.name)).join('·');
   const line=`<b>${base} 기준 예상 월매출: 약 ${fmtN(E.lo)}~${fmtN(E.hi)}만원</b> (가운데 ${fmtN(E.v)}만원)`;
   if(inFin) return `<div class="note" style="margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper2,#f7f7f5)">${line}<div style="margin-top:4px">우리 매장 실제 매출을 수요·경쟁·주차 차이로 보정한 <b>내부 참고값</b>이에요. 예측 아님 · 가맹 희망자에게 보여 주면 안 돼요.</div></div>`;
@@ -1699,7 +1710,7 @@ function execList(c,s,F,fin){
   L.push(`<b>${esc(t.name)}</b> — ${esc(t.desc.split('. ')[0].replace(/\.$/,''))}.`);
   if(ds.length) L.push(`강점은 <b>${esc(ds[0].t)}</b>(${ds[0].score}점)${ds[1]&&ds[1].score>=60?`·<b>${esc(ds[1].t)}</b>(${ds[1].score}점)`:''}, 약점은 <b>${esc(ds.at(-1).t)}</b>(${ds.at(-1).score}점)이에요.`);
   if(d.n1k!=null) L.push(d.n1k===0?'반경 1km 안에 장어집이 없는 경쟁 공백 지역이에요.':`장어집은 300m 안 ${d.n300}곳 · 500m 안 ${d.n500}곳 · 1km 안 ${d.n1k}곳${c.m.compMore?' 이상':''}이에요.`);
-  { const E=PUB?null:convEst(c); if(E) L.push(`예상 월매출은 약 <b>${fmtN(E.v)}만원</b>(${fmtN(E.lo)}~${fmtN(E.hi)}만원, 우리 매장 기준 환산)이에요.`); else if(!PUB) L.push('설정 → 우리 매장에 월매출을 넣고 분석하면 예상 월매출이 나와요.'); if(s.propScore!=null) L.push(`매물 조건 점수는 <b>${s.propScore}점</b>이에요.`); }
+  { const E=PUB?null:convEst(c); if(E) L.push(`예상 월매출은 약 <b>${fmtN(E.v)}만원</b>(${fmtN(E.lo)}~${fmtN(E.hi)}만원, 우리 매장 기준 환산)이에요.`); else if(!PUB&&!DB.stores.length) L.push('본점 주소만 한 번 등록하면 예상 월매출이 자동으로 나와요 (아래 매물 조건 · 예상 매출).'); if(s.propScore!=null) L.push(`매물 조건 점수는 <b>${s.propScore}점</b>이에요.`); }
   const out=L.map(x=>`<li>${x}</li>`);
   nearStores(c).filter(n=>n.d<(+DB.zoneKm||2)*1000).forEach(n=>out.push(`<li class="w">우리 매장 ${esc(n.name)}과 ${fmtM(n.d)} — 영업지역(${DB.zoneKm}km)이 겹쳐요.</li>`));
   return out.join('');
@@ -1848,7 +1859,7 @@ function setHtml(){
     <div class="note">후보지가 영업지역 안이면 빨갛게 알려 줘요. 반경은 가맹계약서와 같게 맞추세요.</div>
     <div class="row" style="margin:8px 0">영업지역 반경 <select id="zone">${[0.5,1,1.5,2,3,5].map(k=>`<option value="${k}"${+DB.zoneKm===k?' selected':''}>${k}km</option>`).join('')}</select></div>
     <table><tbody>${DB.stores.map((s,i)=>`<tr><td><b>${esc(s.name)}</b><div class="note">${esc(s.addr||'')}${s.m?` · 자리 분석 ${esc(s.at||'')}`:' · 자리 분석 전'}</div></td><td style="white-space:nowrap"><label class="note">월매출(만원) <input type="number" data-ss="${i}" value="${esc(s.sales||'')}" min="0" style="width:96px" placeholder="예: 12490"></label></td><td style="white-space:nowrap;text-align:right"><button class="btn sm bad" data-sdel="${i}">지우기</button></td></tr>`).join('')||'<tr><td class="note">아직 없어요</td></tr>'}</tbody></table>
-    ${DB.stores.length?`<div class="row" style="margin-top:8px"><button class="btn pri" data-act="storeMeasure" ${storeBusy||!K?'disabled':''}>${storeBusy?'분석 중…':'우리 매장 분석하기'}</button><span class="note">우리 매장 자리를 같은 방식으로 재서 후보지와 "닮은 정도"를 비교해요 (매장당 약 10초)</span></div>`:''}
+    ${DB.stores.length?`<div class="row" style="margin-top:8px"><button class="btn pri" data-act="storeMeasure" ${storeBusy||!K?'disabled':''}>${storeBusy?'분석 중…':'우리 매장 분석하기'}</button><span class="note">매장을 추가하면 자동으로 재요. 다시 재고 싶을 때만 누르세요 (매장당 약 10초)</span></div>`:''}
     <div class="row" style="margin-top:8px"><input type="text" id="sname" placeholder="매장 이름 (예: 본점)" style="width:140px" maxlength="20"><input type="text" id="saddr" placeholder="주소" style="flex:1;min-width:180px"><button class="btn" data-act="sadd">추가</button></div>
     <div class="cands" id="scands"></div></div>
   ${sysSetHtml()}
@@ -1959,7 +1970,7 @@ document.addEventListener('click',async e=>{
   const cc=e.target.closest('[data-open]'); if(cc&&!e.target.closest('input')) return go('detail',cc.dataset.open);
   const t=e.target.closest('button,[data-act]'); if(!t) return;
   if(t.dataset.cand!=null) return addCand(CANDS[+t.dataset.cand]);
-  if(t.dataset.sc!=null){ const p=window._sc[+t.dataset.sc]; DB.stores.push({name:window._scName,addr:p.addr,x:p.x,y:p.y}); save(); seedSales(); render(); return; }
+  if(t.dataset.sc!=null){ const p=window._sc[+t.dataset.sc]; DB.stores.push({name:window._scName,addr:p.addr,x:p.x,y:p.y}); save(); seedSales(); render(); autoStores(); return; }
   if(t.dataset.ev){ EVAL=t.dataset.ev; const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(t.dataset.fs){ const c=DB.cands.find(x=>x.id===CUR); if(!c) return; const fk=EVAL==='A'?'field':'field2'; c[fk]=c[fk]||{}; const v=+t.dataset.v; c[fk][t.dataset.fs]=c[fk][t.dataset.fs]===v?0:v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); return; }
   if(t.dataset.sdel!=null){ if(confirm('이 매장을 지울까요?')){ DB.stores.splice(+t.dataset.sdel,1); save(); render(); } return; }
@@ -1972,9 +1983,11 @@ document.addEventListener('click',async e=>{
   if(a==='redo') return analyze(CUR);
   if(a==='print') return window.print();
   if(a==='del'){ const c=DB.cands.find(x=>x.id===CUR); if(c&&confirm(`"${c.name}" 후보지를 지울까요?`)){ DB.cands=DB.cands.filter(x=>x.id!==CUR); SEL.delete(CUR); save(); go('list',null); } return; }
+  if(a==='hqadd'){ const q=($('#hqaddr')||{}).value?.trim()||''; if(q.length<2) return toast('본점 주소를 넣어 주세요'); if(!K) return toast('카카오 지도가 아직 안 열렸어요');
+    try{ const L=await geocode(q); if(!L.length) return toast('주소를 찾지 못했어요'); DB.stores.push({name:'본점',addr:L[0].addr,x:L[0].x,y:L[0].y}); save(); seedSales(); render(); autoStores(); }catch(err){ toast(err.message); } return; }
   if(a==='sadd'){ const n=$('#sname').value.trim(), q=$('#saddr').value.trim(); if(!n||q.length<2) return toast('매장 이름과 주소를 넣어 주세요'); if(!K) return;
     try{ const L=await geocode(q); if(!L.length) return toast('주소를 찾지 못했어요');
-      if(L.length===1){ DB.stores.push({name:n,addr:L[0].addr,x:L[0].x,y:L[0].y}); save(); seedSales(); render(); return; }
+      if(L.length===1){ DB.stores.push({name:n,addr:L[0].addr,x:L[0].x,y:L[0].y}); save(); seedSales(); render(); autoStores(); return; }
       window._sc=L; window._scName=n; $('#scands').innerHTML='<div class="note">어느 곳인가요?</div>'+L.map((p,i)=>`<button data-sc="${i}"><b>${esc(p.name)}</b><br><small>${esc(p.addr)}</small></button>`).join(''); }catch(err){ toast(err.message); } return; }
   if(a==='wreset'){ DB.weights=defW(); save(); render(); return; }
   if(a==='ping'){ const el=$('#pingres'); el.textContent='확인 중…';
@@ -2025,7 +2038,7 @@ $('#sdk').textContent='카카오 지도 여는 중…';
 loadSdk().then(ok=>{
   $('#sdk').textContent=ok?'':'카카오 지도 연결 실패';
   if(!ok){ $('#map').innerHTML=`<div class="empty">카카오 지도를 열지 못했어요.<br>프로그램에 들어 있는 JavaScript 키 2개(7ed6…, 1aaf…) 모두 이 주소에서 거부됐어요.<br>카카오 개발자 → 플랫폼 키 → JavaScript 키 → <b>JavaScript SDK 도메인</b>에 <b>${esc(location.origin)}</b> 를 넣고 저장했는지, 그 앱의 <b>카카오맵 사용 설정</b>이 켜져 있는지 확인해 주세요. 저장 후 1~2분 뒤 새로고침하세요.</div>`; }
-  render();
+  render(); if(ok) autoStores();
 });
 </script>
 </body>
