@@ -1111,6 +1111,7 @@ function quickPaste(text){
   const miss=[!r.date&&'날짜(지금 보는 날짜로 넣어요)',!r.time&&'시간',!r.pp&&'인원',!r.name&&'이름'].filter(Boolean);
   quickPasteMsg=`${r.cancel?'<b class="bad">⚠ 취소 안내 문자 같아요. 새로 추가하지 말고 목록에서 찾아 취소해 주세요.</b><br>':''}읽은 것: <b>${esc(got.join(' · ')||'없음')}</b>${miss.length?` · <span class="bad">못 읽음: ${esc(miss.join(', '))}</span>`:''}<br><span class="hint">칸을 확인하고 고친 뒤 Enter(추가)를 누르세요</span>`;
   quickPasteOpen=true;
+  { const dk=r.date||ui.date; const dupe=(items(dk)||[]).find(x=>!isCxl(x)&&((r.name&&x.name===r.name&&(!r.time||x.time===r.time))||(r.phone&&x.phone===r.phone&&(!r.time||x.time===r.time)))); if(dupe) quickPasteMsg=`<b class="bad">⚠ 이미 있는 예약 같아요: ${esc(dupe.name)} ${esc(dupe.time)} ${esc(dupe.pp)}명</b><br>`+quickPasteMsg; }
   if(r.date&&r.date!==ui.date){ ui.date=r.date; quickPasteMsg+=`<br><b>날짜를 ${esc(mdLbl(r.date))}(으)로 옮겼어요</b>`; const keep=text; loadDate(); const pa=document.getElementById('qPaste'); if(pa&&!pa.value) pa.value=keep; }
   else { const qt=document.getElementById('qTime'); if(qt) qt.dispatchEvent(new Event('input',{bubbles:true})); }
   const b2=document.getElementById('qPasteRes'); if(b2) b2.innerHTML=quickPasteMsg;

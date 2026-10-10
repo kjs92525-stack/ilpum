@@ -37,6 +37,9 @@ CASES=[
  ("내일 6시반 3명 이영희입니다 010 2222 3333", dict(date='2026-10-11',time='18:30',pp='3',name='이영희',phone='010-2222-3333')),
  ("10월 15일 18시 성인6 아이2 박민수님", dict(date='2026-10-15',time='18:00',pp='6+2',name='박민수')),
  ("다음주 수요일 12시 2명 최지훈 010-5555-6666", dict(date='2026-10-14',time='12:00',pp='2',name='최지훈',phone='010-5555-6666')),
+ ("일품집 본점, 예약신청\n우상태님, 일품집 본점 예약, 2026.10.11.(일) 오후 5:30, 4명 (성인4), 새로운 예약이 접수되었습니다.", dict(date='2026-10-11',time='17:30',pp='4',name='우상태',phone='',cancel=False)),
+ ("일품집 본점, 예약취소\n우상태님, 일품집 본점 예약, 2026.10.11.(일) 오후 5:30, 4명 (성인4), 예약이 취소되었습니다.", dict(cancel=True,name='우상태',time='17:30')),
+ ("일품집 본점, 예약신청\n김영수님, 일품집 본점 예약, 2026.10.12.(월) 오후 7:00, 6명 (성인4, 아동2), 새로운 예약이 접수되었습니다.", dict(date='2026-10-12',time='19:00',pp='4+2',name='김영수')),
  ("[네이버 예약] 예약이 취소되었습니다\n예약자명 : 홍길동\n이용일시 : 2026.10.12.(월) 오후 6:30", dict(cancel=True,name='홍길동')),
 ]
 async def main():
@@ -77,8 +80,10 @@ async def main():
     chk('Enter로 10/12에 추가됨', ['홍길동','18:30','4+1','7','010-1234-5678','아기의자 부탁드려요'] in items, str(items))
     chk('추가 뒤 붙여넣기 칸 비움', await pg.input_value('#qPaste')=='' )
     # 4) 취소 문자 경고
-    await pg.fill('#qPaste', CASES[5][0]); await pg.wait_for_timeout(1000)
+    await pg.fill('#qPaste', [c for c in CASES if c[1].get('cancel')][-1][0]); await pg.wait_for_timeout(1000)
     chk('취소 문자 경고', '취소 안내' in await pg.inner_text('#qPasteRes'))
+    await pg.fill('#qPaste', NAVER); await pg.wait_for_timeout(800)
+    chk('이미 있는 예약 경고', '이미 있는 예약' in await pg.inner_text('#qPasteRes'), await pg.inner_text('#qPasteRes'))
     chk('오류 없음', not errs, str(errs)); await ctx.close(); await b.close()
   print('전체 OK' if ok else '실패 있음')
 asyncio.run(main())
