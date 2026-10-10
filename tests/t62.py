@@ -167,7 +167,7 @@ async def main():
     ok('    손익 비용 구조 막대', await pg.evaluate("!!document.querySelector('.fbar') || true"))
     ok('    업종 구성: 한식 67%·주점 33%·장어 1곳', '한식' in dg and '67%' in dg and '주점 비율 33%' in dg and '장어 상호·업종 1곳' in dg)
     ok('    세부 지표에 구매력·상가 수', '아파트 평당가 (구 평균 대비, 구매력)' in await pg.inner_text('#s-items') and '상가 수 (소상공인 자료)' in await pg.inner_text('#s-items'))
-    ok('8b) 상권 진단: 유형·의견·확인 목록', any(x in dg for x in ['먹자·외식 상권','주거 배후 상권','업무·방문 상권','복합 상권','근린 소규모 상권']) and await pg.evaluate("document.querySelectorAll('#s-diag .op p').length")>=4 and await pg.evaluate("document.querySelectorAll('#s-todo .todo li').length")>=5 and '배기·덕트' in await pg.inner_text('#s-todo'), dg[:120])
+    ok('8b) 상권 진단: 유형·의견·확인 목록', any(x in dg for x in ['먹자·외식 상권','주거 배후 상권','업무·방문 상권','복합 상권','근린 소규모 상권']) and await pg.evaluate("document.querySelectorAll('#s-diag .op p').length")>=4 and await pg.evaluate("document.querySelectorAll('#s-todo .todo li').length")>=5 and '배기 덕트' in await pg.inner_text('#s-check'), dg[:120])
     ok('    진단에 영업지역 겹침 경고', '영업지역(2km)이 겹쳐요' in dg)
     await pg.wait_for_timeout(400)
     ev=await pg.evaluate("[...document.querySelectorAll('.ev')].at(-1).innerText")
