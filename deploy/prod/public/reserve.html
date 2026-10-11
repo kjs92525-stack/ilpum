@@ -242,6 +242,12 @@ body.resizing iframe{pointer-events:none}
 .cell.st-res{border-color:var(--res);background:var(--res-bg)} .cell.st-res .cn,.cell.st-res .no{color:var(--res)}
 .cell.st-soon{border:1.5px dashed var(--soon);background:var(--soon-bg)} .cell.st-soon .cn,.cell.st-soon .no{color:var(--soon)}
 .cell.st-past{border-color:var(--past);background:var(--soft)} .cell.st-past .cn,.cell.st-past .no{color:var(--past)}
+.qpaste{margin-top:6px;font-size:13px}.qpaste summary{cursor:pointer;color:var(--sub);font-weight:700;padding:2px 0}
+.qpaste textarea{width:100%;box-sizing:border-box;margin-top:4px;font:inherit;font-size:13px;border:1.5px dashed var(--line);border-radius:8px;padding:6px 8px;background:var(--panel);color:var(--ink)}
+.qpres{margin-top:4px;font-size:12.5px;line-height:1.5}
+.sugw{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}.sugchip{border:1.5px solid var(--brand,#1f6f4a);background:var(--panel);color:var(--ink);border-radius:99px;padding:1px 9px;font-weight:800;font-size:12.5px;cursor:pointer}.sugchip small{font-weight:600;color:var(--sub)}
+.res.auto{background:linear-gradient(90deg,rgba(124,92,255,.16),transparent 60%);box-shadow:inset 4px 0 0 #7C5CFF}
+.badge.autob{background:#7C5CFF;color:#fff;margin-left:4px}.btn.autook{border-color:#7C5CFF;color:#7C5CFF;font-weight:800}
 .cell .pctb{position:absolute;top:3px;left:4px;font-size:10.5px;font-weight:800;background:#E5484D;color:#fff;border-radius:4px;padding:0 4px;line-height:1.35;z-index:1}
 .cell.st-use .pctb{top:20px}.cell.st-dup .pctb{top:22px}
 .fpos .cell .pctb{top:auto;bottom:2px;left:50%;transform:translateX(-50%);font-size:clamp(9px,.62em,12px)}.fpos.round .cell .pctb{bottom:6%}
@@ -416,6 +422,71 @@ function tablesText(ts){
 // 표시용 → 다시 입력칸에 넣을 때 쓰는 짧은 표기
 function tablesInput(ts){
   return tablesText(ts).map(x=>x.replace(/^룸(\d+)$/,'r$1').replace(/^룸(\d+)-(.+)$/,(m,r,xs)=>`r${r}-${xs.replace(/·/g,',')}`)).join(' ');
+}
+/* ---------- 문자·네이버 예약 알림 붙여넣기 → 예약 칸 채우기 ---------- */
+// 결과: {date:'YYYY-MM-DD'|'', time:'HH:MM'|'', pp:'4'|'4+2'|'', name, phone, req, cancel:bool}
+function parseResText(text, todayKey){
+  const raw=String(text||'').replace(/\r/g,''); const out={date:'',time:'',pp:'',name:'',phone:'',req:'',cancel:false,change:false};
+  if(!raw.trim()) return out;
+  const today=todayKey?new Date(todayKey+'T00:00'):new Date(); today.setHours(0,0,0,0);
+  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean)
+    .filter(l=>!/(예약|주문|결제|승인)\s*번호|금액|결제|쿠폰|포인트|https?:\/\//.test(l));   // 번호·금액 줄은 무시 (전화·인원으로 잘못 읽지 않게)
+  const body=lines.join('\n');
+  const val=re=>{ for(const l of lines){ const m=l.match(re); if(m&&m[1]&&m[1].trim()) return m[1].trim(); } return ''; };
+  const ph=body.match(/(?:^|[^\d])(01[016789])[\s.\-]?(\d{3,4})[\s.\-]?(\d{4})(?!\d)/) || body.match(/(?:^|[^\d])(0\d{1,2})[\s\-.](\d{3,4})[\s\-.](\d{4})(?!\d)/);
+  if(ph) out.phone=fmtPhone(ph[1]+ph[2]+ph[3]);
+  const noPh=ph?body.replace(ph[0],' '):body;
+  const mk=(y,mo,d)=>{ const dt=new Date(y,mo-1,d); return (dt.getMonth()===mo-1&&dt.getDate()===d)?dt:null; };
+  const near=(mo,d)=>{ let dt=mk(today.getFullYear(),mo,d); if(dt&&(dt-today)/864e5< -60) dt=mk(today.getFullYear()+1,mo,d); return dt; };
+  let dt=null, m;
+  if((m=noPh.match(/(20\d{2})\s*[.\-\/년]\s*(\d{1,2})\s*[.\-\/월]\s*(\d{1,2})/))) dt=mk(+m[1],+m[2],+m[3]);
+  else if((m=noPh.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/))) dt=near(+m[1],+m[2]);
+  else if((m=noPh.match(/(?:^|[^\d.:])(\d{1,2})\s*[\/.]\s*(\d{1,2})(?=\s*\(|\s*[일월화수목금토]요일|\s|$)/m))&&+m[1]<=12) dt=near(+m[1],+m[2]);
+  else if(/모레/.test(noPh)){ dt=new Date(today); dt.setDate(dt.getDate()+2); }
+  else if(/내일/.test(noPh)){ dt=new Date(today); dt.setDate(dt.getDate()+1); }
+  else if(/오늘|금일|당일/.test(noPh)) dt=new Date(today);
+  else if((m=noPh.match(/(다음\s*주|담주)?\s*([일월화수목금토])요일/))){ const wd='일월화수목금토'.indexOf(m[2]), dow=today.getDay(); dt=new Date(today);
+    if(m[1]) dt.setDate(dt.getDate()+(((1-dow+7)%7)||7)+((wd+6)%7)); else dt.setDate(dt.getDate()+(wd-dow+7)%7); }
+  if(dt) out.date=ds(dt);
+  const tm=noPh.match(/(오전|오후|낮|저녁|밤)?\s*(\d{1,2})\s*(?::\s*(\d{2})|시\s*(?:(\d{1,2})\s*분|(반))?)/);
+  if(tm){ let h=+tm[2], mi=tm[3]!=null?+tm[3]:tm[4]!=null?+tm[4]:tm[5]?30:0; const ap=tm[1]||'';
+    if(/오후|저녁|밤/.test(ap)&&h<12) h+=12; else if(!ap&&h>=1&&h<=9) h+=12;   // "6시" = 저녁 6시
+    if(h<=23&&mi<=59) out.time=`${pad(h)}:${pad(mi)}`; }
+  const ad=noPh.match(/(?:성인|어른|대인)\s*[:：]?\s*(\d{1,2})/), kd=noPh.match(/(?:아이|아동|어린이|소아|유아|초등학생|초등|미취학|애기|아기)\s*[:：]?\s*(\d{1,2})/);
+  if(ad) out.pp=ad[1]+(kd&&+kd[1]?'+'+kd[1]:'');
+  else { const pm=noPh.match(/(\d{1,2})\s*(?:명|인)(?!\s*석)/) || noPh.match(/인원\s*(?:수)?\s*[:：]?\s*(\d{1,2})/); if(pm) out.pp=pm[1]+(kd&&+kd[1]?'+'+kd[1]:''); }
+  const STOP=/^(예약|예약자|예약자명|성함|이름|고객|고객명|인원|성인|어른|아이|오전|오후|저녁|오늘|내일|모레|요청|요청사항|메모|일시|이용|이용일시|예약일시|방문|확정|취소|안내|네이버|장어|일품집|본점|유천점|감사|감사합니다|부탁|부탁드려요|부탁드립니다|문의|연락처|전화|전화번호|코스|상품|상품명|룸|테이블|좌석|단체|가족|생일|예약금|입금|확인|주차|아기|의자|창가|금일|당일|입완|안녕하세요|새로운|접수|접수되었습니다|되었습니다|다음주|이번주|담주|명|가능|가능할까요|할게요|합니다|하고|싶어요|예약합니다)$/;
+  let nm=val(/(?:예약자\s*(?:명|이름|정보)?|성함|이름|고객\s*명)\s*[:：]?\s*([가-힣]{2,5})/);
+  if(nm&&STOP.test(nm)) nm='';
+  if(!nm){ const n2=noPh.match(/([가-힣]{2,4})\s*님/); if(n2&&!STOP.test(n2[1])) nm=n2[1]; }
+  if(!nm){ const n3=noPh.match(/(?:^|[^가-힣])([가-힣]{2,4}?)\s*(?:입니다|이에요|에요|예요|이요)(?![가-힣])/); if(n3&&!STOP.test(n3[1])) nm=n3[1]; }
+  if(!nm){ for(const w of noPh.replace(/\[[^\]]*\]/g,' ').replace(/[^가-힣\s]/g,' ').split(/\s+/)){ if(w.length>=2&&w.length<=4&&!STOP.test(w)&&!/요일$|(시|분|명|인|월|일|반|요|다|까|고|서|에|로|은|는|이|가|을|를)$/.test(w)){ nm=w; break; } } }
+  out.name=nm||'';
+  { const LB=/^(?:고객\s*)?(?:요청\s*사항|요청|메모|비고|특이\s*사항|기타\s*사항|기타)\s*[:：]?\s*(.*)$/, OTHER=/^(?:예약자|이용|예약|인원|연락처|전화|상품|옵션|결제|방문|성함|이름)/;
+    for(let i=0;i<lines.length;i++){ const m=lines[i].match(LB); if(!m) continue;
+      let v=m[1].trim(); const more=[]; for(let j=i+1;j<lines.length&&!OTHER.test(lines[j])&&!LB.test(lines[j])&&!/^(새로운|접수|감사|일품집|\[)/.test(lines[j]);j++) more.push(lines[j]); v=[v,...more].filter(Boolean).join(' ');
+      if(v&&!/^(없음|없습니다|-)$/.test(v)){ out.req=v.slice(0,500); break; } } }
+  { const nb=out.req?body.split(out.req).join(' '):body;
+    out.cancel=/취소(되었|됐|완료|하였|했|처리)|예약\s*취소/.test(nb);
+    out.change=!out.cancel&&/변경(되었|됐|완료|하였|했|처리)|예약\s*변경/.test(nb); }
+  return out;
+}
+// 빈 테이블 추천: 앞뒤 2시간 예약 없는 자리 중 인원에 맞는 것 (최대 3개, 각 항목은 테이블 묶음)
+function ppNum(pp){ return String(pp||'').split(/[+,]/).reduce((n,x)=>n+(parseInt(x,10)||0),0); }
+const WINDOW_T=['1','2','3','4','5','36','37','38','39','40','41'];   // 본점 창가 자리
+function suggestTables(date,time,pp,req){
+  const busy=busyTables(date,time,null); const isFree=t=>!busy[t]; const n=ppNum(pp);
+  const cap=t=>seatOf(t)||4; const floorOf=t=>{ const f=FLOORS.find(fl=>floorHas(fl,t)); return f?f.key:''; };
+  const big=t=>seatOf(t)>=6 || (!Object.keys(SEATS).length&&Object.values(BIG6).flat().includes(t));
+  const cands=[];
+  ALL_TABLES.filter(t=>!/^R/.test(t)&&isFree(t)).forEach(t=>{ const c=big(t)&&!seatOf(t)?6:cap(t); if(!n||c>=n) cands.push({ts:[t],cap:c,room:false}); });
+  Object.keys(ROOM_SUBS).forEach(r=>{ const subs=ROOM_SUBS[r].map(x=>R(+r,x)).filter(t=>ALL_TABLES.includes(t)); if(subs.length&&subs.every(isFree)){ const c=subs.reduce((a,t)=>a+cap(t),0); if(!n||c>=n) cands.push({ts:subs,cap:c,room:true}); } });
+  ALL_TABLES.filter(t=>/^R\d+$/.test(t)&&isFree(t)).forEach(t=>{ const c=seatOf(t)||8; if(!n||c>=n) cands.push({ts:[t],cap:c,room:true}); });
+  if(n>4){ if(!Object.keys(SEATS).length) BIG8.forEach(p=>{ if(p.every(t=>ALL_TABLES.includes(t)&&isFree(t))) cands.push({ts:p,cap:8,room:false}); });
+    FLOORS.forEach(fl=>{ if(fl.mode==='free') return; fl.groups.forEach(g=>g.cols.forEach(col=>{ for(let i=0;i+1<col.length;i++){ const a=col[i],b=col[i+1]; if(a==null||b==null) continue; const p=[String(a),String(b)]; if(p.every(isFree)){ const c=cap(p[0])+cap(p[1]); if(c>=n&&!cands.some(x=>x.ts.join()===p.join())) cands.push({ts:p,cap:c,room:false,pair:true}); } } })); }); }
+  const winOn=/창가|창문|창쪽|창 쪽|뷰/.test(req||'')&&!!(STORES.find(z=>z.id===SID)||{}).is_hq;
+  const score=x=>(winOn&&!x.ts.every(t=>WINDOW_T.includes(t))?200:0)+(x.cap-(n||2))*10 + (x.pair?15:0) + (x.room&&n<6?40:0) + ((!n||n<=4)&&x.ts.some(big)?60:0) + (floorOf(x.ts[0])===ui.floor?0:5);
+  return cands.sort((a,b)=>score(a)-score(b)||(+a.ts[0]||999)-(+b.ts[0]||999)).slice(0,3);
 }
 function normTime(v){
   const s=String(v||'').trim(); if(!s) return '';
@@ -600,7 +671,8 @@ function renderHeader(){
   document.getElementById('dateLbl').innerHTML=`${d.getMonth()+1}월 ${d.getDate()}일 <span class="dw ${wd===0?'sun':wd===6?'sat':''}">(${DOW[wd]})</span>${ui.date===todayStr()?' <span class="badge done">오늘</span>':''}`;
   document.getElementById('datePick').value=ui.date;
 }
-let quick={time:'',name:'',pp:'',tables:'',phone:'',req:''};
+let quick={time:'',name:'',pp:'',tables:'',phone:'',req:'',auto:false};
+let quickPasteOpen=false, quickPasteMsg='';
 function quickHtml(){
   const ts=parseTables(quick.tables); const t=normTime(quick.time);
   const busy=t? busyTables(ui.date,t,null) : {}; const clash=ts.filter(x=>busy[x]).map(x=>`${tLabel(x)}(${busy[x].name} ${busy[x].time})`);
@@ -612,7 +684,10 @@ function quickHtml(){
       <input id="qPhone" placeholder="연락처 숫자만" value="${esc(quick.phone)}" inputmode="numeric" style="width:150px" aria-label="연락처" autocomplete="off" autocorrect="off" spellcheck="false"></div>
     <div class="qrow"><input id="qReq" placeholder="요청사항" value="${esc(quick.req)}" style="flex:1" aria-label="요청사항" autocomplete="off" autocorrect="off" spellcheck="false">
       <button class="btn primary" data-act="qadd">추가 ⏎</button></div>
-    <div class="qprev" id="qprev">${quickPrev(t,ts,clash)}</div></div>`;
+    <div class="qprev" id="qprev">${quickPrev(t,ts,clash)}</div>
+    <details class="qpaste" id="qPasteBox"${quickPasteOpen?' open':''}><summary>📋 문자·네이버 예약 붙여넣기로 채우기</summary>
+      <textarea id="qPaste" rows="3" placeholder="손님 문자나 네이버 예약 알림을 통째로 붙여넣으면 이름·날짜·시간·인원·연락처를 채워요" autocomplete="off" spellcheck="false"></textarea>
+      <div class="qpres" id="qPasteRes">${quickPasteMsg}</div></details></div>`;
 }
 function quickPrev(t,ts,clash){
   const parts=[];
@@ -620,6 +695,7 @@ function quickPrev(t,ts,clash){
   if(quick.tables){ const nt=tableNote(quick.tables); parts.push(tablesText(ts).map(x=>`<span class="tbl">${esc(x)}</span>`).join(' ')+(nt?` <span class="tnote ${/취소/.test(nt)?'cx':''}">${esc(nt)}</span>`:'')); }
   if(quick.phone) parts.push(esc(fmtPhone(quick.phone)));
   if(clash.length) parts.push(`<span class="bad">겹침: ${esc(clash.join(', '))}</span>`);
+  if(t&&!ts.length&&ALL_TABLES.length){ const sg=suggestTables(ui.date,t,quick.pp,quick.req); parts.push(sg.length?`<span class="sugw">추천 ${sg.map(x=>`<button class="sugchip" data-sug="${esc(x.ts.join(' '))}" title="${x.cap}인 정도">${esc(tablesText(x.ts).join('+'))}${seatOf(x.ts[0])&&x.ts.length===1?` <small>${seatOf(x.ts[0])}인</small>`:''}</button>`).join('')}</span>`:'<span class="bad">이 시간에 맞는 빈 자리가 없어요</span>'); }
   return parts.length? parts.join(' · ') : '<span class="hint">빈칸을 채우고 Enter를 누르면 바로 추가돼요 · 날짜는 지금 보는 날짜</span>';
 }
 function renderList(){
@@ -642,17 +718,17 @@ function renderList(){
         const dw=CONF.who[x.id];
         const tw=TIGHT.who[x.id];
         const cx=isCxl(x);
-        return `<div class="res ${x.done?'done':''} ${dw?'dup':''} ${tw?'tight':''} ${cx?'cxl':''} ${hasDep(x)?'dep':''}" data-row="${x.id}" title="누르면 수정">
+        return `<div class="res ${x.done?'done':''} ${dw?'dup':''} ${tw?'tight':''} ${cx?'cxl':''} ${hasDep(x)?'dep':''} ${x.auto?'auto':''}" data-row="${x.id}" title="누르면 수정">
           <input type="checkbox" class="ck" data-done="${x.id}" ${x.done?'checked':''} aria-label="${esc(x.name)} 도착">
           <div><div class="l1"><span class="tbls">${(()=>{ const ct=CONF.tabs[x.id], tt=TIGHT.tabs[x.id];
               if(!ct && !tt){ const tx=tablesText(tb), nums=tx.filter(t=>/^\d+$/.test(t)), rest=tx.filter(t=>!/^\d+$/.test(t)); return (nums.length?`<span class="tbl">${esc(nums.join('·'))}<small>번</small></span>`:'')+rest.map(t=>`<span class="tbl">${esc(t)}</span>`).join(''); }
               return tb.map(t=>`<span class="tbl ${ct&&ct.has(t)?'dupt':tt&&tt.has(t)?'tightt':''}">${esc(tLabel(t))}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join(''); })()}${x.tnote?`<span class="tnote ${cx?'cx':''}">${esc(x.tnote)}</span>`:''}${!tb.length&&!x.tnote?'<span class="tbl none">테이블 미정</span>':''}</span><button class="rtime" data-goto="${esc(x.time)}" data-gt="${esc((x.tables||[])[0]||'')}" title="현황판을 ${esc(x.time)}로">${esc(x.time)}</button><span class="nm ${x.c&&x.c===ui.date?'sameday':''}">${esc(x.name)}</span>${x.c&&x.c===ui.date?'<span class="sdb">당일</span>':''}${x.pp?`<span class="pp">${esc(x.pp)}명</span>`:''}
-            ${x.done?'<span class="badge done">도착</span>':''}</div>
+            ${x.done?'<span class="badge done">도착</span>':''}${x.auto?`<span class="badge autob">${esc(x.auto==='cxl'?'자동 취소':x.auto==='chg'?'자동 변경':'자동 입력')}</span>`:''}</div>
             ${dw?`<div class="dupline">⚠ 중복: ${esc(dw.join(', '))}</div>`:''}
             ${!dw&&tw?`<div class="tightline">⏰ 임박(2시간 간격): ${esc(tw.join(', '))}</div>`:''}
             ${x.req?(hasDep(x)?`<div class="rq depq">💰 ${esc(x.req)}</div>`:`<div class="rq">📝 ${esc(x.req)}</div>`):''}
             ${x.phone?`<a class="ph" href="tel:${tel}">${esc(x.phone)}</a>`:''}</div>
-          <div class="acts"><button class="btn sm" data-edit="${x.id}" tabindex="-1">수정</button><button class="btn sm danger" data-del="${x.id}">삭제</button></div></div>`; }).join('')}</div>`; }).join('');
+          <div class="acts">${x.auto?`<button class="btn sm autook" data-autook="${x.id}" title="자동으로 넣은 예약이에요. 내용을 확인했으면 누르세요">✓ 확인</button>`:''}<button class="btn sm" data-edit="${x.id}" tabindex="-1">수정</button><button class="btn sm danger" data-del="${x.id}">삭제</button></div></div>`; }).join('')}</div>`; }).join('');
   const P=document.getElementById('listPanel');
   P.innerHTML=`${quickHtml()}
     <div style="display:flex;align-items:center;gap:8px;margin-top:12px"><h2>예약 목록</h2></div>
@@ -1034,19 +1110,90 @@ function syncBoardFromInput(timeStr, tablesStr){
   },250);
 }
 function quickRead(){ ['time','name','pp','tables','phone','req'].forEach(k=>{ const el=document.getElementById('q'+{time:'Time',name:'Name',pp:'PP',tables:'Tables',phone:'Phone',req:'Req'}[k]); if(el) quick[k]=el.value; }); }
+const mdLbl=k=>{ const d=new Date(k+'T00:00'); return `${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`; };
+// 취소·변경 알림 → 기존 예약을 찾아 자동 처리 (후보가 하나일 때만 자동, 여러 개면 고르게)
+let noticeUndo=null, noticeCands=[];
+function noticeFind(r,src){
+  const from=ds(new Date(Date.now()-864e5)); const out=[];
+  Object.keys(src).forEach(d=>{ if(d<from) return; (src[d]||[]).forEach(x=>{ if(x.deleted) return;
+    const byName=r.name&&x.name===r.name, byPh=r.phone&&x.phone&&x.phone.replace(/\D/g,'')===r.phone.replace(/\D/g,'');
+    if(byName||byPh) out.push({d,x}); }); });
+  return out.sort((a,b)=>a.d.localeCompare(b.d)||(toMin(a.x.time)||0)-(toMin(b.x.time)||0));
+}
+function noticeLbl(c){ return `${mdLbl(c.d)} ${c.x.time} ${c.x.name} ${c.x.pp||''}명${(c.x.tables||[]).length?' · '+tablesText(c.x.tables).join(','):''}`; }
+function noticeCancel(c){
+  const it=dayDoc(c.d).items.find(y=>y.id===c.x.id)||c.x; const before=JSON.parse(JSON.stringify(it));
+  it.tnote=((it.tnote||'').replace(/(네이버)?취소/g,'').trim()+' 네이버취소').trim(); it.auto='cxl'; saveItem(c.d,it);
+  noticeUndo={label:'취소',acts:[{d:c.d,item:before}]}; return `<b>취소 처리했어요:</b> ${esc(noticeLbl(c))}`;
+}
+function noticeChange(c,r){
+  const it=dayDoc(c.d).items.find(y=>y.id===c.x.id)||c.x; const before=JSON.parse(JSON.stringify(it));
+  const nd=r.date||c.d, nt=r.time||it.time; const nx=Object.assign({},it,{time:nt,auto:'chg'}); if(r.pp) nx.pp=r.pp; if(r.req) nx.req=r.req; if(r.phone) nx.phone=r.phone;
+  const busy=busyTables(nd,nt,it.id); const lost=(it.tables||[]).filter(t=>busy[t]);
+  if(lost.length){ nx.tables=[]; }
+  const was=noticeLbl(c);
+  if(nd!==c.d){ const old=dayDoc(c.d).items.find(y=>y.id===it.id); if(old){ old.deleted=true; saveItem(c.d,old); } nx.id=uid(); delete nx.deleted; saveItem(nd,nx);
+    noticeUndo={label:'변경',acts:[{d:c.d,item:before},{d:nd,item:Object.assign({},nx,{deleted:true})}]}; }
+  else { Object.assign(it,nx); saveItem(nd,it); noticeUndo={label:'변경',acts:[{d:c.d,item:before}]}; }
+  return `<b>변경했어요:</b> ${esc(was)} → <b>${esc(mdLbl(nd))} ${esc(nt)} ${esc(nx.pp||'')}명</b>${lost.length?` <span class="bad">· ${esc(tablesText(lost).join(','))} 자리가 그 시간에 차 있어서 테이블을 비웠어요</span>`:''}`;
+}
+function noticeUndoDo(){ const u=noticeUndo; if(!u) return; u.acts.forEach(a=>{ const doc=dayDoc(a.d); const i=doc.items.findIndex(y=>y.id===a.item.id); const v=JSON.parse(JSON.stringify(a.item)); if(i>=0) doc.items[i]=v; else doc.items.push(v); saveItem(a.d,v); });
+  noticeUndo=null; quickPasteMsg=`${u.label}을(를) 되돌렸어요`; const b=document.getElementById('qPasteRes'); if(b) b.innerHTML=quickPasteMsg; toast(`${u.label}을(를) 되돌렸어요`); }
+async function noticeApply(r,kind){
+  const box=()=>document.getElementById('qPasteRes'); const show=h=>{ quickPasteMsg=h; const b=box(); if(b) b.innerHTML=h; };
+  show(`${kind==='cancel'?'취소':'변경'} 알림이에요 · 해당 예약 찾는 중…`); await loadAll(true); const src=searchSource();
+  let cs=noticeFind(r,src); const big=c=>ppNum(c.x.pp)>4||(kind==='change'&&ppNum(r.pp)>4); const bigs=cs.filter(c=>!isCxl(c.x)&&big(c)&&(!r.date||kind==='change'||c.d===r.date)); cs=cs.filter(c=>!big(c)); const live=cs.filter(c=>!isCxl(c.x));
+  if(!live.length&&bigs.length) return show(`<b class="bad">5인 이상 예약이라 자동으로 ${kind==='cancel'?'취소':'변경'}하지 않았어요 — 직접 처리해 주세요: ${esc(bigs.map(noticeLbl).join(' / '))}</b>`);
+  if(kind==='cancel'){
+    let pick=live; if(r.date) pick=pick.filter(c=>c.d===r.date); if(r.time&&pick.length>1) pick=pick.filter(c=>c.x.time===r.time);
+    if(!pick.length){ const done=cs.find(c=>isCxl(c.x)&&(!r.date||c.d===r.date)); return show(done?`이미 취소돼 있어요: ${esc(noticeLbl(done))}`:`<span class="bad">취소할 예약을 찾지 못했어요 (${esc([r.name,r.date&&mdLbl(r.date),r.time].filter(Boolean).join(' '))}). 목록에서 직접 찾아 주세요.</span>`); }
+    if(pick.length>1){ noticeCands=pick.map(c=>({c,kind,r})); return show(`<b>어느 예약을 취소할까요?</b><br>${pick.map((c,i)=>`<button class="sugchip" data-ncand="${i}">${esc(noticeLbl(c))}</button>`).join(' ')}`); }
+    const h=noticeCancel(pick[0]); noticeGo(pick[0].d); return show(h+' <button class="sugchip" data-nundo="1">되돌리기</button>');
+  }
+  // 변경: 이미 새 내용과 같은 예약이 있으면 끝
+  const same=live.find(c=>c.d===(r.date||c.d)&&c.x.time===(r.time||c.x.time)&&(!r.pp||c.x.pp===r.pp));
+  if(same) return show(`이미 반영돼 있어요: ${esc(noticeLbl(same))}`);
+  if(!live.length) return show(`<span class="bad">바꿀 예약을 찾지 못했어요 (${esc(r.name||r.phone||'이름 없음')}). 새 예약이면 위 칸에 직접 넣어 주세요.</span>`);
+  if(live.length>1){ noticeCands=live.map(c=>({c,kind,r})); return show(`<b>어느 예약을 ${esc(mdLbl(r.date||live[0].d))} ${esc(r.time||'')}(으)로 바꿀까요?</b><br>${live.map((c,i)=>`<button class="sugchip" data-ncand="${i}">${esc(noticeLbl(c))}</button>`).join(' ')}`); }
+  const h=noticeChange(live[0],r); noticeGo(r.date||live[0].d); show(h+' <button class="sugchip" data-nundo="1">되돌리기</button>');
+}
+function noticeGo(d){ if(d&&d!==ui.date){ const keep=document.getElementById('qPaste')?.value||''; ui.date=d; loadDate(); const pa=document.getElementById('qPaste'); if(pa&&!pa.value) pa.value=keep; } else render(); }
+function quickPaste(text){
+  const box=document.getElementById('qPasteRes'); if(!String(text||'').trim()){ quickPasteMsg=''; if(box) box.innerHTML=''; return; }
+  const r=parseResText(text,todayStr()); quickRead();
+  if(r.cancel||r.change){ quickPasteOpen=true; noticeApply(r,r.cancel?'cancel':'change'); return; }
+  if(ppNum(r.pp)>4){ quickPasteOpen=true; quickPasteMsg=`<b class="bad">${esc(r.pp)}명 예약이에요. 지금은 시험 단계라 5인 이상은 자동으로 넣지 않아요 — 직접 입력해 주세요.</b>`; const bx=document.getElementById('qPasteRes'); if(bx) bx.innerHTML=quickPasteMsg; return; }
+  quick.auto=true;
+  const set=(k,v)=>{ if(!v) return; quick[k]=k==='time'?v.replace(':',''):v; const el=document.getElementById('q'+{time:'Time',name:'Name',pp:'PP',phone:'Phone',req:'Req'}[k]); if(el) el.value=quick[k]; };
+  set('name',r.name); set('time',r.time); set('pp',r.pp); set('phone',r.phone); set('req',r.req);
+  const got=[r.date&&mdLbl(r.date), r.time, r.pp&&r.pp+'명', r.name, r.phone].filter(Boolean);
+  const miss=[!r.date&&'날짜(지금 보는 날짜로 넣어요)',!r.time&&'시간',!r.pp&&'인원',!r.name&&'이름'].filter(Boolean);
+  quickPasteMsg=`${r.cancel?'<b class="bad">⚠ 취소 안내 문자 같아요. 새로 추가하지 말고 목록에서 찾아 취소해 주세요.</b><br>':''}읽은 것: <b>${esc(got.join(' · ')||'없음')}</b>${miss.length?` · <span class="bad">못 읽음: ${esc(miss.join(', '))}</span>`:''}<br><span class="hint">칸을 확인하고 고친 뒤 Enter(추가)를 누르세요</span>`;
+  quickPasteOpen=true;
+  { const dk=r.date||ui.date; const dupe=(items(dk)||[]).find(x=>!isCxl(x)&&((r.name&&x.name===r.name&&(!r.time||x.time===r.time))||(r.phone&&x.phone===r.phone&&(!r.time||x.time===r.time)))); if(dupe) quickPasteMsg=`<b class="bad">⚠ 이미 있는 예약 같아요: ${esc(dupe.name)} ${esc(dupe.time)} ${esc(dupe.pp)}명</b><br>`+quickPasteMsg; }
+  if(r.date&&r.date!==ui.date){ ui.date=r.date; quickPasteMsg+=`<br><b>날짜를 ${esc(mdLbl(r.date))}(으)로 옮겼어요</b>`; const keep=text; loadDate(); const pa=document.getElementById('qPaste'); if(pa&&!pa.value) pa.value=keep; }
+  else { const qt=document.getElementById('qTime'); if(qt) qt.dispatchEvent(new Event('input',{bubbles:true})); }
+  const b2=document.getElementById('qPasteRes'); if(b2) b2.innerHTML=quickPasteMsg;
+}
 function quickAdd(){
   quickRead(); const t=normTime(quick.time);
   if(!quick.name.trim()){ toast('이름을 넣어주세요'); document.getElementById('qName').focus(); return; }
   if(!t){ toast('시간을 넣어주세요 (예: 1830)'); document.getElementById('qTime').focus(); return; }
-  const it={id:uid(),c:ds(new Date()),name:quick.name.trim(),time:t,pp:quick.pp.trim(),tables:parseTables(quick.tables),tnote:tableNote(quick.tables),phone:fmtPhone(quick.phone),req:quick.req.trim(),done:false};
-  quick={time:'',name:'',pp:'',tables:'',phone:'',req:''};
+  const it={id:uid(),c:ds(new Date()),name:quick.name.trim(),time:t,pp:quick.pp.trim(),tables:parseTables(quick.tables),tnote:tableNote(quick.tables),phone:fmtPhone(quick.phone),req:quick.req.trim(),done:false}; if(quick.auto) it.auto='new';
+  quick={time:'',name:'',pp:'',tables:'',phone:'',req:'',auto:false};
   document.querySelectorAll('#quick input').forEach(i=>i.value='');
+  { const pa=document.getElementById('qPaste'); if(pa) pa.value=''; const pr=document.getElementById('qPasteRes'); if(pr) pr.innerHTML=''; quickPasteMsg=''; }
   saveItem(ui.date,it); toast(`${it.name} ${it.time} 예약 추가`);
   document.getElementById('qName').focus();
 }
 document.getElementById('listPanel').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.closest('#quick') && !e.isComposing){ e.preventDefault(); quickAdd(); } });
 document.getElementById('listPanel').addEventListener('click',e=>{
   const b=e.target.closest('button');
+  if(b&&b.dataset.autook){ const it=dayDoc(ui.date).items.find(y=>y.id===b.dataset.autook); if(it){ delete it.auto; saveItem(ui.date,it); toast('확인했어요'); } return; }
+  if(b&&b.dataset.nundo){ noticeUndoDo(); return; }
+  if(b&&b.dataset.ncand!=null){ const k=noticeCands[+b.dataset.ncand]; if(!k) return; const h=k.kind==='cancel'?noticeCancel(k.c):noticeChange(k.c,k.r); noticeCands=[]; noticeGo(k.kind==='cancel'?k.c.d:(k.r.date||k.c.d)); quickPasteMsg=h+' <button class="sugchip" data-nundo="1">되돌리기</button>'; const bx=document.getElementById('qPasteRes'); if(bx) bx.innerHTML=quickPasteMsg; return; }
+  if(b&&b.dataset.sug){ const ts=b.dataset.sug.split(' '); quick.tables=tablesInput(ts); const qt=document.getElementById('qTables'); if(qt){ qt.value=quick.tables; qt.dispatchEvent(new Event('input',{bubbles:true})); }
+    toast(`${tablesText(ts).join(', ')} 을(를) 넣었어요`); const nx=document.getElementById(quick.name?'qPhone':'qName'); if(nx) nx.focus(); return; }
   if(!b){   // 줄 아무 곳이나 누르면 수정 (체크박스·전화번호 링크 제외)
     if(e.target.closest('input,a,#quick')) return;
     const row=e.target.closest('[data-row]'); if(row){ const it=items(ui.date).find(x=>x.id===row.dataset.row); if(it) openForm({...it,origDate:ui.date}); }
@@ -1072,6 +1219,7 @@ document.getElementById('listPanel').addEventListener('change',e=>{
   if(e.target.dataset.done){ const it=dayDoc(ui.date).items.find(x=>x.id===e.target.dataset.done); if(it){ it.done=e.target.checked; saveItem(ui.date,it); } }
 });
 document.getElementById('listPanel').addEventListener('input',e=>{
+  if(e.target.id==='qPaste'){ clearTimeout(window._qpT); const v=e.target.value; window._qpT=setTimeout(()=>quickPaste(v),400); return; }
   if(e.target.closest && e.target.closest('#quick')){ quickRead(); syncBoardFromInput(quick.time, quick.tables); const t=normTime(quick.time); const ts=parseTables(quick.tables);
     const busy=t? busyTables(ui.date,t,null):{}; document.getElementById('qprev').innerHTML=quickPrev(t,ts,ts.filter(x=>busy[x]).map(x=>`${tLabel(x)}(${busy[x].name} ${busy[x].time})`)); return; }
 });
