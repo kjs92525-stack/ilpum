@@ -40,9 +40,8 @@ header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1p
 .datelabel{font-size:20px;font-weight:700;min-width:150px;text-align:center;font-variant-numeric:tabular-nums;border:0;background:none;padding:4px 6px;border-radius:6px}
 .datelabel:hover{background:var(--soft)}
 .datelabel .dw.sun{color:var(--warn)} .datelabel .dw.sat{color:#3C5A86}
-.trashwrap{display:inline-flex;flex-direction:column;align-items:center;gap:1px}
-.batt{border:0;background:none;padding:0 4px;font-size:11px;color:var(--sub);cursor:pointer;line-height:1.3;border-radius:4px}
-.batt.due{background:#E5484D;color:#fff;font-weight:800;padding:1px 6px;animation:battBlink 1.2s ease-in-out infinite}
+.trashwrap{display:inline-flex;flex-direction:column;align-items:stretch;gap:4px}
+.btn.batt.due{background:#E5484D;border-color:#E5484D;color:#fff;font-weight:800;animation:battBlink 1.2s ease-in-out infinite}
 @keyframes battBlink{50%{opacity:.55}}
 .btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;font-weight:500;white-space:nowrap}
 .btn:hover{border-color:var(--sub)}
@@ -328,8 +327,8 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
     <button class="btn" id="xlsxBtn">엑셀 내보내기</button>
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
-    <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="batt" id="battBtn" type="button">배터리</button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1011-1719</small>
+    <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="btn batt" id="battBtn" type="button">배터리</button></span>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1011-1722</small>
   </div>
 
 </header>

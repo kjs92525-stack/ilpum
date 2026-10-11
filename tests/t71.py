@@ -37,7 +37,7 @@ async def main():
     b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
     ctx,pg,errs=await run(b, '/tmp/batt.png' if len(sys.argv)>1 else None)
     pos=await pg.evaluate("(()=>{const a=document.getElementById('trashBtn').getBoundingClientRect(),c=document.getElementById('battBtn').getBoundingClientRect();return {below:c.top>=a.bottom-1,center:Math.abs((a.left+a.right)/2-(c.left+c.right)/2)<8,txt:document.getElementById('battBtn').textContent}})()")
-    chk('휴지통 밑에 작게 "배터리"', pos['below'] and pos['center'] and pos['txt']=='배터리', str(pos))
+    chk('휴지통 밑에 "배터리" 버튼', pos['below'] and pos['center'] and pos['txt']=='배터리', str(pos))
     due=await pg.evaluate("(()=>{localStorage.setItem('ilpum-battery',String(new Date(2026,9,12,18,0).getTime()));const d=battDue();return [d.getMonth()+1,d.getDate(),d.getHours(),d.getMinutes()]})()")
     chk('12일 오후 6시에 누르면 14일 저녁 7시', due==[10,14,19,0], str(due))
     await pg.evaluate("localStorage.setItem('ilpum-battery',String(Date.now()-3*864e5)); battPaint()")
