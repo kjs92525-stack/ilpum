@@ -40,8 +40,14 @@ header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1p
 .datelabel{font-size:20px;font-weight:700;min-width:150px;text-align:center;font-variant-numeric:tabular-nums;border:0;background:none;padding:4px 6px;border-radius:6px}
 .datelabel:hover{background:var(--soft)}
 .datelabel .dw.sun{color:var(--warn)} .datelabel .dw.sat{color:#3C5A86}
-.trashwrap{display:inline-flex;flex-direction:column;align-items:stretch;gap:4px}
-.btn.batt.due{background:#E5484D;border-color:#E5484D;color:#fff;font-weight:800;animation:battBlink 1.2s ease-in-out infinite}
+.trashwrap{position:relative;display:inline-block}
+.battg{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--ink,#222)}
+.battg .bbody{position:relative;display:block;margin-right:4px;width:30px;height:15px;border:2px solid #555;border-radius:4px;padding:1px;box-sizing:border-box}
+.battg .bbody::after{content:'';position:absolute;right:-5px;top:3px;width:3px;height:5px;background:#555;border-radius:0 2px 2px 0}
+.battg .bfill{display:block;height:100%;border-radius:1px;background:#30A46C;transition:width .4s}
+.battg.mid .bfill{background:#F5A623}.battg.low .bfill{background:#E5484D}
+.battg.due{background:#E5484D;border-color:#E5484D;color:#fff;font-weight:800;animation:battBlink 1.2s ease-in-out infinite}
+.battg.due .bbody{border-color:#fff}.battg.due .bbody::after{background:#fff}
 @keyframes battBlink{50%{opacity:.55}}
 .btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;font-weight:500;white-space:nowrap}
 .btn:hover{border-color:var(--sub)}
@@ -327,7 +333,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
     <button class="btn" id="xlsxBtn">엑셀 내보내기</button>
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
-    <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="btn batt" id="battBtn" type="button">배터리</button></span>
+    <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
     <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 /*BUILD*/</small>
   </div>
 
@@ -1334,7 +1340,11 @@ document.getElementById('trashBtn').addEventListener('click', trashDialog);
 const BATT_KEY='ilpum-battery';
 function battDue(){ let t=0; try{ t=+localStorage.getItem(BATT_KEY)||0; }catch(e){} if(!t) return null; const d=new Date(t); d.setDate(d.getDate()+2); d.setHours(19,0,0,0); return d; }
 function battPaint(){ const b=document.getElementById('battBtn'); if(!b) return; const due=battDue(); const on=!!due&&Date.now()>=due.getTime();
-  b.classList.toggle('due',on); b.textContent=on?'배터리 교체!':'배터리';
+  // 남은 양: 누른 시각 100% → 교체 시각 0% (배터리 모양 칸이 점점 줄어듦)
+  let t0=0; try{ t0=+localStorage.getItem(BATT_KEY)||0; }catch(e){}
+  const left=due?Math.max(0,Math.min(1,(due.getTime()-Date.now())/Math.max(1,due.getTime()-t0))):0;
+  b.classList.toggle('due',on); b.classList.toggle('mid',!on&&!!due&&left<=0.5&&left>0.2); b.classList.toggle('low',!on&&!!due&&left<=0.2);
+  b.querySelector('.bfill').style.width=Math.round(left*100)+'%'; b.querySelector('.blbl').textContent=on?'배터리 교체!':'배터리';
   b.title=due?(on?'배터리를 갈아끼우고 눌러 주세요':`다음 교체: ${due.getMonth()+1}/${due.getDate()} 저녁 7시 · 갈아끼웠으면 누르세요`):'배터리를 갈아끼운 뒤 누르면 이틀 뒤 저녁 7시에 알려 줘요'; }
 // 누르면 "언제 뺐어요?" — 오늘/어제 (빼는 날 깜빡하고 다음 날 눌러도 원래 날짜로 맞출 수 있게, 2026-10-11 사용자)
 function battDialog(){
