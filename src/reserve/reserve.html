@@ -474,6 +474,7 @@ function parseResText(text, todayKey){
 // 빈 테이블 추천: 앞뒤 2시간 예약 없는 자리 중 인원에 맞는 것 (최대 3개, 각 항목은 테이블 묶음)
 function ppNum(pp){ return String(pp||'').split(/[+,]/).reduce((n,x)=>n+(parseInt(x,10)||0),0); }
 const WINDOW_T=['1','2','3','4','5','36','37','38','39','40','41'];   // 본점 창가 자리
+const PREF_T=['12','13','14','16','17','18','2','3','4','21','22','25','26','27'];   // 본점 주로 쓰는 자리 순서(사용자 지정 2026-10-11)
 function suggestTables(date,time,pp,req){
   const busy=busyTables(date,time,null); const isFree=t=>!busy[t]; const n=ppNum(pp);
   const cap=t=>seatOf(t)||4; const floorOf=t=>{ const f=FLOORS.find(fl=>floorHas(fl,t)); return f?f.key:''; };
@@ -485,7 +486,8 @@ function suggestTables(date,time,pp,req){
   if(n>4){ if(!Object.keys(SEATS).length) BIG8.forEach(p=>{ if(p.every(t=>ALL_TABLES.includes(t)&&isFree(t))) cands.push({ts:p,cap:8,room:false}); });
     FLOORS.forEach(fl=>{ if(fl.mode==='free') return; fl.groups.forEach(g=>g.cols.forEach(col=>{ for(let i=0;i+1<col.length;i++){ const a=col[i],b=col[i+1]; if(a==null||b==null) continue; const p=[String(a),String(b)]; if(p.every(isFree)){ const c=cap(p[0])+cap(p[1]); if(c>=n&&!cands.some(x=>x.ts.join()===p.join())) cands.push({ts:p,cap:c,room:false,pair:true}); } } })); }); }
   const winOn=/창가|창문|창쪽|창 쪽|뷰/.test(req||'')&&!!(STORES.find(z=>z.id===SID)||{}).is_hq;
-  const score=x=>(winOn&&!x.ts.every(t=>WINDOW_T.includes(t))?200:0)+(x.cap-(n||2))*10 + (x.pair?15:0) + (x.room&&n<6?40:0) + ((!n||n<=4)&&x.ts.some(big)?60:0) + (floorOf(x.ts[0])===ui.floor?0:5);
+  const isHq=!!(STORES.find(z=>z.id===SID)||{}).is_hq; const prefR=t=>{ const i=PREF_T.indexOf(t); return i>=0?i*0.3:6+(+t>34?3:0)+(WINDOW_T.includes(t)&&!winOn?2:0); };
+  const score=x=>(winOn&&!x.ts.every(t=>WINDOW_T.includes(t))?200:0)+(isHq&&x.ts.length===1?prefR(x.ts[0]):0)+(x.cap-(n||2))*10 + (x.pair?15:0) + (x.room&&n<6?40:0) + ((!n||n<=4)&&x.ts.some(big)?60:0) + (floorOf(x.ts[0])===ui.floor?0:5);
   return cands.sort((a,b)=>score(a)-score(b)||(+a.ts[0]||999)-(+b.ts[0]||999)).slice(0,3);
 }
 function normTime(v){

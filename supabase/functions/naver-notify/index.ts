@@ -62,6 +62,7 @@ Deno.serve(async (req: Request) => {
   });
   if (!allT.length && SID === HQ_STORE) for (let i = 1; i <= 53; i++) allT.push(String(i));   // 본점은 배치를 저장한 적이 없으면 예약 화면 기본 배치(1~53번)
   const BIG_OLD = ["6", "7", "8", "9", "10", "42", "43", "44", "45", "51", "52", "53", "29", "30", "31", "32", "33", "34"];
+  const PREF = ["12", "13", "14", "16", "17", "18", "2", "3", "4", "21", "22", "25", "26", "27"];
   const WINDOW = ["1", "2", "3", "4", "5", "36", "37", "38", "39", "40", "41"];
   const isBig = (t: string) => Object.keys(seats).length ? (seats[t] || 0) >= 6 : (SID === HQ_STORE && BIG_OLD.includes(t));
   const pickTable = (items: any[], time: string, req: string) => {
@@ -70,8 +71,9 @@ Deno.serve(async (req: Request) => {
     const free = [...new Set(allT)].filter((t) => !busy.has(t) && !/^R/i.test(t) && !isBig(t));
     const win = /창가|창문|창쪽|창 쪽/.test(req) && SID === HQ_STORE ? free.filter((t) => WINDOW.includes(t)) : [];
     const num = (t: string) => (/^\d+$/.test(t) ? +t : 999);
-    const winLast = (t: string) => (SID === HQ_STORE && WINDOW.includes(t) ? 1000 : 0);   // 창가 요청이 아니면 창가 자리는 남겨 둠
-    return (win.length ? win.sort((a, b) => num(a) - num(b)) : free.sort((a, b) => winLast(a) + num(a) - winLast(b) - num(b)))[0] || "";
+    // 본점 주로 쓰는 순서(사용자 지정 2026-10-11): 1층 12~14 → 16~18 → 2~4 → 21~22 → 25~27, 그다음 나머지 1층(창가는 뒤로) → 2층
+    const rank = (t: string) => { if (SID !== HQ_STORE) return num(t); const i = PREF.indexOf(t); if (i >= 0) return i; return 100 + (num(t) > 34 ? 1000 : 0) + (WINDOW.includes(t) ? 500 : 0) + num(t); };
+    return (win.length ? win.sort((a, b) => rank(a) - rank(b)) : free.sort((a, b) => rank(a) - rank(b)))[0] || "";
   };
   const lbl = (d: string, x: any) => `${md(d)} ${x.time} ${x.name} ${x.pp}명`;
   try {
