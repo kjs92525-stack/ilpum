@@ -430,7 +430,8 @@ function parseResText(text, todayKey){
   if(!raw.trim()) return out;
   const today=todayKey?new Date(todayKey+'T00:00'):new Date(); today.setHours(0,0,0,0);
   const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean)
-    .filter(l=>!/(예약|주문|결제|승인)\s*번호|금액|결제|쿠폰|포인트|https?:\/\//.test(l));   // 번호·금액 줄은 무시 (전화·인원으로 잘못 읽지 않게)
+    .map(l=>/^(?:고객\s*)?(?:요청|메모|비고|특이|기타)/.test(l)?l:l.replace(/[^,\n]*(?:쿠폰|포인트)[^,\n]*/g,' ').trim())   // 쿠폰 문구만 빼기(한 줄짜리 알림이 통째로 사라지지 않게), 요청사항 줄은 그대로
+    .filter(l=>l&&!/(예약|주문|결제|승인)\s*번호|금액|결제|https?:\/\//.test(l));   // 번호·금액 줄은 무시 (전화·인원으로 잘못 읽지 않게)
   const body=lines.join('\n');
   const val=re=>{ for(const l of lines){ const m=l.match(re); if(m&&m[1]&&m[1].trim()) return m[1].trim(); } return ''; };
   const ph=body.match(/(?:^|[^\d])(01[016789])[\s.\-]?(\d{3,4})[\s.\-]?(\d{4})(?!\d)/) || body.match(/(?:^|[^\d])(0\d{1,2})[\s\-.](\d{3,4})[\s\-.](\d{4})(?!\d)/);
@@ -454,7 +455,7 @@ function parseResText(text, todayKey){
     if(h<=23&&mi<=59) out.time=`${pad(h)}:${pad(mi)}`; }
   const ad=noPh.match(/(?:성인|어른|대인)\s*[:：]?\s*(\d{1,2})/), kd=noPh.match(/(?:아이|아동|어린이|소아|유아|초등학생|초등|미취학|애기|아기)\s*[:：]?\s*(\d{1,2})/);
   if(ad) out.pp=ad[1]+(kd&&+kd[1]?'+'+kd[1]:'');
-  else { const pm=noPh.match(/(\d{1,2})\s*(?:명|인)(?!\s*석)/) || noPh.match(/인원\s*(?:수)?\s*[:：]?\s*(\d{1,2})/); if(pm) out.pp=pm[1]+(kd&&+kd[1]?'+'+kd[1]:''); }
+  else { const pm=noPh.match(/(\d{1,2})[ \t]*(?:명|인(?![원석]|\s*석))/) || noPh.match(/인원\s*(?:수)?\s*[:：]?\s*(\d{1,2})/); if(pm) out.pp=pm[1]+(kd&&+kd[1]?'+'+kd[1]:''); }
   const STOP=/^(예약|예약자|예약자명|성함|이름|고객|고객명|인원|성인|어른|아이|오전|오후|저녁|오늘|내일|모레|요청|요청사항|메모|일시|이용|이용일시|예약일시|방문|확정|취소|안내|네이버|장어|일품집|본점|유천점|감사|감사합니다|부탁|부탁드려요|부탁드립니다|문의|연락처|전화|전화번호|코스|상품|상품명|룸|테이블|좌석|단체|가족|생일|예약금|입금|확인|주차|아기|의자|창가|금일|당일|입완|안녕하세요|새로운|접수|접수되었습니다|되었습니다|다음주|이번주|담주|명|가능|가능할까요|할게요|합니다|하고|싶어요|예약합니다)$/;
   let nm=val(/(?:예약자\s*(?:명|이름|정보)?|성함|이름|고객\s*명)\s*[:：]?\s*([가-힣]{2,5})/);
   if(nm&&STOP.test(nm)) nm='';
@@ -466,6 +467,10 @@ function parseResText(text, todayKey){
     for(let i=0;i<lines.length;i++){ const m=lines[i].match(LB); if(!m) continue;
       let v=m[1].trim(); const more=[]; for(let j=i+1;j<lines.length&&!OTHER.test(lines[j])&&!LB.test(lines[j])&&!/^(새로운|접수|감사|일품집|\[)/.test(lines[j]);j++) more.push(lines[j]); v=[v,...more].filter(Boolean).join(' ');
       if(v&&!/^(없음|없습니다|-)$/.test(v)){ out.req=v.slice(0,500); break; } } }
+  { // 할인 쿠폰(2026-10-11 사용자: 10% 쿠폰 이벤트) → 메모에 "10%" (쿠폰 줄은 위에서 걸러지므로 원문으로 판단, 퍼센트가 없으면 진행 중인 10%로)
+    const cm=raw.match(/(\d{1,2})\s*%\s*(?:할인)?\s*쿠폰|쿠폰[^\n]{0,30}?(\d{1,2})\s*%|(\d{1,2})\s*%\s*할인/);
+    const pct=cm?(cm[1]||cm[2]||cm[3]):(/쿠폰/.test(raw)?'10':'');
+    if(pct&&!new RegExp('(^|[^0-9])'+pct+'\\s*[%％]').test(out.req)) out.req=(out.req?out.req+' ':'')+pct+'%'; }
   { const nb=out.req?body.split(out.req).join(' '):body;
     out.cancel=/취소(되었|됐|완료|하였|했|처리)|예약\s*취소/.test(nb);
     out.change=!out.cancel&&/변경(되었|됐|완료|하였|했|처리)|예약\s*변경/.test(nb); }

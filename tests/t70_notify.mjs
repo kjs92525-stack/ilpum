@@ -61,4 +61,6 @@ chk('기록 남김', (DB.sync_state.find(x=>x.key==='naver_log')||{val:[]}).val.
   for(const nm of names) await call(`일품집 본점, 예약신청\n${nm}님, 일품집 본점 예약, 2026.10.17.(토) 오후 6:00, 2명 (성인2), 새로운 예약이 접수되었습니다.`);
   const order=names.map(n=>day('2026-10-17').find(x=>x.name===n).tables.join()).join(',');
   chk('순서: 12,13,14,16,17,18,2,3,4,21,22,25,26,27 다음 나머지 1층(11)', order==='12,13,14,16,17,18,2,3,4,21,22,25,26,27,11', order); }
+{ await call('일품집 본점, 예약신청박서연님, 일품집 본점 예약, 2026.10.18.(일) 오후 6:00, 2명 (성인2), 10% 할인쿠폰 사용, 새로운 예약이 접수되었습니다.');
+  const x=day('2026-10-18').find(x=>x.name==='박서연'); chk('쿠폰 예약 → 메모에 10%', x&&x.req==='10%'&&x.time==='18:00', JSON.stringify(x&&[x.name,x.time,x.req])); }
 console.log(ok?'전체 OK':'실패 있음');
