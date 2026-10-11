@@ -1,6 +1,6 @@
 // 스마트플레이스 예약 알림 → 예약 자동 처리. 알림 받는 안드로이드 폰의 MacroDroid 가 알림 글을 POST 로 보냄.
-// - 4인 이하만: 새 예약 넣기 / 취소(테이블 칸에 "네이버취소") / 변경(날짜·시간·인원). 5인 이상·애매한 건 손대지 않고 기록만.
-// - 자동 처리한 예약에는 auto 표시 → 예약 목록에 보라색으로 보이고 "확인"을 누르면 원래 색.
+// - 8인 이하만(2026-10-11 사용자: 예전 4인 → 8인): 새 예약 넣기 / 취소(테이블 칸에 "네이버취소") / 변경(날짜·시간·인원). 9인 이상·애매한 건 손대지 않고 기록만.
+// - 자동 처리한 예약에는 auto 표시 → 예약 목록에 초록색으로 보이고 "확인"을 누르면 원래 색.
 // - 비밀 값(TOKEN)은 배포할 때만 채움(저장소에는 자리표시). 서버 키는 Supabase 가 함수 안에만 넣어 줌.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseResText, ds } from "./parse.js";
@@ -9,6 +9,7 @@ const TOKEN = "__NOTIFY_TOKEN__";
 const HQ_STORE = "0134d989-757a-4b60-9cb3-93245de2cac8";
 const out = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const AUTO_MAX = 8;
 const ppNum = (pp: string) => String(pp || "").split(/[+,]/).reduce((n, x) => n + (parseInt(x, 10) || 0), 0);
 const toMin = (t: string) => { const m = String(t || "").match(/(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
 const kstToday = () => { const d = new Date(Date.now() + 9 * 3600e3); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`; };
@@ -53,7 +54,7 @@ Deno.serve(async (req: Request) => {
     }
     throw new Error("저장 충돌");
   };
-  // 테이블 자동 지정(4인 이하 새 예약): 배치(sch_items cfg tables)에서 앞뒤 2시간 비어 있는 일반 테이블. 큰 자리(6인 이상)·룸은 아끼고, 창가 요청이면 본점 창가 먼저.
+  // 테이블 자동 지정(새 예약): 배치(sch_items cfg tables)에서 앞뒤 2시간 비어 있는 일반 테이블. 큰 자리(6인 이상)·룸은 아끼고, 창가 요청이면 본점 창가 먼저.
   const lay = (await db.from("sch_items").select("data").eq("store_id", SID).eq("kind", "cfg").eq("id", "tables").eq("deleted", false).maybeSingle()).data?.data || null;
   const seats: Record<string, number> = (lay && typeof lay.seats === "object" && lay.seats) || {};
   const allT: string[] = []; ((lay && lay.floors) || []).forEach((fl: any) => {
@@ -65,6 +66,24 @@ Deno.serve(async (req: Request) => {
   const PREF = ["12", "13", "14", "16", "17", "18", "2", "3", "4", "21", "22", "25", "26", "27"];
   const WINDOW = ["1", "2", "3", "4", "5", "36", "37", "38", "39", "40", "41"];
   const isBig = (t: string) => Object.keys(seats).length ? (seats[t] || 0) >= 6 : (SID === HQ_STORE && BIG_OLD.includes(t));
+  const BIG8_OLD = [["29", "30"], ["31", "32"], ["33", "34"]];
+  const capOf = (t: string) => seats[t] || (!Object.keys(seats).length && SID === HQ_STORE && BIG_OLD.includes(t) && !BIG8_OLD.flat().includes(t) ? 6 : 4);
+  // 5~8명: 그 인원이 앉는 자리(6인석, 8인석 짝, 룸) 중 남는 의자가 가장 적은 것, 1층 먼저. 없으면 비워 둠(직접 지정)
+  const pickGroup = (items: any[], time: string, n: number): string[] => {
+    const m = toMin(time); if (m == null || !allT.length) return [];
+    const busy = new Set<string>(); items.forEach((x: any) => { if (x.deleted || isCxl(x)) return; const xm = toMin(x.time); if (xm != null && Math.abs(xm - m) < 120) (x.tables || []).forEach((t: string) => busy.add(String(t))); });
+    const all = [...new Set(allT)], free = (t: string) => !busy.has(t);
+    const cands: { ts: string[]; cap: number; room: boolean }[] = [];
+    all.filter((t) => !/^R/i.test(t) && free(t)).forEach((t) => { const c = capOf(t); if (c >= n) cands.push({ ts: [t], cap: c, room: false }); });
+    if (!Object.keys(seats).length && SID === HQ_STORE) BIG8_OLD.forEach((p) => { if (p.every((t) => all.includes(t) && free(t))) cands.push({ ts: p, cap: 8, room: false }); });
+    const rooms: Record<string, string[]> = {}; all.forEach((t) => { const r = /^R(\d+)-\d+$/i.exec(t); if (r) (rooms[r[1]] = rooms[r[1]] || []).push(t); });
+    Object.values(rooms).forEach((ts) => { if (ts.every(free)) { const c = ts.reduce((a, t) => a + capOf(t), 0); if (c >= n) cands.push({ ts, cap: c, room: true }); } });
+    all.filter((t) => /^R\d+$/i.test(t) && free(t)).forEach((t) => { const c = seats[t] || 8; if (c >= n) cands.push({ ts: [t], cap: c, room: true }); });
+    const num = (t: string) => (/^\d+$/.test(t) ? +t : 999);
+    const score = (x: any) => (x.cap - n) * 10 + (x.room ? 25 : 0) + (num(x.ts[0]) > 34 && num(x.ts[0]) < 999 ? 5 : 0);
+    cands.sort((a, b) => score(a) - score(b) || num(a.ts[0]) - num(b.ts[0]));
+    return cands[0]?.ts || [];
+  };
   const pickTable = (items: any[], time: string, req: string) => {
     const m = toMin(time); if (m == null || !allT.length) return "";
     const busy = new Set<string>(); items.forEach((x: any) => { if (x.deleted || isCxl(x)) return; const xm = toMin(x.time); if (xm != null && Math.abs(xm - m) < 120) (x.tables || []).forEach((t: string) => busy.add(String(t))); });
@@ -81,12 +100,12 @@ Deno.serve(async (req: Request) => {
       const from = ds(new Date(new Date(today + "T00:00").getTime() - 864e5));
       const rows = (await db.from("res_days").select("id,data").eq("store_id", SID).gte("id", from)).data || [];
       let cs: any[] = []; rows.forEach((row: any) => (row.data?.items || []).forEach((x: any) => { if (!x.deleted && r.name && x.name === r.name) cs.push({ d: row.id, x }); }));
-      const big = (c: any) => ppNum(c.x.pp) > 4 || (r.change && ppNum(r.pp) > 4);
+      const big = (c: any) => ppNum(c.x.pp) > AUTO_MAX || (r.change && ppNum(r.pp) > AUTO_MAX);
       if (r.cancel) {
         let pick = cs.filter((c) => !isCxl(c.x)); if (r.date) pick = pick.filter((c) => c.d === r.date); if (r.time && pick.length > 1) pick = pick.filter((c) => c.x.time === r.time);
         if (!pick.length) return log({ cancel: cs.some((c) => isCxl(c.x)) ? "이미 취소돼 있음" : "취소할 예약 못 찾음", name: r.name, date: r.date });
         if (pick.length > 1) return log({ cancel: "같은 이름 여러 건 — 직접 처리", name: r.name });
-        if (big(pick[0])) return log({ cancel: "5인 이상 — 직접 처리", item: lbl(pick[0].d, pick[0].x) });
+        if (big(pick[0])) return log({ cancel: "9인 이상 — 직접 처리", item: lbl(pick[0].d, pick[0].x) });
         const c = pick[0];
         await editDay(c.d, (items) => { const it = items.find((y) => y.id === c.x.id); if (it) { it.tnote = ((it.tnote || "").replace(/(네이버)?취소/g, "").trim() + " 네이버취소").trim(); it.auto = "cxl"; it.u = Date.now(); } });
         return log({ ok: true, cancel: "취소 처리", item: lbl(c.d, c.x) });
@@ -97,7 +116,7 @@ Deno.serve(async (req: Request) => {
       if (same) return log({ change: "이미 반영됨", item: lbl(same.d, same.x) });
       if (!live.length) return log({ change: "바꿀 예약 못 찾음", name: r.name });
       if (live.length > 1) return log({ change: "같은 이름 여러 건 — 직접 처리", name: r.name });
-      const c = live[0]; if (big(c)) return log({ change: "5인 이상 — 직접 처리", item: lbl(c.d, c.x) });
+      const c = live[0]; if (big(c)) return log({ change: "9인 이상 — 직접 처리", item: lbl(c.d, c.x) });
       const nd = r.date || c.d, nt = r.time || c.x.time;
       const nx: any = { ...c.x, time: nt, auto: "chg", u: Date.now() }; if (r.pp) nx.pp = r.pp; if (r.req) nx.req = r.req;
       // 원래 테이블이 새 시간에 차 있으면 비움
@@ -114,12 +133,12 @@ Deno.serve(async (req: Request) => {
     if (!/(접수|신청|확정)/.test(text)) return log({ skip: "새 예약 알림 아님" });
     if (!r.date || !r.time || !r.name) return log({ skip: "날짜·시간·이름을 못 읽음", r });
     if (!r.pp) return log({ skip: "인원을 못 읽음 — 직접 입력", r });
-    if (ppNum(r.pp) > 4) return log({ skip: "5인 이상 — 직접 입력", r });
+    if (ppNum(r.pp) > AUTO_MAX) return log({ skip: "9인 이상 — 직접 입력", r });
     const day = await getDay(r.date);
     const dupe = (day?.data?.items || []).find((x: any) => !x.deleted && !isCxl(x) && x.name === r.name && x.time === r.time);
     if (dupe) return log({ skip: "이미 있는 예약", item: lbl(r.date, dupe) });
     const it: any = { id: uid(), c: today, u: Date.now(), name: r.name, time: r.time, pp: r.pp, tables: [], tnote: "", phone: r.phone || "", req: r.req || "", done: false, auto: "new" };
-    await editDay(r.date, (items) => { const t = pickTable(items, r.time, r.req || ""); it.tables = t ? [t] : []; items.push(it); });
+    await editDay(r.date, (items) => { if (ppNum(r.pp) > 4) it.tables = pickGroup(items, r.time, ppNum(r.pp)); else { const t = pickTable(items, r.time, r.req || ""); it.tables = t ? [t] : []; } items.push(it); });
     return log({ ok: true, add: lbl(r.date, it) });
   } catch (e) {
     return log({ error: String((e as Error).message || e) });

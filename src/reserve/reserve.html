@@ -247,7 +247,7 @@ body.resizing iframe{pointer-events:none}
 .qpres{margin-top:4px;font-size:12.5px;line-height:1.5}
 .sugw{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}.sugchip{border:1.5px solid var(--brand,#1f6f4a);background:var(--panel);color:var(--ink);border-radius:99px;padding:1px 9px;font-weight:800;font-size:12.5px;cursor:pointer}.sugchip small{font-weight:600;color:var(--sub)}
 .res.auto{background:rgba(3,199,90,.16)!important;box-shadow:inset 6px 0 0 #03C75A,0 0 0 2px #03C75A!important;border-radius:8px}
-.badge.autob{background:#03C75A;color:#fff;margin-left:4px;font-size:12px;padding:1px 7px}.btn.autook{background:#03C75A!important;border-color:#03C75A!important;color:#fff!important;font-weight:800}
+.badge.autob{background:#03C75A;color:#fff;margin-left:4px;font-size:12px;padding:1px 7px}.btn.pctbtn{color:#E5484D!important;border-color:#E5484D!important;font-weight:800}.btn.pctbtn.on{background:#E5484D!important;color:#fff!important}.btn.autook{background:#03C75A!important;border-color:#03C75A!important;color:#fff!important;font-weight:800}
 .cell .pctb{position:absolute;top:3px;left:4px;font-size:10.5px;font-weight:800;background:#E5484D;color:#fff;border-radius:4px;padding:0 4px;line-height:1.35;z-index:1}
 .cell.st-use .pctb{top:20px}.cell.st-dup .pctb{top:22px}
 .fpos .cell .pctb{top:auto;bottom:2px;left:50%;transform:translateX(-50%);font-size:clamp(9px,.62em,12px)}.fpos.round .cell .pctb{bottom:6%}
@@ -477,6 +477,7 @@ function parseResText(text, todayKey){
   return out;
 }
 // 빈 테이블 추천: 앞뒤 2시간 예약 없는 자리 중 인원에 맞는 것 (최대 3개, 각 항목은 테이블 묶음)
+const AUTO_MAX=8;   // 자동 처리 최대 인원(2026-10-11 사용자: 8인까지, 예전 4인)
 function ppNum(pp){ return String(pp||'').split(/[+,]/).reduce((n,x)=>n+(parseInt(x,10)||0),0); }
 const WINDOW_T=['1','2','3','4','5','36','37','38','39','40','41'];   // 본점 창가 자리
 const PREF_T=['12','13','14','16','17','18','2','3','4','21','22','25','26','27'];   // 본점 주로 쓰는 자리 순서(사용자 지정 2026-10-11)
@@ -735,7 +736,7 @@ function renderList(){
             ${!dw&&tw?`<div class="tightline">⏰ 임박(2시간 간격): ${esc(tw.join(', '))}</div>`:''}
             ${x.req?(hasDep(x)?`<div class="rq depq">💰 ${esc(x.req)}</div>`:`<div class="rq">📝 ${esc(x.req)}</div>`):''}
             ${x.phone?`<a class="ph" href="tel:${tel}">${esc(x.phone)}</a>`:''}</div>
-          <div class="acts">${x.auto?`<button class="btn sm autook" data-autook="${x.id}" title="자동으로 넣은 예약이에요. 내용을 확인했으면 누르세요">✓ 확인</button>`:''}<button class="btn sm" data-edit="${x.id}" tabindex="-1">수정</button><button class="btn sm danger" data-del="${x.id}">삭제</button></div></div>`; }).join('')}</div>`; }).join('');
+          <div class="acts">${x.auto?`<button class="btn sm pctbtn${hasPct(x)?' on':''}" data-pcttog="${x.id}" title="10% 쿠폰 손님이면 누르세요 (메모에 10%를 넣고 빼요)">10%</button><button class="btn sm autook" data-autook="${x.id}" title="자동으로 넣은 예약이에요. 내용을 확인했으면 누르세요">✓ 확인</button>`:''}<button class="btn sm" data-edit="${x.id}" tabindex="-1">수정</button><button class="btn sm danger" data-del="${x.id}">삭제</button></div></div>`; }).join('')}</div>`; }).join('');
   const P=document.getElementById('listPanel');
   P.innerHTML=`${quickHtml()}
     <div style="display:flex;align-items:center;gap:8px;margin-top:12px"><h2>예약 목록</h2></div>
@@ -1149,8 +1150,8 @@ function noticeUndoDo(){ const u=noticeUndo; if(!u) return; u.acts.forEach(a=>{ 
 async function noticeApply(r,kind){
   const box=()=>document.getElementById('qPasteRes'); const show=h=>{ quickPasteMsg=h; const b=box(); if(b) b.innerHTML=h; };
   show(`${kind==='cancel'?'취소':'변경'} 알림이에요 · 해당 예약 찾는 중…`); await loadAll(true); const src=searchSource();
-  let cs=noticeFind(r,src); const big=c=>ppNum(c.x.pp)>4||(kind==='change'&&ppNum(r.pp)>4); const bigs=cs.filter(c=>!isCxl(c.x)&&big(c)&&(!r.date||kind==='change'||c.d===r.date)); cs=cs.filter(c=>!big(c)); const live=cs.filter(c=>!isCxl(c.x));
-  if(!live.length&&bigs.length) return show(`<b class="bad">5인 이상 예약이라 자동으로 ${kind==='cancel'?'취소':'변경'}하지 않았어요 — 직접 처리해 주세요: ${esc(bigs.map(noticeLbl).join(' / '))}</b>`);
+  let cs=noticeFind(r,src); const big=c=>ppNum(c.x.pp)>AUTO_MAX||(kind==='change'&&ppNum(r.pp)>AUTO_MAX); const bigs=cs.filter(c=>!isCxl(c.x)&&big(c)&&(!r.date||kind==='change'||c.d===r.date)); cs=cs.filter(c=>!big(c)); const live=cs.filter(c=>!isCxl(c.x));
+  if(!live.length&&bigs.length) return show(`<b class="bad">${AUTO_MAX+1}인 이상 예약이라 자동으로 ${kind==='cancel'?'취소':'변경'}하지 않았어요 — 직접 처리해 주세요: ${esc(bigs.map(noticeLbl).join(' / '))}</b>`);
   if(kind==='cancel'){
     let pick=live; if(r.date) pick=pick.filter(c=>c.d===r.date); if(r.time&&pick.length>1) pick=pick.filter(c=>c.x.time===r.time);
     if(!pick.length){ const done=cs.find(c=>isCxl(c.x)&&(!r.date||c.d===r.date)); return show(done?`이미 취소돼 있어요: ${esc(noticeLbl(done))}`:`<span class="bad">취소할 예약을 찾지 못했어요 (${esc([r.name,r.date&&mdLbl(r.date),r.time].filter(Boolean).join(' '))}). 목록에서 직접 찾아 주세요.</span>`); }
@@ -1169,7 +1170,7 @@ function quickPaste(text){
   const box=document.getElementById('qPasteRes'); if(!String(text||'').trim()){ quickPasteMsg=''; if(box) box.innerHTML=''; return; }
   const r=parseResText(text,todayStr()); quickRead();
   if(r.cancel||r.change){ quickPasteOpen=true; noticeApply(r,r.cancel?'cancel':'change'); return; }
-  if(ppNum(r.pp)>4){ quickPasteOpen=true; quickPasteMsg=`<b class="bad">${esc(r.pp)}명 예약이에요. 지금은 시험 단계라 5인 이상은 자동으로 넣지 않아요 — 직접 입력해 주세요.</b>`; const bx=document.getElementById('qPasteRes'); if(bx) bx.innerHTML=quickPasteMsg; return; }
+  if(ppNum(r.pp)>AUTO_MAX){ quickPasteOpen=true; quickPasteMsg=`<b class="bad">${esc(r.pp)}명 예약이에요. 지금은 시험 단계라 ${AUTO_MAX+1}인 이상은 자동으로 넣지 않아요 — 직접 입력해 주세요.</b>`; const bx=document.getElementById('qPasteRes'); if(bx) bx.innerHTML=quickPasteMsg; return; }
   quick.auto=true;
   const set=(k,v)=>{ if(!v) return; quick[k]=k==='time'?v.replace(':',''):v; const el=document.getElementById('q'+{time:'Time',name:'Name',pp:'PP',phone:'Phone',req:'Req'}[k]); if(el) el.value=quick[k]; };
   set('name',r.name); set('time',r.time); set('pp',r.pp); set('phone',r.phone); set('req',r.req);
@@ -1197,6 +1198,7 @@ function quickAdd(){
 document.getElementById('listPanel').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.closest('#quick') && !e.isComposing){ e.preventDefault(); quickAdd(); } });
 document.getElementById('listPanel').addEventListener('click',e=>{
   const b=e.target.closest('button');
+  if(b&&b.dataset.pcttog){ const it=dayDoc(ui.date).items.find(y=>y.id===b.dataset.pcttog); if(it){ if(hasPct(it)){ it.req=String(it.req||'').replace(/(^|[^0-9])10\s*[%％]/g,'$1').replace(/\s+/g,' ').trim(); toast('10% 뺐어요'); } else { it.req=((it.req||'')+' 10%').trim(); toast('메모에 10% 넣었어요'); } saveItem(ui.date,it); } return; }
   if(b&&b.dataset.autook){ const it=dayDoc(ui.date).items.find(y=>y.id===b.dataset.autook); if(it){ delete it.auto; saveItem(ui.date,it); toast('확인했어요'); } return; }
   if(b&&b.dataset.nundo){ noticeUndoDo(); return; }
   if(b&&b.dataset.ncand!=null){ const k=noticeCands[+b.dataset.ncand]; if(!k) return; const h=k.kind==='cancel'?noticeCancel(k.c):noticeChange(k.c,k.r); noticeCands=[]; noticeGo(k.kind==='cancel'?k.c.d:(k.r.date||k.c.d)); quickPasteMsg=h+' <button class="sugchip" data-nundo="1">되돌리기</button>'; const bx=document.getElementById('qPasteRes'); if(bx) bx.innerHTML=quickPasteMsg; return; }

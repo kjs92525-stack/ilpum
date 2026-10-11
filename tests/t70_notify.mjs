@@ -34,7 +34,10 @@ const NEWN='일품집 본점, 예약신청\n우상태님, 일품집 본점 예�
 let [s,j]=await call(NEWN,'wrong'); chk('토큰 틀리면 거절', s===401);
 [s,j]=await call(NEWN); chk('새 예약 추가', j.ok&&day('2026-10-11').some(x=>x.name==='우상태'&&x.time==='17:30'&&x.pp==='4'&&x.auto==='new'&&x.tables.join()==='2'), JSON.stringify(j));
 [s,j]=await call(NEWN); chk('같은 알림 또 오면 중복 안 넣음', j.skip==='이미 있는 예약'&&day('2026-10-11').length===1, JSON.stringify(j));
-[s,j]=await call('일품집 본점, 예약신청\n박단체님, 일품집 본점 예약, 2026.10.11.(일) 오후 6:00, 6명 (성인6), 새로운 예약이 접수되었습니다.'); chk('5인 이상은 안 넣음', /5인 이상/.test(j.skip)&&day('2026-10-11').length===1, JSON.stringify(j));
+[s,j]=await call('일품집 본점, 예약신청\n박단체님, 일품집 본점 예약, 2026.10.11.(일) 오후 6:00, 6명 (성인6), 새로운 예약이 접수되었습니다.'); chk('6명 → 6인석 자동 지정', j.ok&&day('2026-10-11').some(x=>x.name==='박단체'&&x.tables.join()==='6'), JSON.stringify(day('2026-10-11')));
+[s,j]=await call('일품집 본점, 예약신청\n이팔명님, 일품집 본점 예약, 2026.10.11.(일) 오후 6:00, 8명 (성인8), 새로운 예약이 접수되었습니다.'); chk('8명 → (8인석이 없는 배치라) 룸1 통째', j.ok&&day('2026-10-11').some(x=>x.name==='이팔명'&&x.tables.join()==='R1-1,R1-2'), JSON.stringify(day('2026-10-11')));
+[s,j]=await call('일품집 본점, 예약신청\n구단체님, 일품집 본점 예약, 2026.10.11.(일) 오후 6:00, 9명 (성인9), 새로운 예약이 접수되었습니다.'); chk('9인 이상은 안 넣음', /9인 이상/.test(j.skip)&&!day('2026-10-11').some(x=>x.name==='구단체'), JSON.stringify(j));
+for(const nm of ['박단체','이팔명']){ const r=DB.res_days.find(x=>x.store_id===HQ&&x.id==='2026-10-11'); r.data.items=r.data.items.filter(x=>x.name!==nm); }
 [s,j]=await call('일품집 본점\n리뷰가 등록되었습니다. AI가 답글을 준비하고 있어요!'); chk('리뷰 알림은 무시', j.skip==='예약 알림 아님');
 [s,j]=await call('일품집 본점, 예약변경\n우상태님, 일품집 본점 예약, 2026.10.12.(월) 오후 7:00, 3명 (성인3), 예약이 변경되었습니다.');
 chk('변경: 10/11 → 10/12 19:00 3명', j.ok&&!day('2026-10-11').some(x=>x.name==='우상태')&&day('2026-10-12').some(x=>x.name==='우상태'&&x.time==='19:00'&&x.pp==='3'&&x.auto==='chg'), JSON.stringify(j));
