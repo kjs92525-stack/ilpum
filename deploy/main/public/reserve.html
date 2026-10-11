@@ -329,7 +329,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="batt" id="battBtn" type="button">배터리</button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1011-1715</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1011-1718</small>
   </div>
 
 </header>
@@ -1337,8 +1337,24 @@ function battDue(){ let t=0; try{ t=+localStorage.getItem(BATT_KEY)||0; }catch(e
 function battPaint(){ const b=document.getElementById('battBtn'); if(!b) return; const due=battDue(); const on=!!due&&Date.now()>=due.getTime();
   b.classList.toggle('due',on); b.textContent=on?'배터리 교체!':'배터리';
   b.title=due?(on?'배터리를 갈아끼우고 눌러 주세요':`다음 교체: ${due.getMonth()+1}/${due.getDate()} 저녁 7시 · 갈아끼웠으면 누르세요`):'배터리를 갈아끼운 뒤 누르면 이틀 뒤 저녁 7시에 알려 줘요'; }
-document.getElementById('battBtn').addEventListener('click',()=>{ if(!confirm('배터리 갈아끼웠어요?\n(이틀 뒤 저녁 7시에 다시 빨갛게 알려 줘요)')) return;
-  try{ localStorage.setItem(BATT_KEY,String(Date.now())); }catch(e){} battPaint(); const d=battDue(); toast(`배터리 교체 기록 · 다음은 ${d.getMonth()+1}/${d.getDate()} 저녁 7시`); });
+// 누르면 "언제 뺐어요?" — 오늘/어제 (빼는 날 깜빡하고 다음 날 눌러도 원래 날짜로 맞출 수 있게, 2026-10-11 사용자)
+function battDialog(){
+  const md=n=>{ const d=new Date(); d.setDate(d.getDate()-n); return `${d.getMonth()+1}/${d.getDate()}`; };
+  const nx=n=>{ const d=new Date(); d.setDate(d.getDate()-n+2); return `${d.getMonth()+1}/${d.getDate()}`; };
+  const due=battDue();
+  dlg.classList.remove('wide');
+  dlgBody.innerHTML=`<h3>배터리 언제 뺐어요?</h3>
+    <div class="hint" style="margin-bottom:10px">뺀 날로부터 이틀 뒤 저녁 7시에 빨갛게 알려 줘요.${due?`<br>지금 기록: 다음 교체 ${due.getMonth()+1}/${due.getDate()} 저녁 7시`:''}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn primary" data-batt="0" style="padding:12px">오늘 (${md(0)}) 뺐어요 → ${nx(0)} 저녁 7시에 알림</button>
+      <button class="btn" data-batt="1" style="padding:12px">어제 (${md(1)}) 뺐어요 → ${nx(1)} 저녁 7시에 알림</button>
+    </div>
+    <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="close">닫기</button></div>`;
+  dlg.showModal();
+}
+document.getElementById('battBtn').addEventListener('click',battDialog);
+dlgBody.addEventListener('click',e=>{ const b=e.target.closest('[data-batt]'); if(!b) return; const n=+b.dataset.batt||0;
+  try{ localStorage.setItem(BATT_KEY,String(Date.now()-n*864e5)); }catch(e){} dlg.close(); battPaint(); const d=battDue(); toast(`배터리 기록 · 다음 교체 ${d.getMonth()+1}/${d.getDate()} 저녁 7시`); });
 battPaint(); setInterval(battPaint,60000);
 
 /* ---------- 중복 예약 정리 ---------- */
