@@ -12,7 +12,7 @@ function fmtPhone(v){
 }
 
 function parseResText(text, todayKey){
-  const raw=String(text||'').replace(/\r/g,''); const out={date:'',time:'',pp:'',name:'',phone:'',req:'',cancel:false,change:false};
+  const raw=String(text||'').replace(/\r/g,'').replace(/(예약\s*(?:신청|취소|변경|확정|완료|거절))(?=[가-힣])/g,'$1\n'); const out={date:'',time:'',pp:'',name:'',phone:'',req:'',cancel:false,change:false};   // 폰 자동화가 제목·내용을 붙여 보냄("예약신청김지수님") → 줄을 나눔
   if(!raw.trim()) return out;
   const today=todayKey?new Date(todayKey+'T00:00'):new Date(); today.setHours(0,0,0,0);
   const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean)
