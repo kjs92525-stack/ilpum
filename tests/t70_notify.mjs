@@ -3,7 +3,7 @@
 const { build } = await import(process.env.ESBUILD || 'esbuild');
 import fs from 'fs'; import path from 'path'; import os from 'os';
 const HQ='0134d989-757a-4b60-9cb3-93245de2cac8', YC='ad2ffdae-f76b-44cd-a6c6-58514c4e4638';
-const DB={ stores:[{id:HQ,name:'일품집 본점'},{id:YC,name:'유천점'}], res_days:[], sync_state:[] };
+const DB={ stores:[{id:HQ,name:'일품집 본점'},{id:YC,name:'유천점'}], res_days:[], sync_state:[], sch_items:[{store_id:HQ,kind:'cfg',id:'tables',deleted:false,data:{floors:[{key:'1',name:'1층',groups:[{title:'홀',cols:[['1','2','3'],['6','7']]}]},{key:'r',name:'룸',groups:[{title:'룸',cols:[['R1-1','R1-2']]}]}],seats:{'6':6,'7':6}}}] };
 const mock=`export function createClient(){ const DB=globalThis.__DB;
   function q(t){ let rows=()=>DB[t]; const f=[]; let op='select', body=null, single=false;
     const run=()=>{ let r=DB[t].filter(x=>f.every(fn=>fn(x)));
@@ -32,7 +32,7 @@ const day=(d,s=HQ)=>(DB.res_days.find(x=>x.store_id===s&&x.id===d)||{data:{items
 globalThis.Date=class extends RealDate{ constructor(...a){ if(!a.length) super(T+(RealDate.now()-st0)); else super(...a); } static now(){ return T+(RealDate.now()-st0); } }; const st0=RealDate.now();
 const NEWN='일품집 본점, 예약신청\n우상태님, 일품집 본점 예약, 2026.10.11.(일) 오후 5:30, 4명 (성인4), 새로운 예약이 접수되었습니다.';
 let [s,j]=await call(NEWN,'wrong'); chk('토큰 틀리면 거절', s===401);
-[s,j]=await call(NEWN); chk('새 예약 추가', j.ok&&day('2026-10-11').some(x=>x.name==='우상태'&&x.time==='17:30'&&x.pp==='4'&&x.auto==='new'&&x.tables.length===0), JSON.stringify(j));
+[s,j]=await call(NEWN); chk('새 예약 추가', j.ok&&day('2026-10-11').some(x=>x.name==='우상태'&&x.time==='17:30'&&x.pp==='4'&&x.auto==='new'&&x.tables.join()==='1'), JSON.stringify(j));
 [s,j]=await call(NEWN); chk('같은 알림 또 오면 중복 안 넣음', j.skip==='이미 있는 예약'&&day('2026-10-11').length===1, JSON.stringify(j));
 [s,j]=await call('일품집 본점, 예약신청\n박단체님, 일품집 본점 예약, 2026.10.11.(일) 오후 6:00, 6명 (성인6), 새로운 예약이 접수되었습니다.'); chk('5인 이상은 안 넣음', /5인 이상/.test(j.skip)&&day('2026-10-11').length===1, JSON.stringify(j));
 [s,j]=await call('일품집 본점\n리뷰가 등록되었습니다. AI가 답글을 준비하고 있어요!'); chk('리뷰 알림은 무시', j.skip==='예약 알림 아님');
@@ -45,4 +45,16 @@ const w=day('2026-10-12').find(x=>x.name==='우상태'); chk('취소: 지우지 
 chk('기록 남김', (DB.sync_state.find(x=>x.key==='naver_log')||{val:[]}).val.length>=8);
 { const r=await call('일품집 본점, 예약신청김지수님, 일품집 본점 예약, 2026.10.14.(수) 오후 3:30, 2명 (성인2), 새로운 예약이 접수되었습니다.일품집 본점, 예약신청\n김지수님, 일품집 본점 예약, 2026.10.14.(수) 오후 3:30, 2명 (성인2), 새로운 예약이 접수되었습니다.');
   chk('제목·내용이 붙어 와도 이름 김지수', day('2026-10-14').some(x=>x.name==='김지수'&&x.time==='15:30'), JSON.stringify(r[1])); }
+{ const r1=await call('일품집 본점, 예약신청\n박일번님, 일품집 본점 예약, 2026.10.15.(목) 오후 6:00, 2명 (성인2), 새로운 예약이 접수되었습니다.');
+  const r2=await call('일품집 본점, 예약신청\n최이번님, 일품집 본점 예약, 2026.10.15.(목) 오후 7:00, 4명 (성인4), 새로운 예약이 접수되었습니다.');
+  const r3=await call('일품집 본점, 예약신청\n정삼번님, 일품집 본점 예약, 2026.10.15.(목) 오후 9:30, 2명 (성인2), 새로운 예약이 접수되었습니다.');
+  const g=n=>day('2026-10-15').find(x=>x.name===n).tables.join();
+  chk('2시간 안 겹치는 자리로: 18시 1번, 19시 2번, 21:30 다시 1번', g('박일번')==='1'&&g('최이번')==='2'&&g('정삼번')==='1', [g('박일번'),g('최이번'),g('정삼번')].join('/')); 
+  await call('일품집 본점, 예약신청\n가나님, 일품집 본점 예약, 2026.10.15.(목) 오후 6:30, 2명 (성인2), 새로운 예약이 접수되었습니다.');
+  await call('일품집 본점, 예약신청\n다라님, 일품집 본점 예약, 2026.10.15.(목) 오후 6:40, 2명 (성인2), 새로운 예약이 접수되었습니다.');
+  chk('작은 자리가 다 차면 큰 자리·룸 대신 미정', g('가나')==='3'&&g('다라')==='', g('가나')+'/'+g('다라')); }
+{ DB.sch_items=[]; await call('일품집 본점, 예약신청\n홍길순님, 일품집 본점 예약, 2026.10.16.(금) 오후 6:00, 2명 (성인2), 새로운 예약이 접수되었습니다.');
+  await call('일품집 본점, 예약신청\n이영자님, 일품집 본점 예약, 2026.10.16.(금) 오후 6:00, 2명 (성인2), 새로운 예약이 접수되었습니다.\n요청사항 : 창가 자리 부탁해요');
+  const g=n=>day('2026-10-16').find(x=>x.name===n).tables.join();
+  chk('배치 저장 안 한 본점: 창가·큰 자리 빼고 11번부터, 창가 요청은 1번', g('홍길순')==='11'&&g('이영자')==='1', g('홍길순')+'/'+g('이영자')); }
 console.log(ok?'전체 OK':'실패 있음');

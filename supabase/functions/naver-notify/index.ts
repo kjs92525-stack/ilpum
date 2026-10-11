@@ -53,6 +53,26 @@ Deno.serve(async (req: Request) => {
     }
     throw new Error("저장 충돌");
   };
+  // 테이블 자동 지정(4인 이하 새 예약): 배치(sch_items cfg tables)에서 앞뒤 2시간 비어 있는 일반 테이블. 큰 자리(6인 이상)·룸은 아끼고, 창가 요청이면 본점 창가 먼저.
+  const lay = (await db.from("sch_items").select("data").eq("store_id", SID).eq("kind", "cfg").eq("id", "tables").eq("deleted", false).maybeSingle()).data?.data || null;
+  const seats: Record<string, number> = (lay && typeof lay.seats === "object" && lay.seats) || {};
+  const allT: string[] = []; ((lay && lay.floors) || []).forEach((fl: any) => {
+    if (fl.mode === "free") (fl.tables || []).forEach((t: any) => allT.push(String(t.id)));
+    else { (fl.groups || []).forEach((g: any) => (g.cols || []).forEach((c: any) => (c || []).forEach((t: any) => { if (t != null) allT.push(String(t)); }))); ((fl.bar && fl.bar.row) || []).forEach((t: any) => { if (t != null) allT.push(String(t)); }); }
+  });
+  if (!allT.length && SID === HQ_STORE) for (let i = 1; i <= 53; i++) allT.push(String(i));   // 본점은 배치를 저장한 적이 없으면 예약 화면 기본 배치(1~53번)
+  const BIG_OLD = ["6", "7", "8", "9", "10", "42", "43", "44", "45", "51", "52", "53", "29", "30", "31", "32", "33", "34"];
+  const WINDOW = ["1", "2", "3", "4", "5", "36", "37", "38", "39", "40", "41"];
+  const isBig = (t: string) => Object.keys(seats).length ? (seats[t] || 0) >= 6 : (SID === HQ_STORE && BIG_OLD.includes(t));
+  const pickTable = (items: any[], time: string, req: string) => {
+    const m = toMin(time); if (m == null || !allT.length) return "";
+    const busy = new Set<string>(); items.forEach((x: any) => { if (x.deleted || isCxl(x)) return; const xm = toMin(x.time); if (xm != null && Math.abs(xm - m) < 120) (x.tables || []).forEach((t: string) => busy.add(String(t))); });
+    const free = [...new Set(allT)].filter((t) => !busy.has(t) && !/^R/i.test(t) && !isBig(t));
+    const win = /창가|창문|창쪽|창 쪽/.test(req) && SID === HQ_STORE ? free.filter((t) => WINDOW.includes(t)) : [];
+    const num = (t: string) => (/^\d+$/.test(t) ? +t : 999);
+    const winLast = (t: string) => (SID === HQ_STORE && WINDOW.includes(t) ? 1000 : 0);   // 창가 요청이 아니면 창가 자리는 남겨 둠
+    return (win.length ? win.sort((a, b) => num(a) - num(b)) : free.sort((a, b) => winLast(a) + num(a) - winLast(b) - num(b)))[0] || "";
+  };
   const lbl = (d: string, x: any) => `${md(d)} ${x.time} ${x.name} ${x.pp}명`;
   try {
     if (r.cancel || r.change) {
@@ -96,8 +116,8 @@ Deno.serve(async (req: Request) => {
     const day = await getDay(r.date);
     const dupe = (day?.data?.items || []).find((x: any) => !x.deleted && !isCxl(x) && x.name === r.name && x.time === r.time);
     if (dupe) return log({ skip: "이미 있는 예약", item: lbl(r.date, dupe) });
-    const it = { id: uid(), c: today, u: Date.now(), name: r.name, time: r.time, pp: r.pp, tables: [], tnote: "", phone: r.phone || "", req: r.req || "", done: false, auto: "new" };
-    await editDay(r.date, (items) => { items.push(it); });
+    const it: any = { id: uid(), c: today, u: Date.now(), name: r.name, time: r.time, pp: r.pp, tables: [], tnote: "", phone: r.phone || "", req: r.req || "", done: false, auto: "new" };
+    await editDay(r.date, (items) => { const t = pickTable(items, r.time, r.req || ""); it.tables = t ? [t] : []; items.push(it); });
     return log({ ok: true, add: lbl(r.date, it) });
   } catch (e) {
     return log({ error: String((e as Error).message || e) });
