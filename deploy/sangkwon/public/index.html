@@ -578,11 +578,25 @@ body.ui-term .db-score{position:relative;overflow:hidden}
 body.ui-term .db-score::after{content:"";position:absolute;top:0;bottom:0;left:0;width:35%;background:linear-gradient(100deg,transparent,rgba(160,170,255,.13),transparent);animation:moShine 5s ease-in-out 1.2s infinite;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.mo-sweep,.mo-pulse,.tick .dot.ok,body.ui-term .sring,body.ui-term .db-score::after{animation:none!important}.mo-pulse{display:none}.mo-rv{opacity:1;transform:none}}
 @media print{.mo-sweep,.mo-pulse{display:none!important}.mo-rv{opacity:1!important;transform:none!important}.sring,.db-score::after{animation:none!important}}
+.mo-intro{position:absolute;inset:0;z-index:20;border-radius:18px;overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,rgba(70,60,220,.55),rgba(6,6,18,.97) 60%);display:flex;align-items:flex-start;justify-content:center;padding-top:70px;pointer-events:none}
+.mo-grid{position:absolute;inset:-40px;background-image:linear-gradient(rgba(127,139,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(127,139,255,.16) 1px,transparent 1px);background-size:34px 34px;animation:moGridMove 1.2s linear infinite;transform:perspective(500px) rotateX(55deg) translateY(30%);transform-origin:50% 100%}
+.mo-scanl{position:absolute;left:0;right:0;height:120px;background:linear-gradient(180deg,transparent,rgba(127,139,255,.35),rgba(255,255,255,.55) 52%,transparent 54%);animation:moScanY 1s cubic-bezier(.5,0,.5,1) forwards;top:-120px}
+.mo-term{position:relative;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#cfd4ff;font-size:13px;line-height:1.7;min-width:min(420px,86%);padding:18px 22px;border:1px solid rgba(127,139,255,.5);border-radius:12px;background:rgba(8,8,24,.75);box-shadow:0 0 40px rgba(111,123,255,.35)}
+.mo-term b{display:block;color:#fff;letter-spacing:.24em;font-size:12px}.mo-tgt{display:block;color:#e0b341;margin:2px 0 8px;font-size:15px;font-weight:700}
+.mo-term p{margin:0;opacity:0;animation:moLine .25s ease-out forwards}.mo-term em{color:#6f7bff;font-style:normal}.mo-term u{color:#27d17f;text-decoration:none;float:right}
+.mo-pbar{height:3px;background:rgba(127,139,255,.2);margin-top:10px;border-radius:3px;overflow:hidden}.mo-pbar i{display:block;height:100%;background:linear-gradient(90deg,#6f7bff,#27d17f);box-shadow:0 0 12px #6f7bff;animation:moBar .85s cubic-bezier(.6,0,.3,1) forwards;width:0}
+@keyframes moGridMove{to{background-position:0 34px}}@keyframes moScanY{to{top:100%}}@keyframes moLine{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}@keyframes moBar{to{width:100%}}
+.mo-spark,.mo-shock{position:absolute;pointer-events:none;z-index:5;display:block}.mo-spark{border-radius:50%;box-shadow:0 0 8px currentColor}.mo-shock{width:120px;height:120px;border:3px solid;border-radius:50%}
+.mo-beam{position:absolute;top:0;bottom:0;left:0;width:40%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(160,170,255,.22),transparent);z-index:3;display:block}
+body.ui-term::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(40vw 40vw at 15% 20%,rgba(90,70,255,.18),transparent 70%),radial-gradient(35vw 35vw at 85% 70%,rgba(40,140,255,.13),transparent 70%),radial-gradient(30vw 30vw at 60% 10%,rgba(200,80,255,.10),transparent 70%);animation:moAurora 18s ease-in-out infinite alternate}
+@keyframes moAurora{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-3%,2%) scale(1.08)}100%{transform:translate(2%,-3%) scale(1.04)}}
+@media (prefers-reduced-motion:reduce){body.ui-term::before{animation:none}.mo-intro{display:none}}
+@media print{body.ui-term::before,.mo-intro,.mo-spark,.mo-shock,.mo-beam{display:none!important}}
 </style>
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.12a</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.12b</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -1788,7 +1802,41 @@ function moFill(root,base){
   });
   root.querySelectorAll('.sr-n,.mring text,.kc-v,.sb-big strong,.dmb-r>b,.cr-n b,.ls b,.kpi b').forEach((el,j)=>moCount(el,1300,base+150+Math.min(j,16)*40));
 }
-function moRise(L,base,step){ L.forEach((el,i)=>el.animate([{opacity:0,transform:'translateY(22px) scale(.98)'},{opacity:1,transform:'none'}],{duration:700,delay:base+i*step,easing:MO_EASE,fill:'backwards'})); }
+function moRise(L,base,step){ L.forEach((el,i)=>el.animate([{opacity:0,transform:'perspective(900px) translateY(40px) rotateX(-22deg) scale(.94)',filter:'blur(8px)'},{opacity:1,transform:'none',filter:'blur(0)'}],{duration:900,delay:base+i*step,easing:MO_EASE,fill:'backwards'})); }
+// 글자가 무작위 기호로 흩어졌다가 맞춰짐 (해독 효과)
+function moDecode(el,delay,dur){
+  const fin=el.textContent; if(!fin||fin.length>60) return; const G='#%&@$*+=<>/\\|01ABCDEFXYZ';
+  el.textContent=fin.replace(/\S/g,()=>G[Math.random()*G.length|0]); const t0=performance.now()+delay;
+  const step=t=>{ if(!el.isConnected) return; const k=(t-t0)/dur; if(k>=1){ el.textContent=fin; return; }
+    const n=Math.max(0,Math.floor(k*fin.length)); el.textContent=fin.slice(0,n)+fin.slice(n).replace(/\S/g,()=>k<0||Math.random()<.6?G[Math.random()*G.length|0]:'·'); requestAnimationFrame(step); };
+  requestAnimationFrame(step); setTimeout(()=>{ if(el.isConnected) el.textContent=fin; },delay+dur+400);
+}
+// 등급 도장 + 파편 터짐 + 빛 고리
+function moBurst(box,ring,pill,delay){
+  setTimeout(()=>{
+    if(!box.isConnected) return;
+    const col=getComputedStyle(ring.querySelector('circle:nth-of-type(2)')).stroke||'#6f7bff';
+    const br=box.getBoundingClientRect(), rr=ring.getBoundingClientRect(), cx=rr.left-br.left+rr.width/2, cy=rr.top-br.top+rr.height/2;
+    const sh=document.createElement('i'); sh.className='mo-shock'; sh.style.cssText=`left:${cx}px;top:${cy}px;border-color:${col}`; box.appendChild(sh);
+    sh.animate([{transform:'translate(-50%,-50%) scale(.4)',opacity:.9},{transform:'translate(-50%,-50%) scale(3.4)',opacity:0}],{duration:900,easing:'cubic-bezier(.1,.7,.3,1)'}).onfinish=()=>sh.remove();
+    for(let i=0;i<26;i++){ const p=document.createElement('i'); p.className='mo-spark'; const a=Math.PI*2*i/26+Math.random()*.3, d=70+Math.random()*90, z=3+Math.random()*4;
+      p.style.cssText=`left:${cx}px;top:${cy}px;width:${z}px;height:${z}px;background:${i%3?col:'#fff'}`; box.appendChild(p);
+      p.animate([{transform:'translate(-50%,-50%)',opacity:1},{transform:`translate(calc(-50% + ${Math.cos(a)*d}px),calc(-50% + ${Math.sin(a)*d}px)) scale(.2)`,opacity:0}],{duration:700+Math.random()*500,easing:'cubic-bezier(.05,.8,.3,1)'}).onfinish=()=>p.remove(); }
+    ring.animate([{transform:'scale(1)'},{transform:'scale(1.12)'},{transform:'scale(1)'}],{duration:500,easing:'ease-out'});
+    box.animate([{boxShadow:`0 0 0 0 ${col}`},{boxShadow:`0 0 60px 4px ${col}`,offset:.25},{boxShadow:'0 0 0 0 transparent'}],{duration:1200});
+    if(pill) pill.animate([{transform:'scale(3) rotate(-14deg)',opacity:0,filter:'blur(4px)'},{transform:'scale(.9) rotate(3deg)',opacity:1,filter:'blur(0)',offset:.7},{transform:'none',opacity:1}],{duration:520,easing:'cubic-bezier(.2,1.4,.4,1)',fill:'backwards'});
+  },delay);
+}
+// 처음 여는 후보지: "분석 중" 단말기 화면이 대시보드를 훑고 사라짐
+function moIntro(wrap,c){
+  const L=['카카오 지도 · 반경 3km 장어집 수집','행정동 인구 · 30~59세 합산','허프 중력 모형 · 포착 수요 계산','기준표 점수화 · 필수 조건 심사','출점 평가표 산출'];
+  const o=document.createElement('div'); o.className='mo-intro'; o.setAttribute('aria-hidden','true');
+  o.innerHTML=`<div class="mo-grid"></div><div class="mo-scanl"></div><div class="mo-term"><b>ILPUM SITE ENGINE</b><span class="mo-tgt">${esc(c.name||'')}</span>${L.map((t,i)=>`<p style="animation-delay:${80+i*130}ms"><em>[${String(i+1).padStart(2,'0')}]</em> ${t} <u>OK</u></p>`).join('')}<div class="mo-pbar"><i></i></div></div>`;
+  wrap.style.position='relative'; wrap.appendChild(o);
+  o.animate([{opacity:1,transform:'none',filter:'blur(0)'},{opacity:1,transform:'none',filter:'blur(0)',offset:.78},{opacity:0,transform:'scale(1.04)',filter:'blur(6px)'}],{duration:1150,easing:'ease-in',fill:'forwards'}).onfinish=()=>o.remove();
+  return 950;
+}
+const MO_SEEN=new Set();
 function motion(){
   const pane=$('#pane'); if(!pane) return;
   // 분석이 끝나 대시보드가 처음 생길 때도 한 번 더 움직임
@@ -1797,17 +1845,32 @@ function motion(){
   if(MO_IO){ MO_IO.disconnect(); MO_IO=null; }
   if(!moOK()) return;
   document.body.classList.add('mo-on');
-  moRise([...pane.querySelectorAll('.dash>.db,.ls,.lc,.cover,#rcard')],0,70);
+  const wrap=pane.querySelector('.dwrap'), c=TAB==='detail'&&DB.cands.find(x=>x.id===CUR);
+  let D=0;
+  if(wrap&&c&&!MO_SEEN.has(c.id)){ MO_SEEN.add(c.id); D=moIntro(wrap,c); }
+  moRise([...pane.querySelectorAll('.cover,#rcard')],0,70);
+  moRise([...pane.querySelectorAll('.dash>.db,.ls,.lc')],D,85);
   const sec=[...pane.querySelectorAll('.card[id^="s-"]')], vh=innerHeight||800;
   const late=sec.filter(c=>c.getBoundingClientRect().top>vh*0.9);
-  moFill(pane.querySelector('.dwrap')||pane.querySelector('.lc-g')||document.createElement('div'),200);
+  moFill(wrap||pane.querySelector('.lc-g')||document.createElement('div'),D+200);
   if(pane.querySelector('.lc-g')) moFill(pane.querySelector('.ls-g')||document.createElement('div'),0);
-  sec.filter(c=>!late.includes(c)&&!c.querySelector('.dwrap')).forEach(c=>moFill(c,300));
+  if(wrap){
+    const sc=wrap.querySelector('.db-score'), ring=sc&&sc.querySelector('.sring');
+    if(sc){ sc.querySelectorAll('.sc-d,.sc-t').forEach((el,i)=>moDecode(el,D+250+i*200,900)); if(ring) moBurst(sc,ring,sc.querySelector('.pill'),D+1500); }
+    wrap.querySelectorAll('.kos i').forEach((el,i)=>el.animate([{transform:'scale(0)',opacity:0},{transform:'scale(1.8)',opacity:1,offset:.6},{transform:'none',opacity:1}],{duration:420,delay:D+700+i*70,fill:'backwards'}));
+  }
+  sec.filter(c=>!late.includes(c)&&!c.querySelector('.dwrap')).forEach(c=>moFill(c,D+300));
   if(!late.length||!window.IntersectionObserver) { late.forEach(c=>moFill(c,0)); return; }
   late.forEach(c=>c.classList.add('mo-rv'));
   MO_IO=new IntersectionObserver(es=>es.forEach(e=>{ if(!e.isIntersecting) return; const c=e.target; MO_IO&&MO_IO.unobserve(c);
-    c.classList.add('mo-in'); c.classList.remove('mo-rv'); moFill(c,150); }),{rootMargin:'0px 0px -8% 0px',threshold:0.05});
+    c.classList.add('mo-in'); c.classList.remove('mo-rv'); moFill(c,150); moSweep(c); }),{rootMargin:'0px 0px -8% 0px',threshold:0.05});
   late.forEach(c=>MO_IO.observe(c));
+}
+// 구역이 나타날 때 빛줄기가 한 번 훑고 지나감
+function moSweep(card){
+  const l=document.createElement('i'); l.className='mo-beam'; card.style.position=card.style.position||'relative'; card.appendChild(l);
+  l.animate([{transform:'translateX(-100%)',opacity:0},{opacity:1,offset:.2},{transform:'translateX(260%)',opacity:0}],{duration:1100,easing:'cubic-bezier(.3,.6,.4,1)'}).onfinish=()=>l.remove();
+  const h=card.querySelector('h2'); if(h) h.animate([{letterSpacing:'.3em',opacity:0,filter:'blur(6px)'},{letterSpacing:'normal',opacity:1,filter:'blur(0)'}],{duration:700,easing:MO_EASE,fill:'backwards'});
 }
 
 function progHtml(){ return `<div id="prog" ${benchBusy?'':'hidden'}><div class="note"><span></span></div><div class="prog"><i style="width:0"></i></div></div>`; }
@@ -2055,7 +2118,7 @@ function chrome(){
   const t=$('#tick'), f=$('#foot'); if(!t||!f) return;
   const on=!!K, nS=DB.stores.length, nC=DB.cands.length;
   t.innerHTML=`<span class="tk"><i class="dot ${on?'ok':'no'}"></i>${on?'카카오 지도 연결됨':'지도 연결 대기'}</span><span class="tk"><b>CITY</b> ${esc(CT())}</span><span class="tk"><b>후보지</b> ${nC}</span><span class="tk"><b>우리 매장</b> ${nS}</span><span class="tk"><b>기준일</b> ${today()}</span><span class="sp"></span><span class="tk src"><b>DATA</b> 카카오맵 · 행정안전부 · 국토교통부 · 소상공인시장진흥공단 · 통계청</span>`;
-  f.innerHTML=`<div><b>일품집 상권분석 시스템</b> · 출점 입지 평가</div><div>방법론: 허프(Huff) 중력 모형 · 장어집 기준표 · 필수 조건 심사 · 공공데이터 연동</div><div>${PUB?'본 자료는 상권 참고 자료이며 예상 매출액이나 수익을 보장하지 않습니다.':'본사 내부 심사용 자료 · 외부 제공 금지'} · ${'v10.12a'}</div>`;
+  f.innerHTML=`<div><b>일품집 상권분석 시스템</b> · 출점 입지 평가</div><div>방법론: 허프(Huff) 중력 모형 · 장어집 기준표 · 필수 조건 심사 · 공공데이터 연동</div><div>${PUB?'본 자료는 상권 참고 자료이며 예상 매출액이나 수익을 보장하지 않습니다.':'본사 내부 심사용 자료 · 외부 제공 금지'} · ${'v10.12b'}</div>`;
 }
 function mapBtn(){ const b=$('[data-act=maptoggle]'); if(!b) return; const mob=matchMedia('(max-width:700px)').matches, on=mob?document.body.classList.contains('showmap'):!document.body.classList.contains('nomap'); b.textContent=on?'지도 숨기기':'지도 보기'; b.setAttribute('aria-pressed',on); }
 try{ if(localStorage.getItem('ilpum-sk-map')==='0') document.body.classList.add('nomap'); }catch(_){}
