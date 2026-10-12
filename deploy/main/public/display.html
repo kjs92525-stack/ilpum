@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>오늘의 예약</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&family=Jua&family=Do+Hyeon&family=Gaegu:wght@400;700&family=Nanum+Pen+Script&family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap">
 <style>
 /* 손님용 예약 현황판 (매장 입구 모니터). 상권분석과 같은 보고서형: 네이비 + 금색, 이름·번호는 명조 */
 :root{--bg:#f3f4f6;--paper:#fff;--ink:#141a26;--ink2:#2b3445;--sub:#6b7383;--faint:#9aa1ad;--line:#e2e5ea;
@@ -33,7 +33,7 @@ main{flex:1;min-height:0;padding:2vh 2.4vw 1vh;display:flex}
 .row .tb.none{background:#e9ecf1;color:var(--faint);font-weight:700}
 .row.soon{border-color:var(--gold);box-shadow:0 0 0 2px var(--goldT)}
 .row.soon::before{content:'';position:absolute;left:0;top:18%;bottom:18%;width:calc(var(--fs)*.1);background:var(--gold);border-radius:0 4px 4px 0}
-.row.past{opacity:.38}
+.row.past{opacity:.38;--op:.38}
 .empty{margin:auto;text-align:center;color:var(--sub)}
 .empty b{display:block;font:700 clamp(26px,3vw,52px)/1.3 var(--serif);color:var(--navy)}
 .empty span{font-size:clamp(14px,1.4vw,24px)}
@@ -45,9 +45,110 @@ footer .sp{flex:1}
 .login{margin:auto;max-width:640px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px 32px;text-align:center}
 .login b{font:700 24px/1.4 var(--serif);color:var(--navy);display:block;margin-bottom:8px}
 .login a{color:var(--navy2);font-weight:700}
+
+/* ===== 테마 3종 (?theme=aurora | chalk | warm, 키보드 T 로 바꾸기). 기본(classic)은 위 그대로 ===== */
+#grid.measuring *{animation:none!important}
+#fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+header,main,footer{position:relative;z-index:1}
+.row.in{animation:rowIn .7s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rowIn{from{opacity:0;transform:translateY(14px)}to{opacity:var(--op,1);transform:none}}
+.clock .cl{animation:blink 2s steps(1) infinite}@keyframes blink{50%{opacity:.25}}
+
+/* 1) 오로라 — 어두운 바탕에 천천히 흐르는 빛, 유리 카드, 둥근 글씨 */
+body[data-theme=aurora]{--bg:#0a0c1b;background:var(--bg);color:#fff;--fontN:"Jua",var(--sans)}
+body[data-theme=aurora] #fx .blob{position:absolute;width:62vmax;height:62vmax;border-radius:50%;filter:blur(90px);opacity:.55;mix-blend-mode:screen;animation:drift 26s ease-in-out infinite alternate}
+body[data-theme=aurora] #fx .b1{background:#7c5cff;left:-18vmax;top:-22vmax}
+body[data-theme=aurora] #fx .b2{background:#ff4fa0;right:-20vmax;top:10vmax;animation-duration:32s;animation-delay:-8s}
+body[data-theme=aurora] #fx .b3{background:#17d6c8;left:20vmax;bottom:-30vmax;animation-duration:38s;animation-delay:-16s;opacity:.4}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(8vmax,6vmax) scale(1.15)}100%{transform:translate(-6vmax,10vmax) scale(.92)}}
+body[data-theme=aurora] header{background:transparent}
+body[data-theme=aurora] header .eb{color:#b9a8ff;font-family:var(--sans)}
+body[data-theme=aurora] header h1{font:400 clamp(26px,3.6vw,64px)/1.1 "Do Hyeon",var(--sans);letter-spacing:.01em;background:linear-gradient(90deg,#fff,#d7ccff 45%,#ffc1df);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;animation:shine 8s linear infinite}
+@keyframes shine{to{background-position:-200% 0}}
+body[data-theme=aurora] header .day{font-family:"Jua",var(--sans);color:#cfd3ff}
+body[data-theme=aurora] header .clock{font:400 clamp(30px,4vw,72px)/1 "Do Hyeon",var(--sans)}
+body[data-theme=aurora] .row{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:calc(var(--fs)*.42);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+body[data-theme=aurora] .row .tm{color:#aab0d6;font-family:"Jua",var(--sans);font-weight:400}
+body[data-theme=aurora] .row .nm{font:400 calc(var(--fs)*1.02)/1.15 var(--fontN);color:#fff}
+body[data-theme=aurora] .row .nm small{color:#9ea6d8;font-family:"Jua",var(--sans);font-weight:400}
+body[data-theme=aurora] .row .tb{font:400 calc(var(--fs)*.95)/1 "Do Hyeon",var(--sans);background:linear-gradient(135deg,#7c5cff,#ff4fa0);border-radius:999px;box-shadow:0 0 calc(var(--fs)*.5) rgba(255,79,160,.45)}
+body[data-theme=aurora] .row .tb.room{background:linear-gradient(135deg,#17d6c8,#3b82f6);box-shadow:0 0 calc(var(--fs)*.5) rgba(23,214,200,.45)}
+body[data-theme=aurora] .row .tb.none{background:rgba(255,255,255,.1);color:#8a90b8;box-shadow:none}
+body[data-theme=aurora] .row.soon{border-color:transparent;box-shadow:0 0 0 2px rgba(255,214,102,.9),0 0 30px rgba(255,214,102,.35);animation:glow 1.8s ease-in-out infinite}
+body[data-theme=aurora] .row.soon::before{display:none}
+@keyframes glow{50%{box-shadow:0 0 0 2px rgba(255,214,102,.5),0 0 8px rgba(255,214,102,.1)}}
+body[data-theme=aurora] .row.in{animation:auroraIn .9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes auroraIn{from{opacity:0;transform:translateY(18px) scale(.97);filter:blur(8px)}to{opacity:var(--op,1);transform:none;filter:none}}
+body[data-theme=aurora] footer{color:#9ea6d8}
+body[data-theme=aurora] footer .guide{font:400 clamp(16px,1.6vw,30px)/1.3 "Jua",var(--sans);color:#fff}
+body[data-theme=aurora] footer .guide i{background:linear-gradient(135deg,#7c5cff,#ff4fa0);border-radius:50%}
+body[data-theme=aurora] .empty b{color:#fff;font-family:"Do Hyeon",var(--sans);font-weight:400}
+
+/* 2) 칠판 2.0 — 지금 쓰는 칠판 느낌 그대로, 손글씨 + 분필 가루 + 써지는 효과 */
+body[data-theme=chalk]{--bg:#1d2b24;background:radial-gradient(ellipse at 50% 40%,#2a3b32 0%,#1b2721 60%,#121b16 100%);color:#f3f1e6;
+  box-shadow:inset 0 0 0 clamp(8px,1.1vw,18px) #4a3423,inset 0 0 0 calc(clamp(8px,1.1vw,18px) + 3px) #2e2016,inset 0 0 120px rgba(0,0,0,.55)}
+body[data-theme=chalk] #fx::before{content:'';position:absolute;inset:0;opacity:.18;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E")}
+body[data-theme=chalk] #fx .dust{position:absolute;bottom:-10px;width:4px;height:4px;border-radius:50%;background:rgba(255,255,240,.55);animation:dust linear infinite}
+@keyframes dust{from{transform:translate(0,0);opacity:0}10%{opacity:.8}to{transform:translate(var(--dx),-105vh);opacity:0}}
+body[data-theme=chalk] header{background:transparent;padding-top:2.6vh}
+body[data-theme=chalk] header .eb{color:#e8f59a;font:700 clamp(14px,1.4vw,24px)/1 "Gaegu",var(--sans);letter-spacing:.05em}
+body[data-theme=chalk] header h1{font:400 clamp(34px,4.4vw,82px)/1 "Nanum Pen Script",var(--sans);color:#f6f3e4;text-shadow:0 0 1px rgba(255,255,255,.6)}
+body[data-theme=chalk] header .day{font:700 clamp(16px,1.8vw,32px)/1.2 "Gaegu",var(--sans);color:#e8f59a}
+body[data-theme=chalk] header .clock{font:700 clamp(30px,3.8vw,68px)/1 "Gaegu",var(--sans);color:#f6f3e4}
+body[data-theme=chalk] main{padding-left:4vw;padding-right:4vw}
+body[data-theme=chalk] .row{background:none;border:0;border-bottom:2px dashed rgba(243,241,230,.22);border-radius:0;box-shadow:none;padding-left:calc(var(--fs)*.2)}
+body[data-theme=chalk] .row .tm{font:700 calc(var(--fs)*.75)/1 "Gaegu",var(--sans);color:#e8f59a}
+body[data-theme=chalk] .row .nm{font:700 calc(var(--fs)*1.05)/1.1 "Gaegu",var(--sans);color:#f6f3e4;text-shadow:0 0 1px rgba(255,255,255,.5)}
+body[data-theme=chalk] .row .nm small{font:700 calc(var(--fs)*.62)/1 "Gaegu",var(--sans);color:#e8f59a}
+body[data-theme=chalk] .row .tb{font:700 calc(var(--fs)*.95)/1 "Gaegu",var(--sans);background:none;color:#ffe066;border:3px solid #ffe066;border-radius:255px 18px 225px 18px/18px 225px 18px 255px;padding:calc(var(--fs)*.1) calc(var(--fs)*.4)}
+body[data-theme=chalk] .row .tb.room{color:#9be7ff;border-color:#9be7ff}
+body[data-theme=chalk] .row .tb.none{color:rgba(243,241,230,.4);border-color:rgba(243,241,230,.25)}
+body[data-theme=chalk] .row.soon{border-bottom-color:#ffe066}
+body[data-theme=chalk] .row.soon::before{background:#ffe066;width:calc(var(--fs)*.14);border-radius:50%;height:calc(var(--fs)*.14);top:calc(50% - var(--fs)*.07);left:calc(var(--fs)*-.2);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.8);opacity:.4}}
+body[data-theme=chalk] .row.past{opacity:.32;--op:.32}
+body[data-theme=chalk] .row.in{animation:write 1.1s steps(18,end) both}
+@keyframes write{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+body[data-theme=chalk] footer{color:rgba(243,241,230,.6);padding-left:4vw;padding-right:4vw;padding-bottom:2.6vh}
+body[data-theme=chalk] footer .guide{font:700 clamp(18px,1.8vw,34px)/1.2 "Gaegu",var(--sans);color:#f6f3e4}
+body[data-theme=chalk] footer .guide i{background:none;border:2px solid #ffe066;border-radius:50%}
+body[data-theme=chalk] .empty b{font:400 clamp(36px,4vw,72px)/1.2 "Nanum Pen Script",var(--sans);color:#f6f3e4}.empty span{color:inherit}
+
+/* 3) 온기 — 크림색 종이, 장어 소스 갈색, 도장 찍히는 테이블 번호, 김 모락모락 + 흐르는 물결 */
+body[data-theme=warm]{--bg:#f6efe3;background:var(--bg);color:#2b211b}
+body[data-theme=warm] #fx .wave{position:absolute;left:0;bottom:0;width:200%;height:14vh;animation:flow 22s linear infinite;opacity:.9}
+body[data-theme=warm] #fx .wave.w2{animation-duration:34s;opacity:.55;bottom:-1vh}
+@keyframes flow{to{transform:translateX(-50%)}}
+body[data-theme=warm] #fx .steam{position:absolute;top:1vh;width:3vw;height:12vh;opacity:0;animation:steam 6s ease-in-out infinite}
+@keyframes steam{0%{opacity:0;transform:translateY(20px) scaleX(.9)}30%{opacity:.5}100%{opacity:0;transform:translateY(-30px) scaleX(1.2)}}
+body[data-theme=warm] header{background:transparent;border-bottom:2px solid #2b211b;margin:0 3vw;padding-left:0;padding-right:0}
+body[data-theme=warm] header .eb{color:#b4532a;font:700 clamp(12px,1.25vw,22px)/1 "Gowun Dodum",var(--sans);letter-spacing:.3em}
+body[data-theme=warm] header h1{font:700 clamp(28px,3.6vw,66px)/1.1 "Gowun Batang",var(--serif);color:#2b211b}
+body[data-theme=warm] header .day{font:400 clamp(15px,1.6vw,28px)/1.3 "Gowun Dodum",var(--sans);color:#6d5b4f}
+body[data-theme=warm] header .clock{font:700 clamp(28px,3.8vw,68px)/1 "Gowun Batang",var(--serif);color:#2b211b}
+body[data-theme=warm] .row{background:#fffaf2;border:1px solid #eadfcd;border-radius:calc(var(--fs)*.36);box-shadow:0 6px 18px rgba(80,50,20,.08)}
+body[data-theme=warm] .row .tm{font:400 calc(var(--fs)*.66)/1 "Gowun Dodum",var(--sans);color:#a27a5c}
+body[data-theme=warm] .row .nm{font:700 calc(var(--fs)*1.0)/1.15 "Gowun Batang",var(--serif);color:#2b211b}
+body[data-theme=warm] .row .nm small{font:400 calc(var(--fs)*.52)/1 "Gowun Dodum",var(--sans);color:#a27a5c}
+body[data-theme=warm] .row .tb{font:700 calc(var(--fs)*.9)/1 "Gowun Batang",var(--serif);background:#b4532a;color:#fff7ec;border-radius:50%/42%;min-width:2.3em;padding:calc(var(--fs)*.22) calc(var(--fs)*.3);box-shadow:inset 0 0 0 calc(var(--fs)*.06) rgba(255,247,236,.55),0 4px 10px rgba(180,83,42,.25)}
+body[data-theme=warm] .row .tb.room{background:#2b211b}
+body[data-theme=warm] .row .tb.none{background:#ece2d3;color:#b8a796;box-shadow:none}
+body[data-theme=warm] .row.in .tb{animation:stamp .55s cubic-bezier(.3,1.6,.5,1) both;animation-delay:inherit}
+@keyframes stamp{from{transform:scale(1.9) rotate(-14deg);opacity:0}to{transform:none;opacity:1}}
+body[data-theme=warm] .row.in{animation:slideIn .7s cubic-bezier(.2,.8,.2,1) both}
+@keyframes slideIn{from{opacity:0;transform:translateX(-22px)}to{opacity:var(--op,1);transform:none}}
+body[data-theme=warm] .row.soon{border-color:#e7b089;background:linear-gradient(100deg,#fffaf2 40%,#fff0dd 50%,#fffaf2 60%) 0 0/300% 100%;animation:sweep 3s linear infinite}
+body[data-theme=warm] .row.soon::before{background:#b4532a}
+@keyframes sweep{to{background-position:-300% 0}}
+body[data-theme=warm] footer{color:#8a7465;padding-bottom:calc(1.6vh + 6vh)}
+body[data-theme=warm] footer .guide{font:700 clamp(15px,1.5vw,28px)/1.3 "Gowun Batang",var(--serif);color:#2b211b}
+body[data-theme=warm] footer .guide i{background:#b4532a;border-radius:50%}
+body[data-theme=warm] .empty b{font-family:"Gowun Batang",var(--serif);color:#2b211b}
+body[data-theme=warm] #st.ok{color:#5d7a3a}
 </style>
 </head>
 <body>
+<div id="fx" aria-hidden="true"></div>
 <header>
   <div><div class="eb" id="eb">ILPUMJIP · RESERVATION</div><h1 id="title">오늘의 예약</h1></div>
   <div class="sp"></div>
@@ -65,7 +166,18 @@ const SUPABASE_URL='https://bdqcrbnbuoujozlpttbe.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcWNyYm5idW91am96bHB0dGJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTU4NDQsImV4cCI6MjEwNjE5MTg0NH0.L8Yuj46Zjg0XNoWeRr-_9xZWKiyHH3-AyC4_3i5p_X8';
 const CONF_KEY='ilpum-fr-conf';
 const Q=new URLSearchParams(location.search);
-const MASK=Q.get('mask')==='1';                 // ?mask=1 이면 가운데 글자를 *로 (홍*원)
+const MASK=Q.get('mask')==='1';
+// 디자인: ?theme=aurora|chalk|warm|classic (모니터에서 T 키로 돌려 보기 — 이 기기에 기억)
+const THEMES=['aurora','chalk','warm','classic'];
+let THEME=(()=>{ const q=Q.get('theme'); if(THEMES.includes(q)) return q; try{ const v=localStorage.getItem('ilpum-disp-theme'); if(THEMES.includes(v)) return v; }catch(e){} return 'aurora'; })();
+function applyTheme(){ document.body.dataset.theme=THEME; const fx=document.getElementById('fx'); let h='';
+  if(THEME==='aurora') h='<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>';
+  if(THEME==='chalk') for(let i=0;i<26;i++) h+=`<i class="dust" style="left:${Math.random()*100}%;--dx:${(Math.random()*12-6).toFixed(1)}vw;animation-duration:${(14+Math.random()*16).toFixed(1)}s;animation-delay:${(-Math.random()*30).toFixed(1)}s;width:${(2+Math.random()*4).toFixed(1)}px;height:${(2+Math.random()*4).toFixed(1)}px"></i>`;
+  if(THEME==='warm'){ const wave=(c,cls)=>`<svg class="wave ${cls}" viewBox="0 0 1200 100" preserveAspectRatio="none"><path fill="${c}" d="M0 60 C100 20 200 100 300 60 S500 20 600 60 S800 100 900 60 S1100 20 1200 60 V100 H0Z"/></svg>`;
+    h=wave('#e8d7bf','w1')+wave('#d9c19f','w2'); for(let i=0;i<3;i++) h+=`<svg class="steam" style="right:${22+i*4}vw;animation-delay:${i*2}s" viewBox="0 0 30 120"><path d="M15 115 C0 90 30 75 15 55 S0 20 15 5" stroke="#b4532a" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".5"/></svg>`; }
+  fx.innerHTML=h; SEEN=new Set(); }
+let SEEN=new Set();   // 새로 생긴 줄만 움직이게 (30초마다 다시 그려도 깜빡이지 않음)
+document.addEventListener('keydown',e=>{ if(e.key==='t'||e.key==='T'){ THEME=THEMES[(THEMES.indexOf(THEME)+1)%THEMES.length]; try{ localStorage.setItem('ilpum-disp-theme',THEME); }catch(x){} applyTheme(); render(); } });                 // ?mask=1 이면 가운데 글자를 *로 (홍*원)
 let SID='', STORE=null, ITEMS=[], REV=null, DAY='';
 const pad=n=>String(n).padStart(2,'0');
 const ds=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -108,23 +220,24 @@ function render(){
   const list=ITEMS.filter(x=>x&&!x.deleted&&!isCxl(x)&&String(x.name||'').trim()).sort((a,b)=>toMin(a.time)-toMin(b.time)||String(a.name).localeCompare(String(b.name)));
   document.getElementById('cnt').textContent=list.length?`${list.length}팀 · ${list.reduce((a,x)=>a+people(x.pp),0)}명`:'';
   if(!list.length){ g.style.gridTemplateRows=''; g.innerHTML=`<div class="empty"><b>오늘 예약이 아직 없어요</b><span>예약이 들어오면 바로 여기에 표시돼요</span></div>`; return; }
-  g.innerHTML=list.map(x=>{ const m=toMin(x.time), tb=tableLabel(x.tables);
+  let k=0; g.innerHTML=list.map(x=>{ const m=toMin(x.time), tb=tableLabel(x.tables); const key=x.id+'|'+x.time+'|'+(x.tables||[]).join(); const nw=!SEEN.has(key); SEEN.add(key); const dl=nw?` style="animation-delay:${Math.min(k++*70,1800)}ms"`:'';
     const soon=!x.done && m-nowM<=30 && m-nowM>=-15, past=x.done || nowM-m>90;
-    return `<div class="row${soon?' soon':''}${past?' past':''}"><span class="tm">${esc(tmLabel(x.time))}</span><span class="nm">${esc(maskName(x.name))}<small>${people(x.pp)?people(x.pp)+'명':''}</small></span><span class="tb ${tb.k}">${esc(tb.t)}</span></div>`; }).join('');
+    return `<div class="row${soon?' soon':''}${past?' past':''}${nw?' in':''}"${dl}><span class="tm">${esc(tmLabel(x.time))}</span><span class="nm">${esc(maskName(x.name))}<small>${people(x.pp)?people(x.pp)+'명':''}</small></span><span class="tb ${tb.k}">${esc(tb.t)}</span></div>`; }).join('');
   fit(list.length);
 }
 // 스크롤 없이 한 화면에: 열 수와 글자 크기를 바꿔 가며 가장 크게 들어가는 조합을 고름
+let lastN=0;
 function fit(n){
-  const g=document.getElementById('grid'), H=g.clientHeight, W=g.clientWidth; let best=null;
+  const g=document.getElementById('grid'), H=g.clientHeight, W=g.clientWidth; let best=null; lastN=n; g.classList.add('measuring');   // 움직이는 효과(확대 등)가 크기 재기를 방해하지 않게 잠시 멈춤
   for(let cols=1;cols<=4;cols++){ const rows=Math.ceil(n/cols);
     for(let fs=110;fs>=14;fs-=2){ g.style.setProperty('--fs',fs+'px'); g.style.gridTemplateRows=`repeat(${rows},auto)`;
       const okH=g.scrollHeight<=H+1, okW=g.scrollWidth<=W+1 && [...g.children].every(c=>{ const nm=c.querySelector('.nm'); return !nm||nm.scrollWidth<=nm.clientWidth+1; });
       if(okH&&okW){ if(!best||fs>best.fs) best={fs,rows}; break; } } }
   best=best||{fs:14,rows:Math.ceil(n/4)};
-  g.style.setProperty('--fs',best.fs+'px'); g.style.gridTemplateRows=`repeat(${best.rows},auto)`;
+  g.style.setProperty('--fs',best.fs+'px'); g.style.gridTemplateRows=`repeat(${best.rows},auto)`; void g.offsetWidth; g.classList.remove('measuring');
 }
 const WD='일월화수목금토';
-function tick(){ const d=new Date(); document.getElementById('clock').textContent=`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function tick(){ const d=new Date(); document.getElementById('clock').innerHTML=`${pad(d.getHours())}<span class="cl">:</span>${pad(d.getMinutes())}`;
   document.getElementById('day').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]})`;
   if(SID&&today()!==DAY){ DAY=today(); ITEMS=[]; REV=null; render(); load(); } }
 
@@ -164,7 +277,7 @@ function rtConnect(){
 function needLogin(msg){ setSt(msg,'err');
   document.getElementById('main').innerHTML=`<div class="login"><b>${esc(msg)}</b>이 모니터(컴퓨터)에서 <a href="index.html">통합관리</a>에 한 번 로그인하면<br>그다음부터는 이 화면이 자동으로 열려요.</div>`; }
 (async function boot(){
-  tick();
+  applyTheme(); tick();
   if(!readSes()) return needLogin('로그인이 필요해요');
   try{
     const r=await fx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{auth:r.status===401});
@@ -180,6 +293,7 @@ function needLogin(msg){ setSt(msg,'err');
   let last=Date.now(); setInterval(()=>{ const every=rtOk?600000:60000; if(Date.now()-last<every-1000) return; last=Date.now(); load(); },15000);
   setInterval(()=>{ tick(); render(); },30000);       // 시계·"곧 도착" 표시 (서버 요청 없음)
   window.addEventListener('resize',()=>render());
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ if(lastN) fit(lastN); });   // 글꼴이 늦게 오면 크기 다시 맞춤
   // 모니터가 꺼지지 않게 (지원하는 브라우저만)
   const lock=async()=>{ try{ if(navigator.wakeLock&&!document.hidden) await navigator.wakeLock.request('screen'); }catch(e){} };
   lock(); document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ lock(); load(); } });
