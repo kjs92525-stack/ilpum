@@ -488,11 +488,56 @@ body.ui-notion .mapbox #map{border-radius:4px}
 body.pub [data-tab=set]{display:none}
 .pubbtn[aria-pressed=true]{background:#6d4fd1!important;color:#fff!important;border-color:#6d4fd1!important}
 @media print{.ckb button:not(.on){display:none}}
+/* 트레이딩 터미널형 (2026-10-12 사용자가 보낸 Argus 화면처럼: 검정~남보라 바탕, 인디고 강조, 초록/빨강 숫자) */
+body.ui-term{--bg:#07070f;--paper:#0f0f24;--ink:#e8eaf8;--ink2:#cdd1ee;--sub:#8b90b8;--faint:#5d6290;--line:rgba(120,110,230,.22);--line2:rgba(120,110,230,.38);--soft:rgba(110,100,230,.10);--track:rgba(120,110,230,.18);
+  --navy:#aab2ff;--navy2:#6f7bff;--navyT:rgba(111,123,255,.14);--gold:#e0b341;--warn:#ff5b6e;--ok:#27d17f;--gA:#27d17f;--gB:#6f7bff;--gC:#e0b341;--gD:#ff5b6e;--r:12px;
+  background:radial-gradient(1200px 520px at 15% -10%,rgba(80,60,220,.22),transparent 60%),radial-gradient(900px 480px at 100% 0,rgba(40,90,230,.14),transparent 55%),#07070f;color:var(--ink);color-scheme:dark}
+body.ui-term header{background:linear-gradient(100deg,#0c0c22,#15123a 60%,#1b1550);border-bottom:1px solid rgba(120,110,230,.3);box-shadow:0 6px 24px rgba(0,0,0,.45)}
+body.ui-term header h1{color:#f1f2ff}body.ui-term header h1::before{background:linear-gradient(135deg,#6f7bff,#a06bff)}
+body.ui-term header .tag{color:rgba(200,204,245,.6);border-left-color:rgba(160,150,255,.25)}body.ui-term header .tag b{color:#9ea8ff}
+body.ui-term header select,body.ui-term header .btn{background:rgba(120,110,230,.14)!important;color:#e8eaf8!important;border-color:rgba(130,120,240,.35)!important}
+body.ui-term header #sdk,body.ui-term header .note{color:rgba(200,204,245,.6)}
+body.ui-term nav button{color:#9aa0d4}body.ui-term nav button:hover{color:#fff;background:rgba(111,123,255,.16)}
+body.ui-term nav button[aria-current]{color:#fff;background:linear-gradient(135deg,#4452e0,#3a3fc4);box-shadow:0 3px 14px rgba(70,80,230,.45)}
+body.ui-term .pubbtn[aria-pressed=true]{background:#4452e0!important;border-color:#4452e0!important}
+body.ui-term .card,body.ui-term .db,body.ui-term .kc,body.ui-term .lc,body.ui-term .ls,body.ui-term .viz,body.ui-term .an-c,body.ui-term .ck,body.ui-term .mth>div{background:linear-gradient(180deg,rgba(24,22,66,.72),rgba(14,14,36,.92));border:1px solid var(--line);box-shadow:0 8px 28px rgba(0,0,0,.35)}
+body.ui-term .db-score{background:linear-gradient(140deg,rgba(72,62,200,.34),rgba(16,16,44,.95))}
+body.ui-term .lc:hover{border-color:rgba(130,120,255,.6);box-shadow:0 10px 30px rgba(70,80,230,.25)}
+body.ui-term .secnav{background:rgba(7,7,15,.88);backdrop-filter:blur(8px)}body.ui-term .secnav a{background:rgba(24,22,66,.7);border-color:var(--line);color:#a6acdc}body.ui-term .secnav a:hover{border-color:#6f7bff;color:#fff}
+body.ui-term .btn{background:rgba(24,22,66,.8);border-color:var(--line2);color:var(--ink2)}body.ui-term .btn:hover{border-color:#6f7bff;color:#fff}
+body.ui-term .btn.pri{background:linear-gradient(135deg,#4f5bf0,#3a3fc4);border:0;color:#fff;box-shadow:0 4px 16px rgba(70,80,230,.45)}
+body.ui-term input[type=text],body.ui-term input[type=number],body.ui-term select,body.ui-term textarea{background:#0b0b1e;border-color:var(--line2);color:var(--ink)}
+body.ui-term input::placeholder,body.ui-term textarea::placeholder{color:var(--faint)}
+body.ui-term .sh .no{background:linear-gradient(135deg,#4f5bf0,#8a5cff);color:#fff}body.ui-term .sh h2,body.ui-term .cover h1,body.ui-term h3{color:#f1f2ff}
+body.ui-term .cover{border-bottom-color:var(--line)}body.ui-term .eyebrow{color:#8f99ff}
+body.ui-term th{color:var(--sub);background:rgba(110,100,230,.08)}body.ui-term .dt th{border-bottom-color:var(--line2)}body.ui-term .dt td,body.ui-term td{border-bottom-color:rgba(120,110,230,.14)}
+body.ui-term .dt tr.grp td{color:#aab2ff;border-bottom-color:var(--line2)}
+body.ui-term .infobox,body.ui-term .okbox,body.ui-term .warnbox,body.ui-term .note.box,body.ui-term .disc,body.ui-term .facts>div,body.ui-term .kpi,body.ui-term .ring>div{background:rgba(110,100,230,.09);border-color:var(--line);color:var(--ink2)}
+body.ui-term .warnbox{background:rgba(255,91,110,.10);border-color:rgba(255,91,110,.4);color:#ffb3bc}body.ui-term .okbox{background:rgba(39,209,127,.10);border-color:rgba(39,209,127,.35)}
+body.ui-term .db-pro{background:linear-gradient(180deg,rgba(39,209,127,.12),rgba(14,14,36,.92));border-top:3px solid #27d17f}body.ui-term .db-con{background:linear-gradient(180deg,rgba(255,91,110,.12),rgba(14,14,36,.92));border-top:3px solid #ff5b6e}
+body.ui-term .db-ic{background:rgba(111,123,255,.18);color:#9ea8ff}body.ui-term .kc-ic{background:rgba(111,123,255,.16);color:#9ea8ff}
+body.ui-term .sc-d{color:#f1f2ff}body.ui-term .sc-d.bad{color:#ff5b6e}body.ui-term .sr-n,body.ui-term .kc-v,body.ui-term .sb-big strong,body.ui-term .gl-v{color:#f4f5ff}
+body.ui-term .sb-big strong{color:#7f8bff}body.ui-term .sb-big strong.mut{color:#cdd1ee}
+body.ui-term .gr,body.ui-term .pill{box-shadow:none}body.ui-term .pill.gA,body.ui-term .gr.gA{background:rgba(39,209,127,.18);color:#27d17f;border:1px solid rgba(39,209,127,.45)}
+body.ui-term .pill.gB,body.ui-term .gr.gB{background:rgba(111,123,255,.18);color:#9ea8ff;border:1px solid rgba(111,123,255,.45)}
+body.ui-term .pill.gC,body.ui-term .gr.gC{background:rgba(224,179,65,.16);color:#e0b341;border:1px solid rgba(224,179,65,.45)}
+body.ui-term .pill.gD,body.ui-term .gr.gD{background:rgba(255,91,110,.16);color:#ff5b6e;border:1px solid rgba(255,91,110,.45)}
+body.ui-term .chip,body.ui-term .lc-f>span,body.ui-term .type{background:rgba(111,123,255,.12);border-color:rgba(130,120,240,.35);color:#c3c8f5}
+body.ui-term .st{background:rgba(111,123,255,.15);color:#aab2ff;border-color:rgba(130,120,240,.4)}
+body.ui-term .hbar,body.ui-term .bar,body.ui-term .prog,body.ui-term .dmb-t,body.ui-term .bul{background:rgba(120,110,230,.16)}
+body.ui-term .bul-band{background:rgba(111,123,255,.38)}body.ui-term .bul-pt{background:#9ea8ff}
+body.ui-term .toast{background:#1b1850;color:#e8eaf8;border:1px solid var(--line2)}
+body.ui-term .mapbox #map{border:1px solid var(--line2);border-radius:12px;filter:invert(.92) hue-rotate(205deg) saturate(.7) brightness(.9)}
+body.ui-term a{color:#9ea8ff}body.ui-term ::selection{background:#4452e0;color:#fff}
+body.ui-term ::-webkit-scrollbar{height:10px;width:10px}body.ui-term ::-webkit-scrollbar-thumb{background:rgba(130,120,240,.4);border-radius:8px}body.ui-term ::-webkit-scrollbar-track{background:transparent}
+body.ui-term .num,body.ui-term .kc-v,body.ui-term .sr-n,body.ui-term .dt td.v{font-variant-numeric:tabular-nums}
+body.ui-term .emo{display:none!important}
+@media print{body.ui-term{background:#fff;color:#141a26;--paper:#fff;--ink:#141a26;--sub:#6b7383;--line:#ddd}body.ui-term .card,body.ui-term .db,body.ui-term .kc{background:#fff;box-shadow:none}}
 </style>
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.08i</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.09a</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -1649,7 +1694,7 @@ function openSec(id){ OPENSET.add(id); applyFold(); }
 function render(){
   _hrefC=null;
   try{ seedSales(); }catch(_){}
-  document.body.classList.toggle('ui-notion',DB.ui==='notion'); mapBtn();
+  document.body.classList.toggle('ui-notion',DB.ui==='notion'); document.body.classList.toggle('ui-term',(DB.ui||'term')==='term'); mapBtn();
   document.body.classList.toggle('pub',PUB); if(PUB&&TAB==='set') TAB='list';
   { const t=$('#pubtag'); if(t) t.textContent=PUB?'가맹 상담용 보기':'본사 내부 자료'; const b=$('[data-act=pub]'); if(b){ b.textContent=PUB?'점주용 보기 끄기':'점주용 보기'; b.setAttribute('aria-pressed',PUB); } }
   $$('#nav button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.tab===TAB));
@@ -1860,7 +1905,7 @@ function cmpHtml(){
 function setHtml(){
   const br=benchCache().list;
   return `<div class="card"><div class="sh"><h2>화면 스타일</h2></div>
-    <div class="row" style="gap:16px">${[['dash','대시보드형 (색·그림 강조)'],['notion','노션형 (깔끔한 문서)']].map(([k,t])=>`<label class="note" style="font-weight:600"><input type="radio" name="ui" data-ui="${k}"${(DB.ui||'dash')===k?' checked':''}> ${t}</label>`).join('')}</div></div>
+    <div class="row" style="gap:16px">${[['term','트레이딩 터미널형 (어두운 남보라, 기본)'],['dash','대시보드형 (밝은 색·그림 강조)'],['notion','노션형 (깔끔한 문서)']].map(([k,t])=>`<label class="note" style="font-weight:600"><input type="radio" name="ui" data-ui="${k}"${(DB.ui||'term')===k?' checked':''}> ${t}</label>`).join('')}</div></div>
   <div class="card"><div class="sh"><h2>우리 가게 형태</h2></div>
     <div class="row" style="gap:16px;margin:4px 0 8px">${Object.entries(PROFILES).map(([k,v])=>`<label class="note" style="font-weight:600"><input type="radio" name="biz" data-biz="${k}"${BIZ()===k?' checked':''}> ${esc(v.name)}</label>`).join('')}</div>
     <div class="note">${esc(PF().desc)}. 바꾸면 <b>영역 비중</b>·<b>손익 기본값</b>(원가율 ${PF().fin.cost}% · 인건비 ${PF().fin.labor}% · 객단가 ${PF().fin.ticket}만원)·구매력 기준·주차 필수 대수(${PF().park}대)·경쟁점 가격대 무게가 그 형태 기본값으로 바뀌어요. 직판장형 숫자는 <b>추정값</b>이라 우리 매장 실제 숫자로 아래에서 고치세요.</div>
