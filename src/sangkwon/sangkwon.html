@@ -592,11 +592,34 @@ body.ui-term::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events
 @keyframes moAurora{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-3%,2%) scale(1.08)}100%{transform:translate(2%,-3%) scale(1.04)}}
 @media (prefers-reduced-motion:reduce){body.ui-term::before{animation:none}.mo-intro{display:none}}
 @media print{body.ui-term::before,.mo-intro,.mo-spark,.mo-shock,.mo-bloom,.mo-beam{display:none!important}}
+/* ---- 세부 분석 탭 (컴퓨터 화면만) ---- */
+@media screen and (min-width:701px){
+  body.tabmode #pane .card[id^="s-"]:not(.act){display:none}
+  body.tabmode .secnav{display:none}
+  .stabs{position:relative;z-index:2;margin:18px 0 12px;padding:12px 14px 14px;border-radius:16px;background:var(--paper);border:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.08)}
+  .stabs-h{display:flex;align-items:baseline;gap:10px;margin:0 2px 10px}.stabs-h b{font-size:15px}.stabs-h span{font-size:12px;color:var(--sub)}
+  .stabs-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+  .stabs button{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px 9px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;text-align:left;font:inherit;transition:transform .18s ease,border-color .18s,box-shadow .18s,background .18s;overflow:hidden}
+  .stabs button em{font-style:normal;font-size:11px;font-weight:800;color:var(--navy2);letter-spacing:.06em}
+  .stabs button span{font-size:13.5px;font-weight:700;line-height:1.3}
+  .stabs button small{font-size:9.5px;letter-spacing:.14em;color:var(--faint);font-weight:700}
+  .stabs button:hover{transform:translateY(-2px);border-color:var(--navy2)}
+  .stabs button[aria-selected=true]{background:var(--navy2);border-color:var(--navy2);color:#fff;box-shadow:0 8px 22px rgba(80,90,255,.35);transform:translateY(-2px)}
+  .stabs button[aria-selected=true] em,.stabs button[aria-selected=true] small{color:rgba(255,255,255,.85)}
+  .stabs button[aria-selected=true]::after{content:"";position:absolute;left:12px;right:12px;bottom:4px;height:3px;border-radius:3px;background:#fff;opacity:.8}
+  body.ui-term .stabs{background:rgba(12,12,32,.9);backdrop-filter:blur(10px);border-color:rgba(127,139,255,.3);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  body.ui-term .stabs button{background:rgba(24,22,66,.6);border-color:rgba(127,139,255,.22);color:#e3e6fb}
+  body.ui-term .stabs button em{color:#9ea8ff}
+  body.ui-term .stabs button[aria-selected=true]{background:linear-gradient(135deg,#5b66ff,#3c46d8);border-color:#8f99ff;box-shadow:0 0 0 1px rgba(160,170,255,.4),0 10px 28px rgba(91,102,255,.5)}
+  body.ui-notion .stabs{box-shadow:none}body.ui-notion .stabs button[aria-selected=true]{background:#37352f;border-color:#37352f}
+}
+@media (max-width:1000px) and (min-width:701px){.stabs{position:static}}
+@media print{.stabs{display:none!important}}
 </style>
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.12c</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.12d</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -1762,7 +1785,7 @@ function render(){
   { const t=$('#pubtag'); if(t) t.textContent=PUB?'가맹 상담용 보기':'본사 내부 자료'; const b=$('[data-act=pub]'); if(b){ b.textContent=PUB?'점주용 보기 끄기':'점주용 보기'; b.setAttribute('aria-pressed',PUB); } }
   $$('#nav button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.tab===TAB));
   $('#pane').innerHTML=ct({list:listHtml,detail:detailHtml,cmp:cmpHtml,set:setHtml}[TAB]());
-  applyFold();
+  applyFold(); applyTabs();
   drawMap();
   motion();
 }
@@ -1892,6 +1915,31 @@ function moSweep(card){
   l.animate([{transform:'translateX(-100%)',opacity:0},{opacity:1,offset:.2},{transform:'translateX(260%)',opacity:0}],{duration:1100,easing:'cubic-bezier(.3,.6,.4,1)'}).onfinish=()=>l.remove();
   const h=card.querySelector('h2'); if(h) h.animate([{letterSpacing:'.3em',opacity:0,filter:'blur(6px)'},{letterSpacing:'normal',opacity:1,filter:'blur(0)'}],{duration:700,easing:MO_EASE,fill:'backwards'});
 }
+
+/* ---------------- 세부 분석 탭 (2026-10-12 사용자: "스크롤보다 누르면 딱 세부 지표 보이는 방식이 재밌다, 인쇄는 지금처럼 다") ----------------
+   컴퓨터(701px 이상)에서만: 대시보드 아래 타일을 누르면 그 구역만 보임. 폰은 예전처럼 접기·펴기. 인쇄는 @media screen 밖이라 전부 나옴. */
+let SECT=null; try{ SECT=sessionStorage.getItem('ilpum-sk-sect'); }catch(_){}
+const SECT_EN={'s-sys':'SCORECARD','s-diag':'MARKET','s-eval':'DIMENSIONS','s-demand':'DEMAND','s-swot':'SWOT','s-analog':'COMPARABLES','s-comp':'COMPETITION','s-fin':'REVENUE','s-check':'CHECKLIST','s-todo':'ACTIONS','s-method':'METHOD'};
+function tabAct(){ $$('#pane .card[id^="s-"]').forEach(c=>c.classList.toggle('act',c.id===SECT)); $$('.stabs [data-sect]').forEach(b=>b.setAttribute('aria-selected',b.dataset.sect===SECT)); }
+function applyTabs(){
+  const pane=$('#pane'), secs=pane?[...pane.querySelectorAll('.card[id^="s-"]')]:[];
+  const on=TAB==='detail'&&secs.length>1&&!isMob()&&!window.__NOTAB;   // __NOTAB: 예전 자동 테스트용(구역 글자를 한꺼번에 읽음)
+  document.body.classList.toggle('tabmode',on); if(!on) return;
+  if(!secs.some(c=>c.id===SECT)) SECT=secs[0].id;
+  const lab={}; pane.querySelectorAll('.secnav a').forEach(a=>lab[(a.getAttribute('href')||'').slice(1)]=a.textContent);
+  const bar=document.createElement('div'); bar.className='stabs noprint'; bar.setAttribute('role','tablist'); bar.setAttribute('aria-label','세부 분석');
+  bar.innerHTML=`<div class="stabs-h"><b>세부 분석</b><span>누르면 바로 보여요 · 인쇄하면 전부 나와요</span></div><div class="stabs-g">${secs.map(c=>{ const no=((c.querySelector('.sh .no')||{}).textContent||'').trim(), h=((c.querySelector('.sh h2')||{}).textContent||'').trim();
+    return `<button type="button" role="tab" data-sect="${c.id}"><em>${esc(no)}</em><span>${esc(lab[c.id]||h)}</span><small>${SECT_EN[c.id]||''}</small></button>`; }).join('')}</div>`;
+  secs[0].before(bar); tabAct();
+}
+function showSect(id){
+  if(id===SECT) return; SECT=id; try{ sessionStorage.setItem('ilpum-sk-sect',id); }catch(_){} tabAct();
+  const card=document.getElementById(id), bar=$('.stabs'); if(!card) return;
+  card.classList.remove('mo-rv');
+  if(bar){ const r=bar.getBoundingClientRect(); if(r.top<0||r.top>innerHeight*0.6) window.scrollTo({top:window.scrollY+r.top-70,behavior:'smooth'}); }
+  if(moOK()){ card.animate([{opacity:0,transform:'perspective(1000px) translateY(26px) rotateX(-8deg) scale(.98)',filter:'blur(6px)'},{opacity:1,transform:'none',filter:'blur(0)'}],{duration:520,easing:MO_EASE}); moFill(card,120); moSweep(card); }
+}
+try{ matchMedia('(max-width:700px)').addEventListener('change',()=>render()); }catch(_){}
 
 function progHtml(){ return `<div id="prog" ${benchBusy?'':'hidden'}><div class="note"><span></span></div><div class="prog"><i style="width:0"></i></div></div>`; }
 function needBench(){ return ''; }
@@ -2138,7 +2186,7 @@ function chrome(){
   const t=$('#tick'), f=$('#foot'); if(!t||!f) return;
   const on=!!K, nS=DB.stores.length, nC=DB.cands.length;
   t.innerHTML=`<span class="tk"><i class="dot ${on?'ok':'no'}"></i>${on?'카카오 지도 연결됨':'지도 연결 대기'}</span><span class="tk"><b>CITY</b> ${esc(CT())}</span><span class="tk"><b>후보지</b> ${nC}</span><span class="tk"><b>우리 매장</b> ${nS}</span><span class="tk"><b>기준일</b> ${today()}</span><span class="sp"></span><span class="tk src"><b>DATA</b> 카카오맵 · 행정안전부 · 국토교통부 · 소상공인시장진흥공단 · 통계청</span>`;
-  f.innerHTML=`<div><b>일품집 상권분석 시스템</b> · 출점 입지 평가</div><div>방법론: 허프(Huff) 중력 모형 · 장어집 기준표 · 필수 조건 심사 · 공공데이터 연동</div><div>${PUB?'본 자료는 상권 참고 자료이며 예상 매출액이나 수익을 보장하지 않습니다.':'본사 내부 심사용 자료 · 외부 제공 금지'} · ${'v10.12c'}</div>`;
+  f.innerHTML=`<div><b>일품집 상권분석 시스템</b> · 출점 입지 평가</div><div>방법론: 허프(Huff) 중력 모형 · 장어집 기준표 · 필수 조건 심사 · 공공데이터 연동</div><div>${PUB?'본 자료는 상권 참고 자료이며 예상 매출액이나 수익을 보장하지 않습니다.':'본사 내부 심사용 자료 · 외부 제공 금지'} · ${'v10.12d'}</div>`;
 }
 function mapBtn(){ const b=$('[data-act=maptoggle]'); if(!b) return; const mob=matchMedia('(max-width:700px)').matches, on=mob?document.body.classList.contains('showmap'):!document.body.classList.contains('nomap'); b.textContent=on?'지도 숨기기':'지도 보기'; b.setAttribute('aria-pressed',on); }
 try{ if(localStorage.getItem('ilpum-sk-map')==='0') document.body.classList.add('nomap'); }catch(_){}
@@ -2172,7 +2220,7 @@ function softRender(){
   if(TAB!=='detail') return;
   const c=DB.cands.find(x=>x.id===CUR); if(!c) return;
   const tmp=document.createElement('div'); tmp.innerHTML=ct(detailHtml());
-  ['rcard','s-diag','s-eval','s-comp','s-todo'].forEach(id=>{ const a=document.getElementById(id), b=tmp.querySelector('#'+id); if(a&&b) a.replaceWith(b); });
+  ['rcard','s-diag','s-eval','s-comp','s-todo'].forEach(id=>{ const a=document.getElementById(id), b=tmp.querySelector('#'+id); if(a&&b) a.replaceWith(b); }); if(document.body.classList.contains('tabmode')) tabAct();
   const fr=$('#finres'); if(fr) fr.innerHTML=finRes(c);
   const tb=$('[data-f=tables]'); if(tb) tb.placeholder=c.area?'비우면 '+Math.max(1,Math.round(c.area/(+DB.fin.pyPerTable||3.3)))+'개로 추정':'모르면 비움';
 }
@@ -2212,6 +2260,8 @@ function importFile(f){
 }
 document.addEventListener('click',async e=>{
   const nb=e.target.closest('#nav button'); if(nb) return go(nb.dataset.tab);
+  { const st=e.target.closest('[data-sect]'); if(st){ showSect(st.dataset.sect); return; } }
+  if(!isMob()&&document.body.classList.contains('tabmode')){ const na=e.target.closest('.secnav a'); if(na){ const id=(na.getAttribute('href')||'').slice(1); if(document.getElementById(id)&&id!=='s-sum'){ e.preventDefault(); showSect(id); return; } } }
   if(isMob()){
     const sh=e.target.closest('.card[id^="s-"] > .sh'); if(sh){ const c=sh.parentElement; if(OPENSET.has(c.id)) OPENSET.delete(c.id); else OPENSET.add(c.id); applyFold(); return; }
     const na=e.target.closest('.secnav a'); if(na){ const id=(na.getAttribute('href')||'').slice(1); if(id&&id.startsWith('s-')&&id!=='s-sum'){ e.preventDefault(); openSec(id); const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); return; } }

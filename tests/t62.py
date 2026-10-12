@@ -110,7 +110,7 @@ def ok(name,cond,extra=''):
 async def main():
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
-    ctx=await b.new_context(viewport={'width':1300,'height':900}); pg=await ctx.new_page(); errs=[]
+    ctx=await b.new_context(viewport={'width':1300,'height':900}); await ctx.add_init_script('window.__NOTAB=1'); pg=await ctx.new_page(); errs=[]
     pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('dialog',lambda d: asyncio.ensure_future(d.accept()))
     await pg.route('**/*',handler)
     await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(600)
@@ -229,13 +229,13 @@ async def main():
     ok('14) 예전 기록: 후보지 유지 + 재분석 표시', '옛 후보' in await pg.inner_text('#pane') and '분석 전' in await pg.inner_text('#pane') and await pg.evaluate("document.querySelectorAll('.lc').length")==1)
     ext=[u for u in EXT if 'cdn.jsdelivr.net/gh/orioncactus/pretendard' not in u and 'fonts.googleapis.com' not in u and 'fonts.gstatic.com' not in u]; ok('    외부 요청은 카카오 SDK·글꼴만', not ext, ext[:3])
     ok('    오류 없음', not errs, errs); await ctx.close()
-    MODE['sdk']='fail'; ctx=await b.new_context(); pg=await ctx.new_page(); await pg.route('**/*',handler)
+    MODE['sdk']='fail'; ctx=await b.new_context(); await ctx.add_init_script('window.__NOTAB=1'); pg=await ctx.new_page(); await pg.route('**/*',handler)
     await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(800)
     ok('13) 두 키 다 막히면 안내(지금 주소 표시)', '카카오 지도를 열지 못했어요' in await pg.inner_text('#map') and 'localhost:8765' in await pg.inner_text('#map')); await ctx.close()
-    MODE['sdk']='firstfail'; ctx=await b.new_context(); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e))); await pg.route('**/*',handler)
+    MODE['sdk']='firstfail'; ctx=await b.new_context(); await ctx.add_init_script('window.__NOTAB=1'); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e))); await pg.route('**/*',handler)
     await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(1200)
     await pg.fill('#q','대구 수성구 범어동 177'); await pg.click('[data-act=find]'); await pg.wait_for_timeout(300)
-    MODE['sdk']='ok'; MODE['relay']='nokey'; ctx2=await b.new_context(); pg2=await ctx2.new_page(); pg2.on('dialog',lambda d: asyncio.ensure_future(d.accept())); await pg2.route('**/*',handler)
+    MODE['sdk']='ok'; MODE['relay']='nokey'; ctx2=await b.new_context(); await ctx2.add_init_script('window.__NOTAB=1'); pg2=await ctx2.new_page(); pg2.on('dialog',lambda d: asyncio.ensure_future(d.accept())); await pg2.route('**/*',handler)
     await pg2.goto('http://localhost:8765/sangkwon.html'); await pg2.wait_for_timeout(800)
     await pg2.click('[data-tab=set]'); await pg2.click('[data-act=ping]'); await pg2.wait_for_timeout(300)
     ok('15) 연결 확인: 키 없으면 안내', '인증키(DATA_KEY)가 없어요' in await pg2.inner_text('#pingres'))

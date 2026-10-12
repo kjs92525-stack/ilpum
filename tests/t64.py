@@ -7,7 +7,7 @@ async def main():
   FAILS=G['FAILS']; ok=G['ok']
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
-    pg=await (await b.new_context(viewport={'width':1300,'height':900})).new_page(); errs=[]
+    _cx=await b.new_context(viewport={'width':1300,'height':900}); await _cx.add_init_script('window.__NOTAB=1'); pg=await _cx.new_page(); errs=[]
     pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('dialog',lambda d: asyncio.ensure_future(d.accept('서울')))
     await pg.route('**/*',G['handler']); await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(600)
     ok('1) 도시 선택: 대구·부산·추가', await pg.evaluate("[...document.querySelectorAll('#city option')].map(o=>o.textContent).join()")=='대구,부산,+ 도시 추가…')

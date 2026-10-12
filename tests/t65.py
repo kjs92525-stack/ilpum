@@ -7,7 +7,7 @@ async def main():
   FAILS=G['FAILS']; ok=G['ok']
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
-    pg=await (await b.new_context(viewport={'width':1300,'height':900})).new_page(); errs=[]
+    _cx=await b.new_context(viewport={'width':1300,'height':900}); await _cx.add_init_script('window.__NOTAB=1'); pg=await _cx.new_page(); errs=[]
     pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('dialog',lambda d: asyncio.ensure_future(d.accept()))
     await pg.route('**/*',G['handler']); await pg.goto('http://localhost:8765/sangkwon.html'); await pg.wait_for_timeout(600)
     ok('0) 새 기계(저장소 비어 있음)에서도 기준 만들기 없이 바로 분석', '기준 만들기' not in await pg.inner_text('#pane'))
@@ -177,6 +177,21 @@ async def main():
     await pg.wait_for_timeout(300)
     ok('    아래 구역은 숨었다가 스크롤하면 나타남', lr>0 and await pg.evaluate("document.querySelectorAll('.card.mo-rv').length===0"), lr)
     await pg.evaluate("window.__MO=0; window.scrollTo(0,0)")
+    # 27) 세부 분석 탭(컴퓨터): 누르면 그 구역만, 인쇄는 전부
+    await pg.set_viewport_size({'width':1300,'height':900}); await pg.evaluate("window.__NOTAB=0; render()"); await pg.wait_for_timeout(100)
+    st=await pg.evaluate("(()=>{const secs=[...document.querySelectorAll('#pane .card[id^=\"s-\"]')]; return [document.body.classList.contains('tabmode'), document.querySelectorAll('.stabs [data-sect]').length, secs.length, secs.filter(c=>c.offsetParent).length]})()")
+    ok('27) 세부 분석 탭: 타일 = 구역 수, 한 번에 한 구역만 보임', st[0] and st[1]==st[2] and st[2]>3 and st[3]==1, st)
+    await pg.click('.stabs [data-sect=s-comp]'); await pg.wait_for_timeout(200)
+    v=await pg.evaluate("[document.getElementById('s-comp').offsetParent!==null, [...document.querySelectorAll('#pane .card[id^=\"s-\"]')].filter(c=>c.offsetParent).length, document.querySelector('.stabs [data-sect=s-comp]').getAttribute('aria-selected')]")
+    ok('    경쟁 타일 누르면 경쟁 구역만 보이고 선택 표시', v[0] and v[1]==1 and v[2]=='true', v)
+    await pg.evaluate("render()"); ok('    다시 그려도 고른 구역 유지', await pg.evaluate("document.getElementById('s-comp').offsetParent!==null"))
+    await pg.emulate_media(media='print')
+    pv=await pg.evaluate("[[...document.querySelectorAll('#pane .card[id^=\"s-\"]')].every(c=>getComputedStyle(c).display!=='none'), getComputedStyle(document.querySelector('.stabs')).display]")
+    ok('    인쇄하면 모든 구역이 나오고 타일은 숨김', pv[0] and pv[1]=='none', pv)
+    await pg.emulate_media(media='screen')
+    await pg.set_viewport_size({'width':400,'height':800}); await pg.wait_for_timeout(200)
+    ok('    폰 화면은 예전처럼 접기·펴기 (탭 없음)', await pg.evaluate("!document.body.classList.contains('tabmode') && !document.querySelector('.stabs')"))
+    await pg.set_viewport_size({'width':1300,'height':900}); await pg.evaluate("window.__NOTAB=1; render()"); await pg.wait_for_timeout(100)
     await pg.evaluate("DB.stores=[]; DB.salesSeed=0; save(); render()")
     # 예전 기록(비교 기준이 있던 것)을 불러와도 문제없이 열림
     old={"v":2,"stores":[],"zoneKm":2,"weights":{"hub":20,"fam":20,"biz":15,"acc":20,"comp":25,"prop":15},"benchNames":["동성로"],"bench":{"at":"2026-10-05","mode":"area","points":[]},"cands":[]}
