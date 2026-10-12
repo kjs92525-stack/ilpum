@@ -46,12 +46,45 @@ footer .sp{flex:1}
 .login b{font:700 24px/1.4 var(--serif);color:var(--navy);display:block;margin-bottom:8px}
 .login a{color:var(--navy2);font-weight:700}
 
-/* ===== 테마 3종 (?theme=aurora | chalk | warm, 키보드 T 로 바꾸기). 기본(classic)은 위 그대로 ===== */
+/* ===== 테마 4종 (?theme=warm | aurora | chalk | gold, 키보드 T 로 바꾸기). 위쪽 기본 스타일은 공통 뼈대 ===== */
 #fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 header,main,footer{position:relative;z-index:1}
 .row.in{animation:rowIn .7s cubic-bezier(.2,.8,.2,1) both}
 @keyframes rowIn{from{opacity:0;transform:translateY(14px)}to{opacity:var(--op,1);transform:none}}
 .clock .cl{animation:blink 2s steps(1) infinite}@keyframes blink{50%{opacity:.25}}
+
+
+/* 4) 골드 — 검은 바탕에 금색. 천천히 지나가는 빛줄기, 떠오르는 금가루, 금빛 번호 */
+body[data-theme=gold]{--bg:#0a0a0c;--g1:#f4dc8c;--g2:#d4af37;--g3:#9c7a1c;background:radial-gradient(ellipse at 50% -10%,#1d1810 0%,#0c0b0b 55%,#050505 100%);color:#f3ead2}
+body[data-theme=gold] #fx .sheen{position:absolute;top:-20%;bottom:-20%;width:26vw;left:-30vw;background:linear-gradient(100deg,transparent,rgba(244,220,140,.10),transparent);transform:skewX(-18deg);animation:sheen 11s ease-in-out infinite}
+@keyframes sheen{0%{left:-30vw}60%,100%{left:120vw}}
+body[data-theme=gold] #fx .gdot{position:absolute;bottom:-12px;border-radius:50%;background:radial-gradient(circle,#fff3c4,#d4af37 60%,transparent 70%);opacity:0;animation:gup linear infinite}
+@keyframes gup{from{transform:translate(0,0);opacity:0}12%{opacity:.85}to{transform:translate(var(--dx),-108vh);opacity:0}}
+body[data-theme=gold] header{background:transparent;margin:0 3vw;padding-left:0;padding-right:0;border-bottom:1px solid transparent;border-image:linear-gradient(90deg,transparent,#d4af37 20%,#f4dc8c 50%,#d4af37 80%,transparent) 1}
+body[data-theme=gold] header .eb{color:var(--g2);font:600 clamp(12px,1.25vw,22px)/1 "Gowun Dodum",var(--sans);letter-spacing:.34em}
+body[data-theme=gold] header h1{font:700 clamp(28px,3.6vw,66px)/1.1 "Gowun Batang",var(--serif);background:linear-gradient(100deg,#b8902a 0%,#f4dc8c 30%,#fff6d6 50%,#f4dc8c 70%,#b8902a 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:goldshine 7s linear infinite}
+@keyframes goldshine{to{background-position:-250% 0}}
+body[data-theme=gold] header .day{font:400 clamp(15px,1.6vw,28px)/1.3 "Gowun Dodum",var(--sans);color:#b9ad8a}
+body[data-theme=gold] header .clock{font:700 clamp(28px,3.8vw,68px)/1 "Gowun Batang",var(--serif);color:var(--g1)}
+body[data-theme=gold] .row{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(212,175,55,.28);border-radius:calc(var(--fs)*.22);box-shadow:0 8px 24px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,236,170,.08)}
+body[data-theme=gold] .row .tm{font:400 calc(var(--fs)*.64)/1 "Gowun Dodum",var(--sans);color:#a9996c}
+body[data-theme=gold] .row .nm{font:700 var(--fs)/1.15 "Gowun Batang",var(--serif);color:#f6efdc}
+body[data-theme=gold] .row .nm small{font:400 calc(var(--fs)*.5)/1 "Gowun Dodum",var(--sans);color:#a9996c}
+body[data-theme=gold] .row .tb{font:700 calc(var(--fs)*.9)/1 "Gowun Batang",var(--serif);color:#1a1405;background:linear-gradient(135deg,#f4dc8c,#d4af37 55%,#a67c1a);border-radius:calc(var(--fs)*.16);box-shadow:0 0 calc(var(--fs)*.4) rgba(212,175,55,.35),inset 0 1px 0 rgba(255,255,255,.55)}
+body[data-theme=gold] .row .tb.room{background:none;color:var(--g1);border:2px solid var(--g2);box-shadow:inset 0 0 0 1px rgba(244,220,140,.25)}
+body[data-theme=gold] .row .tb.none{background:rgba(255,255,255,.06);color:#6f6648;box-shadow:none}
+body[data-theme=gold] .row.soon{border-color:#f4dc8c;box-shadow:0 0 0 1px rgba(244,220,140,.6),0 0 26px rgba(212,175,55,.35);animation:goldpulse 2s ease-in-out infinite}
+body[data-theme=gold] .row.soon::before{background:var(--g1)}
+@keyframes goldpulse{50%{box-shadow:0 0 0 1px rgba(244,220,140,.3),0 0 8px rgba(212,175,55,.1)}}
+body[data-theme=gold] .row.in{animation:goldIn .8s cubic-bezier(.2,.8,.2,1) both}
+@keyframes goldIn{from{opacity:0;transform:translateY(16px);filter:brightness(2.2)}to{opacity:var(--op,1);transform:none;filter:none}}
+body[data-theme=gold] .row.in .tb{animation:tbpop .6s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes tbpop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+body[data-theme=gold] footer{color:#9b9174}
+body[data-theme=gold] footer .guide{font:700 clamp(15px,1.5vw,28px)/1.3 "Gowun Batang",var(--serif);color:var(--g1)}
+body[data-theme=gold] footer .guide i{background:linear-gradient(135deg,#f4dc8c,#a67c1a);border-radius:50%}
+body[data-theme=gold] .empty b{font-family:"Gowun Batang",var(--serif);color:var(--g1)}.empty span{color:inherit}
+body[data-theme=gold] #st.ok{color:#c6d98a}
 
 /* 1) 오로라 — 어두운 바탕에 천천히 흐르는 빛, 유리 카드, 둥근 글씨 */
 body[data-theme=aurora]{--bg:#0a0c1b;background:var(--bg);color:#fff;--fontN:"Jua",var(--sans)}
@@ -171,10 +204,11 @@ const SUPABASE_KEY='/*NEWKEY*/';
 const CONF_KEY='ilpum-fr-conf';
 const Q=new URLSearchParams(location.search);
 const MASK=Q.get('mask')==='1';
-// 디자인: ?theme=aurora|chalk|warm|classic (모니터에서 T 키로 돌려 보기 — 이 기기에 기억)
-const THEMES=['aurora','chalk','warm','classic'];
+// 디자인: ?theme=aurora|chalk|warm|gold (모니터에서 T 키로 돌려 보기 — 이 기기에 기억)
+const THEMES=['warm','aurora','chalk','gold'];
 let THEME=(()=>{ const q=Q.get('theme'); if(THEMES.includes(q)) return q; try{ const v=localStorage.getItem('ilpum-disp-theme'); if(THEMES.includes(v)) return v; }catch(e){} return 'warm'; })();
 function applyTheme(){ document.body.dataset.theme=THEME; const fx=document.getElementById('fx'); let h='';
+  if(THEME==='gold'){ h='<div class="sheen"></div>'; for(let i=0;i<34;i++) h+=`<i class="gdot" style="left:${(Math.random()*100).toFixed(1)}%;--dx:${(Math.random()*8-4).toFixed(1)}vw;animation-duration:${(16+Math.random()*18).toFixed(1)}s;animation-delay:${(-Math.random()*34).toFixed(1)}s;width:${(2+Math.random()*3).toFixed(1)}px;height:${(2+Math.random()*3).toFixed(1)}px"></i>`; }
   if(THEME==='aurora') h='<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>';
   if(THEME==='chalk') for(let i=0;i<26;i++) h+=`<i class="dust" style="left:${Math.random()*100}%;--dx:${(Math.random()*12-6).toFixed(1)}vw;animation-duration:${(14+Math.random()*16).toFixed(1)}s;animation-delay:${(-Math.random()*30).toFixed(1)}s;width:${(2+Math.random()*4).toFixed(1)}px;height:${(2+Math.random()*4).toFixed(1)}px"></i>`;
   if(THEME==='warm'){ const wave=(c,cls)=>`<svg class="wave ${cls}" viewBox="0 0 1200 100" preserveAspectRatio="none"><path fill="${c}" d="M0 60 C100 20 200 100 300 60 S500 20 600 60 S800 100 900 60 S1100 20 1200 60 V100 H0Z"/></svg>`;

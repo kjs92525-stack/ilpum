@@ -46,12 +46,45 @@ footer .sp{flex:1}
 .login b{font:700 24px/1.4 var(--serif);color:var(--navy);display:block;margin-bottom:8px}
 .login a{color:var(--navy2);font-weight:700}
 
-/* ===== 테마 3종 (?theme=aurora | chalk | warm, 키보드 T 로 바꾸기). 기본(classic)은 위 그대로 ===== */
+/* ===== 테마 4종 (?theme=warm | aurora | chalk | gold, 키보드 T 로 바꾸기). 위쪽 기본 스타일은 공통 뼈대 ===== */
 #fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 header,main,footer{position:relative;z-index:1}
 .row.in{animation:rowIn .7s cubic-bezier(.2,.8,.2,1) both}
 @keyframes rowIn{from{opacity:0;transform:translateY(14px)}to{opacity:var(--op,1);transform:none}}
 .clock .cl{animation:blink 2s steps(1) infinite}@keyframes blink{50%{opacity:.25}}
+
+
+/* 4) 골드 — 검은 바탕에 금색. 천천히 지나가는 빛줄기, 떠오르는 금가루, 금빛 번호 */
+body[data-theme=gold]{--bg:#0a0a0c;--g1:#f4dc8c;--g2:#d4af37;--g3:#9c7a1c;background:radial-gradient(ellipse at 50% -10%,#1d1810 0%,#0c0b0b 55%,#050505 100%);color:#f3ead2}
+body[data-theme=gold] #fx .sheen{position:absolute;top:-20%;bottom:-20%;width:26vw;left:-30vw;background:linear-gradient(100deg,transparent,rgba(244,220,140,.10),transparent);transform:skewX(-18deg);animation:sheen 11s ease-in-out infinite}
+@keyframes sheen{0%{left:-30vw}60%,100%{left:120vw}}
+body[data-theme=gold] #fx .gdot{position:absolute;bottom:-12px;border-radius:50%;background:radial-gradient(circle,#fff3c4,#d4af37 60%,transparent 70%);opacity:0;animation:gup linear infinite}
+@keyframes gup{from{transform:translate(0,0);opacity:0}12%{opacity:.85}to{transform:translate(var(--dx),-108vh);opacity:0}}
+body[data-theme=gold] header{background:transparent;margin:0 3vw;padding-left:0;padding-right:0;border-bottom:1px solid transparent;border-image:linear-gradient(90deg,transparent,#d4af37 20%,#f4dc8c 50%,#d4af37 80%,transparent) 1}
+body[data-theme=gold] header .eb{color:var(--g2);font:600 clamp(12px,1.25vw,22px)/1 "Gowun Dodum",var(--sans);letter-spacing:.34em}
+body[data-theme=gold] header h1{font:700 clamp(28px,3.6vw,66px)/1.1 "Gowun Batang",var(--serif);background:linear-gradient(100deg,#b8902a 0%,#f4dc8c 30%,#fff6d6 50%,#f4dc8c 70%,#b8902a 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:goldshine 7s linear infinite}
+@keyframes goldshine{to{background-position:-250% 0}}
+body[data-theme=gold] header .day{font:400 clamp(15px,1.6vw,28px)/1.3 "Gowun Dodum",var(--sans);color:#b9ad8a}
+body[data-theme=gold] header .clock{font:700 clamp(28px,3.8vw,68px)/1 "Gowun Batang",var(--serif);color:var(--g1)}
+body[data-theme=gold] .row{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(212,175,55,.28);border-radius:calc(var(--fs)*.22);box-shadow:0 8px 24px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,236,170,.08)}
+body[data-theme=gold] .row .tm{font:400 calc(var(--fs)*.64)/1 "Gowun Dodum",var(--sans);color:#a9996c}
+body[data-theme=gold] .row .nm{font:700 var(--fs)/1.15 "Gowun Batang",var(--serif);color:#f6efdc}
+body[data-theme=gold] .row .nm small{font:400 calc(var(--fs)*.5)/1 "Gowun Dodum",var(--sans);color:#a9996c}
+body[data-theme=gold] .row .tb{font:700 calc(var(--fs)*.9)/1 "Gowun Batang",var(--serif);color:#1a1405;background:linear-gradient(135deg,#f4dc8c,#d4af37 55%,#a67c1a);border-radius:calc(var(--fs)*.16);box-shadow:0 0 calc(var(--fs)*.4) rgba(212,175,55,.35),inset 0 1px 0 rgba(255,255,255,.55)}
+body[data-theme=gold] .row .tb.room{background:none;color:var(--g1);border:2px solid var(--g2);box-shadow:inset 0 0 0 1px rgba(244,220,140,.25)}
+body[data-theme=gold] .row .tb.none{background:rgba(255,255,255,.06);color:#6f6648;box-shadow:none}
+body[data-theme=gold] .row.soon{border-color:#f4dc8c;box-shadow:0 0 0 1px rgba(244,220,140,.6),0 0 26px rgba(212,175,55,.35);animation:goldpulse 2s ease-in-out infinite}
+body[data-theme=gold] .row.soon::before{background:var(--g1)}
+@keyframes goldpulse{50%{box-shadow:0 0 0 1px rgba(244,220,140,.3),0 0 8px rgba(212,175,55,.1)}}
+body[data-theme=gold] .row.in{animation:goldIn .8s cubic-bezier(.2,.8,.2,1) both}
+@keyframes goldIn{from{opacity:0;transform:translateY(16px);filter:brightness(2.2)}to{opacity:var(--op,1);transform:none;filter:none}}
+body[data-theme=gold] .row.in .tb{animation:tbpop .6s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes tbpop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+body[data-theme=gold] footer{color:#9b9174}
+body[data-theme=gold] footer .guide{font:700 clamp(15px,1.5vw,28px)/1.3 "Gowun Batang",var(--serif);color:var(--g1)}
+body[data-theme=gold] footer .guide i{background:linear-gradient(135deg,#f4dc8c,#a67c1a);border-radius:50%}
+body[data-theme=gold] .empty b{font-family:"Gowun Batang",var(--serif);color:var(--g1)}.empty span{color:inherit}
+body[data-theme=gold] #st.ok{color:#c6d98a}
 
 /* 1) 오로라 — 어두운 바탕에 천천히 흐르는 빛, 유리 카드, 둥근 글씨 */
 body[data-theme=aurora]{--bg:#0a0c1b;background:var(--bg);color:#fff;--fontN:"Jua",var(--sans)}
@@ -144,6 +177,10 @@ body[data-theme=warm] footer .guide{font:700 clamp(15px,1.5vw,28px)/1.3 "Gowun B
 body[data-theme=warm] footer .guide i{background:#b4532a;border-radius:50%}
 body[data-theme=warm] .empty b{font-family:"Gowun Batang",var(--serif);color:#2b211b}
 body[data-theme=warm] #st.ok{color:#5d7a3a}
+#ctl{position:fixed;left:50%;bottom:2.2vh;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:6px;background:rgba(20,20,28,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:999px;padding:6px 8px;box-shadow:0 6px 24px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .35s}
+#ctl.on{opacity:1;pointer-events:auto}
+#ctl button{border:0;background:rgba(255,255,255,.14);color:#fff;font:600 clamp(15px,1.3vw,22px)/1 var(--sans);padding:.65em 1.1em;border-radius:999px;cursor:pointer;min-width:2.4em}
+#ctl button:hover{background:rgba(255,255,255,.28)}#ctl .sep{width:1px;height:1.6em;background:rgba(255,255,255,.25);margin:0 4px}
 </style>
 </head>
 <body>
@@ -158,6 +195,7 @@ body[data-theme=warm] #st.ok{color:#5d7a3a}
   <div class="guide">성함을 찾으시고 <i></i>테이블 번호로 앉아 주세요</div>
   <div class="sp"></div><span id="cnt"></span><span id="st">연결 중…</span>
 </footer>
+<div id="ctl" aria-label="화면 조작"><button id="ctlPrev" title="전날 (← 키)">‹</button><button id="ctlDay" title="오늘로 (Home 키)">오늘</button><button id="ctlNext" title="다음 날 (→ 키)">›</button><span class="sep"></span><button id="ctlTheme" title="디자인 바꾸기 (T 키)">디자인</button></div>
 <script>
 /* 예약 화면(reserve.html)과 같은 서버·같은 로그인 토큰을 씀. 이 화면은 읽기만 함(예약을 고치지 않음).
    사용량: 실시간 연결(웹소켓)로 바뀐 날짜의 내용을 서버가 직접 보내 줘서 다시 받을 필요가 없음. 10분마다 rev(숫자 하나)만 확인. */
@@ -166,21 +204,29 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const CONF_KEY='ilpum-fr-conf';
 const Q=new URLSearchParams(location.search);
 const MASK=Q.get('mask')==='1';
-// 디자인: ?theme=aurora|chalk|warm|classic (모니터에서 T 키로 돌려 보기 — 이 기기에 기억)
-const THEMES=['aurora','chalk','warm','classic'];
+// 디자인: ?theme=aurora|chalk|warm|gold (모니터에서 T 키로 돌려 보기 — 이 기기에 기억)
+const THEMES=['warm','aurora','chalk','gold'];
 let THEME=(()=>{ const q=Q.get('theme'); if(THEMES.includes(q)) return q; try{ const v=localStorage.getItem('ilpum-disp-theme'); if(THEMES.includes(v)) return v; }catch(e){} return 'warm'; })();
 function applyTheme(){ document.body.dataset.theme=THEME; const fx=document.getElementById('fx'); let h='';
+  if(THEME==='gold'){ h='<div class="sheen"></div>'; for(let i=0;i<34;i++) h+=`<i class="gdot" style="left:${(Math.random()*100).toFixed(1)}%;--dx:${(Math.random()*8-4).toFixed(1)}vw;animation-duration:${(16+Math.random()*18).toFixed(1)}s;animation-delay:${(-Math.random()*34).toFixed(1)}s;width:${(2+Math.random()*3).toFixed(1)}px;height:${(2+Math.random()*3).toFixed(1)}px"></i>`; }
   if(THEME==='aurora') h='<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>';
   if(THEME==='chalk') for(let i=0;i<26;i++) h+=`<i class="dust" style="left:${Math.random()*100}%;--dx:${(Math.random()*12-6).toFixed(1)}vw;animation-duration:${(14+Math.random()*16).toFixed(1)}s;animation-delay:${(-Math.random()*30).toFixed(1)}s;width:${(2+Math.random()*4).toFixed(1)}px;height:${(2+Math.random()*4).toFixed(1)}px"></i>`;
   if(THEME==='warm'){ const wave=(c,cls)=>`<svg class="wave ${cls}" viewBox="0 0 1200 100" preserveAspectRatio="none"><path fill="${c}" d="M0 60 C100 20 200 100 300 60 S500 20 600 60 S800 100 900 60 S1100 20 1200 60 V100 H0Z"/></svg>`;
     h=wave('#e8d7bf','w1')+wave('#d9c19f','w2'); for(let i=0;i<3;i++) h+=`<svg class="steam" style="right:${22+i*4}vw;animation-delay:${i*2}s" viewBox="0 0 30 120"><path d="M15 115 C0 90 30 75 15 55 S0 20 15 5" stroke="#b4532a" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".5"/></svg>`; }
   fx.innerHTML=h; SEEN=new Set(); }
-let SEEN=new Set();   // 새로 생긴 줄만 움직이게 (30초마다 다시 그려도 깜빡이지 않음)
-document.addEventListener('keydown',e=>{ if(e.key==='t'||e.key==='T'){ THEME=THEMES[(THEMES.indexOf(THEME)+1)%THEMES.length]; try{ localStorage.setItem('ilpum-disp-theme',THEME); }catch(x){} applyTheme(); render(); } });                 // ?mask=1 이면 가운데 글자를 *로 (홍*원)
-let SID='', STORE=null, ITEMS=[], REV=null, DAY='';
+let SEEN=new Set(), lastTouch=Date.now(), ctlTimer=null;   // 새로 생긴 줄만 움직이게 (30초마다 다시 그려도 깜빡이지 않음)
+function nextTheme(){ THEME=THEMES[(THEMES.indexOf(THEME)+1)%THEMES.length]; try{ localStorage.setItem('ilpum-disp-theme',THEME); }catch(x){} applyTheme(); render(); }
+function showCtl(){ lastTouch=Date.now(); const c=document.getElementById('ctl'); c.classList.add('on'); clearTimeout(ctlTimer); ctlTimer=setTimeout(()=>c.classList.remove('on'),5000); }
+document.addEventListener('keydown',e=>{ showCtl(); const k=e.key;
+  if(k==='t'||k==='T') nextTheme(); else if(k==='ArrowLeft') goDay(OFF-1); else if(k==='ArrowRight') goDay(OFF+1); else if(k==='Home'||k==='h'||k==='H') goDay(0); });
+['pointermove','pointerdown','touchstart'].forEach(ev=>document.addEventListener(ev,showCtl,{passive:true}));
+document.getElementById('ctlPrev').onclick=()=>goDay(OFF-1); document.getElementById('ctlNext').onclick=()=>goDay(OFF+1);
+document.getElementById('ctlDay').onclick=()=>goDay(0); document.getElementById('ctlTheme').onclick=nextTheme;                 // ?mask=1 이면 가운데 글자를 *로 (홍*원)
+let SID='', STORE=null, ITEMS=[], REV=null, DAY='', OFF=0, TITLE='';   // OFF: 오늘에서 며칠 떨어진 날을 보는지 (0=오늘)
 const pad=n=>String(n).padStart(2,'0');
 const ds=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const today=()=>ds(new Date());
+const dayOf=off=>{ const d=new Date(); d.setDate(d.getDate()+off); return ds(d); };
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const readConf=()=>{ try{ return JSON.parse(localStorage.getItem(CONF_KEY))||{}; }catch(e){ return {}; } };
 const readSes=()=>{ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; };
@@ -210,7 +256,7 @@ function tableLabel(ts){
   ts=(ts||[]).map(String); if(!ts.length) return {t:'-',k:'none'};
   const nums=ts.filter(t=>!/^R/i.test(t)).sort((a,b)=>a-b);
   const rooms=[...new Set(ts.filter(t=>/^R/i.test(t)).map(t=>'룸'+t.replace(/^R/i,'').split('-')[0]))];
-  const parts=[]; if(nums.length) parts.push(nums.join('·')); parts.push(...rooms);
+  const parts=[]; if(nums.length) parts.push(nums.join('·')+'T'); parts.push(...rooms);   // 번호 뒤에 T (7T, 31·32T)
   return {t:parts.join(' '), k: nums.length?'':'room'};
 }
 const maskName=n=>{ n=String(n||''); if(!MASK||n.length<2) return n; return n.length===2? n[0]+'*' : n[0]+'*'.repeat(n.length-2)+n[n.length-1]; };
@@ -218,9 +264,9 @@ function render(){
   const g=document.getElementById('grid'); const nowM=new Date().getHours()*60+new Date().getMinutes();
   const list=ITEMS.filter(x=>x&&!x.deleted&&!isCxl(x)&&String(x.name||'').trim()).sort((a,b)=>toMin(a.time)-toMin(b.time)||String(a.name).localeCompare(String(b.name)));
   document.getElementById('cnt').textContent=list.length?`${list.length}팀 · ${list.reduce((a,x)=>a+people(x.pp),0)}명`:'';
-  if(!list.length){ g.style.gridTemplateRows=''; g.innerHTML=`<div class="empty"><b>오늘 예약이 아직 없어요</b><span>예약이 들어오면 바로 여기에 표시돼요</span></div>`; return; }
+  if(!list.length){ g.style.gridTemplateRows=''; g.innerHTML=`<div class="empty"><b>${OFF===0?'오늘 예약이 아직 없어요':'이 날은 예약이 없어요'}</b><span>${OFF===0?'예약이 들어오면 바로 여기에 표시돼요':''}</span></div>`; return; }
   let k=0; g.innerHTML=list.map(x=>{ const m=toMin(x.time), tb=tableLabel(x.tables); const key=x.id+'|'+x.time+'|'+(x.tables||[]).join(); const nw=!SEEN.has(key); SEEN.add(key); const dl=nw?` style="animation-delay:${Math.min(k++*70,1800)}ms"`:'';
-    const soon=!x.done && m-nowM<=30 && m-nowM>=-15, past=x.done || nowM-m>90;
+    const isToday=OFF===0; const soon=isToday&&!x.done && m-nowM<=30 && m-nowM>=-15, past=isToday&&(x.done || nowM-m>90);
     return `<div class="row${soon?' soon':''}${past?' past':''}${nw?' in':''}"${dl}><span class="tm">${esc(tmLabel(x.time))}</span><span class="nm">${esc(maskName(x.name))}<small>${people(x.pp)?people(x.pp)+'명':''}</small></span><span class="tb ${tb.k}">${esc(tb.t)}</span></div>`; }).join('');
   fit(list.length);
 }
@@ -239,7 +285,11 @@ function fit(n){
 const WD='일월화수목금토';
 function tick(){ const d=new Date(); document.getElementById('clock').innerHTML=`${pad(d.getHours())}<span class="cl">:</span>${pad(d.getMinutes())}`;
   document.getElementById('day').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]})`;
-  if(SID&&today()!==DAY){ DAY=today(); ITEMS=[]; REV=null; render(); load(); } }
+  if(SID){ const nd=dayOf(OFF); if(nd!==DAY){ DAY=nd; ITEMS=[]; REV=null; SEEN=new Set(); render(); nextAt=0; load(); } }       // 자정이 지나면 (오늘을 보고 있으면) 다음 날로
+  if(OFF!==0&&Date.now()-lastTouch>3*60*1000) goDay(0); }                                                                                       // 다른 날을 3분 동안 그대로 두면 오늘로 돌아옴
+function setTitle(){ const t=document.getElementById('title'); if(!TITLE) return; const d=new Date(DAY+'T00:00'); t.textContent=OFF===0?`${TITLE} · 오늘의 예약`:`${TITLE} · ${d.getMonth()+1}월 ${d.getDate()}일(${WD[d.getDay()]}) 예약`;
+  const dy=document.getElementById('day'); dy.textContent=`${new Date().getMonth()+1}월 ${new Date().getDate()}일 (${WD[new Date().getDay()]})`; }
+function goDay(off){ OFF=off; DAY=dayOf(OFF); ITEMS=[]; REV=null; SEEN=new Set(); nextAt=0; setTitle(); render(); load(); try{ document.getElementById('ctlDay').textContent=OFF===0?'오늘':`${OFF>0?'+':''}${OFF}일`; }catch(e){} }
 
 /* ---------- 서버 ---------- */
 let fails=0, nextAt=0;
@@ -285,10 +335,11 @@ function needLogin(msg){ setSt(msg,'err');
     if(!ss.length) return needLogin('연결된 매장이 없어요');
     const want=Q.get('store'); const byName=want&&ss.find(x=>x.name&&x.name.includes(want));
     STORE=ss.find(x=>x.id===want)||byName||ss.find(x=>x.id===readConf().sid)||ss.find(x=>x.is_hq)||ss[0]; SID=STORE.id;
-    document.getElementById('title').textContent=`일품집 ${String(STORE.name||'').replace(/^일품집\s*/,'')} · 오늘의 예약`;
+    
+    TITLE=`일품집 ${String(STORE.name||'').replace(/^일품집\s*/,'')}`;
     document.title=`오늘의 예약 · ${STORE.name}`;
   }catch(e){ return needLogin(e.auth?'로그인이 필요해요':'연결 실패 — 인터넷 연결을 확인해 주세요'); }
-  DAY=today(); render(); await load(); rtConnect();
+  DAY=today(); setTitle(); render(); await load(); rtConnect();
   // 실시간이면 10분마다 숫자 하나(rev)만 확인, 아니면 1분마다
   let last=Date.now(); setInterval(()=>{ const every=rtOk?600000:60000; if(Date.now()-last<every-1000) return; last=Date.now(); load(); },15000);
   setInterval(()=>{ tick(); render(); },30000);       // 시계·"곧 도착" 표시 (서버 요청 없음)

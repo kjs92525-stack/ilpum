@@ -69,6 +69,10 @@ async def main():
         chk('오늘 버튼 → 오늘로', await pg.evaluate("OFF")==0 and '오늘의 예약' in await pg.inner_text('#title'))
         th0=await pg.evaluate("document.body.dataset.theme"); await pg.click('#ctlTheme'); await pg.wait_for_timeout(300)
         chk('디자인 버튼 → 테마 바뀜', await pg.evaluate("document.body.dataset.theme")!=th0)
+        names=[]
+        for _ in range(4):
+          names.append(await pg.evaluate("document.body.dataset.theme")); await pg.click('#ctlTheme'); await pg.wait_for_timeout(250)
+        chk('디자인 4종(온기·오로라·칠판·골드), 파란 흰바탕(classic) 없음', sorted(set(names))==sorted(['warm','aurora','chalk','gold']) and 'classic' not in names, str(names))
         await pg.click('#ctlNext'); await pg.wait_for_timeout(500); await pg.click('#ctlPrev'); await pg.click('#ctlPrev'); await pg.wait_for_timeout(500)
         chk('‹ › 버튼으로 어제도 볼 수 있음', await pg.evaluate("OFF")==-1)
         await pg.keyboard.press('Home'); await pg.wait_for_timeout(500)
