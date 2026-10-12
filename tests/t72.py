@@ -40,7 +40,7 @@ async def main():
       ctx=await b.new_context(viewport={'width':vw,'height':vh}); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
       await pg.route('**/*',handler); await pg.route_web_socket(f'wss://{NEW}/**',on_ws)
       await pg.add_init_script(f"try{{ localStorage.setItem('ilpum-fr-conf',{json.dumps(json.dumps(S))}); }}catch(e){{}}")
-      await pg.goto('http://localhost:8765/display.html'); await pg.wait_for_timeout(2500)
+      await pg.goto('http://localhost:8765/display.html'); await pg.wait_for_timeout(4500)   # 들어오는 움직임이 끝난 뒤 크기 확인
       if len(sys.argv)>1: await pg.screenshot(path=f'/tmp/disp_{vw}.png')
       rows=await pg.evaluate("[...document.querySelectorAll('.row')].map(r=>[r.querySelector('.nm').firstChild.textContent,r.querySelector('.tb').textContent,r.querySelector('.tm').textContent])")
       chk(f'[{vw}] 25팀, 취소·지운 예약 빠짐', len(rows)==25 and not any(r[0] in ('취소손님','지운손님') for r in rows), str(len(rows)))
