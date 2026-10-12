@@ -47,7 +47,6 @@ footer .sp{flex:1}
 .login a{color:var(--navy2);font-weight:700}
 
 /* ===== 테마 3종 (?theme=aurora | chalk | warm, 키보드 T 로 바꾸기). 기본(classic)은 위 그대로 ===== */
-#grid.measuring *{animation:none!important}
 #fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 header,main,footer{position:relative;z-index:1}
 .row.in{animation:rowIn .7s cubic-bezier(.2,.8,.2,1) both}
@@ -228,13 +227,14 @@ function render(){
 // 스크롤 없이 한 화면에: 열 수와 글자 크기를 바꿔 가며 가장 크게 들어가는 조합을 고름
 let lastN=0;
 function fit(n){
-  const g=document.getElementById('grid'), H=g.clientHeight, W=g.clientWidth; let best=null; lastN=n; g.classList.add('measuring');   // 움직이는 효과(확대 등)가 크기 재기를 방해하지 않게 잠시 멈춤
+  const g=document.getElementById('grid'), H=g.clientHeight, W=g.clientWidth; let best=null; lastN=n;
   for(let cols=1;cols<=4;cols++){ const rows=Math.ceil(n/cols);
     for(let fs=110;fs>=14;fs-=2){ g.style.setProperty('--fs',fs+'px'); g.style.gridTemplateRows=`repeat(${rows},auto)`;
-      const okH=g.scrollHeight<=H+1, okW=g.scrollWidth<=W+1 && [...g.children].every(c=>{ const nm=c.querySelector('.nm'); return !nm||nm.scrollWidth<=nm.clientWidth+1; });
+      // 움직이는 효과(확대·회전)에 흔들리지 않게 실제 배치 크기(offset)로 잼
+      const kids=[...g.children], okH=kids.every(c=>c.offsetTop-g.offsetTop+c.offsetHeight<=H+1), okW=kids.every(c=>c.offsetLeft-g.offsetLeft+c.offsetWidth<=W+1) && kids.every(c=>{ const nm=c.querySelector('.nm'); return !nm||nm.scrollWidth<=nm.clientWidth+1; });
       if(okH&&okW){ if(!best||fs>best.fs) best={fs,rows}; break; } } }
   best=best||{fs:14,rows:Math.ceil(n/4)};
-  g.style.setProperty('--fs',best.fs+'px'); g.style.gridTemplateRows=`repeat(${best.rows},auto)`; void g.offsetWidth; g.classList.remove('measuring');
+  g.style.setProperty('--fs',best.fs+'px'); g.style.gridTemplateRows=`repeat(${best.rows},auto)`;
 }
 const WD='일월화수목금토';
 function tick(){ const d=new Date(); document.getElementById('clock').innerHTML=`${pad(d.getHours())}<span class="cl">:</span>${pad(d.getMinutes())}`;
