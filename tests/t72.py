@@ -73,6 +73,15 @@ async def main():
         for _ in range(4):
           names.append(await pg.evaluate("document.body.dataset.theme")); await pg.click('#ctlTheme'); await pg.wait_for_timeout(250)
         chk('디자인 4종(온기·오로라·칠판·골드), 파란 흰바탕(classic) 없음', sorted(set(names))==sorted(['warm','aurora','chalk','gold']) and 'classic' not in names, str(names))
+        # 가벼운 모드: 켜면 움직임·흐림이 꺼지고, 꺼도 화면 내용은 그대로
+        await pg.click('#ctlLite'); await pg.wait_for_timeout(300)
+        lt=await pg.evaluate("[document.body.classList.contains('lite'), getComputedStyle(document.querySelector('.row')).animationName, document.querySelectorAll('.row').length]")
+        chk('가볍게 켜기 → 움직임 꺼짐, 예약 그대로', lt[0] and lt[1]=='none' and lt[2]==25, str(lt))
+        await pg.click('#ctlLite'); await pg.wait_for_timeout(300)
+        chk('가볍게 끄기', not await pg.evaluate("document.body.classList.contains('lite')"))
+        # 같은 내용이면 다시 그리지 않음(약한 PC 부담): 줄 요소가 그대로
+        await pg.evaluate("window.__r=document.querySelector('.row')"); await pg.evaluate("render()"); await pg.wait_for_timeout(100)
+        chk('내용이 같으면 다시 안 그림', await pg.evaluate("window.__r===document.querySelector('.row')"))
         await pg.click('#ctlNext'); await pg.wait_for_timeout(500); await pg.click('#ctlPrev'); await pg.click('#ctlPrev'); await pg.wait_for_timeout(500)
         chk('‹ › 버튼으로 어제도 볼 수 있음', await pg.evaluate("OFF")==-1)
         await pg.keyboard.press('Home'); await pg.wait_for_timeout(500)
