@@ -152,6 +152,24 @@ async def main():
     ok('    새로고침해도 숨김 유지 → 다시 누르면 보임', not await pg.is_visible('.mapbox'))
     await pg.click('[data-act=maptoggle]'); await pg.wait_for_timeout(300)
     ok('    다시 보임', await pg.is_visible('.mapbox'))
+    # 26) 모션: 화면이 바뀔 때 한 번만 움직이고, 끝나면 숫자는 원래 값
+    await pg.evaluate("DB.ui='term'; save(); window.__MO=1; go('list')")
+    await pg.wait_for_timeout(100)
+    cid=await pg.evaluate("(DB.cands.find(x=>x.m&&x.m.v===2)||{}).id||''")
+    await pg.evaluate("id=>go('detail',id)",cid); await pg.wait_for_timeout(120)
+    lr=await pg.evaluate("[...document.querySelectorAll('.card.mo-rv')].length")
+    a1=await pg.evaluate("(()=>{const r=document.querySelector('.sring circle:nth-of-type(2)'), b=document.querySelector('.dmb-t i'); return [!!r&&r.getAnimations().length>0, !!b&&b.getAnimations().length>0, document.querySelector('.sr-n').textContent]})()")
+    await pg.wait_for_timeout(2600)
+    a2=await pg.evaluate("(()=>{const c=DB.cands.find(x=>x.id===CUR), F=finalOf(c,scoreOf(c.m,c)); return [document.querySelector('.sr-n').textContent, String(F.tot)]})()")
+    ok('26) 모션: 점수 링·막대가 움직이고, 끝나면 점수 글자 = 실제 점수', a1[0] and a1[1] and a2[0]==a2[1], [a1,a2])
+    await pg.evaluate("render()"); await pg.wait_for_timeout(60)
+    ok('    같은 화면을 다시 그리면 안 움직임 (입력 중 깜빡임 없음)', await pg.evaluate("document.querySelector('.dmb-t i').getAnimations().length===0"))
+    await pg.evaluate("id=>{ MO_KEY=''; go('list'); go('detail',id); }",cid); await pg.wait_for_timeout(100)
+    for i in range(lr+8):
+      await pg.evaluate("i=>{ const L=document.querySelectorAll('.card[id^=\"s-\"]'); if(L[i]) L[i].scrollIntoView(); }",i); await pg.wait_for_timeout(80)
+    await pg.wait_for_timeout(300)
+    ok('    아래 구역은 숨었다가 스크롤하면 나타남', lr>0 and await pg.evaluate("document.querySelectorAll('.card.mo-rv').length===0"), lr)
+    await pg.evaluate("window.__MO=0; window.scrollTo(0,0)")
     await pg.evaluate("DB.stores=[]; DB.salesSeed=0; save(); render()")
     # 예전 기록(비교 기준이 있던 것)을 불러와도 문제없이 열림
     old={"v":2,"stores":[],"zoneKm":2,"weights":{"hub":20,"fam":20,"biz":15,"acc":20,"comp":25,"prop":15},"benchNames":["동성로"],"bench":{"at":"2026-10-05","mode":"area","points":[]},"cands":[]}

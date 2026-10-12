@@ -560,11 +560,29 @@ body.ui-term .secnav a{color:#c1c7ee}
 body.ui-term svg.radar polygon[fill-opacity]{fill:#7f8bff;fill-opacity:.30;stroke:#9ea8ff;stroke-width:2;filter:drop-shadow(0 0 6px rgba(111,123,255,.55))}body.ui-term svg.radar circle{fill:#c3c9ff}
 body.ui-term svg.radar polygon:not([fill-opacity]){stroke:rgba(140,130,240,.38)}body.ui-term svg.radar line{stroke:rgba(140,130,240,.3)}
 @media print{.tick,.foot{display:none!important}}
+/* ---- 모션 (motion()) ---- */
+.mo-rv{opacity:0;transform:translateY(34px)}
+.mo-in{transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+.mo-sweep{animation:moSpin 4.5s linear infinite}
+.mo-pulse{animation:moPulse 2.2s ease-out infinite;opacity:0}
+@keyframes moSpin{to{transform:rotate(360deg)}}
+@keyframes moPulse{0%{transform:scale(.6);opacity:.9}100%{transform:scale(3.2);opacity:0}}
+@keyframes moDot{0%{box-shadow:0 0 0 0 rgba(39,209,127,.7)}100%{box-shadow:0 0 0 9px rgba(39,209,127,0)}}
+@keyframes moGlow{0%,100%{filter:drop-shadow(0 0 6px rgba(111,123,255,.35))}50%{filter:drop-shadow(0 0 16px rgba(111,123,255,.75))}}
+@keyframes moShine{0%{transform:translateX(-120%)}60%,100%{transform:translateX(220%)}}
+.tick .dot.ok{animation:moDot 1.8s ease-out infinite}
+body.ui-term .sring{animation:moGlow 3.2s ease-in-out infinite}
+body.ui-term .dash>.db{transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+body.ui-term .dash>.db:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(80,90,255,.22);border-color:rgba(127,139,255,.55)}
+body.ui-term .db-score{position:relative;overflow:hidden}
+body.ui-term .db-score::after{content:"";position:absolute;top:0;bottom:0;left:0;width:35%;background:linear-gradient(100deg,transparent,rgba(160,170,255,.13),transparent);animation:moShine 5s ease-in-out 1.2s infinite;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.mo-sweep,.mo-pulse,.tick .dot.ok,body.ui-term .sring,body.ui-term .db-score::after{animation:none!important}.mo-pulse{display:none}.mo-rv{opacity:1;transform:none}}
+@media print{.mo-sweep,.mo-pulse{display:none!important}.mo-rv{opacity:1!important;transform:none!important}.sring,.db-score::after{animation:none!important}}
 </style>
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.09b</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.12a</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -1317,9 +1335,11 @@ function compMap(c){
   const pos=p=>{ const dx=(p.x-c.x)*111320*Math.cos(lat), dy=(p.y-c.y)*110540, d=Math.hypot(dx,dy); const k=Math.min(d,1100)/1000*R/(d||1); return [cx+dx*k, cy-dy*k]; };
   let g=[1000,500,300].map(r=>`<circle cx="${cx}" cy="${cy}" r="${(r/1000*R).toFixed(1)}" fill="${r===300?'rgba(161,58,50,.06)':'none'}" stroke="${r===300?'var(--warn)':'var(--line2)'}" stroke-dasharray="${r===300?'':'3 3'}"/><text x="${cx+4}" y="${(cy-r/1000*R+11).toFixed(1)}" font-size="10" fill="var(--sub)">${r>=1000?'1km':r+'m'}</text>`).join('');
   g+=`<line x1="${cx}" y1="8" x2="${cx}" y2="${W-8}" stroke="var(--line)"/><line x1="8" y1="${cy}" x2="${W-8}" y2="${cy}" stroke="var(--line)"/><text x="${cx}" y="12" font-size="10" text-anchor="middle" fill="var(--faint)">북</text>`;
-  (m.comp||[]).slice().sort((a,b)=>b.dist-a.dist).forEach(p=>{ const [x,y]=pos(p), near=p.dist<=300; g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${near?6:5}" fill="${near?'var(--warn)':'var(--navy)'}" fill-opacity=".85" stroke="#fff" stroke-width="1.5"><title>${esc(p.name)} · ${p.dist}m</title></circle>`; });
+  (m.comp||[]).slice().sort((a,b)=>b.dist-a.dist).forEach(p=>{ const [x,y]=pos(p), near=p.dist<=300; g+=`<circle class="mo-dot" style="transform-origin:${x.toFixed(1)}px ${y.toFixed(1)}px" data-d="${p.dist}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${near?6:5}" fill="${near?'var(--warn)':'var(--navy)'}" fill-opacity=".85" stroke="#fff" stroke-width="1.5"><title>${esc(p.name)} · ${p.dist}m</title></circle>`; });
   DB.stores.filter(x=>x.x).forEach(st=>{ const d=distM(c,st); if(d<=1100){ const [x,y]=pos(st); g+=`<rect x="${(x-5).toFixed(1)}" y="${(y-5).toFixed(1)}" width="10" height="10" fill="var(--ok)" stroke="#fff" stroke-width="1.5"><title>우리 매장 ${esc(st.name)} · ${Math.round(d)}m</title></rect>`; } });
-  g+=`<path d="M${cx} ${cy-9} l8 14 h-16 z" fill="var(--gold)" stroke="#fff" stroke-width="1.5"/>`;
+  // 모션: 레이더처럼 도는 빛줄기 + 후보지 맥박 (화면 전용, 인쇄·움직임 줄이기 설정에선 멈춤)
+  const sa=50*Math.PI/180, sw=`<defs><linearGradient id="swg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--gold)" stop-opacity="0"/><stop offset="1" stop-color="var(--gold)" stop-opacity=".28"/></linearGradient></defs><g class="mo-sweep" style="transform-origin:${cx}px ${cy}px"><path d="M${cx} ${cy} L${(cx-R*Math.sin(sa)).toFixed(1)} ${(cy-R*Math.cos(sa)).toFixed(1)} A${R} ${R} 0 0 1 ${cx} ${cy-R} Z" fill="url(#swg)"/><line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy-R}" stroke="var(--gold)" stroke-opacity=".7" stroke-width="1.5"/></g>`;
+  g=sw+g+`<circle class="mo-pulse" cx="${cx}" cy="${cy}" r="12" fill="none" stroke="var(--gold)" stroke-width="2" style="transform-origin:${cx}px ${cy}px"/><path d="M${cx} ${cy-9} l8 14 h-16 z" fill="var(--gold)" stroke="#fff" stroke-width="1.5"/>`;
   return `<div><svg class="cmap" viewBox="0 0 ${W} ${W}" role="img" aria-label="후보지 주변 장어집 위치">${g}</svg>
     <div class="legend" style="justify-content:center"><span><i style="background:var(--gold);border-radius:0"></i>후보지</span><span><i style="background:var(--warn)"></i>300m 안</span><span><i style="background:var(--navy)"></i>장어집</span><span><i style="background:var(--ok);border-radius:0"></i>우리 매장</span></div></div>`;
 }
@@ -1730,6 +1750,64 @@ function render(){
   $('#pane').innerHTML=ct({list:listHtml,detail:detailHtml,cmp:cmpHtml,set:setHtml}[TAB]());
   applyFold();
   drawMap();
+  motion();
+}
+
+/* ---------------- 모션 (2026-10-12 사용자: "눈에 잘 안 들어와, 모션그래픽처럼 눈을 확 휘어잡게") ----------------
+   화면(탭·후보지)이 바뀔 때만 한 번 움직임 — 입력하다 다시 그릴 때는 안 움직임.
+   점수 링이 그려지고 · 숫자가 0부터 올라가고 · 막대가 차오르고 · 카드가 차례로 떠오르고 · 아래 구역은 스크롤하면 나타남.
+   움직임 줄이기 설정·인쇄에선 안 움직이고, 자동 테스트(webdriver)에선 window.__MO 를 켤 때만. 끝나면 글자는 원래 값 그대로. */
+let MO_KEY='', MO_IO=null;
+const moOK=()=>!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)&&!(navigator.webdriver&&!window.__MO)&&!!Element.prototype.animate;
+const MO_EASE='cubic-bezier(.16,1,.3,1)';
+function moCount(el,dur,delay){
+  const tn=[...el.childNodes].find(n=>n.nodeType===3&&/\d/.test(n.nodeValue)); if(!tn) return;
+  const raw=tn.nodeValue, m=raw.match(/-?\d[\d,]*(\.\d+)?/); if(!m) return;
+  const end=parseFloat(m[0].replace(/,/g,'')); if(!isFinite(end)||end===0) return;
+  const dec=m[1]?m[1].length-1:0, comma=m[0].includes(',');
+  const fmt=v=>{ const s=comma?v.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}):v.toFixed(dec); return raw.replace(m[0],s); };
+  tn.nodeValue=fmt(0); const t0=performance.now()+delay;
+  const step=t=>{ if(!tn.isConnected) return; const k=Math.min(1,Math.max(0,(t-t0)/dur)), e=1-Math.pow(1-k,4); tn.nodeValue=k>=1?raw:fmt(end*e); if(k<1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+  setTimeout(()=>{ if(tn.isConnected) tn.nodeValue=raw; },delay+dur+400);   // 탭이 가려져 rAF 가 멈춰도 원래 값으로
+}
+function moFill(root,base){
+  let i=0;
+  root.querySelectorAll('i[style]').forEach(el=>{
+    if(el.closest('#prog')) return;
+    const w=el.style.width.endsWith('%'), h=!w&&el.style.height.endsWith('%'); if(!w&&!h) return;
+    el.style.transformOrigin=w?'left center':'center bottom';
+    el.animate([{transform:w?'scaleX(0)':'scaleY(0)'},{transform:'none'}],{duration:1100,delay:base+Math.min(i++,24)*45,easing:MO_EASE,fill:'backwards'});
+  });
+  root.querySelectorAll('.sring circle:nth-of-type(2),.mring circle:nth-of-type(2)').forEach((el,j)=>{
+    const C=parseFloat(el.getAttribute('stroke-dasharray')), off=parseFloat(el.getAttribute('stroke-dashoffset'));
+    el.animate([{strokeDashoffset:C},{strokeDashoffset:off}],{duration:1500,delay:base+120+j*60,easing:MO_EASE,fill:'backwards'});
+  });
+  root.querySelectorAll('.mo-dot').forEach(el=>{
+    el.animate([{transform:'scale(0)',opacity:0},{transform:'scale(1.6)',opacity:1,offset:.6},{transform:'scale(1)',opacity:1}],{duration:600,delay:base+300+Math.min(1100,+el.dataset.d||0)*0.9,easing:'ease-out',fill:'backwards'});
+  });
+  root.querySelectorAll('.sr-n,.mring text,.kc-v,.sb-big strong,.dmb-r>b,.cr-n b,.ls b,.kpi b').forEach((el,j)=>moCount(el,1300,base+150+Math.min(j,16)*40));
+}
+function moRise(L,base,step){ L.forEach((el,i)=>el.animate([{opacity:0,transform:'translateY(22px) scale(.98)'},{opacity:1,transform:'none'}],{duration:700,delay:base+i*step,easing:MO_EASE,fill:'backwards'})); }
+function motion(){
+  const pane=$('#pane'); if(!pane) return;
+  // 분석이 끝나 대시보드가 처음 생길 때도 한 번 더 움직임
+  const key=TAB+':'+(TAB==='detail'?CUR+':'+(pane.querySelector('.dwrap')?1:0):pane.querySelectorAll('.mring').length);
+  if(key===MO_KEY) return; MO_KEY=key;
+  if(MO_IO){ MO_IO.disconnect(); MO_IO=null; }
+  if(!moOK()) return;
+  document.body.classList.add('mo-on');
+  moRise([...pane.querySelectorAll('.dash>.db,.ls,.lc,.cover,#rcard')],0,70);
+  const sec=[...pane.querySelectorAll('.card[id^="s-"]')], vh=innerHeight||800;
+  const late=sec.filter(c=>c.getBoundingClientRect().top>vh*0.9);
+  moFill(pane.querySelector('.dwrap')||pane.querySelector('.lc-g')||document.createElement('div'),200);
+  if(pane.querySelector('.lc-g')) moFill(pane.querySelector('.ls-g')||document.createElement('div'),0);
+  sec.filter(c=>!late.includes(c)&&!c.querySelector('.dwrap')).forEach(c=>moFill(c,300));
+  if(!late.length||!window.IntersectionObserver) { late.forEach(c=>moFill(c,0)); return; }
+  late.forEach(c=>c.classList.add('mo-rv'));
+  MO_IO=new IntersectionObserver(es=>es.forEach(e=>{ if(!e.isIntersecting) return; const c=e.target; MO_IO&&MO_IO.unobserve(c);
+    c.classList.add('mo-in'); c.classList.remove('mo-rv'); moFill(c,150); }),{rootMargin:'0px 0px -8% 0px',threshold:0.05});
+  late.forEach(c=>MO_IO.observe(c));
 }
 
 function progHtml(){ return `<div id="prog" ${benchBusy?'':'hidden'}><div class="note"><span></span></div><div class="prog"><i style="width:0"></i></div></div>`; }
@@ -1977,7 +2055,7 @@ function chrome(){
   const t=$('#tick'), f=$('#foot'); if(!t||!f) return;
   const on=!!K, nS=DB.stores.length, nC=DB.cands.length;
   t.innerHTML=`<span class="tk"><i class="dot ${on?'ok':'no'}"></i>${on?'카카오 지도 연결됨':'지도 연결 대기'}</span><span class="tk"><b>CITY</b> ${esc(CT())}</span><span class="tk"><b>후보지</b> ${nC}</span><span class="tk"><b>우리 매장</b> ${nS}</span><span class="tk"><b>기준일</b> ${today()}</span><span class="sp"></span><span class="tk src"><b>DATA</b> 카카오맵 · 행정안전부 · 국토교통부 · 소상공인시장진흥공단 · 통계청</span>`;
-  f.innerHTML=`<div><b>일품집 상권분석 시스템</b> · 출점 입지 평가</div><div>방법론: 허프(Huff) 중력 모형 · 장어집 기준표 · 필수 조건 심사 · 공공데이터 연동</div><div>${PUB?'본 자료는 상권 참고 자료이며 예상 매출액이나 수익을 보장하지 않습니다.':'본사 내부 심사용 자료 · 외부 제공 금지'} · ${'v10.09b'}</div>`;
+  f.innerHTML=`<div><b>일품집 상권분석 시스템</b> · 출점 입지 평가</div><div>방법론: 허프(Huff) 중력 모형 · 장어집 기준표 · 필수 조건 심사 · 공공데이터 연동</div><div>${PUB?'본 자료는 상권 참고 자료이며 예상 매출액이나 수익을 보장하지 않습니다.':'본사 내부 심사용 자료 · 외부 제공 금지'} · ${'v10.12a'}</div>`;
 }
 function mapBtn(){ const b=$('[data-act=maptoggle]'); if(!b) return; const mob=matchMedia('(max-width:700px)').matches, on=mob?document.body.classList.contains('showmap'):!document.body.classList.contains('nomap'); b.textContent=on?'지도 숨기기':'지도 보기'; b.setAttribute('aria-pressed',on); }
 try{ if(localStorage.getItem('ilpum-sk-map')==='0') document.body.classList.add('nomap'); }catch(_){}
