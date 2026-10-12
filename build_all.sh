@@ -13,7 +13,7 @@ python3 - <<'PY'
 # 키만 채워서 그대로 복사하는 화면들 (예약·발주)
 import json
 k=json.load(open('keys.json'))
-for src,dst in [('src/reserve/reserve.html','dist/reserve.html'),('src/order/order.html','dist/order.html'),('src/notice/notice.html','dist/notice.html'),('src/board/board.html','dist/board.html'),('src/sangkwon/sangkwon.html','dist/sangkwon.html'),('src/inspect/yc-check.html','dist-tools/yc-check.html')]:
+for src,dst in [('src/reserve/reserve.html','dist/reserve.html'),('src/order/order.html','dist/order.html'),('src/notice/notice.html','dist/notice.html'),('src/board/board.html','dist/board.html'),('src/display/display.html','dist/display.html'),('src/sangkwon/sangkwon.html','dist/sangkwon.html'),('src/inspect/yc-check.html','dist-tools/yc-check.html')]:
     s=open(src,encoding='utf-8').read()
     import datetime as _dt; s=s.replace('/*BUILD*/',(_dt.datetime.utcnow()+_dt.timedelta(hours=9)).strftime('%m%d-%H%M'))
     s=s.replace('/*OLDKEY*/',k.get('old','')).replace('/*NEWKEY*/',k['new']).replace('/*ORDKEY*/',k.get('ord','/*ORDKEY*/')).replace('/*YCKEY*/',k.get('yc',''))
@@ -34,5 +34,5 @@ mkdir -p deploy/sangkwon out/sangkwon-upload && mkdir -p deploy/sangkwon/public 
 # 통합관리 테스트·자동 배포용 완성본 (공개 anon 키가 들어감 — service_role 키는 절대 아님). 상권분석은 따로 배포하므로 뺌
 rm -rf deploy/main/public && mkdir -p deploy/main/public && for f in dist/*.html; do [ "$(basename $f)" = "sangkwon.html" ] || cp "$f" deploy/main/public/; done
 rm -f out/ilpum-deploy.zip
-(cd deploy/main/public && zip -q ../../../out/ilpum-deploy.zip *.html)   # 통합관리 7개만 (상권분석 제외)
+(cd deploy/main/public && zip -q ../../../out/ilpum-deploy.zip *.html)   # 통합관리 화면들만 (상권분석 제외)
 echo "완료: dist/ 의 파일(또는 out/ilpum-deploy.zip)을 배포하세요. dist-tools/ 는 올리지 마세요"
