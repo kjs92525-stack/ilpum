@@ -533,15 +533,44 @@ body.ui-term ::-webkit-scrollbar{height:10px;width:10px}body.ui-term ::-webkit-s
 body.ui-term .num,body.ui-term .kc-v,body.ui-term .sr-n,body.ui-term .dt td.v{font-variant-numeric:tabular-nums}
 body.ui-term .emo{display:none!important}
 @media print{body.ui-term{background:#fff;color:#141a26;--paper:#fff;--ink:#141a26;--sub:#6b7383;--line:#ddd}body.ui-term .card,body.ui-term .db,body.ui-term .kc{background:#fff;box-shadow:none}}
+/* ---- 전문성: 상단 상태 줄 · 보고서 번호 · 구역 영문 라벨 · 하단 출처 줄 + 글씨 대비 강화 (2026-10-12 사용자) ---- */
+.tick,.foot{display:none}
+body.ui-term{--sub:#b9bfe8;--faint:#98a0d0;--ink2:#dde0f7}
+body.ui-term .tick{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:7px 24px;background:#0a0a1c;border-bottom:1px solid rgba(120,110,230,.2);font:600 12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,"Noto Sans Mono","Pretendard",monospace;color:#c4c9ee;letter-spacing:.02em}
+body.ui-term .tick b{color:#8f9bff;font-weight:700;margin-right:5px;letter-spacing:.06em}body.ui-term .tick .sp{flex:1}body.ui-term .tick .src{color:#aeb4e2}
+body.ui-term .tick .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}body.ui-term .tick .dot.ok{background:#27d17f;box-shadow:0 0 10px #27d17f}body.ui-term .tick .dot.no{background:#ff5b6e;box-shadow:0 0 10px #ff5b6e}
+body.ui-term .foot{display:grid;gap:4px;max-width:1340px;margin:0 auto;padding:18px 24px 40px;color:#a4abda;font-size:12.5px;line-height:1.6;border-top:1px solid rgba(120,110,230,.18)}body.ui-term .foot b{color:#e8eaf8}
+body.ui-term .mono,body.ui-term .rptno{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em}body.ui-term .rptno{color:#8f9bff;font-size:12px;margin-top:6px}
+body.ui-term .kc-v,body.ui-term .sr-n,body.ui-term .sb-big strong,body.ui-term .gl-v,body.ui-term .dt td.v,body.ui-term .ev .sc,body.ui-term .dmb-r b,body.ui-term .cr-n b,body.ui-term .sys-top b,body.ui-term .kpi b,body.ui-term .an-c b{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Noto Sans Mono",monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+body.ui-term .sh h2::after{margin-left:12px;font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.14em;color:#8f9bff;vertical-align:2px}
+body.ui-term #s-sys .sh h2::after{content:"SCORECARD"}body.ui-term #s-diag .sh h2::after{content:"MARKET PROFILE"}body.ui-term #s-eval .sh h2::after{content:"DIMENSIONS"}body.ui-term #s-demand .sh h2::after{content:"DEMAND / SUPPLY"}
+body.ui-term #s-swot .sh h2::after{content:"SWOT"}body.ui-term #s-analog .sh h2::after{content:"COMPARABLES"}body.ui-term #s-comp .sh h2::after{content:"COMPETITION"}body.ui-term #s-fin .sh h2::after{content:"SITE & REVENUE"}
+body.ui-term #s-check .sh h2::after{content:"SITE CHECKLIST"}body.ui-term #s-todo .sh h2::after{content:"NEXT ACTIONS"}body.ui-term #s-method .sh h2::after{content:"METHODOLOGY"}
+body.ui-term .sh .no{border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.02em}
+body.ui-term th{text-transform:uppercase;letter-spacing:.06em;font-size:11.5px;color:#aab1e6}
+body.ui-term .dt tbody tr:nth-child(even) td{background:rgba(110,100,230,.05)}
+body.ui-term .sring circle:last-of-type,body.ui-term .mring circle:last-of-type{filter:drop-shadow(0 0 6px rgba(111,123,255,.6))}
+body.ui-term .eyebrow{letter-spacing:.14em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+body.ui-term .note,body.ui-term .cap,body.ui-term .aside,body.ui-term .db-sub,body.ui-term .bul-ax,body.ui-term .kc-l,body.ui-term .meta{color:var(--sub)}
+body.ui-term .ev .w,body.ui-term .dmb-r span:last-child{color:var(--faint)}
+body.ui-term header .tag{color:rgba(214,218,250,.82)}body.ui-term header #sdk,body.ui-term header .note{color:rgba(214,218,250,.8)}
+body.ui-term nav button{color:#b4bbea}
+body.ui-term svg text{fill:#c9cff4}
+body.ui-term .secnav a{color:#c1c7ee}
+body.ui-term svg.radar polygon[fill-opacity]{fill:#7f8bff;fill-opacity:.30;stroke:#9ea8ff;stroke-width:2;filter:drop-shadow(0 0 6px rgba(111,123,255,.55))}body.ui-term svg.radar circle{fill:#c3c9ff}
+body.ui-term svg.radar polygon:not([fill-opacity]){stroke:rgba(140,130,240,.38)}body.ui-term svg.radar line{stroke:rgba(140,130,240,.3)}
+@media print{.tick,.foot{display:none!important}}
 </style>
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.09a</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.09b</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
+<div id="tick" class="tick noprint" aria-label="시스템 상태"></div>
 <main><div class="wrap"><div id="pane"></div><div class="mapbox"><div id="map"></div><div class="legend" id="legend"></div></div></div></main>
+<footer id="foot" class="foot"></footer>
 <div class="toast" id="toast" role="status"></div>
 <script>
 /* =====================================================================
@@ -1694,7 +1723,7 @@ function openSec(id){ OPENSET.add(id); applyFold(); }
 function render(){
   _hrefC=null;
   try{ seedSales(); }catch(_){}
-  document.body.classList.toggle('ui-notion',DB.ui==='notion'); document.body.classList.toggle('ui-term',(DB.ui||'term')==='term'); mapBtn();
+  document.body.classList.toggle('ui-notion',DB.ui==='notion'); document.body.classList.toggle('ui-term',(DB.ui||'term')==='term'); mapBtn(); chrome();
   document.body.classList.toggle('pub',PUB); if(PUB&&TAB==='set') TAB='list';
   { const t=$('#pubtag'); if(t) t.textContent=PUB?'가맹 상담용 보기':'본사 내부 자료'; const b=$('[data-act=pub]'); if(b){ b.textContent=PUB?'점주용 보기 끄기':'점주용 보기'; b.setAttribute('aria-pressed',PUB); } }
   $$('#nav button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.tab===TAB));
@@ -1788,6 +1817,7 @@ function detailHtml(){
   const nav=`<div class="secnav noprint"><a href="#s-sum">결론</a>${full?'<a href="#s-sys">평가표</a>':''}${full?'<a href="#s-diag">상권 개요</a><a href="#s-eval">영역 평가</a><a href="#s-demand">수요·공급</a><a href="#s-swot">SWOT</a><a href="#s-analog">우리 매장 비교</a>':''}${ok?'<a href="#s-comp">경쟁</a>':''}<a href="#s-fin">매물·예상 매출</a><a href="#s-check">현장 점검</a>${full?'<a href="#s-todo">확인 사항</a>':''}<a href="#s-method">분석 방법</a><button type="button" class="mobonly" data-act="foldall">모두 펴기·접기</button></div>`;
   const cover=`<div class="cover"><div><div class="eyebrow">${PUB?'일품집 출점 상권 보고서':'출점 검토 보고서'}</div><h1>${esc(c.name)}</h1>
       <div class="meta">${esc(c.addr)}${c.m&&c.m.region?' · '+esc(c.m.region):''}</div>
+      <div class="meta mono rptno">REPORT SK-${esc(((c.m&&c.m.at)||today()).replace(/-/g,'').slice(2))}-${esc(String(c.id).replace(/\W/g,'').slice(-4).toUpperCase())} · ${esc(CT())} 출점 입지 평가</div>
       <div class="meta" style="margin-top:4px">${PUB?'':`<span class="st" data-s="${esc(c.status)}">${esc(c.status)}</span>`}${c.m?` &nbsp;자료 기준 ${esc(c.m.at)}`:''}</div></div>
     ${full?`<div class="scorebox"><div class="lab">종합 점수</div><div class="donut" style="--p:${F.tot};--gcol:var(--g${F.grade})"><div><div class="num">${F.tot}<small>/100</small></div></div></div><div class="dec"><span class="gr g${F.grade}">${F.grade}</span>${esc(F.decision)}</div></div>`:''}</div>`;
   let sum='';
@@ -1943,6 +1973,12 @@ function mk(p,label,color,dot,title){
 }
 function circ(p,r,color,dash,fill){ OVL.push(new kakao.maps.Circle({center:LL(p),radius:r,strokeWeight:1.5,strokeColor:color,strokeOpacity:.85,strokeStyle:dash?'dashed':'solid',fillColor:color,fillOpacity:fill||0,map:MAP})); }
 const lg=(c,t)=>`<span><i style="background:${c}"></i>${t}</span>`;
+function chrome(){
+  const t=$('#tick'), f=$('#foot'); if(!t||!f) return;
+  const on=!!K, nS=DB.stores.length, nC=DB.cands.length;
+  t.innerHTML=`<span class="tk"><i class="dot ${on?'ok':'no'}"></i>${on?'카카오 지도 연결됨':'지도 연결 대기'}</span><span class="tk"><b>CITY</b> ${esc(CT())}</span><span class="tk"><b>후보지</b> ${nC}</span><span class="tk"><b>우리 매장</b> ${nS}</span><span class="tk"><b>기준일</b> ${today()}</span><span class="sp"></span><span class="tk src"><b>DATA</b> 카카오맵 · 행정안전부 · 국토교통부 · 소상공인시장진흥공단 · 통계청</span>`;
+  f.innerHTML=`<div><b>일품집 상권분석 시스템</b> · 출점 입지 평가</div><div>방법론: 허프(Huff) 중력 모형 · 장어집 기준표 · 필수 조건 심사 · 공공데이터 연동</div><div>${PUB?'본 자료는 상권 참고 자료이며 예상 매출액이나 수익을 보장하지 않습니다.':'본사 내부 심사용 자료 · 외부 제공 금지'} · ${'v10.09b'}</div>`;
+}
 function mapBtn(){ const b=$('[data-act=maptoggle]'); if(!b) return; const mob=matchMedia('(max-width:700px)').matches, on=mob?document.body.classList.contains('showmap'):!document.body.classList.contains('nomap'); b.textContent=on?'지도 숨기기':'지도 보기'; b.setAttribute('aria-pressed',on); }
 try{ if(localStorage.getItem('ilpum-sk-map')==='0') document.body.classList.add('nomap'); }catch(_){}
 function drawMap(){
