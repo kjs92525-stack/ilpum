@@ -56,13 +56,13 @@ header,main,footer{position:relative;z-index:1}
 
 /* 4) 골드 — 검은 바탕에 금색. 천천히 지나가는 빛줄기, 떠오르는 금가루, 금빛 번호 */
 body[data-theme=gold]{--bg:#0a0a0c;--g1:#d9c27a;--g2:#b8962e;--g3:#8a6c1c;background:radial-gradient(ellipse at 50% -10%,#1d1810 0%,#0c0b0b 55%,#050505 100%);color:#f3ead2}
-body[data-theme=gold] #fx .sheen{position:absolute;top:-20%;bottom:-20%;width:26vw;left:-30vw;background:linear-gradient(100deg,transparent,rgba(217,194,122,.06),transparent);transform:skewX(-18deg);animation:sheen 11s ease-in-out infinite}
+body[data-theme=gold] #fx .sheen{position:absolute;top:-20%;bottom:-20%;width:26vw;left:-30vw;will-change:left;background:linear-gradient(100deg,transparent,rgba(217,194,122,.06),transparent);transform:skewX(-18deg);animation:sheen 11s ease-in-out infinite}
 @keyframes sheen{0%{left:-30vw}60%,100%{left:120vw}}
 body[data-theme=gold] #fx .gdot{position:absolute;bottom:-12px;border-radius:50%;background:radial-gradient(circle,#ecd9a0,#b8962e 60%,transparent 70%);opacity:0;animation:gup linear infinite}
 @keyframes gup{from{transform:translate(0,0);opacity:0}12%{opacity:.85}to{transform:translate(var(--dx),-108vh);opacity:0}}
 body[data-theme=gold] header{background:transparent;margin:0 3vw;padding-left:0;padding-right:0;border-bottom:1px solid transparent;border-image:linear-gradient(90deg,transparent,#d4af37 20%,#f4dc8c 50%,#d4af37 80%,transparent) 1}
 body[data-theme=gold] header .eb{color:var(--g2);font:600 clamp(12px,1.25vw,22px)/1 "Gowun Dodum",var(--sans);letter-spacing:.34em}
-body[data-theme=gold] header h1{font:700 clamp(28px,3.6vw,66px)/1.1 "Gowun Batang",var(--serif);background:linear-gradient(100deg,#8f6f1f 0%,#c9ae62 30%,#e6d195 50%,#c9ae62 70%,#8f6f1f 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:goldshine 7s linear infinite}
+body[data-theme=gold] header h1{font:700 clamp(28px,3.6vw,66px)/1.1 "Gowun Batang",var(--serif);background:linear-gradient(100deg,#8f6f1f 0%,#c9ae62 30%,#e6d195 50%,#c9ae62 70%,#8f6f1f 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
 @keyframes goldshine{to{background-position:-250% 0}}
 body[data-theme=gold] header .day{font:400 clamp(15px,1.6vw,28px)/1.3 "Gowun Dodum",var(--sans);color:#b9ad8a}
 body[data-theme=gold] header .clock{font:700 clamp(28px,3.8vw,68px)/1 "Gowun Batang",var(--serif);color:var(--g1)}
@@ -88,18 +88,18 @@ body[data-theme=gold] #st.ok{color:#c6d98a}
 
 /* 1) 오로라 — 어두운 바탕에 천천히 흐르는 빛, 유리 카드, 둥근 글씨 */
 body[data-theme=aurora]{--bg:#0a0c1b;background:var(--bg);color:#fff;--fontN:"Jua",var(--sans)}
-body[data-theme=aurora] #fx .blob{position:absolute;width:62vmax;height:62vmax;border-radius:50%;filter:blur(90px);opacity:.55;mix-blend-mode:screen;animation:drift 26s ease-in-out infinite alternate}
-body[data-theme=aurora] #fx .b1{background:#7c5cff;left:-18vmax;top:-22vmax}
-body[data-theme=aurora] #fx .b2{background:#ff4fa0;right:-20vmax;top:10vmax;animation-duration:32s;animation-delay:-8s}
-body[data-theme=aurora] #fx .b3{background:#17d6c8;left:20vmax;bottom:-30vmax;animation-duration:38s;animation-delay:-16s;opacity:.4}
+body[data-theme=aurora] #fx .blob{position:absolute;width:56vmax;height:56vmax;border-radius:50%;background-blend-mode:normal;opacity:.5;will-change:transform;animation:drift 26s ease-in-out infinite alternate}
+body[data-theme=aurora] #fx .b1{background:radial-gradient(circle,#7c5cff 0%,rgba(124,92,255,.0) 68%);left:-18vmax;top:-22vmax}
+body[data-theme=aurora] #fx .b2{background:radial-gradient(circle,#ff4fa0 0%,rgba(255,79,160,0) 68%);right:-20vmax;top:10vmax;animation-duration:32s;animation-delay:-8s}
+body[data-theme=aurora] #fx .b3{background:radial-gradient(circle,#17d6c8 0%,rgba(23,214,200,0) 68%);left:20vmax;bottom:-30vmax;animation-duration:38s;animation-delay:-16s;opacity:.4}
 @keyframes drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(8vmax,6vmax) scale(1.15)}100%{transform:translate(-6vmax,10vmax) scale(.92)}}
 body[data-theme=aurora] header{background:transparent}
 body[data-theme=aurora] header .eb{color:#b9a8ff;font-family:var(--sans)}
-body[data-theme=aurora] header h1{font:400 clamp(26px,3.6vw,64px)/1.1 "Do Hyeon",var(--sans);letter-spacing:.01em;background:linear-gradient(90deg,#fff,#d7ccff 45%,#ffc1df);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;animation:shine 8s linear infinite}
+body[data-theme=aurora] header h1{font:400 clamp(26px,3.6vw,64px)/1.1 "Do Hyeon",var(--sans);letter-spacing:.01em;background:linear-gradient(90deg,#fff,#d7ccff 45%,#ffc1df);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%}
 @keyframes shine{to{background-position:-200% 0}}
 body[data-theme=aurora] header .day{font-family:"Jua",var(--sans);color:#cfd3ff}
 body[data-theme=aurora] header .clock{font:400 clamp(30px,4vw,72px)/1 "Do Hyeon",var(--sans)}
-body[data-theme=aurora] .row{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:calc(var(--fs)*.42);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+body[data-theme=aurora] .row{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:calc(var(--fs)*.42);box-shadow:0 8px 24px rgba(0,0,0,.22)}
 body[data-theme=aurora] .row .tm{color:#aab0d6;font-family:"Jua",var(--sans);font-weight:400}
 body[data-theme=aurora] .row .nm{font:400 calc(var(--fs)*1.02)/1.15 var(--fontN);color:#fff}
 body[data-theme=aurora] .row .nm small{color:#9ea6d8;font-family:"Jua",var(--sans);font-weight:400}
@@ -181,6 +181,17 @@ body[data-theme=warm] #st.ok{color:#5d7a3a}
 #ctl.on{opacity:1;pointer-events:auto}
 #ctl button{border:0;background:rgba(255,255,255,.14);color:#fff;font:600 clamp(15px,1.3vw,22px)/1 var(--sans);padding:.65em 1.1em;border-radius:999px;cursor:pointer;min-width:2.4em}
 #ctl button:hover{background:rgba(255,255,255,.28)}#ctl .sep{width:1px;height:1.6em;background:rgba(255,255,255,.25);margin:0 4px}
+
+/* ===== 가벼운 모드 (약한 PC·TV 박스용): 흐림 효과·계속 움직이는 효과를 모두 끔. 자동으로 켜지기도 함(처음에 화면이 버벅이면) ===== */
+body.lite *,body.lite *::before,body.lite *::after{animation:none!important;transition:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;text-shadow:none!important}
+body.lite #fx{display:none}
+body.lite[data-theme=aurora]{background:linear-gradient(135deg,#1a1448 0%,#2b1347 50%,#0b2b33 100%)}
+body.lite[data-theme=aurora] .row{background:rgba(255,255,255,.09);box-shadow:none}
+body.lite[data-theme=aurora] header h1,body.lite[data-theme=gold] header h1{background-position:30% 0}
+body.lite .row{box-shadow:none!important}
+body.lite[data-theme=chalk]{background:#1d2b24}
+body.lite .row.soon{box-shadow:none!important}
+body.lite[data-theme=warm] .row.soon{background:#fff0dd}
 </style>
 </head>
 <body>
@@ -195,7 +206,7 @@ body[data-theme=warm] #st.ok{color:#5d7a3a}
   <div class="guide">성함을 찾으시고 <i></i>테이블 번호로 앉아 주세요</div>
   <div class="sp"></div><span id="cnt"></span><span id="st">연결 중…</span>
 </footer>
-<div id="ctl" aria-label="화면 조작"><button id="ctlPrev" title="전날 (← 키)">‹</button><button id="ctlDay" title="오늘로 (Home 키)">오늘</button><button id="ctlNext" title="다음 날 (→ 키)">›</button><span class="sep"></span><button id="ctlTheme" title="디자인 바꾸기 (T 키)">디자인</button></div>
+<div id="ctl" aria-label="화면 조작"><button id="ctlPrev" title="전날 (← 키)">‹</button><button id="ctlDay" title="오늘로 (Home 키)">오늘</button><button id="ctlNext" title="다음 날 (→ 키)">›</button><span class="sep"></span><button id="ctlTheme" title="디자인 바꾸기 (T 키)">디자인</button><button id="ctlLite" title="화면이 버벅이면 켜세요 (L 키): 움직이는 효과를 끄고 가볍게">가볍게</button></div>
 <script>
 /* 예약 화면(reserve.html)과 같은 서버·같은 로그인 토큰을 씀. 이 화면은 읽기만 함(예약을 고치지 않음).
    사용량: 실시간 연결(웹소켓)로 바뀐 날짜의 내용을 서버가 직접 보내 줘서 다시 받을 필요가 없음. 10분마다 rev(숫자 하나)만 확인. */
@@ -208,20 +219,26 @@ const MASK=Q.get('mask')==='1';
 const THEMES=['warm','aurora','chalk','gold'];
 let THEME=(()=>{ const q=Q.get('theme'); if(THEMES.includes(q)) return q; try{ const v=localStorage.getItem('ilpum-disp-theme'); if(THEMES.includes(v)) return v; }catch(e){} return 'warm'; })();
 function applyTheme(){ document.body.dataset.theme=THEME; const fx=document.getElementById('fx'); let h='';
-  if(THEME==='gold'){ h='<div class="sheen"></div>'; for(let i=0;i<34;i++) h+=`<i class="gdot" style="left:${(Math.random()*100).toFixed(1)}%;--dx:${(Math.random()*8-4).toFixed(1)}vw;animation-duration:${(16+Math.random()*18).toFixed(1)}s;animation-delay:${(-Math.random()*34).toFixed(1)}s;width:${(2+Math.random()*3).toFixed(1)}px;height:${(2+Math.random()*3).toFixed(1)}px"></i>`; }
+  if(THEME==='gold'){ h='<div class="sheen"></div>'; for(let i=0;i<14;i++) h+=`<i class="gdot" style="left:${(Math.random()*100).toFixed(1)}%;--dx:${(Math.random()*8-4).toFixed(1)}vw;animation-duration:${(16+Math.random()*18).toFixed(1)}s;animation-delay:${(-Math.random()*34).toFixed(1)}s;width:${(2+Math.random()*3).toFixed(1)}px;height:${(2+Math.random()*3).toFixed(1)}px"></i>`; }
   if(THEME==='aurora') h='<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>';
   if(THEME==='chalk') for(let i=0;i<26;i++) h+=`<i class="dust" style="left:${Math.random()*100}%;--dx:${(Math.random()*12-6).toFixed(1)}vw;animation-duration:${(14+Math.random()*16).toFixed(1)}s;animation-delay:${(-Math.random()*30).toFixed(1)}s;width:${(2+Math.random()*4).toFixed(1)}px;height:${(2+Math.random()*4).toFixed(1)}px"></i>`;
   if(THEME==='warm'){ const wave=(c,cls)=>`<svg class="wave ${cls}" viewBox="0 0 1200 100" preserveAspectRatio="none"><path fill="${c}" d="M0 60 C100 20 200 100 300 60 S500 20 600 60 S800 100 900 60 S1100 20 1200 60 V100 H0Z"/></svg>`;
     h=wave('#e8d7bf','w1')+wave('#d9c19f','w2'); for(let i=0;i<3;i++) h+=`<svg class="steam" style="right:${22+i*4}vw;animation-delay:${i*2}s" viewBox="0 0 30 120"><path d="M15 115 C0 90 30 75 15 55 S0 20 15 5" stroke="#b4532a" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".5"/></svg>`; }
   fx.innerHTML=h; SEEN=new Set(); }
-let SEEN=new Set(), lastTouch=Date.now(), ctlTimer=null;   // 새로 생긴 줄만 움직이게 (30초마다 다시 그려도 깜빡이지 않음)
-function nextTheme(){ THEME=THEMES[(THEMES.indexOf(THEME)+1)%THEMES.length]; try{ localStorage.setItem('ilpum-disp-theme',THEME); }catch(x){} applyTheme(); render(); }
+let SEEN=new Set(), lastTouch=Date.now(), ctlTimer=null;
+// 가벼운 모드: ?lite=1(켜기)/0(끄기) 로 정하거나, 막대의 '가볍게' 버튼, 아니면 처음 몇 초 화면이 버벅이면 자동으로 켬 (이 기기에 기억)
+let LITE=(()=>{ const q=Q.get('lite'); if(q==='1'||q==='0') return q==='1'; try{ return localStorage.getItem('ilpum-disp-lite')==='1'; }catch(e){ return false; } })();
+function setLite(v,save){ LITE=!!v; document.body.classList.toggle('lite',LITE); const b=document.getElementById('ctlLite'); if(b) b.textContent=LITE?'가볍게 ✓':'가볍게'; if(save){ try{ localStorage.setItem('ilpum-disp-lite',LITE?'1':'0'); }catch(e){} } lastSig=''; render(); }
+function autoLite(){ if(LITE||Q.get('lite')==='0'){ return; try{ if(localStorage.getItem('ilpum-disp-lite')==='0') return; }catch(e){} }
+  let n=0, t0=0; const step=t=>{ if(!t0) t0=t; n++; if(t-t0<3000) requestAnimationFrame(step); else { const fps=n/((t-t0)/1000); if(fps<24) setLite(true,true); } };
+  setTimeout(()=>requestAnimationFrame(step),3500); }                     // 들어오는 움직임이 끝난 뒤 3초 동안 초당 프레임 수를 재서 24 미만이면 자동으로 가볍게   // 새로 생긴 줄만 움직이게 (30초마다 다시 그려도 깜빡이지 않음)
+function nextTheme(){ THEME=THEMES[(THEMES.indexOf(THEME)+1)%THEMES.length]; try{ localStorage.setItem('ilpum-disp-theme',THEME); }catch(x){} applyTheme(); lastSig=''; render(); }
 function showCtl(){ lastTouch=Date.now(); const c=document.getElementById('ctl'); c.classList.add('on'); clearTimeout(ctlTimer); ctlTimer=setTimeout(()=>c.classList.remove('on'),5000); }
 document.addEventListener('keydown',e=>{ showCtl(); const k=e.key;
-  if(k==='t'||k==='T') nextTheme(); else if(k==='ArrowLeft') goDay(OFF-1); else if(k==='ArrowRight') goDay(OFF+1); else if(k==='Home'||k==='h'||k==='H') goDay(0); });
+  if(k==='t'||k==='T') nextTheme(); else if(k==='ArrowLeft') goDay(OFF-1); else if(k==='ArrowRight') goDay(OFF+1); else if(k==='Home'||k==='h'||k==='H') goDay(0); else if(k==='l'||k==='L') setLite(!LITE,true); });
 ['pointermove','pointerdown','touchstart'].forEach(ev=>document.addEventListener(ev,showCtl,{passive:true}));
 document.getElementById('ctlPrev').onclick=()=>goDay(OFF-1); document.getElementById('ctlNext').onclick=()=>goDay(OFF+1);
-document.getElementById('ctlDay').onclick=()=>goDay(0); document.getElementById('ctlTheme').onclick=nextTheme;                 // ?mask=1 이면 가운데 글자를 *로 (홍*원)
+document.getElementById('ctlDay').onclick=()=>goDay(0); document.getElementById('ctlTheme').onclick=nextTheme; document.getElementById('ctlLite').onclick=()=>setLite(!LITE,true);                 // ?mask=1 이면 가운데 글자를 *로 (홍*원)
 let SID='', STORE=null, ITEMS=[], REV=null, DAY='', OFF=0, TITLE='';   // OFF: 오늘에서 며칠 떨어진 날을 보는지 (0=오늘)
 const pad=n=>String(n).padStart(2,'0');
 const ds=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -260,11 +277,15 @@ function tableLabel(ts){
   return {t:parts.join(' '), k: nums.length?'':'room'};
 }
 const maskName=n=>{ n=String(n||''); if(!MASK||n.length<2) return n; return n.length===2? n[0]+'*' : n[0]+'*'.repeat(n.length-2)+n[n.length-1]; };
+let lastSig='';
 function render(){
   const g=document.getElementById('grid'); const nowM=new Date().getHours()*60+new Date().getMinutes();
   const list=ITEMS.filter(x=>x&&!x.deleted&&!isCxl(x)&&String(x.name||'').trim()).sort((a,b)=>toMin(a.time)-toMin(b.time)||String(a.name).localeCompare(String(b.name)));
   document.getElementById('cnt').textContent=list.length?`${list.length}팀 · ${list.reduce((a,x)=>a+people(x.pp),0)}명`:'';
-  if(!list.length){ g.style.gridTemplateRows=''; g.innerHTML=`<div class="empty"><b>${OFF===0?'오늘 예약이 아직 없어요':'이 날은 예약이 없어요'}</b><span>${OFF===0?'예약이 들어오면 바로 여기에 표시돼요':''}</span></div>`; return; }
+  if(!list.length){ lastSig=''; g.style.gridTemplateRows=''; g.innerHTML=`<div class="empty"><b>${OFF===0?'오늘 예약이 아직 없어요':'이 날은 예약이 없어요'}</b><span>${OFF===0?'예약이 들어오면 바로 여기에 표시돼요':''}</span></div>`; return; }
+  // 아무것도 안 바뀌었으면(30초마다 시계 확인 때) 화면을 다시 만들지 않음 — 약한 PC 부담 줄이기
+  const nowM2=nowM, sig=list.map(x=>x.id+'|'+x.time+'|'+(x.tables||[]).join()+'|'+(x.name||'')+'|'+(x.pp||'')+'|'+(x.done?1:0)+'|'+(OFF===0&&!x.done&&toMin(x.time)-nowM2<=30&&toMin(x.time)-nowM2>=-15?'s':'')+(OFF===0&&(x.done||nowM2-toMin(x.time)>90)?'p':'')).join('/')+`#${innerWidth}x${innerHeight}#${THEME}#${LITE}#${OFF}`;
+  if(sig===lastSig&&g.children.length) return; lastSig=sig;
   let k=0; g.innerHTML=list.map(x=>{ const m=toMin(x.time), tb=tableLabel(x.tables); const key=x.id+'|'+x.time+'|'+(x.tables||[]).join(); const nw=!SEEN.has(key); SEEN.add(key); const dl=nw?` style="animation-delay:${Math.min(k++*70,1800)}ms"`:'';
     const isToday=OFF===0; const soon=isToday&&!x.done && m-nowM<=30 && m-nowM>=-15, past=isToday&&(x.done || nowM-m>90);
     return `<div class="row${soon?' soon':''}${past?' past':''}${nw?' in':''}"${dl}><span class="tm">${esc(tmLabel(x.time))}</span><span class="nm">${esc(maskName(x.name))}<small>${people(x.pp)?people(x.pp)+'명':''}</small></span><span class="tb ${tb.k}">${esc(tb.t)}</span></div>`; }).join('');
@@ -274,11 +295,13 @@ function render(){
 let lastN=0;
 function fit(n){
   const g=document.getElementById('grid'), H=g.clientHeight, W=g.clientWidth; let best=null; lastN=n;
+  const ok=(fs,rows)=>{ g.style.setProperty('--fs',fs+'px'); g.style.gridTemplateRows=`repeat(${rows},auto)`;
+    // 움직이는 효과(확대·회전)에 흔들리지 않게 실제 배치 크기(offset)로 잼
+    const kids=[...g.children]; return kids.every(c=>c.offsetTop-g.offsetTop+c.offsetHeight<=H+1&&c.offsetLeft-g.offsetLeft+c.offsetWidth<=W+1)&&kids.every(c=>{ const nm=c.querySelector('.nm'); return !nm||nm.scrollWidth<=nm.clientWidth+1; }); };
   for(let cols=1;cols<=4;cols++){ const rows=Math.ceil(n/cols);
-    for(let fs=110;fs>=14;fs-=2){ g.style.setProperty('--fs',fs+'px'); g.style.gridTemplateRows=`repeat(${rows},auto)`;
-      // 움직이는 효과(확대·회전)에 흔들리지 않게 실제 배치 크기(offset)로 잼
-      const kids=[...g.children], okH=kids.every(c=>c.offsetTop-g.offsetTop+c.offsetHeight<=H+1), okW=kids.every(c=>c.offsetLeft-g.offsetLeft+c.offsetWidth<=W+1) && kids.every(c=>{ const nm=c.querySelector('.nm'); return !nm||nm.scrollWidth<=nm.clientWidth+1; });
-      if(okH&&okW){ if(!best||fs>best.fs) best={fs,rows}; break; } } }
+    let lo=7, hi=55, found=0;                       // 글자 크기 14~110px (2px 단위) 를 이진 탐색: 한 줄 수당 7번 정도만 재 봄
+    while(lo<=hi){ const mid=(lo+hi)>>1; if(ok(mid*2,rows)){ found=mid; lo=mid+1; } else hi=mid-1; }
+    if(found&&(!best||found*2>best.fs)) best={fs:found*2,rows}; }
   best=best||{fs:14,rows:Math.ceil(n/4)};
   g.style.setProperty('--fs',best.fs+'px'); g.style.gridTemplateRows=`repeat(${best.rows},auto)`;
 }
@@ -327,7 +350,8 @@ function rtConnect(){
 function needLogin(msg){ setSt(msg,'err');
   document.getElementById('main').innerHTML=`<div class="login"><b>${esc(msg)}</b>이 모니터(컴퓨터)에서 <a href="index.html">통합관리</a>에 한 번 로그인하면<br>그다음부터는 이 화면이 자동으로 열려요.</div>`; }
 (async function boot(){
-  applyTheme(); tick();
+  document.body.classList.toggle('lite',LITE); const lb=document.getElementById('ctlLite'); if(lb) lb.textContent=LITE?'가볍게 ✓':'가볍게';
+  applyTheme(); tick(); autoLite();
   if(!readSes()) return needLogin('로그인이 필요해요');
   try{
     const r=await fx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{auth:r.status===401});
