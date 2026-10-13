@@ -8,6 +8,7 @@ ITEMS=[item(1,"할인손님","18:00",["3"],"10% 이벤트"),item(2,"붙여씀","
        item(4,"백퍼","19:30",["7"],"100% 환불"),item(5,"열명","20:00",["8"],"10명 단체"),item(6,"전각","18:00",["9"],"10 ％"),item(7,"도착손님","18:15",["10"],"10%"),item(8,"예약금도","18:20",["11"],"예약금 5만원(입완) 10%")]
 ITEMS[6]["done"]=True
 MODE={'v':'grid'}
+SRV={'batt':None,'posts':[]}
 GRID={"floors":[{"key":"1","name":"1층","groups":[{"title":"홀","cols":[[3,4,5],[7,8],[9,10],[11,12],[13,14]]}]}]}
 FREE={"floors":[{"key":"1","mode":"free","name":"홀","tables":[{"id":str(i),"x":20+(i-3)*100,"y":60,"w":100,"h":100,"shape":"round"} for i in (3,4,5,7,8,9,10,11,12,13,14)]}]}
 async def handler(r):
@@ -16,6 +17,9 @@ async def handler(r):
   if NEW not in u: return await r.fulfill(status=404,body='{}')
   J=lambda o,st=200: r.fulfill(status=st,content_type='application/json',body=json.dumps(o))
   if '/rpc/sch_my_stores' in u: return await J([{"id":F1,"name":"유천점","is_hq":False,"role":"owner","can_pay":True}])
+  if '/rest/v1/sch_items' in u and r.request.method=='POST':
+    SRV['posts'].append(json.loads(r.request.post_data)); SRV['batt']=SRV['posts'][-1]['data']['at']; return await J([])
+  if '/rest/v1/sch_items' in u and 'id=eq.battery' in u: return await J([{"data":{"at":SRV['batt']}}] if SRV['batt'] else [])
   if '/rest/v1/sch_items' in u: return await J([{"data":GRID if MODE['v']=='grid' else FREE}])
   if '/rest/v1/res_days' in u:
     if r.request.method=='GET': return await J([{"id":TODAY,"rev":3,"data":{"items":ITEMS}}] if 'select=data' in u else [{"rev":3}])
@@ -57,6 +61,14 @@ async def main():
     await pg.evaluate("localStorage.setItem('ilpum-battery','123')")
     await pg.click('#battBtn'); await pg.wait_for_timeout(300); await pg.click('#dlgBody [data-d="close"]'); await pg.wait_for_timeout(300)
     chk('닫기 누르면 기록 안 바뀜', await pg.evaluate("localStorage.getItem('ilpum-battery')")=='123')
+    chk('누르면 서버에 저장 (cfg battery)', SRV['posts'] and SRV['posts'][-1]['id']=='battery' and SRV['posts'][-1]['kind']=='cfg' and SRV['posts'][-1]['store_id']==F1, str(SRV['posts'][-1:]))
+    # 옆 컴퓨터: 서버에 기록이 있으면 새로 열 때 가져옴
+    SRV['batt']=int(time.time()*1000)-1.5*864e5
+    ctx2,pg2,errs2=await run(b)
+    v=await pg2.evaluate("+localStorage.getItem('ilpum-battery')")
+    chk('다른 컴퓨터가 서버 기록을 가져옴', abs(v-SRV['batt'])<1, str(v))
+    await pg2.evaluate("battApply(%d)"%(int(time.time()*1000)-60000)); w=await pg2.evaluate("parseFloat(document.querySelector('#battBtn .bfill').style.width)")
+    chk('받은 기록으로 배터리 칸 갱신', w>=80, str(w)); await ctx2.close()
     chk('오류 없음', not errs, str(errs)); await ctx.close(); await b.close()
   print('전체 OK' if ok else '실패 있음')
 asyncio.run(main())
