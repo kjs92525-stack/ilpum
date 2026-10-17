@@ -313,77 +313,6 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .res .nm.sameday{color:#7B3FC4}
 .sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
 @media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
-/* ===== 2026-10-17 디자인 정리 (hallmark 점검 반영): 구조·기능은 그대로, 색·선·버튼 무게만. 다크 모드는 아래 색 변수 덮어쓰기 ===== */
-:root{
-  --bg:#F1EFEA; --panel:#FCFBF8; --ink:#1F2421; --sub:#5F6662; --line:#E2DED6; --soft:#F5F3EE;
-  --accent:#8A4A1C; --field-line:#D3CDC3; --navy:#26364A;
-}
-body{font-feature-settings:"tnum"}
-/* 머리줄: 버튼 6개가 같은 무게 → 보조 기능은 글자 버튼 */
-header{background:var(--panel)}
-.bar .btn:not(.today):not(.primary){border-color:transparent;background:none;color:var(--sub);font-weight:500}
-.bar .btn:not(.today):not(.primary):hover{background:var(--soft);color:var(--ink)}
-.brand{font-size:15px;color:var(--sub);font-weight:600}
-.datelabel{font-size:24px;letter-spacing:-.02em}
-.btn{border-radius:6px}
-.btn.today{border-radius:6px}
-/* 패널: 둥근 상자+테두리 → 얇은 선 */
-.panel{border-radius:6px;border-color:var(--line)}
-/* 입력 상자: 굵은 갈색 테두리(gate 5류 장식선) → 조용한 바탕 */
-.quick{border:0;background:var(--soft);border-radius:6px;padding:12px}
-input[type=text],input[type=tel],input[type=search]{border-radius:5px}
-/* 통계: 같은 상자 3개(gate 3) → 한 줄 숫자 */
-.stats{gap:0;margin:8px 0 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.stat{border:0;border-radius:0;padding:8px 16px 8px 0;margin-right:16px;border-right:1px solid var(--line)}
-.stat:last-child{border-right:0}
-.stat .v{font-size:22px;letter-spacing:-.02em}
-/* 시간 묶음 머리 */
-.thead{border-bottom:1px solid var(--ink);padding:6px 2px 4px}
-.thead .t{font-size:18px}
-/* 예약 줄: 파랑 칩·보라 이름·테두리 시간·빨간 삭제 → 색은 의미 있는 곳에만 */
-.res{border-bottom:1px solid var(--line);padding:8px 2px}
-.tbls .tbl:not(.dupt):not(.tightt):not(.none){background:var(--ink);color:#FCFBF8;border:0}
-.tbls .tbl{border-radius:5px;font-size:19px;padding:1px 10px}
-.rtime{border:0;color:var(--sub);background:none;font-weight:700;font-size:13px;padding:0}
-.res .nm{font-size:16px}
-.res .nm.sameday{color:var(--ink)}
-.sdb{background:none;color:#7B3FC4;border:1px solid #CDB6EC;font-weight:700}
-.res .acts .btn{border-color:transparent;background:none;color:var(--sub);font-size:13px}
-.res .acts .btn:hover{background:var(--soft);color:var(--ink)}
-.res .acts .btn.danger:hover{color:var(--warn)}
-.res .rq{background:none;border-left:2px solid var(--soon);border-radius:0;color:var(--ink2,#3A403C)}
-.seg{border-radius:6px}
-/* 큰 자리 상자: 남색 굵은 테두리 → 바탕만 */
-.freebox{border:0;background:var(--soft);border-radius:6px;padding:12px 14px}
-.frow .fk b{color:var(--ink)}
-.fchip{border:1px solid var(--field-line);border-radius:5px;color:var(--ink)}
-.fchip:hover{background:var(--ink);border-color:var(--ink);color:#fff}
-/* 현황판 칸 */
-.cell{border-radius:6px;border:1px solid var(--line)}
-.cell.empty{background:transparent}
-.cell.empty .no{color:#A8ABA6;font-weight:600}
-.cell.st-use{border:1px solid var(--use);box-shadow:inset 0 3px 0 var(--use)}
-.cell.st-res{border:1px solid var(--res);box-shadow:inset 0 3px 0 var(--res);background:var(--panel)}
-.cell.st-soon{border:1px solid var(--soon);background:var(--panel);box-shadow:inset 0 3px 0 var(--soon)}
-.cell .cn{font-size:18px;letter-spacing:-.01em}
-.timebox{border-radius:6px}
-.legend span::before{border-radius:2px}
-/* 폰: 가로 1200px 고정(gate 34: 옆으로 밀림) → 한 줄로 쌓기 */
-@media (max-width:700px){
-  body{min-width:0}
-  main{grid-template-columns:minmax(0,1fr);height:auto;gap:12px}
-  .panel{overflow:visible}
-  .split{display:none}
-  .bar{gap:6px}
-  .bar .btn:not(.today):not(.primary){padding:6px 8px;font-size:13px}
-  .qrow{flex-wrap:wrap}
-  .res .acts .btn{padding:3px 6px}
-  .stat{padding:6px 12px 6px 0;margin-right:12px}
-}
-/* 예약금 강조(사용자 결정 ⑪)는 그대로 유지 */
-.cell.dep{box-shadow:0 0 0 3px var(--dep)!important}
-@media (prefers-color-scheme: dark){:root{--bg:#161A18;--panel:#1F2522;--ink:#E7ECE9;--sub:#9AA7A1;--line:#34403A;--soft:#252C29;--field-line:#4A5750}
-  .tbls .tbl:not(.dupt):not(.tightt):not(.none){background:var(--ink);color:#161A18}.sdb{color:#C9A6FF;border-color:#5B4683}}
 </style>
 </head>
 <body>
@@ -405,7 +334,7 @@ input[type=text],input[type=tel],input[type=search]{border-radius:5px}
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1017-1253</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1013-1152</small>
   </div>
 
 </header>
@@ -773,7 +702,7 @@ function quickHtml(){
     <div class="qrow"><input id="qReq" placeholder="요청사항" value="${esc(quick.req)}" style="flex:1" aria-label="요청사항" autocomplete="off" autocorrect="off" spellcheck="false">
       <button class="btn primary" data-act="qadd">추가 ⏎</button></div>
     <div class="qprev" id="qprev">${quickPrev(t,ts,clash)}</div>
-    <details class="qpaste" id="qPasteBox"${quickPasteOpen?' open':''}><summary>문자·네이버 예약 붙여넣기로 채우기</summary>
+    <details class="qpaste" id="qPasteBox"${quickPasteOpen?' open':''}><summary>📋 문자·네이버 예약 붙여넣기로 채우기</summary>
       <textarea id="qPaste" rows="3" placeholder="손님 문자나 네이버 예약 알림을 통째로 붙여넣으면 이름·날짜·시간·인원·연락처를 채워요" autocomplete="off" spellcheck="false"></textarea>
       <div class="qpres" id="qPasteRes">${quickPasteMsg}</div></details></div>`;
 }
@@ -813,8 +742,8 @@ function renderList(){
               return tb.map(t=>`<span class="tbl ${ct&&ct.has(t)?'dupt':tt&&tt.has(t)?'tightt':''}">${esc(tLabel(t))}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join(''); })()}${x.tnote?`<span class="tnote ${cx?'cx':''}">${esc(x.tnote)}</span>`:''}${!tb.length&&!x.tnote?'<span class="tbl none">테이블 미정</span>':''}</span><button class="rtime" data-goto="${esc(x.time)}" data-gt="${esc((x.tables||[])[0]||'')}" title="현황판을 ${esc(x.time)}로">${esc(x.time)}</button><span class="nm ${x.c&&x.c===ui.date?'sameday':''}">${esc(x.name)}</span>${x.c&&x.c===ui.date?'<span class="sdb">당일</span>':''}${x.pp?`<span class="pp">${esc(x.pp)}명</span>`:''}
             ${x.done?'<span class="badge done">도착</span>':''}${x.auto?`<span class="badge autob">N ${esc(x.auto==='cxl'?'자동 취소':x.auto==='chg'?'자동 변경':'자동 입력')}</span>`:''}</div>
             ${dw?`<div class="dupline">⚠ 중복: ${esc(dw.join(', '))}</div>`:''}
-            ${!dw&&tw?`<div class="tightline">임박(2시간 간격): ${esc(tw.join(', '))}</div>`:''}
-            ${x.req?(hasDep(x)?`<div class="rq depq">${esc(x.req)}</div>`:`<div class="rq">${esc(x.req)}</div>`):''}
+            ${!dw&&tw?`<div class="tightline">⏰ 임박(2시간 간격): ${esc(tw.join(', '))}</div>`:''}
+            ${x.req?(hasDep(x)?`<div class="rq depq">💰 ${esc(x.req)}</div>`:`<div class="rq">📝 ${esc(x.req)}</div>`):''}
             ${x.phone?`<a class="ph" href="tel:${tel}">${esc(x.phone)}</a>`:''}</div>
           <div class="acts">${x.auto?`<button class="btn sm pctbtn${hasPct(x)?' on':''}" data-pcttog="${x.id}" title="10% 쿠폰 손님이면 누르세요 (메모에 10%를 넣고 빼요)">10%</button><button class="btn sm autook" data-autook="${x.id}" title="자동으로 넣은 예약이에요. 내용을 확인했으면 누르세요">✓ 확인</button>`:''}<button class="btn sm" data-edit="${x.id}" tabindex="-1">수정</button><button class="btn sm danger" data-del="${x.id}">삭제</button></div></div>`; }).join('')}</div>`; }).join('');
   const P=document.getElementById('listPanel');
@@ -848,16 +777,16 @@ function cellHtml(t,map){
     const depD=dup.some(hasDep);
     const pctD=dup.some(hasPct);
     return `<div class="cell st-dup${depD?' dep':''}" data-cell="${t}" data-pick="${t}" title=""${esc(dup.map(x=>x.name+' '+x.time+' '+x.pp+'명').join(' / '))}">
-      ${depD?'<span class="depb">예약금</span>':''}<span class="dupb">⚠ 중복</span>${pctD?'<span class="pctb">10%</span>':''}<span class="no">${esc(tLabel(t))}</span>
+      ${depD?'<span class="depb">💰 예약금</span>':''}<span class="dupb">⚠ 중복</span>${pctD?'<span class="pctb">10%</span>':''}<span class="no">${esc(tLabel(t))}</span>
       ${dup.slice(0,3).map(x=>`<span class="dn">${esc(x.name)} <small>${esc(x.time)}·${esc(x.pp)}명</small></span>`).join('')}${dup.length>3?`<small>외 ${dup.length-3}건</small>`:''}</div>`;
   }
   const tight = TIGHT.table[t]? [...TIGHT.table[t].values()] : [];
-  const tightNote = tight.length? `<span class="tightb">다음팀 ${esc(tight.filter(x=>x.id!==it.id).map(x=>x.time).join('·'))}</span>` : '';
+  const tightNote = tight.length? `<span class="tightb">⏰ 다음팀 ${esc(tight.filter(x=>x.id!==it.id).map(x=>x.time).join('·'))}</span>` : '';
   const dep=list.some(l=>hasDep(l.it));
   const pct=list.some(l=>hasPct(l.it));
   return `<div class="cell st-${top.st} ${seatCls(t)}${dep?' dep':''}" data-cell="${t}" data-pick="${t}" title=""${esc(it.name)} ${esc(it.time)} ${esc(it.pp)}명${it.req?' · '+esc(it.req):''}${tight.length?' · 2시간 뒤 다음팀 있음':''}">
     ${list.length>1?`<span class="more">+${list.length-1}</span>`:''}
-    ${pct?'<span class="pctb" title="10% 할인 이벤트">10%</span>':''}${top.st==='use'?'<span class="arr">✓ 도착</span>':''}<span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}<span class="cn">${esc(it.name)}</span><span class="ci">${esc(it.pp)}명·${esc(it.time)}</span>${dep?'<span class="depb">예약금</span>':''}${it.req&&!dep?'<span class="memo">메모</span>':''}${tightNote}</div>`;
+    ${pct?'<span class="pctb" title="10% 할인 이벤트">10%</span>':''}${top.st==='use'?'<span class="arr">✓ 도착</span>':''}<span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}<span class="cn">${esc(it.name)}</span><span class="ci">${esc(it.pp)}명·${esc(it.time)}</span>${dep?'<span class="depb">💰 예약금</span>':''}${it.req&&!dep?'<span class="memo">📝 메모</span>':''}${tightNote}</div>`;
 }
 const BIG6={ '1층':['6','7','8','9','10'], '2층':['42','43','44','45','51','52','53'] };
 const BIG8=[['29','30'],['31','32'],['33','34']];
@@ -905,13 +834,13 @@ function renderBoard(){
   const dupT=Object.keys(CONF.table);
   const dupBar = dupT.length? `<div class="dupbar" data-dupfirst="1" title="누르면 현황판이 중복 시간으로 이동"><span class="dh">⚠ 중복 예약 ${dupT.length}곳 <small>· 눌러서 이동</small></span>${dupT.map(t=>`<button class="dchip" data-dupgo="${t}" title="현황판을 이 중복 시간으로"><b>${esc(tLabel(t))}</b> ${[...CONF.table[t].values()].sort((a,b)=>toMin(a.time)-toMin(b.time)).map(x=>esc(x.name)+' <small>'+esc(x.time)+'</small>').join(' · ')}</button>`).join('')}</div>` : '';
   const tightT=Object.keys(TIGHT.table).filter(t=>!CONF.table[t]);
-  const tightBar = tightT.length? `<div class="tightbar" data-tightfirst="1" title="누르면 현황판이 임박 시간으로 이동"><span class="th">임박 예약 ${tightT.length}곳 <small>· 2시간 간격 · 눌러서 이동</small></span>${tightT.map(t=>`<button class="tchip" data-tightgo="${t}" title="현황판을 이 임박 시간으로"><b>${esc(tLabel(t))}</b> ${[...TIGHT.table[t].values()].sort((a,b)=>toMin(a.time)-toMin(b.time)).map(x=>esc(x.name)+' <small>'+esc(x.time)+'</small>').join(' · ')}</button>`).join('')}</div>` : '';
+  const tightBar = tightT.length? `<div class="tightbar" data-tightfirst="1" title="누르면 현황판이 임박 시간으로 이동"><span class="th">⏰ 임박 예약 ${tightT.length}곳 <small>· 2시간 간격 · 눌러서 이동</small></span>${tightT.map(t=>`<button class="tchip" data-tightgo="${t}" title="현황판을 이 임박 시간으로"><b>${esc(tLabel(t))}</b> ${[...TIGHT.table[t].values()].sort((a,b)=>toMin(a.time)-toMin(b.time)).map(x=>esc(x.name)+' <small>'+esc(x.time)+'</small>').join(' · ')}</button>`).join('')}</div>` : '';
   document.getElementById('boardPanel').innerHTML=`${dupBar}${tightBar}${freeHtml(T)}
     <div class="btop"><h2>현황판</h2>
       <div class="ftabs" style="display:flex;gap:6px">${FLOORS.map(x=>`<button data-floor="${esc(x.key)}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div>
       <span class="spacer"></span>
       ${canEditLayout()?'<button class="btn sm" data-led="start" title="테이블 추가·삭제·위치 바꾸기">배치 수정</button>':''}
-      <div class="legend"><span class="lg-use">도착 ${cnt.use}</span><span class="lg-res">예약시간 ${cnt.res}</span><span class="lg-soon">2시간 내 예정 ${cnt.soon}</span><span class="lg-tight">임박(2시간 간격) ${Object.keys(TIGHT.table).length}</span></div></div>
+      <div class="legend"><span class="lg-use">도착 ${cnt.use}</span><span class="lg-res">예약시간 ${cnt.res}</span><span class="lg-soon">2시간 내 예정 ${cnt.soon}</span><span class="lg-tight">⏰ 임박(2시간 간격) ${Object.keys(TIGHT.table).length}</span></div></div>
     <div class="timebox"><button class="btn sm tstep" data-act="t-" aria-label="30분 앞으로">‹</button>
       <span class="tnow">${fromMin(T)}</span>
       <button class="btn sm tstep" data-act="t+" aria-label="30분 뒤로">›</button>
@@ -1098,7 +1027,7 @@ function pickDialog(t){
     <div class="pick">${list.map(x=>`<div class="pk1 ${dupIds.has(x.id)?'dupx':''}">
       <div><div class="l1"><span class="t">${esc(x.time)}</span><span class="n">${esc(x.name)}</span>${x.pp?`<b>${esc(x.pp)}명</b>`:''}
         ${tablesText(x.tables).map(z=>`<span class="tbl">${esc(z)}</span>`).join('')}${x.done?'<span class="badge done">도착</span>':''}${dupIds.has(x.id)?'<span class="badge warn">겹침</span>':tightIds.has(x.id)?'<span class="badge warn" style="background:var(--tight-bg);color:var(--tight)">임박</span>':''}</div>
-        <div class="sub">${x.req?(hasDep(x)?'<span class="depchip">예약금</span>':'')+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div>
+        <div class="sub">${x.req?(hasDep(x)?'<span class="depchip">💰 예약금</span>':'📝 ')+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div>
       <button class="btn primary" data-pe="${x.id}">수정</button></div>`).join('')}</div>
     <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="add" data-add-t="${esc(t)}">＋ 이 테이블에 예약 추가</button><button class="btn" data-d="close">닫기</button></div>`;
   if(!dlg.open) dlg.showModal();
@@ -1399,7 +1328,7 @@ function trashDialog(){
     ${dead.length? `<div class="pick">${dead.map(x=>`<div class="pk1">
         <div><div class="l1"><span class="t">${esc(x.time||'')}</span><span class="n">${esc(x.name||'(이름 없음)')}</span>${x.pp?`<b>${esc(x.pp)}명</b>`:''}
           ${tablesText(x.tables||[]).map(z=>`<span class="tbl">${esc(z)}</span>`).join('')}</div>
-          <div class="sub">${x.req?(hasDep(x)?'<span class="depchip">예약금</span>':'')+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div>
+          <div class="sub">${x.req?(hasDep(x)?'<span class="depchip">💰 예약금</span>':'📝 ')+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div>
         <button class="btn primary" data-restore="${x.id}">복원</button></div>`).join('')}</div>`
       : `<div class="hint">이 날짜엔 지운 예약이 없어요.</div>`}
     <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="close">닫기</button></div>`;
