@@ -619,7 +619,7 @@ body.ui-term::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events
 </head>
 <body>
 <header>
-  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.12d</b></span>
+  <h1>일품집 상권분석</h1><span class="tag"><select id="city" aria-label="분석 도시"></select> · <span id="pubtag">본사 내부 자료</span> · <b title="화면 버전">v10.17a</b></span>
   <nav id="nav"><button data-tab="list">후보지</button><button data-tab="detail">분석</button><button data-tab="cmp">비교</button><button data-tab="set">설정</button></nav>
   <span class="sp"></span><button class="btn sm noprint pubbtn" data-act="pub" title="점주·가맹 희망자에게 보여 줄 때 켜요 (우리 매장 매출·환산 매출·메모·설정 숨김)">점주용 보기</button><button class="btn sm noprint" data-act="maptoggle" style="min-height:34px;white-space:nowrap;flex:0 0 auto;background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.3)">지도</button><span id="sdk" class="note"></span>
 </header>
@@ -656,7 +656,11 @@ function chkOf(c){ const v=c.chk||{}, L=CHK.map(x=>({...x,v:v[x.k]||''})); retur
 /* ---- 도시 선택: 검색 앞말·도시 밖 경고·구 목록에 씀 ---- */
 const CITIES={
   '대구':{gus:['중구','동구','서구','남구','북구','수성구','달서구','달성군','군위군'],box:[128.3,128.95,35.6,36.35],ex:'대구 수성구 범어동 177 / 범어역 / 동성로'},
-  '부산':{gus:['중구','서구','동구','영도구','부산진구','동래구','남구','북구','해운대구','사하구','금정구','강서구','연제구','수영구','사상구','기장군'],box:[128.75,129.35,34.85,35.45],ex:'부산 해운대구 우동 / 서면역 / 광안리'}};
+  '부산':{gus:['중구','서구','동구','영도구','부산진구','동래구','남구','북구','해운대구','사하구','금정구','강서구','연제구','수영구','사상구','기장군'],box:[128.75,129.35,34.85,35.45],ex:'부산 해운대구 우동 / 서면역 / 광안리'},
+  // 청주(2026-10-17 사용자: 율량동 분석) — 지하철이 없는 도시라 지하철 지표는 점수에서 뺌(noSub)
+  '청주':{gus:['상당구','서원구','흥덕구','청원구'],box:[127.25,127.75,36.45,36.85],ex:'청주 청원구 율량동 / 율량동 / 청주 흥덕구 복대동',noSub:true}};
+// 지하철 없는 도시의 후보지인지 (주소·행정구역에 도시 이름이 있으면)
+const noSubOf=m=>!!(m&&Object.entries(CITIES).some(([k,v])=>v.noSub&&((m.region||'')+' '+(m.bgu||'')+' '+(m.addr||'')).includes(k)));
 const CT=()=>DB.city||'대구';
 
 const sidoKey=t=>{ t=String(t||''); const M={'경상북도':'경북','경상남도':'경남','충청북도':'충북','충청남도':'충남','전라북도':'전북','전북특별자치도':'전북','전라남도':'전남','강원특별자치도':'강원','강원도':'강원'}; return M[t]||t.replace(/(특별자치시|특별자치도|특별시|광역시|도)$/,''); };
@@ -776,7 +780,7 @@ const defSys=()=>({parts:{mkt:45,comp:20,prop:25,analog:10},grades:{A:70,B:55,C:
   ko:{zone:true,duct:false,field:true,area:{on:true,v:25},rr:{on:true,v:15},eel500:{on:true,v:4},park:{on:true,v:2},ovl:{on:true,v:40}}});
 const SYS_PARTS=[['mkt','상권 매력','외식·주거·집객·접근·차량 상권 (장어집 기준표)'],['comp','경쟁','가까운 장어집 수·거리 (자동)'],['prop','매물·수익성','월세·평수·권리금 + 환산 매출'],['analog','우리 매장과 닮은 정도','잘되는 우리 매장 자리와 비교 (분석한 매장 3곳 이상일 때)']];
 function SYS(){ const d=defSys(), x=DB.sys||{}; return {parts:Object.assign(d.parts,x.parts||{}),grades:Object.assign(d.grades,x.grades||{}),minDone:x.minDone!=null?x.minDone:d.minDone,ko:Object.assign(d.ko,x.ko||{})}; }
-const defDB=()=>({v:2,relay:DEF_RELAY,stores:[],zoneKm:2,weights:defW(),fin:defFin(),cands:[],city:'대구',cityList:['대구','부산'],biz:'outlet'});
+const defDB=()=>({v:2,relay:DEF_RELAY,stores:[],zoneKm:2,weights:defW(),fin:defFin(),cands:[],city:'대구',cityList:['대구','부산','청주'],biz:'outlet'});
 let DB=defDB();
 // 예전(v1) 기록: 후보지·매장·설정은 살리고, 분석값은 새 형식이 아니라 다시 분석하도록 비움
 function migrate(j){
@@ -785,7 +789,8 @@ function migrate(j){
 
   if(j.v!==2){ o.bench=null; o.weights=defW(); o.cands=j.cands.map(c=>{ const x=Object.assign({},c); delete x.m; return x; }); }
   delete o.bench; delete o.benchNames; delete o.benchMode; delete o.eelPool; delete o.cityData; delete o.benchStores; delete o.eelN;
-  if(!Array.isArray(o.cityList)) o.cityList=['대구','부산']; if(!o.city) o.city='대구';
+  if(!Array.isArray(o.cityList)) o.cityList=['대구','부산','청주']; if(!o.city) o.city='대구';
+  if(!o.cityList.includes('청주')&&!o.cityAdd3){ o.cityList.push('청주'); o.cityAdd3=1; }   // 기본 도시에 청주 추가(한 번만, 지운 사람은 그대로)
   { const OLDW={hub:20,fam:20,biz:15,acc:20,comp:25,prop:15}, w=o.weights||{}; if(Object.keys(OLDW).every(k=>+w[k]===OLDW[k])) o.weights=defW(); }
   if(!j.biz){ o.biz='outlet'; const SW=PROFILES.std.w, w=o.weights||{}; if(Object.keys(SW).every(k=>w[k]==null||+w[k]===SW[k])) o.weights=null;
     const f=o.fin||{}; if(f.cost==null||(+f.cost===47&&+f.labor===25&&+f.ticket===4)){ o.fin=Object.assign({},f,PROFILES.outlet.fin); } }
@@ -1058,7 +1063,7 @@ function derive(m,opt){
   if(c){ d.n300=c.filter(x=>x.dist<=300).length; d.n500=c.filter(x=>x.dist<=500).length; d.n1k=c.length;
     d.compIdx=d.n300+0.7*(d.n500-d.n300)+0.35*(d.n1k-d.n500); }
   else{ d.n300=d.n500=d.n1k=d.compIdx=null; }
-  d.subD=m.subway?(m.subway[0]?m.subway[0].dist:2500):null;
+  d.subD=noSubOf(m)?null:m.subway?(m.subway[0]?m.subway[0].dist:2500):null;   // 지하철 없는 도시는 빼고 다른 접근성 지표로 나눠 계산
   if(m.popTot&&m.pCore!=null){ d.corePop=Math.round(m.popTot*m.pCore/100); if(m.restOn!=null) d.restPer1k=Math.round(m.restOn/m.popTot*10000)/10; if(d.n1k!=null) d.corePerEel=Math.round(d.corePop/Math.max(1,d.n1k)); }
   if(m.restOpen12!=null&&m.restClose12!=null) d.restNet=m.restOpen12-m.restClose12;
   if(m.aptPy!=null&&m.aptGu) d.aptRel=Math.round(m.aptPy/m.aptGu*100);
@@ -1122,7 +1127,7 @@ function verdict(g){
 }
 function fv(x){ if(x.v==null) return '-'; return x.fmt?x.fmt(x.v):fmtN(x.v)+x.u; }
 // 후보지가 등록된 우리 매장 자리(50m 안 또는 같은 주소)면 그 매장은 영업지역 경고에서 뺌 (2026-10-07 사용자 요청)
-const normAddr=a=>String(a||'').replace(/\s+/g,'').replace(/^(대구광역시|대구시|대구|부산광역시|부산시|부산)/,'');
+const normAddr=a=>String(a||'').replace(/\s+/g,'').replace(/^(대구광역시|대구시|대구|부산광역시|부산시|부산|충청북도청주시|충북청주시|청주시|청주)/,'');
 function selfStore(c){ return DB.stores.find(s=>s.x&&(distM(c,s)<50||(normAddr(s.addr)&&normAddr(s.addr)===normAddr(c.addr)))); }
 function otherStores(c){ const me=selfStore(c); return DB.stores.filter(s=>s.x&&s!==me); }
 function nearStores(p){ const me=selfStore(p); return DB.stores.filter(s=>s.x&&s!==me).map(s=>({name:s.name,d:distM(p,s)})).sort((a,b)=>a.d-b.d); }
@@ -1274,7 +1279,7 @@ function opinion(c,s,fin){
     : d.n300>0?`300m 안에 직접 경쟁하는 장어집(${esc(d.comp[0].name)}, ${fmtM(d.comp[0].dist)})이 있어요. 그 가게의 가격대와 저녁 손님 수를 직접 확인하세요.`
     : `1km 안 장어집은 ${d.n1k}곳이고 300m 안에는 없어 경쟁 부담은 크지 않은 편이에요.`);
   const sub=d.subway&&d.subway[0], pp=subP(s,'park500');
-  P.push(`${sub?`가장 가까운 지하철역은 ${esc(sub.name)}(${fmtM(d.subD)})이고`:'2km 안에 지하철역이 없고'}, 500m 안 주차장은 ${fmtN(d.park500)}곳이에요.${pp!=null&&pp<=30?' 장어집은 차로 오는 가족·회식 손님이 많아 주차 대책이 꼭 필요해요.':''}`);
+  P.push(`${sub&&d.subD!=null?`가장 가까운 지하철역은 ${esc(sub.name)}(${fmtM(d.subD)})이고`:d.subD==null&&noSubOf(c.m)?'지하철이 없는 도시라 차·버스 접근이 중요하고':'2km 안에 지하철역이 없고'}, 500m 안 주차장은 ${fmtN(d.park500)}곳이에요.${pp!=null&&pp<=30?' 장어집은 차로 오는 가족·회식 손님이 많아 주차 대책이 꼭 필요해요.':''}`);
   const draw=[['ghosp2k','종합병원 방문객·보호자'],['wed2k','예식장 하객'],['fun2k','장례식장 조문객'],['golf1k','골프 모임'],['univ2k','대학 교직원·모임']].filter(([k])=>{ const pp=subP(s,k); return pp!=null&&pp>=70&&(d[k]||0)>0; });
   if(draw.length) P.push(`주변 집객시설이 강해요: ${draw.map(([k,t])=>`${t}(${fmtN(d[k])}곳)`).join(', ')}. 장어집은 이런 행사·방문 뒤 식사 수요가 커서, 주말·저녁 매출에 도움이 돼요.`);
   if(d.aptPy!=null&&d.aptGu){ const r=d.aptPy/d.aptGu*100; P.push(`최근 1년 ${esc(d.bdong)} 아파트 평당가는 약 ${fmtN(d.aptPy)}만원으로 구 전체(${fmtN(d.aptGu)}만원)의 ${Math.round(r)}% 수준이에요. ${r>=115?'구매력이 높은 동네라 장어 같은 고단가 외식에 유리해요.':r<=85?'구매력이 구 평균보다 낮은 편이라 가격 저항을 고려해야 해요.':'구매력은 구 평균 수준이에요.'}`); }
@@ -2047,8 +2052,8 @@ function detailHtml(){
   ${full?`<div class="card" id="s-diag"><div class="sh"><span class="no">02</span><h2>상권 개요</h2></div>
     <div class="typeline"><span class="type">${esc(t.name)}</span><div class="chips">${t.tags.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></div>
     <div class="facts">
-      <div><span>행정동</span><b>${esc((c.m.region||'-').replace(/^(대구|부산|서울|인천|광주|대전|울산)광역시 |^서울특별시 /,''))}</b></div>
-      <div><span>가까운 지하철역</span><b>${s.d.subway&&s.d.subway[0]?esc(s.d.subway[0].name)+' '+fmtM(s.d.subD):'2km 안 없음'}</b></div>
+      <div><span>행정동</span><b>${esc((c.m.region||'-').replace(/^(대구|부산|서울|인천|광주|대전|울산)광역시 |^서울특별시 |^(충청북도|충청남도|경상북도|경상남도|전라남도|전북특별자치도|강원특별자치도|경기도) /,''))}</b></div>
+      <div><span>가까운 지하철역</span><b>${noSubOf(c.m)?'지하철 없는 도시 (점수에서 제외)':s.d.subway&&s.d.subway[0]?esc(s.d.subway[0].name)+' '+fmtM(s.d.subD):'2km 안 없음'}</b></div>
       <div><span>주차장 (500m)</span><b>${fmtN(s.d.park500)}곳</b></div>
       <div><span>장어집 (300m / 500m / 1km)</span><b>${s.d.n300??'-'} / ${s.d.n500??'-'} / ${s.d.n1k??'-'}${c.m.compMore?'+':''}</b></div>
       ${s.d.pop3k!=null?`<div><span>${s.d.drive?`차로 ${DRIVE_MIN}분 안`:'3km 안'} 주민 (30~59세) · 동 ${s.d.catchN}곳</span><b>${fmtN(s.d.pop3k)}명 (${fmtN(s.d.core3k)}명)</b></div>`:''}
@@ -2186,7 +2191,7 @@ function chrome(){
   const t=$('#tick'), f=$('#foot'); if(!t||!f) return;
   const on=!!K, nS=DB.stores.length, nC=DB.cands.length;
   t.innerHTML=`<span class="tk"><i class="dot ${on?'ok':'no'}"></i>${on?'카카오 지도 연결됨':'지도 연결 대기'}</span><span class="tk"><b>CITY</b> ${esc(CT())}</span><span class="tk"><b>후보지</b> ${nC}</span><span class="tk"><b>우리 매장</b> ${nS}</span><span class="tk"><b>기준일</b> ${today()}</span><span class="sp"></span><span class="tk src"><b>DATA</b> 카카오맵 · 행정안전부 · 국토교통부 · 소상공인시장진흥공단 · 통계청</span>`;
-  f.innerHTML=`<div><b>일품집 상권분석 시스템</b> · 출점 입지 평가</div><div>방법론: 허프(Huff) 중력 모형 · 장어집 기준표 · 필수 조건 심사 · 공공데이터 연동</div><div>${PUB?'본 자료는 상권 참고 자료이며 예상 매출액이나 수익을 보장하지 않습니다.':'본사 내부 심사용 자료 · 외부 제공 금지'} · ${'v10.12d'}</div>`;
+  f.innerHTML=`<div><b>일품집 상권분석 시스템</b> · 출점 입지 평가</div><div>방법론: 허프(Huff) 중력 모형 · 장어집 기준표 · 필수 조건 심사 · 공공데이터 연동</div><div>${PUB?'본 자료는 상권 참고 자료이며 예상 매출액이나 수익을 보장하지 않습니다.':'본사 내부 심사용 자료 · 외부 제공 금지'} · ${'v10.17a'}</div>`;
 }
 function mapBtn(){ const b=$('[data-act=maptoggle]'); if(!b) return; const mob=matchMedia('(max-width:700px)').matches, on=mob?document.body.classList.contains('showmap'):!document.body.classList.contains('nomap'); b.textContent=on?'지도 숨기기':'지도 보기'; b.setAttribute('aria-pressed',on); }
 try{ if(localStorage.getItem('ilpum-sk-map')==='0') document.body.classList.add('nomap'); }catch(_){}
