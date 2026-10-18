@@ -313,21 +313,6 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .res .nm.sameday{color:#7B3FC4}
 .sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
 @media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
-
-/* ---- 디자인 맛보기 3 (2026-10-18, frontend-design 스킬): 통합관리 틀의 짙은 초록·금색에 맞춤.
-   글꼴은 IBM Plex Sans KR 하나(굵기로 위계). 눈에 띄는 건 테이블 번호 칩 하나만 — 손님 몰릴 때 번호가 먼저 보이게.
-   나머지는 조용히. 되돌리려면 이 블록만 지우면 됨 ---- */
-@media (prefers-color-scheme: light){
-  :root{ --bg:#F5F6F4; --panel:#FFFFFF; --ink:#1B2620; --sub:#66746C; --line:#E1E7E3; --soft:#EEF2EF;
-    --field:#FFFFFF; --field-line:#CBD5CF; --accent:#1F4D3A; --accent-ink:#FFFFFF; --pine:#1F4D3A; --brass:#D8B16E; }
-  .tbls .tbl:not(.dupt):not(.tightt):not(.none){background:var(--pine);color:#fff;border:2px solid var(--pine)}
-  .tbls .tbl:not(.dupt):not(.tightt):not(.none) small{color:var(--brass);opacity:1}
-  .thead .tgl{background:var(--pine);color:#fff;border-color:var(--pine)}
-  .btn.today{background:var(--pine);border-color:var(--pine);color:#fff}
-  header{border-bottom:2px solid var(--pine)}
-}
-.brand{font-weight:700;letter-spacing:-.01em}
-.datelabel{font-weight:700;letter-spacing:-.01em}
 </style>
 </head>
 <body>
