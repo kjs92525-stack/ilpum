@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root{
   --bg:#EEF1EF; --panel:#FFFFFF; --ink:#1E2622; --sub:#5E6B65; --line:#D5DCD8; --soft:#F4F6F5;
@@ -314,115 +313,6 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .res .nm.sameday{color:#7B3FC4}
 .sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
 @media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
-
-
-/* ==== 새 디자인 (2026-10-18 사용자: "규칙만 유지하고 새로 만든다 생각하고") ====
-   방향: 처음에 정한 "토스처럼 깔끔하되 색은 다르게" — Pretendard, 회색 바탕 위 흰 판, 테두리 대신 여백,
-   채운 입력칸, 테이블 번호는 진한 먹색 칩, 강조는 통합관리 초록. 기능·배치·경고색(중복·임박·예약금·네이버)은 그대로.
-   밝은 모드만. 되돌리려면 이 블록과 Pretendard <link> 를 지우면 됨. */
-@media (prefers-color-scheme: light){
-:root{ --bg:#F2F4F6; --panel:#FFFFFF; --ink:#191F28; --sub:#6B7684; --line:#E5E8EB; --soft:#F4F5F7;
-  --field:#F2F4F6; --field-line:transparent; --accent:#13795B; --accent-ink:#FFFFFF; --past:#B0B8C1;
-  --res:#E5484D; --res-bg:#FFF0F0; --soon:#B7791F; --soon-bg:#FFF8E6; --use:#13795B; --use-bg:#E8F6EF; --r:16px }
-body{font-family:Pretendard,"Pretendard Variable","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;letter-spacing:-.01em;-webkit-font-smoothing:antialiased}
-header{border-bottom:0;box-shadow:0 1px 0 var(--line)}
-.bar{padding:12px 20px;gap:12px}
-.brand{font-size:19px;font-weight:800;letter-spacing:-.03em}
-.datelabel{font-size:22px;font-weight:800;letter-spacing:-.03em}
-.datelabel:hover{background:var(--soft)}
-.btn{border:0;background:var(--soft);border-radius:10px;padding:8px 14px;font-weight:600;color:var(--ink);transition:background .15s}
-.btn:hover{background:#E5E8EB;border:0}
-.btn.primary{background:var(--accent);color:#fff;font-weight:700}
-.btn.primary:hover{background:#0F6A4F}
-.btn.today{background:var(--ink);color:#fff;border:0}
-.btn.sm{padding:4px 10px;border-radius:8px}
-.btn.danger{color:var(--res);background:var(--res-bg)}
-input[type=text],input[type=tel],input[type=date],input[type=time],input[type=search],select,textarea{background:var(--field);border:1.5px solid transparent;border-radius:12px;padding:9px 12px}
-input:focus,select:focus,textarea:focus{border-color:var(--accent);background:#fff}
-main{padding:14px 20px;gap:0}
-.panel{border:0;border-radius:20px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-.panel h2{font-size:18px;font-weight:800;letter-spacing:-.03em}
-.split::before{background:transparent}
-.split:hover::before,.split.on::before{background:var(--accent)}
-.split::after{background:var(--bg);color:var(--past)}
-/* 입력 */
-.quick{border:0;background:var(--soft);border-radius:var(--r);padding:12px;gap:8px}
-.quick input{background:#fff;border:1.5px solid transparent;border-radius:12px;padding:9px 12px;outline:none}
-.quick input:focus{border-color:var(--accent)}
-.gsearch input{padding-left:36px}
-.qpaste summary{color:var(--sub);font-weight:600}
-.qpaste textarea{border:1.5px dashed #D1D6DB;border-radius:12px;background:#fff}
-/* 통계 · 필터 */
-.stats{gap:8px;margin:14px 0}
-.stat{border:0;background:var(--soft);border-radius:14px;padding:10px 14px;min-width:84px}
-.stat .k{font-size:12.5px;font-weight:600}
-.stat .v{font-size:21px;font-weight:800;letter-spacing:-.02em}
-.seg{border:0;background:var(--soft);border-radius:10px;padding:3px;gap:2px}
-.seg button{background:transparent;border-radius:8px;padding:6px 12px;font-weight:600;color:var(--sub)}
-.seg button[aria-pressed="true"]{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-/* 목록 */
-.tgroup{margin-top:14px}
-.thead{border-bottom:0;padding:6px 2px 4px;font-size:13px}
-.thead .t{font-size:17px;font-weight:800;letter-spacing:-.02em}
-.thead.now .t{color:var(--accent)}
-.res{border-bottom:1px solid var(--soft);padding:9px 6px;border-radius:12px;gap:8px}
-.res:hover{background:#F9FAFB;border-radius:12px}
-.res .nm{font-size:15.5px;font-weight:700}
-.res .pp{font-size:14px}
-.rtime{border:0;background:var(--soft);color:var(--ink);border-radius:8px;padding:1px 7px;font-size:13px}
-.rtime:hover{background:var(--accent);color:#fff}
-.tbls .tbl{border-radius:10px;padding:1px 8px;font-size:18px}
-.res .l1{gap:4px 6px}
-.tbls .tbl:not(.dupt):not(.tightt):not(.none){background:var(--ink);color:#fff;border:0}
-.tbls .tbl:not(.dupt):not(.tightt):not(.none) small{opacity:.6}
-.thead .tgl{background:var(--ink);color:#fff;border:0;border-radius:10px}
-.tnote{border:0;border-radius:8px}
-.res .rq{border-left:0;border-radius:8px;padding:2px 8px;font-size:12.5px}
-.res .ph{font-size:12.5px}
-.res .acts .btn{background:transparent;color:var(--sub);padding:4px 6px}
-.res .acts .btn:hover{background:var(--soft);color:var(--ink)}
-.res .acts .btn.danger{color:var(--res)}
-.badge{border-radius:6px;padding:1px 7px}
-.dupbar,.tightbar{border:0;border-radius:14px}
-/* 현황판 */
-.freebox{border:0;background:var(--soft);border-radius:var(--r);padding:12px 16px}
-.freebox .fh{font-size:14.5px;font-weight:700}
-.fchip{border:0;background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
-.fchip:hover{background:var(--ink);color:#fff}
-.ftabs button{border:0;background:var(--soft);border-radius:12px;padding:8px 22px;color:var(--sub)}
-.ftabs button[aria-pressed="true"]{border:0;background:var(--ink);color:#fff}
-.timebox{background:var(--soft);border-radius:var(--r);padding:10px 14px}
-.timebox input[type=range]::-webkit-slider-runnable-track{background:#D1D6DB}
-.timebox input[type=range]::-webkit-slider-thumb{background:var(--accent);border:4px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.2)}
-.tnow{font-size:22px;font-weight:800}
-.legend{font-weight:600;color:var(--sub)}
-.floor .grp{border-left:0}
-.grp h3{font-size:13px;font-weight:700;color:var(--sub)}
-.grp h3::before{color:var(--accent)}
-.cols,.col{gap:10px}
-.cell{border:1.5px solid var(--line);border-radius:14px;background:#fff}
-.cell .no{color:var(--sub)}
-.cell .cn{font-size:17px;font-weight:800;letter-spacing:-.02em}
-.cell.empty{background:#FAFBFC;border-color:#EEF0F2}
-.cell.empty .no{color:var(--past);font-weight:600}
-.cell.st-use{border:2px solid var(--use);background:var(--use-bg)}
-.cell.st-res{border:2px solid var(--res);background:var(--res-bg)}
-.cell.st-soon{border:2px dashed var(--soon);background:var(--soon-bg)}
-.cell.st-past{border-color:var(--line);background:var(--soft)}
-.seatb,.cell .arr,.cell .more,.cell .clash,.cell .pctb{border-radius:6px}
-.seatline .sl{background:var(--soft);color:var(--ink)}
-/* 창 · 알림 */
-dialog{border:0;border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-dialog::backdrop{background:rgba(0,0,0,.35)}
-.dlg{padding:22px}
-.dlg h3{font-size:20px;font-weight:800;letter-spacing:-.03em}
-.times button,.pk button{border:0;background:var(--soft);border-radius:8px}
-.times button[aria-pressed="true"],.pk button[aria-pressed="true"]{background:var(--ink);color:#fff}
-.picker{border:0;background:#FAFBFC;border-radius:14px}
-.toast{border-radius:14px;padding:12px 18px;font-weight:600}
-.gres{border:0;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.16)}
-.battg{border:0;background:var(--soft);border-radius:10px}
-}
 </style>
 </head>
 <body>
@@ -444,7 +334,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1018-1933</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1018-2101</small>
   </div>
 
 </header>
