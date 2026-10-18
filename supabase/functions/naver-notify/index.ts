@@ -1,5 +1,5 @@
 // 스마트플레이스 예약 알림 → 예약 자동 처리. 알림 받는 안드로이드 폰의 MacroDroid 가 알림 글을 POST 로 보냄.
-// - 8인 이하만(2026-10-11 사용자: 예전 4인 → 8인): 새 예약 넣기 / 취소(테이블 칸에 "네이버취소") / 변경(날짜·시간·인원). 9인 이상·애매한 건 손대지 않고 기록만.
+// - 새 예약 넣기 / 취소(테이블 칸에 "네이버취소") / 변경(날짜·시간·인원). 테이블 자동 지정은 8인 이하만(2026-10-18 사용자: 9인 이상도 예약은 다 써주고 테이블만 비움). 애매한 건 손대지 않고 기록만.
 // - 자동 처리한 예약에는 auto 표시 → 예약 목록에 초록색으로 보이고 "확인"을 누르면 원래 색.
 // - 비밀 값(TOKEN)은 배포할 때만 채움(저장소에는 자리표시). 서버 키는 Supabase 가 함수 안에만 넣어 줌.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -100,12 +100,10 @@ Deno.serve(async (req: Request) => {
       const from = ds(new Date(new Date(today + "T00:00").getTime() - 864e5));
       const rows = (await db.from("res_days").select("id,data").eq("store_id", SID).gte("id", from)).data || [];
       let cs: any[] = []; rows.forEach((row: any) => (row.data?.items || []).forEach((x: any) => { if (!x.deleted && r.name && x.name === r.name) cs.push({ d: row.id, x }); }));
-      const big = (c: any) => ppNum(c.x.pp) > AUTO_MAX || (r.change && ppNum(r.pp) > AUTO_MAX);
-      if (r.cancel) {
+            if (r.cancel) {
         let pick = cs.filter((c) => !isCxl(c.x)); if (r.date) pick = pick.filter((c) => c.d === r.date); if (r.time && pick.length > 1) pick = pick.filter((c) => c.x.time === r.time);
         if (!pick.length) return log({ cancel: cs.some((c) => isCxl(c.x)) ? "이미 취소돼 있음" : "취소할 예약 못 찾음", name: r.name, date: r.date });
         if (pick.length > 1) return log({ cancel: "같은 이름 여러 건 — 직접 처리", name: r.name });
-        if (big(pick[0])) return log({ cancel: "9인 이상 — 직접 처리", item: lbl(pick[0].d, pick[0].x) });
         const c = pick[0];
         await editDay(c.d, (items) => { const it = items.find((y) => y.id === c.x.id); if (it) { it.tnote = ((it.tnote || "").replace(/(네이버)?취소/g, "").trim() + " 네이버취소").trim(); it.auto = "cxl"; it.u = Date.now(); } });
         return log({ ok: true, cancel: "취소 처리", item: lbl(c.d, c.x) });
@@ -116,7 +114,7 @@ Deno.serve(async (req: Request) => {
       if (same) return log({ change: "이미 반영됨", item: lbl(same.d, same.x) });
       if (!live.length) return log({ change: "바꿀 예약 못 찾음", name: r.name });
       if (live.length > 1) return log({ change: "같은 이름 여러 건 — 직접 처리", name: r.name });
-      const c = live[0]; if (big(c)) return log({ change: "9인 이상 — 직접 처리", item: lbl(c.d, c.x) });
+      const c = live[0];
       const nd = r.date || c.d, nt = r.time || c.x.time;
       const nx: any = { ...c.x, time: nt, auto: "chg", u: Date.now() }; if (r.pp) nx.pp = r.pp; if (r.req) nx.req = r.req;
       // 원래 테이블이 새 시간에 차 있으면 비움
@@ -133,12 +131,11 @@ Deno.serve(async (req: Request) => {
     if (!/(접수|신청|확정)/.test(text)) return log({ skip: "새 예약 알림 아님" });
     if (!r.date || !r.time || !r.name) return log({ skip: "날짜·시간·이름을 못 읽음", r });
     if (!r.pp) return log({ skip: "인원을 못 읽음 — 직접 입력", r });
-    if (ppNum(r.pp) > AUTO_MAX) return log({ skip: "9인 이상 — 직접 입력", r });
     const day = await getDay(r.date);
     const dupe = (day?.data?.items || []).find((x: any) => !x.deleted && !isCxl(x) && x.name === r.name && x.time === r.time);
     if (dupe) return log({ skip: "이미 있는 예약", item: lbl(r.date, dupe) });
     const it: any = { id: uid(), c: today, u: Date.now(), name: r.name, time: r.time, pp: r.pp, tables: [], tnote: "", phone: r.phone || "", req: r.req || "", done: false, auto: "new" };
-    await editDay(r.date, (items) => { if (ppNum(r.pp) > 4) it.tables = pickGroup(items, r.time, ppNum(r.pp)); else { const t = pickTable(items, r.time, r.req || ""); it.tables = t ? [t] : []; } items.push(it); });
+    await editDay(r.date, (items) => { if (ppNum(r.pp) > AUTO_MAX) it.tables = []; else if (ppNum(r.pp) > 4) it.tables = pickGroup(items, r.time, ppNum(r.pp)); else { const t = pickTable(items, r.time, r.req || ""); it.tables = t ? [t] : []; } items.push(it); });
     return log({ ok: true, add: lbl(r.date, it) });
   } catch (e) {
     return log({ error: String((e as Error).message || e) });

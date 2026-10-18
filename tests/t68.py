@@ -94,7 +94,7 @@ async def main():
     await pg.click('.res.auto [data-autook]'); await pg.wait_for_timeout(300)
     chk('확인 누르면 원래 색', await pg.evaluate("!items('2026-10-12').find(x=>x.name==='홍길동').auto && !document.querySelector('.res.auto')"))
     await pg.fill('#qPaste', NAVER.replace('성인 3명, 어린이 1명','성인 9명')); await pg.wait_for_timeout(900)
-    chk('9인 이상은 자동 입력 안 함', '9인 이상' in await pg.inner_text('#qPasteRes') and await pg.input_value('#qName')=='', await pg.inner_text('#qPasteRes'))
+    chk('9인 이상도 이름·인원은 입력, 테이블은 비움', await pg.input_value('#qName')!='' and await pg.input_value('#qPP')=='9' and await pg.input_value('#qTables')=='', await pg.input_value('#qTables'))
     r=await pg.evaluate("t=>parseResText(t,'2026-10-10')", "예약자\n김창가\n이용일시\n2026.10.12.(월) 오후 6:00\n인원\n2명\n요청사항\n창가 자리로 부탁드려요\n아이 의자 1개도요\n연락처\n010-1111-0000")
     w=await pg.evaluate("(()=>{ const st=STORES.find(z=>z.id===SID); const was=st.is_hq; st.is_hq=true; const a=suggestTables('2026-10-12','12:00','2','창가 자리 부탁').map(x=>x.ts.join()); st.is_hq=was; return a; })()")
     chk('창가 요청이면 창가 자리(1~5) 먼저', w and all(x in ('1','2','3','4','5') for x in w), str(w))
