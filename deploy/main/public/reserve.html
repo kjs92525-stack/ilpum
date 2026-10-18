@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#EEF1EF; --panel:#FFFFFF; --ink:#1E2622; --sub:#5E6B65; --line:#D5DCD8; --soft:#F4F6F5;
@@ -315,20 +314,20 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
 @media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
 
-/* ---- 디자인 맛보기 2 (2026-10-18): 따뜻한 종이 + 장어 소스 갈색. 구조·기능은 그대로, 색·모서리·그림자만. 되돌리려면 이 블록만 지우면 됨 ---- */
+/* ---- 디자인 맛보기 3 (2026-10-18, frontend-design 스킬): 통합관리 틀의 짙은 초록·금색에 맞춤.
+   글꼴은 IBM Plex Sans KR 하나(굵기로 위계). 눈에 띄는 건 테이블 번호 칩 하나만 — 손님 몰릴 때 번호가 먼저 보이게.
+   나머지는 조용히. 되돌리려면 이 블록만 지우면 됨 ---- */
 @media (prefers-color-scheme: light){
-  :root{ --bg:#F5F0E8; --panel:#FFFDF9; --ink:#2B2118; --sub:#7A6B5C; --line:#E4DACB; --soft:#F1EADF;
-    --field:#FFFFFF; --field-line:#D6C9B6; --accent:#7A3E12; }
+  :root{ --bg:#F5F6F4; --panel:#FFFFFF; --ink:#1B2620; --sub:#66746C; --line:#E1E7E3; --soft:#EEF2EF;
+    --field:#FFFFFF; --field-line:#CBD5CF; --accent:#1F4D3A; --accent-ink:#FFFFFF; --pine:#1F4D3A; --brass:#D8B16E; }
+  .tbls .tbl:not(.dupt):not(.tightt):not(.none){background:var(--pine);color:#fff;border:2px solid var(--pine)}
+  .tbls .tbl:not(.dupt):not(.tightt):not(.none) small{color:var(--brass);opacity:1}
+  .thead .tgl{background:var(--pine);color:#fff;border-color:var(--pine)}
+  .btn.today{background:var(--pine);border-color:var(--pine);color:#fff}
+  header{border-bottom:2px solid var(--pine)}
 }
-header{background:var(--panel);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(122,62,18,.06),0 6px 18px -14px rgba(122,62,18,.45)}
-.brand{font-family:"Noto Serif KR","IBM Plex Sans KR",serif;font-weight:700;letter-spacing:-.01em;color:var(--accent)}
-.datelabel{font-family:"Noto Serif KR","IBM Plex Sans KR",serif;font-weight:700}
-.btn{border-radius:10px}
-.btn.today{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-input[type=text],input[type=tel],input[type=date],input[type=time],input[type=search],select,textarea{border-radius:10px}
-.res{border-radius:12px}
-.cell{border-radius:10px}
-.tgroup .thead .t{font-family:"Noto Serif KR","IBM Plex Sans KR",serif}
+.brand{font-weight:700;letter-spacing:-.01em}
+.datelabel{font-weight:700;letter-spacing:-.01em}
 </style>
 </head>
 <body>
@@ -350,7 +349,7 @@ input[type=text],input[type=tel],input[type=date],input[type=time],input[type=se
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1018-1459</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1018-1501</small>
   </div>
 
 </header>
