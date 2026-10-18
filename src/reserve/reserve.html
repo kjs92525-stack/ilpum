@@ -313,6 +313,24 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .res .nm.sameday{color:#7B3FC4}
 .sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
 @media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
+
+/* ---- 디자인 맛보기 4 (2026-10-18, UI UX Pro Max 스킬 추천: "Minimalism & Swiss Style" + 예약용 색 "Energetic amber + booking blue").
+   색·테두리·모서리만, 구조·기능 그대로, 밝은 모드만. 되돌리려면 이 블록만 지우면 됨 ---- */
+@media (prefers-color-scheme: light){
+  :root{ --bg:#FFFBEB; --panel:#FFFFFF; --ink:#3B1D08; --sub:#7C5A3A; --line:#FDE68A; --soft:#FEF3C7;
+    --field:#FFFFFF; --field-line:#FCD34D; --accent:#2563EB; --accent-ink:#FFFFFF;
+    --amber:#F59E0B; --amber-ink:#0F172A; --blue:#2563EB; }
+  header{border-bottom:3px solid var(--amber)}
+  .brand{color:var(--ink)}
+  .btn{border-radius:6px;border-color:#FCD34D}
+  .btn:hover{border-color:var(--amber);background:#FFFBEB}
+  .btn.primary,.btn.today{background:var(--blue);border-color:var(--blue);color:#fff}
+  .tbls .tbl:not(.dupt):not(.tightt):not(.none){background:var(--amber);color:var(--amber-ink);border:2px solid #D97706}
+  .thead .tgl{background:var(--amber);color:var(--amber-ink);border-color:#D97706}
+  .cell{border-radius:6px}
+  .res{border-radius:6px}
+  :focus-visible{outline:2px solid #000;outline-offset:2px}
+}
 </style>
 </head>
 <body>

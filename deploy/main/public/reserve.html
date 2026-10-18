@@ -313,6 +313,24 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .res .nm.sameday{color:#7B3FC4}
 .sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
 @media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
+
+/* ---- 디자인 맛보기 4 (2026-10-18, UI UX Pro Max 스킬 추천: "Minimalism & Swiss Style" + 예약용 색 "Energetic amber + booking blue").
+   색·테두리·모서리만, 구조·기능 그대로, 밝은 모드만. 되돌리려면 이 블록만 지우면 됨 ---- */
+@media (prefers-color-scheme: light){
+  :root{ --bg:#FFFBEB; --panel:#FFFFFF; --ink:#3B1D08; --sub:#7C5A3A; --line:#FDE68A; --soft:#FEF3C7;
+    --field:#FFFFFF; --field-line:#FCD34D; --accent:#2563EB; --accent-ink:#FFFFFF;
+    --amber:#F59E0B; --amber-ink:#0F172A; --blue:#2563EB; }
+  header{border-bottom:3px solid var(--amber)}
+  .brand{color:var(--ink)}
+  .btn{border-radius:6px;border-color:#FCD34D}
+  .btn:hover{border-color:var(--amber);background:#FFFBEB}
+  .btn.primary,.btn.today{background:var(--blue);border-color:var(--blue);color:#fff}
+  .tbls .tbl:not(.dupt):not(.tightt):not(.none){background:var(--amber);color:var(--amber-ink);border:2px solid #D97706}
+  .thead .tgl{background:var(--amber);color:var(--amber-ink);border-color:#D97706}
+  .cell{border-radius:6px}
+  .res{border-radius:6px}
+  :focus-visible{outline:2px solid #000;outline-offset:2px}
+}
 </style>
 </head>
 <body>
@@ -334,7 +352,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1018-1507</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1018-1609</small>
   </div>
 
 </header>
