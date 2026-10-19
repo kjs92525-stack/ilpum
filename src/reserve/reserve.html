@@ -265,6 +265,10 @@ body{background:var(--bg)}
 .btn.today{background:#0F1222;color:#fff;border-color:#0F1222}
 .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
 .fchip{border-color:var(--accent)}
+/* 현황판 칸: 상태 색은 테두리로만, 글씨는 흰색 (어두운 바탕에서 잘 보이게) */
+.cell.st-res,.cell.st-use,.cell.st-soon,.cell.st-dup{border-width:2.5px}
+.cell.st-res .cn,.cell.st-res .no,.cell.st-use .cn,.cell.st-use .no,.cell.st-soon .cn,.cell.st-soon .no,.cell.st-dup .no{color:#fff}
+.cell.st-res,.cell.st-use,.cell.st-soon,.cell.st-dup{color:#fff}
 .cell.st-past{border-color:var(--past);background:var(--soft)} .cell.st-past .cn,.cell.st-past .no{color:var(--past)}
 .qpaste{margin-top:6px;font-size:13px}.qpaste summary{cursor:pointer;color:var(--sub);font-weight:700;padding:2px 0}
 .qpaste textarea{width:100%;box-sizing:border-box;margin-top:4px;font:inherit;font-size:13px;border:1.5px dashed var(--line);border-radius:8px;padding:6px 8px;background:var(--panel);color:var(--ink)}

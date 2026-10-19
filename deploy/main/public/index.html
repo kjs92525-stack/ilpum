@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1F4D3A">
+<meta name="theme-color" content="#191C2E">
 <title>일품집 통합관리</title>
 <style>
 :root{
@@ -121,22 +121,23 @@ select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var
 @media (prefers-reduced-motion:reduce){.nav,.main{transition:none}}
 
 /* ---------- 오늘 현황 디자인 맛보기 (2026-10-19, 테스트 사이트만) — 어두운 남색 바탕 + 둥근 카드, 숫자 카드 3장만 진한 색. 이 블록을 지우면 원래대로 ---------- */
+:root,:root:not(#_){--nav:#191C2E;--nav-h:#24284A;--nav-ink:#D5D8EE;--nav-sub:#7C81A3;--bg:#1E2136;--card:#272B45;--ink:#ECEEF8;--sub:#8E93B5;--line:#353A5A;--brand:#5B8CFF;--brand-soft:#2A3360;--ok:#3DDC97;--warn:#FFB547;--bad:#FF6B7A;--shadow:0 8px 24px rgba(8,10,25,.3);color-scheme:dark}
 #p-dash{--bg:#1E2136;--card:#272B45;--ink:#ECEEF8;--sub:#8E93B5;--line:rgba(255,255,255,.06);--brand:#5B8CFF;--brand-soft:rgba(91,140,255,.14);
   --ok:#3DDC97;--warn:#FFB547;--bad:#FF6B7A;--shadow:0 10px 30px rgba(8,10,25,.35);color-scheme:dark;background:var(--bg);color:var(--ink)}
-/* 오늘 현황일 때 왼쪽 메뉴·상단바도 남색으로 맞춤 (초록과 안 섞이게) */
-body.on-dash .nav{background:#191C2E}
-body.on-dash .brand .mk{background:linear-gradient(150deg,#5B8CFF,#8B5CFF);color:#fff}
-body.on-dash .mi:hover,body.on-dash .si:hover{background:rgba(255,255,255,.06)}
-body.on-dash .mi[aria-current="page"]{background:#5B8CFF;color:#fff}
-body.on-dash .mi .bdg{background:#FF6B7A}
-body.on-dash .si[aria-current="page"]{background:rgba(255,255,255,.06);box-shadow:inset 3px 0 0 #5B8CFF;color:#fff}
-body.on-dash .nfoot .ver{background:rgba(91,140,255,.22)}
-body.on-dash .hidebtn{border-color:rgba(255,255,255,.14)} body.on-dash .hidebtn:hover{background:rgba(255,255,255,.06)}
-body.on-dash .nav,body.on-dash .bar{transition:none}
-body.on-dash .bar{background:#1E2136;border-bottom-color:rgba(255,255,255,.06);color:#ECEEF8}
-body.on-dash .bar .ib,body.on-dash .bar .lk{background:#272B45;border-color:transparent;color:#C9CDE6}
-body.on-dash .bar .ib:hover,body.on-dash .bar .lk:hover{color:#fff;border-color:#5B8CFF}
-body.on-dash .crumb small{color:#8E93B5}
+/* 왼쪽 메뉴·상단바도 항상 남색 (초록과 안 섞이게) */
+body .nav{background:#191C2E}
+body .brand .mk{background:linear-gradient(150deg,#5B8CFF,#8B5CFF);color:#fff}
+body .mi:hover,body .si:hover{background:rgba(255,255,255,.06)}
+body .mi[aria-current="page"]{background:#5B8CFF;color:#fff}
+body .mi .bdg{background:#FF6B7A}
+body .si[aria-current="page"]{background:rgba(255,255,255,.06);box-shadow:inset 3px 0 0 #5B8CFF;color:#fff}
+body .nfoot .ver{background:rgba(91,140,255,.22)}
+body .hidebtn{border-color:rgba(255,255,255,.14)} body .hidebtn:hover{background:rgba(255,255,255,.06)}
+body .nav,body .bar{transition:none}
+body .bar{background:#1E2136;border-bottom-color:rgba(255,255,255,.06);color:#ECEEF8}
+body .bar .ib,body .bar .lk{background:#272B45;border-color:transparent;color:#C9CDE6}
+body .bar .ib:hover,body .bar .lk:hover{color:#fff;border-color:#5B8CFF}
+body .crumb small{color:#8E93B5}
 #p-dash .dh h1{font-size:28px;font-weight:800}
 #p-dash .btn{border-radius:12px;background:transparent;border:1.5px solid rgba(255,255,255,.14);color:#DDE0F2}
 #p-dash .btn:hover{border-color:#5B8CFF;color:#fff}
