@@ -250,6 +250,21 @@ body.resizing iframe{pointer-events:none}
 .cell .arr{position:absolute;top:3px;left:4px;font-size:10.5px;font-weight:700;background:var(--use);color:var(--panel);border-radius:4px;padding:0 5px} .cell.st-use .cn,.cell.st-use .no{color:var(--use)}
 .cell.st-res{border-color:var(--res);background:var(--res-bg)} .cell.st-res .cn,.cell.st-res .no{color:var(--res)}
 .cell.st-soon{border:1.5px dashed var(--soon);background:var(--soon-bg)} .cell.st-soon .cn,.cell.st-soon .no{color:var(--soon)}
+
+/* ===== 예약 화면 디자인 맛보기 (2026-10-19, 테스트 사이트만) — 남색 테마. 이 블록을 지우면 원래대로 ===== */
+:root{
+  --bg:#1E2136; --panel:#272B45; --ink:#ECEEF8; --sub:#8E93B5; --line:rgba(255,255,255,.08); --soft:#2E3350;
+  --accent:#5B8CFF; --accent-ink:#FFFFFF; --warn:#FF8A80; --warn-bg:#3A1F1C; --ok:#7CC48E; --ok-bg:#1F3326; --tight:#FFB547; --tight-bg:#3A2E14;
+  --res:#FF8A80; --res-bg:#3A1F1C; --soon:#E7C15C; --soon-bg:#352D17; --use:#7CC48E; --use-bg:#1F3326; --past:#6E7A74;
+  --field:#1E2136; --field-line:rgba(255,255,255,.14); --dep:#FF9B54; --dep-bg:#5A300F; --dep-ink:#FFE2C2; color-scheme:dark;
+}
+body{background:var(--bg)}
+.panel{border:0;border-radius:16px;box-shadow:0 8px 24px rgba(8,10,25,.3)}
+.btn{border-radius:9px}
+.tbl{background:#0F1222;color:#fff;border-color:#0F1222}           /* 테이블 번호 칩: 먹남색 바탕 흰 숫자 */
+.btn.today{background:#0F1222;color:#fff;border-color:#0F1222}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.fchip{border-color:var(--accent)}
 .cell.st-past{border-color:var(--past);background:var(--soft)} .cell.st-past .cn,.cell.st-past .no{color:var(--past)}
 .qpaste{margin-top:6px;font-size:13px}.qpaste summary{cursor:pointer;color:var(--sub);font-weight:700;padding:2px 0}
 .qpaste textarea{width:100%;box-sizing:border-box;margin-top:4px;font:inherit;font-size:13px;border:1.5px dashed var(--line);border-radius:8px;padding:6px 8px;background:var(--panel);color:var(--ink)}
