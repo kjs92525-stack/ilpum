@@ -7,6 +7,9 @@ import { parseResText, ds } from "./parse.js";
 
 const TOKEN = "__NOTIFY_TOKEN__";
 const HQ_STORE = "0134d989-757a-4b60-9cb3-93245de2cac8";
+const YC_STORE = "ad2ffdae-f76b-44cd-a6c6-58514c4e4638";
+// 같은 폰에 여러 매장 알림이 옴 → 알림 글의 매장 이름으로 나눔 (본점·유천점만, 달서직영점 등 나머지는 무시)
+const STORES = [{ re: /유천/, id: YC_STORE, name: "유천점" }, { re: /본점/, id: HQ_STORE, name: "본점" }];
 const out = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const AUTO_MAX = 8;
@@ -25,7 +28,9 @@ Deno.serve(async (req: Request) => {
   let text = raw; try { const j = JSON.parse(raw); text = [j.title, j.text, j.big, j.msg].filter(Boolean).join("\n") || raw; } catch (_) {}
   text = String(text || "").slice(0, 3000);
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false, autoRefreshToken: false } });
+  let SNAME = "";
   const log = async (res: Record<string, unknown>) => {
+    if (SNAME) res = { store: SNAME, ...res };
     try {
       const cur = (await db.from("sync_state").select("val").eq("key", "naver_log").maybeSingle()).data?.val || [];
       const row = { at: new Date().toISOString(), text: text.slice(0, 300), ...res };
@@ -37,9 +42,10 @@ Deno.serve(async (req: Request) => {
   if (/확정이 필요한 예약건/.test(text) && !/님/.test(text)) return out(200, { skip: "확정 재촉 알림" });
   if (!/예약/.test(text) || !/(접수|신청|확정|취소|변경)/.test(text)) return log({ skip: "예약 알림 아님" });
 
-  // 지금은 본점 알림만 처리 (같은 폰에 유천점 알림도 옴 — 사용자 지시 2026-10-10)
-  if (!/본점/.test(text)) return log({ skip: "본점 알림 아님" });
-  const SID = HQ_STORE;
+  // 본점·유천점 알림만 처리 (2026-10-10 본점만 → 2026-10-25 사용자: 유천점도)
+  const st = STORES.find((x) => x.re.test(text));
+  if (!st) return log({ skip: "본점·유천점 알림 아님" });
+  const SID = st.id; SNAME = st.name;
   const today = kstToday();
   const r: any = parseResText(text, today);
 

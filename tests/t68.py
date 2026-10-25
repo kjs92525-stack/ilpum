@@ -87,6 +87,8 @@ async def main():
     chk('Enter로 10/12에 추가됨', any(x[:3]==['홍길동','18:30','3+1'] and x[3] and x[4:]==['010-1234-5678','아기의자 부탁드려요'] for x in items), str(items))
     chk('추가 뒤 붙여넣기 칸 비움', await pg.input_value('#qPaste')=='' )
     chk('자동 입력 표시 + 확인 버튼', await pg.evaluate("items('2026-10-12').find(x=>x.name==='홍길동').auto")=='new' and await pg.is_visible('.res.auto [data-autook]'))
+    chk('유천점(본점 아님)은 10% 버튼 없음', not await pg.is_visible('.res.auto [data-pcttog]'))
+    await pg.evaluate("STORES.find(z=>z.id===SID).is_hq=true; render()"); await pg.wait_for_timeout(300)
     await pg.click('.res.auto [data-pcttog]'); await pg.wait_for_timeout(300)
     chk('10% 버튼 → 메모에 10%', '10%' in (await pg.evaluate("items('2026-10-12').find(x=>x.name==='홍길동').req")) and await pg.is_visible('.res.auto [data-pcttog].on'))
     await pg.click('.res.auto [data-pcttog]'); await pg.wait_for_timeout(300)
