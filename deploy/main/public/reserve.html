@@ -406,7 +406,7 @@ html.th-navy .grp{border-left-color:#3f4675}
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <button class="nwait" id="nWait" type="button" hidden title="스마트플레이스에서 확정을 누르면 몇 초 뒤 자동으로 들어와요 (누르면 이 안내 닫기)"><i></i>네이버 확정 대기</button><span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1641</small>
+    <button class="nwait" id="nWait" type="button" hidden title="스마트플레이스에서 확정을 누르면 몇 초 뒤 자동으로 들어와요 (누르면 이 안내 닫기)"><i></i>네이버 확정 대기</button><span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1654</small>
   </div>
 
 </header>
@@ -1644,6 +1644,8 @@ function printDialog(){
     <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="close">취소</button><button class="btn primary" data-d="pgo">인쇄</button></div>`;
   dlg.showModal();
 }
+// 인쇄용 테이블 표기: 숫자 테이블은 뒤에 T (22T, 룸은 그대로) — 2026-10-25 사용자 요청
+function printTb(x){ const ts=tablesText(x.tables).map(t=>/^\d+$/.test(String(t))?t+'T':t); return [...ts, ...(x.tnote?[x.tnote]:[])].join(', '); }
 function printDay(from,to,fitOne){
   from=from??0; to=to??1440;
   const all=sortedDay(dayDoc(ui.date).items);
@@ -1653,7 +1655,7 @@ function printDay(from,to,fitOne){
   const rng = (from>0||to<1440)? ` <span style="font-size:.75em;font-weight:500">${fromMin(from)} ~ ${to>=1440?'마감':fromMin(to)}</span>` : '';
   const groups={}; list.forEach(x=>{ (groups[x.time||'-']=groups[x.time||'-']||[]).push(x); });
   const rows=Object.keys(groups).map(t=>groups[t].map((x,i)=>`<tr class="${x.done||isCxl(x)?'done':''} ${i===0?'first':''}"><td class="t">${i===0?esc(t):''}</td><td class="nm">${esc(x.name)}</td><td class="c">${esc(x.pp)}</td>
-    <td class="c tb">${esc(tableShow(x)||'미정')}</td><td>${esc(x.req||'')}</td><td class="c">${x.done?'✓':'□'}</td></tr>`).join('')).join('');
+    <td class="c tb">${esc(printTb(x)||'미정')}</td><td>${esc(x.req||'')}</td><td class="c">${x.done?'✓':'□'}</td></tr>`).join('')).join('');
   let root=document.getElementById('printRoot'); if(!root){ root=document.createElement('div'); root.id='printRoot'; document.body.appendChild(root); }
   root.innerHTML=`<style>
     @page{size:A4 portrait;margin:10mm}
