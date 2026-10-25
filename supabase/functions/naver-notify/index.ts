@@ -8,8 +8,8 @@ import { parseResText, ds } from "./parse.js";
 const TOKEN = "__NOTIFY_TOKEN__";
 const HQ_STORE = "0134d989-757a-4b60-9cb3-93245de2cac8";
 const YC_STORE = "ad2ffdae-f76b-44cd-a6c6-58514c4e4638";
-// 같은 폰에 여러 매장 알림이 옴 → 알림 글의 매장 이름으로 나눔 (본점·유천점만, 달서직영점 등 나머지는 무시)
-const STORES = [{ re: /유천/, id: YC_STORE, name: "유천점" }, { re: /본점/, id: HQ_STORE, name: "본점" }];
+// 같은 폰에 여러 매장 알림이 옴 → 알림 글의 매장 이름으로 나눔. 유천점의 네이버 이름은 "주식회사 일품집달서직영점"(2026-10-25 사용자: 손장환 예약 확인)
+const STORES = [{ re: /유천|달서/, id: YC_STORE, name: "유천점" }, { re: /본점/, id: HQ_STORE, name: "본점" }];
 const out = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const AUTO_MAX = 8;

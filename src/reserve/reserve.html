@@ -315,6 +315,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent);background:var(--soon-bg)}100%{box-shadow:0 0 0 0 transparent}}
 .cell.hit{box-shadow:0 0 0 3px var(--accent)}
 .res .nm.sameday{color:#7B3FC4}
+.btn.outbtn{color:var(--ok);border-color:var(--ok);font-weight:800}
 .badge.outb{background:var(--soft);color:var(--sub);border:1px solid var(--line)}
 .sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
 @media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
@@ -377,7 +378,13 @@ html.th-navy .battg .bbody{border-color:#8f95bd}html.th-navy .battg .bbody::afte
 html.th-navy dialog,html.th-navy .gres{background:var(--panel);border:1.5px solid var(--line);border-radius:18px}
 html.th-navy .lbtn,html.th-navy .seatset{background:var(--soft);border-color:var(--line);color:var(--ink)}
 html.th-navy .nwait{background:rgba(255,181,71,.14);border-color:rgba(255,181,71,.6);color:#ffb547}
-html.th-navy .res .nm.sameday{color:#c4a8ff}html.th-navy .sdb{background:#7a3dff}
+html.th-navy .res .nm.sameday{color:#ffcf70}html.th-navy .sdb{background:#ffcf70;color:#2a1d00}
+/* (2026-10-25 사용자: 칸 구분이 안 됨·보라 글씨 안 보임·흰색 눈부심) 글씨는 덜 하얗게, 현황판 칸은 테두리로 또렷하게, 당일 예약은 보라 → 금색 */
+html.th-navy{--ink:#d6d9ea;--sub:#9da3c8}
+html.th-navy .cell{background:#323862;border:1.5px solid #4a5285}
+html.th-navy .cell.empty{background:#2b3053;border:1.5px solid #3f4675}
+html.th-navy .cell .cn{color:#e4e6f3!important}
+html.th-navy .grp{border-left-color:#3f4675}
 </style>
 </head>
 <body>
@@ -616,6 +623,9 @@ const hasDep=x=>{ const t=String((x&&x.req)||''); return /입완|확인필/.test
 function active(d){ return items(d).filter(x=>!isCxl(x)); }   // 현황판·중복 계산용 (취소 제외)
 // 손님 나감(2026-10-25 사용자: 앞 손님이 나가서 다음 예약을 그 테이블로 옮겼는데 "중복"으로 떠서 보기 힘듦) — x.outT='HH:MM' 나간 시각
 const nowHM=()=>{ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+function canOut(x){ if(x.outT||isCxl(x)) return false; const m=toMin(x.time); if(m==null) return false;   // 목록 줄에 바로 "나감" 버튼: 같은 테이블에 2시간 반 안에 뒤 팀이 있고, 도착했거나 겹친 팀
+  const later=active(ui.date).some(y=>y.id!==x.id&&toMin(y.time)>m&&toMin(y.time)-m<=WIN+30&&(y.tables||[]).some(t=>(x.tables||[]).includes(t)));
+  return later&&(x.done||!!(CONF.who&&CONF.who[x.id])); }
 function leftBefore(a,b){ const [p,q]=toMin(a.time)<=toMin(b.time)?[a,b]:[b,a]; return !!p.outT || (!!p.done && !!q.done); }   // 먼저 온 팀이 나감 표시됐거나, 두 팀 다 도착했으면(앞 팀이 비켜 줬다는 뜻) 겹침 아님
 function tableShow(x){ const ts=tablesText(x.tables); return [...ts, ...(x.tnote?[x.tnote]:[])].join(', '); }
 function cacheDay(d){ try{ localStorage.setItem('ilpum-res-'+SID+'-'+d, JSON.stringify(days[d])); }catch(e){} }
@@ -815,7 +825,7 @@ function renderList(){
             ${!dw&&tw?`<div class="tightline">⏰ 임박(2시간 간격): ${esc(tw.join(', '))}</div>`:''}
             ${x.req?(hasDep(x)?`<div class="rq depq">💰 ${esc(x.req)}</div>`:`<div class="rq">📝 ${esc(x.req)}</div>`):''}
             ${x.phone?`<a class="ph" href="tel:${tel}">${esc(x.phone)}</a>`:''}</div>
-          <div class="acts">${x.auto?`${(STORES.find(z=>z.id===SID)||{}).is_hq?`<button class="btn sm pctbtn${hasPct(x)?' on':''}" data-pcttog="${x.id}" title="10% 쿠폰 손님이면 누르세요 (메모에 10%를 넣고 빼요)">10%</button>`:''}<button class="btn sm autook" data-autook="${x.id}" title="자동으로 넣은 예약이에요. 내용을 확인했으면 누르세요">✓ 확인</button>`:''}<button class="btn sm" data-edit="${x.id}" tabindex="-1">수정</button><button class="btn sm danger" data-del="${x.id}">삭제</button></div></div>`; }).join('')}</div>`; }).join('');
+          <div class="acts">${canOut(x)?`<button class="btn sm outbtn" data-outq="${x.id}" title="이 손님이 나가서 테이블이 비었어요 — 누르면 중복 표시가 사라져요">나감</button>`:''}${x.auto?`${(STORES.find(z=>z.id===SID)||{}).is_hq?`<button class="btn sm pctbtn${hasPct(x)?' on':''}" data-pcttog="${x.id}" title="10% 쿠폰 손님이면 누르세요 (메모에 10%를 넣고 빼요)">10%</button>`:''}<button class="btn sm autook" data-autook="${x.id}" title="자동으로 넣은 예약이에요. 내용을 확인했으면 누르세요">✓ 확인</button>`:''}<button class="btn sm" data-edit="${x.id}" tabindex="-1">수정</button><button class="btn sm danger" data-del="${x.id}">삭제</button></div></div>`; }).join('')}</div>`; }).join('');
   const P=document.getElementById('listPanel');
   P.innerHTML=`${quickHtml()}
     <div style="display:flex;align-items:center;gap:8px;margin-top:12px"><h2>예약 목록</h2></div>
@@ -1078,7 +1088,7 @@ function goDup(t){
   const f=FLOORS.find(fl=>floorHas(fl,t)); if(f) ui.floor=f.key;
   renderBoard();
   setTimeout(()=>document.querySelectorAll(`.cell[data-cell="${t}"]`).forEach(c=>{ c.classList.add('flash'); c.scrollIntoView({block:'nearest'}); }),30);
-  toast(`${tLabel(t)} 중복 — ${fromMin(ui.t)}로 옮겼어요. 칸을 누르면 두 예약을 비교할 수 있어요`);
+  toast(`${tLabel(t)} 중복 — ${fromMin(ui.t)}로 옮겼어요. 앞 손님이 나갔으면 목록의 "나감"을 누르세요`);
 }
 function goTight(t){
   const xs=[...(TIGHT.table[t]||new Map()).values()]; if(!xs.length) return;
@@ -1278,6 +1288,7 @@ document.getElementById('listPanel').addEventListener('keydown',e=>{ if(e.key===
 document.getElementById('listPanel').addEventListener('click',e=>{
   const b=e.target.closest('button');
   if(b&&b.dataset.pcttog){ const it=dayDoc(ui.date).items.find(y=>y.id===b.dataset.pcttog); if(it){ if(hasPct(it)){ it.req=String(it.req||'').replace(/(^|[^0-9])10\s*[%％]/g,'$1').replace(/\s+/g,' ').trim(); toast('10% 뺐어요'); } else { it.req=((it.req||'')+' 10%').trim(); toast('메모에 10% 넣었어요'); } saveItem(ui.date,it); } return; }
+  if(b&&b.dataset.outq){ const it=dayDoc(ui.date).items.find(y=>y.id===b.dataset.outq); if(it){ it.outT=nowHM(); it.done=true; saveItem(ui.date,it); toast(`${it.name} 나감 ${it.outT} — 중복 표시를 뺐어요 (잘못 눌렀으면 현황판 칸을 눌러 "나감 취소")`); } return; }
   if(b&&b.dataset.autook){ const it=dayDoc(ui.date).items.find(y=>y.id===b.dataset.autook); if(it){ delete it.auto; saveItem(ui.date,it); toast('확인했어요'); } return; }
   if(b&&b.dataset.nundo){ noticeUndoDo(); return; }
   if(b&&b.dataset.ncand!=null){ const k=noticeCands[+b.dataset.ncand]; if(!k) return; const h=k.kind==='cancel'?noticeCancel(k.c):noticeChange(k.c,k.r); noticeCands=[]; noticeGo(k.kind==='cancel'?k.c.d:(k.r.date||k.c.d)); quickPasteMsg=h+' <button class="sugchip" data-nundo="1">되돌리기</button>'; const bx=document.getElementById('qPasteRes'); if(bx) bx.innerHTML=quickPasteMsg; return; }
