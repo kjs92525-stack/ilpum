@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>일품집 급여 계산기</title>
+<script>/* 남색 테마 (2026-10-25 사용자: 고르게) — 이 기기 설정 ilpum-theme, 통합관리 위쪽 "테마" 버튼으로 바꿈 */(function(){var d=document.documentElement,f=function(){var on=false;try{on=localStorage.getItem("ilpum-theme")==="navy"}catch(e){}d.classList.toggle("th-navy",on);var m=document.querySelector('meta[name="theme-color"]');if(m){if(!m.dataset.c)m.dataset.c=m.content;m.content=on?"#191C2E":m.dataset.c}};f();addEventListener("storage",function(e){if(e.key==="ilpum-theme")f()});addEventListener("DOMContentLoaded",f);window.themeApply=f})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -120,6 +121,9 @@ tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
 #dailyCanvasHolder canvas{max-width:100%;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.12)}
 @media print{header,.noprint,.btn,.toast{display:none!important} body{background:#fff;color:#000} .card{border:0;padding:0} input,select{border:0;background:none!important;padding:0}}
 .srvnote{margin:8px 16px 0;padding:8px 12px;border-radius:10px;background:#FDECEA;color:#9B2C1F;font-weight:600;font-size:13px}
+/* ===== 남색 테마 (2026-10-25 사용자: 고를 수 있게, html.th-navy 일 때만) ===== */
+html.th-navy{--bg:#1E2136!important;--panel:#272B45!important;--ink:#ECEEF8!important;--sub:#8E93B5!important;--line:#353A5A!important;--accent:#5B8CFF!important;--accent-ink:#FFFFFF!important;
+  --warn:#FF8A80!important;--warn-bg:#3A1F1C!important;--ok:#7CC48E!important;--pm:#9DB8E6!important;--edit:#3A3220!important;--edit-line:#D9A24A!important;--alba:#E7A95C!important;--field:#1E2136!important;--field-line:#454B70!important;color-scheme:dark}
 </style>
 </head>
 <body>

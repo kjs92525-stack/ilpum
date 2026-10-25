@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>일품집 예약</title>
+<script>/* 남색 테마 (2026-10-25 사용자: 고르게) — 이 기기 설정 ilpum-theme, 통합관리 위쪽 "테마" 버튼으로 바꿈 */(function(){var d=document.documentElement,f=function(){var on=false;try{on=localStorage.getItem("ilpum-theme")==="navy"}catch(e){}d.classList.toggle("th-navy",on);var m=document.querySelector('meta[name="theme-color"]');if(m){if(!m.dataset.c)m.dataset.c=m.content;m.content=on?"#191C2E":m.dataset.c}};f();addEventListener("storage",function(e){if(e.key==="ilpum-theme")f()});addEventListener("DOMContentLoaded",f);window.themeApply=f})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -313,6 +314,24 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .res .nm.sameday{color:#7B3FC4}
 .sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
 @media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
+/* ===== 남색 테마 (2026-10-25 사용자: 고를 수 있게, html.th-navy 일 때만) ===== */
+html.th-navy{
+  --bg:#1E2136; --panel:#272B45; --ink:#ECEEF8; --sub:#8E93B5; --line:rgba(255,255,255,.08); --soft:#2E3350;
+  --accent:#5B8CFF; --accent-ink:#FFFFFF; --warn:#FF8A80; --warn-bg:#3A1F1C; --ok:#7CC48E; --ok-bg:#1F3326; --tight:#FFB547; --tight-bg:#3A2E14;
+  --res:#FF8A80; --res-bg:#3A1F1C; --soon:#E7C15C; --soon-bg:#352D17; --use:#7CC48E; --use-bg:#1F3326; --past:#6E7A74;
+  --field:#1E2136; --field-line:rgba(255,255,255,.14); --dep:#FF9B54; --dep-bg:#5A300F; --dep-ink:#FFE2C2; color-scheme:dark;
+}
+html.th-navy body{background:var(--bg)}
+html.th-navy .panel{border:0;border-radius:16px;box-shadow:0 8px 24px rgba(8,10,25,.3)}
+html.th-navy .btn{border-radius:9px}
+html.th-navy .tbl{background:#0F1222;color:#fff;border-color:#0F1222}
+html.th-navy .btn.today{background:#0F1222;color:#fff;border-color:#0F1222}
+html.th-navy .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+html.th-navy .fchip{border-color:var(--accent)}
+html.th-navy .cell.st-res,html.th-navy .cell.st-use,html.th-navy .cell.st-soon,html.th-navy .cell.st-dup{border-width:2.5px;color:#fff}
+html.th-navy .cell.st-res .cn,html.th-navy .cell.st-res .no,html.th-navy .cell.st-use .cn,html.th-navy .cell.st-use .no,html.th-navy .cell.st-soon .cn,html.th-navy .cell.st-soon .no,html.th-navy .cell.st-dup .no{color:#fff}
+html.th-navy .res .rq.depq{color:#2A1200}
+html.th-navy .res.cxl .rq.depq,html.th-navy .res.done .rq.depq{color:#fff}
 </style>
 </head>
 <body>
@@ -334,7 +353,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1156</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1235</small>
   </div>
 
 </header>
@@ -745,7 +764,7 @@ function renderList(){
             ${!dw&&tw?`<div class="tightline">⏰ 임박(2시간 간격): ${esc(tw.join(', '))}</div>`:''}
             ${x.req?(hasDep(x)?`<div class="rq depq">💰 ${esc(x.req)}</div>`:`<div class="rq">📝 ${esc(x.req)}</div>`):''}
             ${x.phone?`<a class="ph" href="tel:${tel}">${esc(x.phone)}</a>`:''}</div>
-          <div class="acts">${x.auto?`<button class="btn sm pctbtn${hasPct(x)?' on':''}" data-pcttog="${x.id}" title="10% 쿠폰 손님이면 누르세요 (메모에 10%를 넣고 빼요)">10%</button><button class="btn sm autook" data-autook="${x.id}" title="자동으로 넣은 예약이에요. 내용을 확인했으면 누르세요">✓ 확인</button>`:''}<button class="btn sm" data-edit="${x.id}" tabindex="-1">수정</button><button class="btn sm danger" data-del="${x.id}">삭제</button></div></div>`; }).join('')}</div>`; }).join('');
+          <div class="acts">${x.auto?`${(STORES.find(z=>z.id===SID)||{}).is_hq?`<button class="btn sm pctbtn${hasPct(x)?' on':''}" data-pcttog="${x.id}" title="10% 쿠폰 손님이면 누르세요 (메모에 10%를 넣고 빼요)">10%</button>`:''}<button class="btn sm autook" data-autook="${x.id}" title="자동으로 넣은 예약이에요. 내용을 확인했으면 누르세요">✓ 확인</button>`:''}<button class="btn sm" data-edit="${x.id}" tabindex="-1">수정</button><button class="btn sm danger" data-del="${x.id}">삭제</button></div></div>`; }).join('')}</div>`; }).join('');
   const P=document.getElementById('listPanel');
   P.innerHTML=`${quickHtml()}
     <div style="display:flex;align-items:center;gap:8px;margin-top:12px"><h2>예약 목록</h2></div>
