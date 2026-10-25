@@ -85,7 +85,7 @@ body.resizing iframe{pointer-events:none}
 .seg button{border:0;background:var(--panel);padding:6px 11px;font-size:14px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel);font-weight:600}
 .search{flex:1;min-width:120px}
-.tgroup{margin-top:10px}
+.tgroup{margin-top:4px}
 .quick{border:1.5px solid var(--accent);border-radius:10px;padding:10px;background:var(--soft);display:flex;flex-direction:column;gap:6px}
 .qrow{display:flex;gap:6px}
 .qrow input{padding:7px 8px;min-width:0;flex:1 1 0}
@@ -250,6 +250,27 @@ body.resizing iframe{pointer-events:none}
 .cell .arr{position:absolute;top:3px;left:4px;font-size:10.5px;font-weight:700;background:var(--use);color:var(--panel);border-radius:4px;padding:0 5px} .cell.st-use .cn,.cell.st-use .no{color:var(--use)}
 .cell.st-res{border-color:var(--res);background:var(--res-bg)} .cell.st-res .cn,.cell.st-res .no{color:var(--res)}
 .cell.st-soon{border:1.5px dashed var(--soon);background:var(--soon-bg)} .cell.st-soon .cn,.cell.st-soon .no{color:var(--soon)}
+
+/* ===== 예약 화면 디자인 맛보기 (2026-10-19, 테스트 사이트만) — 남색 테마. 이 블록을 지우면 원래대로 ===== */
+:root{
+  --bg:#1E2136; --panel:#272B45; --ink:#ECEEF8; --sub:#8E93B5; --line:rgba(255,255,255,.08); --soft:#2E3350;
+  --accent:#5B8CFF; --accent-ink:#FFFFFF; --warn:#FF8A80; --warn-bg:#3A1F1C; --ok:#7CC48E; --ok-bg:#1F3326; --tight:#FFB547; --tight-bg:#3A2E14;
+  --res:#FF8A80; --res-bg:#3A1F1C; --soon:#E7C15C; --soon-bg:#352D17; --use:#7CC48E; --use-bg:#1F3326; --past:#6E7A74;
+  --field:#1E2136; --field-line:rgba(255,255,255,.14); --dep:#FF9B54; --dep-bg:#5A300F; --dep-ink:#FFE2C2; color-scheme:dark;
+}
+body{background:var(--bg)}
+.panel{border:0;border-radius:16px;box-shadow:0 8px 24px rgba(8,10,25,.3)}
+.btn{border-radius:9px}
+.tbl{background:#0F1222;color:#fff;border-color:#0F1222}           /* 테이블 번호 칩: 먹남색 바탕 흰 숫자 */
+.btn.today{background:#0F1222;color:#fff;border-color:#0F1222}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.fchip{border-color:var(--accent)}
+/* 현황판 칸: 상태 색은 테두리로만, 글씨는 흰색 (어두운 바탕에서 잘 보이게) */
+.cell.st-res,.cell.st-use,.cell.st-soon,.cell.st-dup{border-width:2.5px}
+.cell.st-res .cn,.cell.st-res .no,.cell.st-use .cn,.cell.st-use .no,.cell.st-soon .cn,.cell.st-soon .no,.cell.st-dup .no{color:#fff}
+.cell.st-res,.cell.st-use,.cell.st-soon,.cell.st-dup{color:#fff}
+.res .rq.depq{color:#2A1200}                                       /* 예약금 꼬리표: 주황 바탕엔 진한 갈색 글씨 */
+.res.cxl .rq.depq,.res.done .rq.depq{color:#fff}
 .cell.st-past{border-color:var(--past);background:var(--soft)} .cell.st-past .cn,.cell.st-past .no{color:var(--past)}
 .qpaste{margin-top:6px;font-size:13px}.qpaste summary{cursor:pointer;color:var(--sub);font-weight:700;padding:2px 0}
 .qpaste textarea{width:100%;box-sizing:border-box;margin-top:4px;font:inherit;font-size:13px;border:1.5px dashed var(--line);border-radius:8px;padding:6px 8px;background:var(--panel);color:var(--ink)}
@@ -334,7 +355,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1018-1217</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1148</small>
   </div>
 
 </header>
@@ -1349,10 +1370,13 @@ function battPaint(){ const b=document.getElementById('battBtn'); if(!b) return;
 function battDialog(){
   const md=n=>{ const d=new Date(); d.setDate(d.getDate()-n); return `${d.getMonth()+1}/${d.getDate()}`; };
   const nx=n=>{ const d=new Date(); d.setDate(d.getDate()-n+2); return `${d.getMonth()+1}/${d.getDate()}`; };
-  const due=battDue();
+  const due=battDue(), hist=battHist();
   dlg.classList.remove('wide');
   dlgBody.innerHTML=`<h3>배터리 언제 뺐어요?</h3>
     <div class="hint" style="margin-bottom:10px">뺀 날로부터 이틀 뒤 저녁 7시에 빨갛게 알려 줘요.${due?`<br>지금 기록: 다음 교체 ${due.getMonth()+1}/${due.getDate()} 저녁 7시`:''}</div>
+    ${hist.length?`<div style="margin:0 0 10px;padding:9px 11px;border-radius:10px;background:var(--soft,#f3f4f6)"><div style="font-weight:700;margin-bottom:4px">마지막 교체: ${battWhen(hist[0].at)} · ${esc(hist[0].by||'?')}</div>
+      <div class="hint" style="margin:0">최근 교체 기록</div>${hist.map(h=>`<div style="font-size:13px;margin-top:2px">${battWhen(h.at)} · <b>${esc(h.by||'?')}</b>${h.t&&Math.abs(h.t-h.at)>36e5?` <span class="hint">(${battWhen(h.t)}에 누름)</span>`:''}</div>`).join('')}</div>`:''}
+    <label class="hint" style="display:block;margin-bottom:8px">누가 갈았어요? <input id="battWho" value="${esc(battWho())}" maxlength="12" style="width:140px;margin-left:6px"></label>
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn primary" data-batt="0" style="padding:12px">오늘 (${md(0)}) 뺐어요 → ${nx(0)} 저녁 7시에 알림</button>
       <button class="btn" data-batt="1" style="padding:12px">어제 (${md(1)}) 뺐어요 → ${nx(1)} 저녁 7시에 알림</button>
@@ -1362,14 +1386,24 @@ function battDialog(){
 }
 document.getElementById('battBtn').addEventListener('click',battDialog);
 dlgBody.addEventListener('click',e=>{ const b=e.target.closest('[data-batt]'); if(!b) return; const n=+b.dataset.batt||0;
-  const at=Date.now()-n*864e5;
+  const at=Date.now()-n*864e5, wi=document.getElementById('battWho'), who=(wi&&wi.value.trim().slice(0,12))||battWho();
+  try{ localStorage.setItem(BATT_WHO,who); }catch(e){} battSetHist([{at,by:who,t:Date.now()},...battHist()]);
   try{ localStorage.setItem(BATT_KEY,String(at)); }catch(e){} dlg.close(); battPaint(); const d=battDue(); toast(`배터리 기록 · 다음 교체 ${d.getMonth()+1}/${d.getDate()} 저녁 7시`);
-  battPush(at).then(ok=>{ if(!ok) toast('다른 컴퓨터에는 안 보여요 (저장 권한이 없거나 연결이 안 돼요)'); }); });
+  battPush(at,who).then(ok=>{ if(!ok) toast('다른 컴퓨터에는 안 보여요 (저장 권한이 없거나 연결이 안 돼요)'); }); });
 battPaint(); setInterval(battPaint,60000);
 // 서버 동기화: 가장 늦게 누른 기록이 이김. 요청은 시작할 때·탭 다시 볼 때·실시간 알림 때만
-function battApply(t){ t=+t||0; let cur=0; try{ cur=+localStorage.getItem(BATT_KEY)||0; }catch(e){} if(t&&t!==cur){ try{ localStorage.setItem(BATT_KEY,String(t)); }catch(e){} battPaint(); } }
-async function battPull(){ if(!REST||!SID) return; try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.battery&deleted=eq.false&select=data`); if(!r.ok) return; const a=await r.json(); if(a[0]&&a[0].data) battApply(a[0].data.at); }catch(e){} }
-async function battPush(t){ if(!REST||!SID) return false; try{ const r=await fx('/rest/v1/sch_items?on_conflict=store_id,kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({store_id:SID,kind:'cfg',id:'battery',data:{at:t},deleted:false})}); return r.ok; }catch(e){ return false; } }
+// 교체 기록(2026-10-25 사용자: 누가 언제 눌렀는지) — 최근 3개, 서버 data.hist=[{at:뺀 시각,by:누가,t:누른 시각}]
+const BATT_HIST='ilpum-battery-hist', BATT_WHO='ilpum-battery-who';
+function battHist(){ try{ const a=JSON.parse(localStorage.getItem(BATT_HIST)||'[]'); return Array.isArray(a)?a.filter(h=>h&&+h.at).slice(0,3):[]; }catch(e){ return []; } }
+function battSetHist(a){ const seen=new Set(); a=(a||[]).filter(h=>h&&+h.at&&!seen.has(h.at+'|'+h.t)&&seen.add(h.at+'|'+h.t)).sort((x,y)=>(y.t||y.at)-(x.t||x.at)).slice(0,3); try{ localStorage.setItem(BATT_HIST,JSON.stringify(a)); }catch(e){} return a; }
+function battWho(){ try{ const w=localStorage.getItem(BATT_WHO); if(w) return w; }catch(e){} const s=readSes(); return ((s&&s.user&&s.user.email)||'').replace(/@ilpum\.invalid$/,''); }
+function battWhen(t){ const d=new Date(+t), h=d.getHours(); return `${d.getMonth()+1}/${d.getDate()}(${'일월화수목금토'[d.getDay()]}) ${h<12?'오전':'오후'} ${h%12||12}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function battApply(t,hist){ if(Array.isArray(hist)) battSetHist(hist); t=+t||0; let cur=0; try{ cur=+localStorage.getItem(BATT_KEY)||0; }catch(e){} if(t&&t!==cur){ try{ localStorage.setItem(BATT_KEY,String(t)); }catch(e){} battPaint(); } }
+async function battPull(){ if(!REST||!SID) return; try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.battery&deleted=eq.false&select=data`); if(!r.ok) return; const a=await r.json(); if(a[0]&&a[0].data) battApply(a[0].data.at,a[0].data.hist); }catch(e){} }
+async function battPush(t,who){ if(!REST||!SID) return false; try{
+  // 다른 컴퓨터가 남긴 기록을 먼저 받아 합친 뒤 올림 (덮어써서 기록이 사라지지 않게)
+  let hist=battHist(); try{ const g=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.battery&select=data`); if(g.ok){ const a=await g.json(); if(a[0]&&a[0].data&&Array.isArray(a[0].data.hist)) hist=battSetHist([...hist,...a[0].data.hist]); } }catch(e){}
+  const r=await fx('/rest/v1/sch_items?on_conflict=store_id,kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({store_id:SID,kind:'cfg',id:'battery',data:{at:t,by:who||'',hist},deleted:false})}); return r.ok; }catch(e){ return false; } }
 
 /* ---------- 중복 예약 정리 ---------- */
 async function dedupeAll(){
@@ -1641,7 +1675,7 @@ function rtConnect(){
   ws.onmessage=e=>{
     let m; try{ m=JSON.parse(e.data); }catch(x){ return; }
     if(m.event==='phx_reply'&&m.topic===topic){ rtSet(m.payload&&m.payload.status==='ok'); if(rtOk){ rtWait=1000; pullDay(ui.date); battPull(); } return; }     // 연결되면 한 번 맞춰 봄
-    if(m.event==='postgres_changes'){ const dd=m.payload&&m.payload.data; const rec=dd&&(dd.record||dd.old_record); if(dd&&dd.table==='sch_items'){ if(rec&&rec.kind==='cfg'&&rec.id==='battery'&&dd.record&&dd.record.data) battApply(dd.record.data.at); return; } const d=rec&&rec.id; if(d&&(d===ui.date||days[d])) pullDay(d); return; }
+    if(m.event==='postgres_changes'){ const dd=m.payload&&m.payload.data; const rec=dd&&(dd.record||dd.old_record); if(dd&&dd.table==='sch_items'){ if(rec&&rec.kind==='cfg'&&rec.id==='battery'&&dd.record&&dd.record.data) battApply(dd.record.data.at,dd.record.data.hist); return; } const d=rec&&rec.id; if(d&&(d===ui.date||days[d])) pullDay(d); return; }
     if(m.event==='phx_error'||m.event==='phx_close'||(m.event==='system'&&m.payload&&m.payload.status==='error')) rtSet(false); };
   ws.onclose=()=>{ rtSet(false); rtWs=null; clearInterval(rtBeat); clearInterval(rtTok); setTimeout(rtConnect,rtWait); rtWait=Math.min(rtWait*2,300000); };
   ws.onerror=()=>{ try{ ws.close(); }catch(e){} };
