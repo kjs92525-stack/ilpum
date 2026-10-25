@@ -315,6 +315,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent);background:var(--soon-bg)}100%{box-shadow:0 0 0 0 transparent}}
 .cell.hit{box-shadow:0 0 0 3px var(--accent)}
 .res .nm.sameday{color:#7B3FC4}
+.badge.outb{background:var(--soft);color:var(--sub);border:1px solid var(--line)}
 .sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
 @media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
 /* ===== 남색 테마 (2026-10-25 사용자: 고를 수 있게, html.th-navy 일 때만) — 사용자가 보내 준 "앱 대시보드" 참고: 바탕 #22253d·판 #272b47·칸 #2e3354, 테두리 대신 밝기 차이, 글꼴 Noto Sans KR + 숫자 Poppins, 강조는 파랑·초록·코랄·주황만 ===== */
@@ -398,7 +399,7 @@ html.th-navy .res .nm.sameday{color:#c4a8ff}html.th-navy .sdb{background:#7a3dff
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <button class="nwait" id="nWait" type="button" hidden title="스마트플레이스에서 확정을 누르면 몇 초 뒤 자동으로 들어와요 (누르면 이 안내 닫기)"><i></i>네이버 확정 대기</button><span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1336</small>
+    <button class="nwait" id="nWait" type="button" hidden title="스마트플레이스에서 확정을 누르면 몇 초 뒤 자동으로 들어와요 (누르면 이 안내 닫기)"><i></i>네이버 확정 대기</button><span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1349</small>
   </div>
 
 </header>
@@ -613,6 +614,9 @@ const isCxl=x=>/취소/.test(x.tnote||'');
 const hasPct=x=>/(^|[^0-9])10\s*[%％]/.test(String((x&&x.req)||''));
 const hasDep=x=>{ const t=String((x&&x.req)||''); return /입완|확인필/.test(t)&&/예약금(?!\s*[xX×✕]|\s*(?:없|무|안|미))/.test(t); };
 function active(d){ return items(d).filter(x=>!isCxl(x)); }   // 현황판·중복 계산용 (취소 제외)
+// 손님 나감(2026-10-25 사용자: 앞 손님이 나가서 다음 예약을 그 테이블로 옮겼는데 "중복"으로 떠서 보기 힘듦) — x.outT='HH:MM' 나간 시각
+const nowHM=()=>{ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+function leftBefore(a,b){ const [p,q]=toMin(a.time)<=toMin(b.time)?[a,b]:[b,a]; return !!p.outT || (!!p.done && !!q.done); }   // 먼저 온 팀이 나감 표시됐거나, 두 팀 다 도착했으면(앞 팀이 비켜 줬다는 뜻) 겹침 아님
 function tableShow(x){ const ts=tablesText(x.tables); return [...ts, ...(x.tnote?[x.tnote]:[])].join(', '); }
 function cacheDay(d){ try{ localStorage.setItem('ilpum-res-'+SID+'-'+d, JSON.stringify(days[d])); }catch(e){} }
 
@@ -691,6 +695,7 @@ function saveItem(d,item){ item.u=Date.now(); const doc=dayDoc(d); const i=doc.i
 function stateOf(it,T){
   const m=toMin(it.time); if(m==null) return null;
   const diff=T-m;                        // 양수 = 예약시간 지남
+  if(it.outT && T>=toMin(it.outT)) return null;   // 나간 뒤로는 현황판에서 뺌
   if(it.done) return (diff>=-WIN && diff<=180) ? 'use' : null;   // 도착: 예약 2시간 전 ~ 3시간 후까지 표시
   if(diff>=0 && diff<=WIN) return 'res';
   if(diff<0 && -diff<=WIN) return 'soon';
@@ -700,6 +705,7 @@ function boardMap(T){
   const map={};
   active(ui.date).forEach(it=>{ const st=stateOf(it,T); if(!st) return;
     (it.tables||[]).forEach(t=>{ (map[t]=map[t]||[]).push({it,st,diff:Math.abs(T-toMin(it.time))}); }); });
+  Object.keys(map).forEach(t=>{ const u=map[t].filter(l=>l.st==='use'); if(u.length>1){ const last=u.reduce((a,b)=>toMin(a.it.time)>=toMin(b.it.time)?a:b); map[t]=map[t].filter(l=>l.st!=='use'||l===last); } });   // 둘 다 도착이면 나중 팀만
   Object.values(map).forEach(a=>a.sort((x,y)=>{ const pri={use:0,res:1,soon:2}; return (pri[x.st]-pri[y.st])||(x.diff-y.diff); }));
   return map;
 }
@@ -708,7 +714,7 @@ function dayConflicts(date){   // 테이블 → 서로 겹치는 예약들 / 예
   const table={}, who={};
   Object.keys(byT).forEach(t=>{ const a=byT[t];
     for(let i=0;i<a.length;i++) for(let j=i+1;j<a.length;j++){
-      if(Math.abs(toMin(a[i].time)-toMin(a[j].time))<WIN){
+      if(Math.abs(toMin(a[i].time)-toMin(a[j].time))<WIN && !leftBefore(a[i],a[j])){
         const s=table[t]=table[t]||new Map(); s.set(a[i].id,a[i]); s.set(a[j].id,a[j]);
         (who[a[i].id]=who[a[i].id]||[]).push(`${tLabel(t)}: ${a[j].name} ${a[j].time}`);
         (who[a[j].id]=who[a[j].id]||[]).push(`${tLabel(t)}: ${a[i].name} ${a[i].time}`);
@@ -723,7 +729,7 @@ function dayTight(date){   // 테이블 → 딱 2시간~2시간30분 간격(겹�
   Object.keys(byT).forEach(t=>{ const a=byT[t];
     for(let i=0;i<a.length;i++) for(let j=i+1;j<a.length;j++){
       const d=Math.abs(toMin(a[i].time)-toMin(a[j].time));
-      if(d>=WIN && d<=TIGHT_MAX){
+      if(d>=WIN && d<=TIGHT_MAX && !leftBefore(a[i],a[j])){
         const s=table[t]=table[t]||new Map(); s.set(a[i].id,a[i]); s.set(a[j].id,a[j]);
         (who[a[i].id]=who[a[i].id]||[]).push(`${tLabel(t)}: ${a[j].name} ${a[j].time}`);
         (who[a[j].id]=who[a[j].id]||[]).push(`${tLabel(t)}: ${a[i].name} ${a[i].time}`);
@@ -803,7 +809,7 @@ function renderList(){
           <input type="checkbox" class="ck" data-done="${x.id}" ${x.done?'checked':''} aria-label="${esc(x.name)} 도착">
           <div><div class="l1"><span class="tbls">${(()=>{ const ct=CONF.tabs[x.id], tt=TIGHT.tabs[x.id];
               if(!ct && !tt){ const tx=tablesText(tb), nums=tx.filter(t=>/^\d+$/.test(t)), rest=tx.filter(t=>!/^\d+$/.test(t)); return (nums.length?`<span class="tbl">${esc(nums.join('·'))}<small>번</small></span>`:'')+rest.map(t=>`<span class="tbl">${esc(t)}</span>`).join(''); }
-              return tb.map(t=>`<span class="tbl ${ct&&ct.has(t)?'dupt':tt&&tt.has(t)?'tightt':''}">${esc(tLabel(t))}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join(''); })()}${x.tnote?`<span class="tnote ${cx?'cx':''}">${esc(x.tnote)}</span>`:''}${!tb.length&&!x.tnote?'<span class="tbl none">테이블 미정</span>':''}</span><button class="rtime" data-goto="${esc(x.time)}" data-gt="${esc((x.tables||[])[0]||'')}" title="현황판을 ${esc(x.time)}로">${esc(x.time)}</button><span class="nm ${x.c&&x.c===ui.date?'sameday':''}">${esc(x.name)}</span>${x.c&&x.c===ui.date?'<span class="sdb">당일</span>':''}${x.pp?`<span class="pp">${esc(x.pp)}명</span>`:''}
+              return tb.map(t=>`<span class="tbl ${ct&&ct.has(t)?'dupt':tt&&tt.has(t)?'tightt':''}">${esc(tLabel(t))}${/^\d+$/.test(t)?'<small>번</small>':''}</span>`).join(''); })()}${x.tnote?`<span class="tnote ${cx?'cx':''}">${esc(x.tnote)}</span>`:''}${!tb.length&&!x.tnote?'<span class="tbl none">테이블 미정</span>':''}</span><button class="rtime" data-goto="${esc(x.time)}" data-gt="${esc((x.tables||[])[0]||'')}" title="현황판을 ${esc(x.time)}로">${esc(x.time)}</button><span class="nm ${x.c&&x.c===ui.date?'sameday':''}">${esc(x.name)}</span>${x.c&&x.c===ui.date?'<span class="sdb">당일</span>':''}${x.outT?`<span class="badge outb" title="손님 나감">나감 ${esc(x.outT)}</span>`:''}${x.pp?`<span class="pp">${esc(x.pp)}명</span>`:''}
             ${x.done?'<span class="badge done">도착</span>':''}${x.auto?`<span class="badge autob">N ${esc(x.auto==='cxl'?'자동 취소':x.auto==='chg'?'자동 변경':'자동 입력')}</span>`:''}</div>
             ${dw?`<div class="dupline">⚠ 중복: ${esc(dw.join(', '))}</div>`:''}
             ${!dw&&tw?`<div class="tightline">⏰ 임박(2시간 간격): ${esc(tw.join(', '))}</div>`:''}
@@ -1056,7 +1062,7 @@ function openForm(it){
 function busyTables(date,time,exceptId){
   const m=toMin(time); const busy={}; if(m==null) return busy;
   active(date).forEach(x=>{ if(x.id===exceptId) return; const xm=toMin(x.time); if(xm==null) return;
-    if(Math.abs(xm-m)<WIN) (x.tables||[]).forEach(t=>busy[t]=x); });
+    if(Math.abs(xm-m)<WIN && !(x.outT&&xm<m)) (x.tables||[]).forEach(t=>busy[t]=x); });
   return busy;
 }
 function tPrev(tables,tnote){
@@ -1087,12 +1093,13 @@ function pickDialog(t){
   const dupIds=CONF.table[t]? new Set(CONF.table[t].keys()) : new Set();
   const tightIds=TIGHT.table[t]? new Set(TIGHT.table[t].keys()) : new Set();
   dlgBody.innerHTML=`<h3>${esc(tLabel(t))} · 오늘 예약 ${list.length}건${dupIds.size?' <span class="badge warn">중복</span>':''}${!dupIds.size&&tightIds.size?' <span class="badge warn" style="background:var(--tight-bg);color:var(--tight)">임박</span>':''}</h3>
+    ${dupIds.size?`<div class="hint" style="margin-bottom:8px;color:var(--warn);font-weight:700">앞 손님이 나가서 다음 손님을 앉혔으면 앞 손님의 <b>나감</b>을 누르세요 — 중복 표시가 사라져요.</div>`:''}
     ${list.length? `<div class="hint" style="margin-bottom:8px">이 테이블의 오늘 예약 전체예요. 고칠 예약의 수정을 누르세요.</div>` : `<div class="hint" style="margin-bottom:8px">오늘 이 테이블에 잡힌 예약이 없어요.</div>`}
     <div class="pick">${list.map(x=>`<div class="pk1 ${dupIds.has(x.id)?'dupx':''}">
       <div><div class="l1"><span class="t">${esc(x.time)}</span><span class="n">${esc(x.name)}</span>${x.pp?`<b>${esc(x.pp)}명</b>`:''}
-        ${tablesText(x.tables).map(z=>`<span class="tbl">${esc(z)}</span>`).join('')}${x.done?'<span class="badge done">도착</span>':''}${dupIds.has(x.id)?'<span class="badge warn">겹침</span>':tightIds.has(x.id)?'<span class="badge warn" style="background:var(--tight-bg);color:var(--tight)">임박</span>':''}</div>
+        ${tablesText(x.tables).map(z=>`<span class="tbl">${esc(z)}</span>`).join('')}${x.done?'<span class="badge done">도착</span>':''}${x.outT?`<span class="badge outb">나감 ${esc(x.outT)}</span>`:''}${dupIds.has(x.id)?'<span class="badge warn">겹침</span>':tightIds.has(x.id)?'<span class="badge warn" style="background:var(--tight-bg);color:var(--tight)">임박</span>':''}</div>
         <div class="sub">${x.req?(hasDep(x)?'<span class="depchip">💰 예약금</span>':'📝 ')+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div>
-      <button class="btn primary" data-pe="${x.id}">수정</button></div>`).join('')}</div>
+      <div style="display:flex;gap:6px">${x.outT?`<button class="btn" data-pin="${x.id}" data-pt="${esc(t)}" title="나감 표시 지우기">나감 취소</button>`:(x.done||dupIds.has(x.id))&&list.some(y=>y!==x&&(toMin(y.time)??0)>(toMin(x.time)??0))?`<button class="btn" data-pout="${x.id}" data-pt="${esc(t)}" title="이 손님이 나가서 테이블이 비었어요">나감</button>`:''}<button class="btn primary" data-pe="${x.id}">수정</button></div></div>`).join('')}</div>
     <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="add" data-add-t="${esc(t)}">＋ 이 테이블에 예약 추가</button><button class="btn" data-d="close">닫기</button></div>`;
   if(!dlg.open) dlg.showModal();
 }
@@ -1133,6 +1140,7 @@ dlg.addEventListener('click',e=>{
     if(outside) dlg.close();
     return; }
   const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
+  if(d.pout||d.pin){ const it=dayDoc(ui.date).items.find(x=>x.id===(d.pout||d.pin)); if(it){ if(d.pout){ it.outT=nowHM(); it.done=true; toast(`${it.name} 나감 ${it.outT} — 중복 표시를 뺐어요`); } else { delete it.outT; toast('나감 표시를 지웠어요'); } saveItem(ui.date,it); pickDialog(d.pt); } return; }
   if(d.pe){ const it=items(ui.date).find(x=>x.id===d.pe); if(it){ dlg.close(); openForm({...it,origDate:ui.date}); } return; }
   if(d.restore){ const x=dayDoc(ui.date).items.find(y=>y.id===d.restore); if(x){ x.deleted=false; x.u=Date.now(); saveItem(ui.date,x); toast(`${x.name||'예약'}을(를) 복원했어요`); trashDialog(); } return; }
   if(d.tb){ readForm(); const i=draft.tables.indexOf(d.tb); if(i>=0) draft.tables.splice(i,1); else draft.tables.push(d.tb); drawForm(); return; }
