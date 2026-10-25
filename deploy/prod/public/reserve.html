@@ -42,9 +42,10 @@ header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1p
 .datelabel:hover{background:var(--soft)}
 .datelabel .dw.sun{color:var(--warn)} .datelabel .dw.sat{color:#3C5A86}
 .trashwrap{position:relative;display:inline-block}
-.nwait{display:inline-flex;align-items:center;gap:6px;margin-right:8px;border:1px solid #E7B95A;background:#FFF6E0;color:#8A5A00;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
-.nwait i{width:7px;height:7px;border-radius:50%;background:#E8A317;animation:nwp 1.6s ease-in-out infinite}
-@keyframes nwp{50%{opacity:.25}} .nwait[hidden]{display:none}
+/* 새 예약(확정 대기) 안내: 검색칸 바로 밑에 깜빡이는 알림만 (누르는 것 없음, 확정 알림이 오면 저절로 꺼짐) */
+.nwait{position:absolute;top:calc(100% + 3px);left:0;z-index:30;display:inline-flex;align-items:center;gap:6px;border:1px solid #E7B95A;background:#FFF6E0;color:#8A5A00;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap;pointer-events:none;animation:nwb 1.2s ease-in-out infinite}
+.nwait i{width:8px;height:8px;border-radius:50%;background:#E8A317}
+@keyframes nwb{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(232,163,23,.55)}50%{opacity:.45;box-shadow:0 0 0 5px rgba(232,163,23,0)}} .nwait[hidden]{display:none}
 .battg{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--ink,#222)}
 .battg .bbody{position:relative;display:block;margin-right:4px;width:30px;height:15px;border:2px solid #555;border-radius:4px;padding:1px;box-sizing:border-box}
 .battg .bbody::after{content:'';position:absolute;right:-5px;top:3px;width:3px;height:5px;background:#555;border-radius:0 2px 2px 0}
@@ -399,14 +400,15 @@ html.th-navy .grp{border-left-color:#3f4675}
     </div>
     <button class="btn today" id="todayBtn">오늘 예약</button>
     <div class="gsearch"><input type="search" id="gq" placeholder="전체 예약 검색 (이름·전화번호·테이블)" autocomplete="off" aria-label="예약 검색">
-      <div class="gres" id="gres" hidden></div></div>
+      <div class="gres" id="gres" hidden></div>
+      <div class="nwait" id="nWait" hidden role="status"><i></i>새 예약이 있어요 · 스마트플레이스에서 확정 대기 중</div></div>
     <span class="spacer"></span>
     <button class="btn" id="printBtn">인쇄</button>
     <button class="btn" id="xlsxBtn">엑셀 내보내기</button>
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <button class="nwait" id="nWait" type="button" hidden title="스마트플레이스에서 확정을 누르면 몇 초 뒤 자동으로 들어와요 (누르면 이 안내 닫기)"><i></i>네이버 확정 대기</button><span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1658</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1940</small>
   </div>
 
 </header>
@@ -1465,12 +1467,11 @@ dlgBody.addEventListener('click',e=>{ const b=e.target.closest('[data-batt]'); i
   battPush(at,who).then(ok=>{ if(!ok) toast('다른 컴퓨터에는 안 보여요 (저장 권한이 없거나 연결이 안 돼요)'); }); });
 battPaint(); setInterval(()=>{ battPaint(); waitPaint(); },60000);
 /* 네이버 확정 대기 안내 (2026-10-25): 재촉 알림이 오면 서버가 sch_items cfg naver_wait {at,done} 을 씀 → 15분 안에 왔고 확정 알림 뒤가 아니면 머리줄에 작게 */
-let WAIT={}; const WAIT_X='ilpum-nwait-x';
-function waitPaint(){ const b=document.getElementById('nWait'); if(!b) return; let x=0; try{ x=+localStorage.getItem(WAIT_X)||0; }catch(e){}
-  const at=+WAIT.at||0; b.hidden=!(at&&Date.now()-at<15*60000&&at>(+WAIT.done||0)&&at>x); }
+let WAIT={};
+function waitPaint(){ const b=document.getElementById('nWait'); if(!b) return;
+  const at=+WAIT.at||0; b.hidden=!(at&&Date.now()-at<15*60000&&at>(+WAIT.done||0)); }
 function waitApply(d){ WAIT=d||{}; waitPaint(); }
 async function waitPull(){ if(!REST||!SID) return; try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.naver_wait&select=data`); if(!r.ok) return; const a=await r.json(); waitApply(a[0]&&a[0].data); }catch(e){} }
-document.getElementById('nWait').addEventListener('click',()=>{ try{ localStorage.setItem(WAIT_X,String(+WAIT.at||Date.now())); }catch(e){} waitPaint(); toast('스마트플레이스에서 확정을 누르면 몇 초 뒤 자동으로 들어와요'); });
 // 서버 동기화: 가장 늦게 누른 기록이 이김. 요청은 시작할 때·탭 다시 볼 때·실시간 알림 때만
 // 교체 기록(2026-10-25 사용자: 누가 언제 눌렀는지) — 최근 3개, 서버 data.hist=[{at:뺀 시각,by:누가,t:누른 시각}]
 const BATT_HIST='ilpum-battery-hist';
