@@ -39,7 +39,13 @@ Deno.serve(async (req: Request) => {
     return out(200, res);
   };
   // "확정이 필요한 예약건이 있습니다" 재촉 알림은 몇 분마다 와서 기록을 덮어버림(2026-10-25) → 기록 없이 무시
-  if (/확정이 필요한 예약건/.test(text) && !/님/.test(text)) return out(200, { skip: "확정 재촉 알림" });
+  // 재촉 알림이 왔다 = 스마트플레이스에 확정 기다리는 예약이 있음 → 본점 예약 화면 위쪽에 작게 안내(2026-10-25 사용자). 매장 이름이 없는 알림이라 본점에만.
+  const waitRow = async () => (await db.from("sch_items").select("data").eq("store_id", HQ_STORE).eq("kind", "cfg").eq("id", "naver_wait").maybeSingle()).data?.data || {};
+  const setWait = async (d: Record<string, unknown>) => { try { await db.from("sch_items").upsert({ store_id: HQ_STORE, kind: "cfg", id: "naver_wait", data: d, deleted: false }, { onConflict: "store_id,kind,id" }); } catch (_) {} };
+  if (/확정이 필요한 예약건/.test(text) && !/님/.test(text)) {
+    const w: any = await waitRow(); if (!w.at || Date.now() - w.at > 120000 || (w.done || 0) > w.at) await setWait({ ...w, at: Date.now() });   // 2분에 한 번만 씀
+    return out(200, { skip: "확정 재촉 알림" });
+  }
   if (!/예약/.test(text) || !/(접수|신청|확정|취소|변경)/.test(text)) return log({ skip: "예약 알림 아님" });
 
   // 본점·유천점 알림만 처리 (2026-10-10 본점만 → 2026-10-25 사용자: 유천점도)
@@ -48,6 +54,8 @@ Deno.serve(async (req: Request) => {
   const SID = st.id; SNAME = st.name;
   const today = kstToday();
   const r: any = parseResText(text, today);
+  // 본점 이름 있는 확정 알림이 오면 "확정 대기" 안내 끔(남은 게 있으면 다음 재촉 알림 때 다시 켜짐)
+  if (SID === HQ_STORE && r.name && /확정/.test(text)) { const w: any = await waitRow(); if (w.at && !((w.done || 0) > w.at)) await setWait({ ...w, done: Date.now() }); }
 
   const getDay = async (d: string) => (await db.from("res_days").select("id,rev,data").eq("store_id", SID).eq("id", d).maybeSingle()).data;
   // 그날 예약 목록을 고쳐서 저장(동시에 다른 기기가 저장하면 다시 받아 합침)

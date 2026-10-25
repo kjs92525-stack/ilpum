@@ -42,6 +42,10 @@ header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1p
 .datelabel:hover{background:var(--soft)}
 .datelabel .dw.sun{color:var(--warn)} .datelabel .dw.sat{color:#3C5A86}
 .trashwrap{position:relative;display:inline-block}
+.nwait{display:inline-flex;align-items:center;gap:6px;margin-right:8px;border:1px solid #E7B95A;background:#FFF6E0;color:#8A5A00;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.nwait i{width:7px;height:7px;border-radius:50%;background:#E8A317;animation:nwp 1.6s ease-in-out infinite}
+@keyframes nwp{50%{opacity:.25}} .nwait[hidden]{display:none}
+html.th-navy .nwait{background:#3A3116;border-color:#8A7230;color:#E6C27E}
 .battg{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--ink,#222)}
 .battg .bbody{position:relative;display:block;margin-right:4px;width:30px;height:15px;border:2px solid #555;border-radius:4px;padding:1px;box-sizing:border-box}
 .battg .bbody::after{content:'';position:absolute;right:-5px;top:3px;width:3px;height:5px;background:#555;border-radius:0 2px 2px 0}
@@ -358,7 +362,7 @@ html.th-navy input:not([type=checkbox]):not([type=range]),html.th-navy textarea,
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1248</small>
+    <button class="nwait" id="nWait" type="button" hidden title="스마트플레이스에서 확정을 누르면 몇 초 뒤 자동으로 들어와요 (누르면 이 안내 닫기)"><i></i>네이버 확정 대기</button><span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1316</small>
   </div>
 
 </header>
@@ -1377,9 +1381,8 @@ function battDialog(){
   dlg.classList.remove('wide');
   dlgBody.innerHTML=`<h3>배터리 언제 뺐어요?</h3>
     <div class="hint" style="margin-bottom:10px">뺀 날로부터 이틀 뒤 저녁 7시에 빨갛게 알려 줘요.${due?`<br>지금 기록: 다음 교체 ${due.getMonth()+1}/${due.getDate()} 저녁 7시`:''}</div>
-    ${hist.length?`<div style="margin:0 0 10px;padding:9px 11px;border-radius:10px;background:var(--soft,#f3f4f6)"><div style="font-weight:700;margin-bottom:4px">마지막 교체: ${battWhen(hist[0].at)} · ${esc(hist[0].by||'?')}</div>
-      <div class="hint" style="margin:0">최근 교체 기록</div>${hist.map(h=>`<div style="font-size:13px;margin-top:2px">${battWhen(h.at)} · <b>${esc(h.by||'?')}</b>${h.t&&Math.abs(h.t-h.at)>36e5?` <span class="hint">(${battWhen(h.t)}에 누름)</span>`:''}</div>`).join('')}</div>`:''}
-    <label class="hint" style="display:block;margin-bottom:8px">누가 갈았어요? <input id="battWho" value="${esc(battWho())}" maxlength="12" style="width:140px;margin-left:6px"></label>
+    ${hist.length?`<div style="margin:0 0 10px;padding:9px 11px;border-radius:10px;background:var(--soft,#f3f4f6)"><div style="font-weight:700;margin-bottom:4px">마지막 교체: ${battWhen(hist[0].at)}</div>
+      <div class="hint" style="margin:0">최근 교체 기록</div>${hist.map(h=>`<div style="font-size:13px;margin-top:2px">${battWhen(h.at)}${h.t&&Math.abs(h.t-h.at)>36e5?` <span class="hint">(${battWhen(h.t)}에 누름)</span>`:''}</div>`).join('')}</div>`:''}
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn primary" data-batt="0" style="padding:12px">오늘 (${md(0)}) 뺐어요 → ${nx(0)} 저녁 7시에 알림</button>
       <button class="btn" data-batt="1" style="padding:12px">어제 (${md(1)}) 뺐어요 → ${nx(1)} 저녁 7시에 알림</button>
@@ -1389,17 +1392,24 @@ function battDialog(){
 }
 document.getElementById('battBtn').addEventListener('click',battDialog);
 dlgBody.addEventListener('click',e=>{ const b=e.target.closest('[data-batt]'); if(!b) return; const n=+b.dataset.batt||0;
-  const at=Date.now()-n*864e5, wi=document.getElementById('battWho'), who=(wi&&wi.value.trim().slice(0,12))||battWho();
-  try{ localStorage.setItem(BATT_WHO,who); }catch(e){} battSetHist([{at,by:who,t:Date.now()},...battHist()]);
+  const at=Date.now()-n*864e5, who=battWho();   // 이름은 화면에 안 보임(2026-10-25 사용자: 날짜만), 기록에만 로그인 아이디
+  battSetHist([{at,by:who,t:Date.now()},...battHist()]);
   try{ localStorage.setItem(BATT_KEY,String(at)); }catch(e){} dlg.close(); battPaint(); const d=battDue(); toast(`배터리 기록 · 다음 교체 ${d.getMonth()+1}/${d.getDate()} 저녁 7시`);
   battPush(at,who).then(ok=>{ if(!ok) toast('다른 컴퓨터에는 안 보여요 (저장 권한이 없거나 연결이 안 돼요)'); }); });
-battPaint(); setInterval(battPaint,60000);
+battPaint(); setInterval(()=>{ battPaint(); waitPaint(); },60000);
+/* 네이버 확정 대기 안내 (2026-10-25): 재촉 알림이 오면 서버가 sch_items cfg naver_wait {at,done} 을 씀 → 15분 안에 왔고 확정 알림 뒤가 아니면 머리줄에 작게 */
+let WAIT={}; const WAIT_X='ilpum-nwait-x';
+function waitPaint(){ const b=document.getElementById('nWait'); if(!b) return; let x=0; try{ x=+localStorage.getItem(WAIT_X)||0; }catch(e){}
+  const at=+WAIT.at||0; b.hidden=!(at&&Date.now()-at<15*60000&&at>(+WAIT.done||0)&&at>x); }
+function waitApply(d){ WAIT=d||{}; waitPaint(); }
+async function waitPull(){ if(!REST||!SID) return; try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.naver_wait&select=data`); if(!r.ok) return; const a=await r.json(); waitApply(a[0]&&a[0].data); }catch(e){} }
+document.getElementById('nWait').addEventListener('click',()=>{ try{ localStorage.setItem(WAIT_X,String(+WAIT.at||Date.now())); }catch(e){} waitPaint(); toast('스마트플레이스에서 확정을 누르면 몇 초 뒤 자동으로 들어와요'); });
 // 서버 동기화: 가장 늦게 누른 기록이 이김. 요청은 시작할 때·탭 다시 볼 때·실시간 알림 때만
 // 교체 기록(2026-10-25 사용자: 누가 언제 눌렀는지) — 최근 3개, 서버 data.hist=[{at:뺀 시각,by:누가,t:누른 시각}]
-const BATT_HIST='ilpum-battery-hist', BATT_WHO='ilpum-battery-who';
+const BATT_HIST='ilpum-battery-hist';
 function battHist(){ try{ const a=JSON.parse(localStorage.getItem(BATT_HIST)||'[]'); return Array.isArray(a)?a.filter(h=>h&&+h.at).slice(0,3):[]; }catch(e){ return []; } }
 function battSetHist(a){ const seen=new Set(); a=(a||[]).filter(h=>h&&+h.at&&!seen.has(h.at+'|'+h.t)&&seen.add(h.at+'|'+h.t)).sort((x,y)=>(y.t||y.at)-(x.t||x.at)).slice(0,3); try{ localStorage.setItem(BATT_HIST,JSON.stringify(a)); }catch(e){} return a; }
-function battWho(){ try{ const w=localStorage.getItem(BATT_WHO); if(w) return w; }catch(e){} const s=readSes(); return ((s&&s.user&&s.user.email)||'').replace(/@ilpum\.invalid$/,''); }
+function battWho(){ const s=readSes(); return ((s&&s.user&&s.user.email)||'').replace(/@ilpum\.invalid$/,''); }
 function battWhen(t){ const d=new Date(+t), h=d.getHours(); return `${d.getMonth()+1}/${d.getDate()}(${'일월화수목금토'[d.getDay()]}) ${h<12?'오전':'오후'} ${h%12||12}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function battApply(t,hist){ if(Array.isArray(hist)) battSetHist(hist); t=+t||0; let cur=0; try{ cur=+localStorage.getItem(BATT_KEY)||0; }catch(e){} if(t&&t!==cur){ try{ localStorage.setItem(BATT_KEY,String(t)); }catch(e){} battPaint(); } }
 async function battPull(){ if(!REST||!SID) return; try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.battery&deleted=eq.false&select=data`); if(!r.ok) return; const a=await r.json(); if(a[0]&&a[0].data) battApply(a[0].data.at,a[0].data.hist); }catch(e){} }
@@ -1677,8 +1687,8 @@ function rtConnect(){
     clearInterval(rtTok); rtTok=setInterval(async()=>{ const t=await freshToken(false); if(t) send('access_token',{access_token:t}); },40*60*1000); };
   ws.onmessage=e=>{
     let m; try{ m=JSON.parse(e.data); }catch(x){ return; }
-    if(m.event==='phx_reply'&&m.topic===topic){ rtSet(m.payload&&m.payload.status==='ok'); if(rtOk){ rtWait=1000; pullDay(ui.date); battPull(); } return; }     // 연결되면 한 번 맞춰 봄
-    if(m.event==='postgres_changes'){ const dd=m.payload&&m.payload.data; const rec=dd&&(dd.record||dd.old_record); if(dd&&dd.table==='sch_items'){ if(rec&&rec.kind==='cfg'&&rec.id==='battery'&&dd.record&&dd.record.data) battApply(dd.record.data.at,dd.record.data.hist); return; } const d=rec&&rec.id; if(d&&(d===ui.date||days[d])) pullDay(d); return; }
+    if(m.event==='phx_reply'&&m.topic===topic){ rtSet(m.payload&&m.payload.status==='ok'); if(rtOk){ rtWait=1000; pullDay(ui.date); battPull(); waitPull(); } return; }     // 연결되면 한 번 맞춰 봄
+    if(m.event==='postgres_changes'){ const dd=m.payload&&m.payload.data; const rec=dd&&(dd.record||dd.old_record); if(dd&&dd.table==='sch_items'){ if(rec&&rec.kind==='cfg'&&rec.id==='battery'&&dd.record&&dd.record.data) battApply(dd.record.data.at,dd.record.data.hist); if(rec&&rec.kind==='cfg'&&rec.id==='naver_wait'&&dd.record) waitApply(dd.record.data); return; } const d=rec&&rec.id; if(d&&(d===ui.date||days[d])) pullDay(d); return; }
     if(m.event==='phx_error'||m.event==='phx_close'||(m.event==='system'&&m.payload&&m.payload.status==='error')) rtSet(false); };
   ws.onclose=()=>{ rtSet(false); rtWs=null; clearInterval(rtBeat); clearInterval(rtTok); setTimeout(rtConnect,rtWait); rtWait=Math.min(rtWait*2,300000); };
   ws.onerror=()=>{ try{ ws.close(); }catch(e){} };
@@ -1691,10 +1701,10 @@ let lastPollAt=0;
   window.pullNow=async()=>{ if(!REST) return; pullDay(ui.date);
     try{ const r=await fx('/rest/v1/rpc/sch_my_stores',{method:'POST',body:'{}'}); if(!r.ok) return; const ids=(await r.json()).filter(x=>x.role).map(x=>x.id).sort().join(); if(ids!==STORES.map(x=>x.id).sort().join()) location.reload(); }catch(e){} };
   document.getElementById('sync').onclick=()=>{ if(document.getElementById('sync').dataset.kind!=='err') return; pullNextAt=0; Object.keys(needRetry).forEach(d=>{ if(needRetry[d]){ fails[d]=0; pushDay(d); } }); pullDay(ui.date); };
-  if(REST){ pullDay(ui.date); battPull(); lastPollAt=Date.now(); rtSet(false); rtConnect();
+  if(REST){ pullDay(ui.date); battPull(); waitPull(); lastPollAt=Date.now(); rtSet(false); rtConnect();
     // 실시간 연결이 되어 있으면 5분마다 안전 확인만 / 안 되면 30초마다 확인 (30분 동안 아무도 안 만졌으면 쉼)
     setInterval(()=>{ const every=rtOk?300000:30000; if(Date.now()-lastPollAt<every-1000||Date.now()<pullNextAt) return; if(!rtOk&&(!onScreen()||Date.now()-lastActive>30*60*1000)) return; lastPollAt=Date.now(); pullDay(ui.date); },15000);
-    document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ lastActive=Date.now(); battPull(); if(Date.now()>=pullNextAt) pullDay(ui.date); } }); }
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ lastActive=Date.now(); battPull(); waitPull(); if(Date.now()>=pullNextAt) pullDay(ui.date); } }); }
 })();
 // 오늘 화면이면 1분마다 현황판 기준 시간을 지금으로 따라가기 (슬라이더를 직접 옮기면 멈춤)
 document.getElementById('boardPanel').addEventListener('pointerdown',e=>{ if(e.target.id==='tRange') followNow=false; });

@@ -19,6 +19,7 @@ async def handler(r):
   if '/rpc/sch_my_stores' in u: return await J([{"id":F1,"name":"유천점","is_hq":False,"role":"owner","can_pay":True}])
   if '/rest/v1/sch_items' in u and r.request.method=='POST':
     SRV['posts'].append(json.loads(r.request.post_data)); SRV['batt']=SRV['posts'][-1]['data']['at']; SRV['data']=SRV['posts'][-1]['data']; return await J([])
+  if '/rest/v1/sch_items' in u and 'id=eq.naver_wait' in u: return await J([{"data":SRV['wait']}] if SRV.get('wait') else [])
   if '/rest/v1/sch_items' in u and 'id=eq.battery' in u: return await J([{"data":SRV.get('data') or {"at":SRV['batt']}}] if SRV['batt'] else [])
   if '/rest/v1/sch_items' in u: return await J([{"data":GRID if MODE['v']=='grid' else FREE}])
   if '/rest/v1/res_days' in u:
@@ -66,18 +67,26 @@ async def main():
     chk('누가·언제 기록이 서버에 감 (최근 3개 이하, 아이디 x)', len(last.get('hist',[]))==2 and last['hist'][0]['by']=='x' and last['by']=='x', str(last))
     await pg.click('#battBtn'); await pg.wait_for_timeout(300)
     tx=await pg.inner_text('#dlgBody')
-    chk('창에 마지막 교체·최근 기록 표시', '마지막 교체' in tx and '최근 교체 기록' in tx and tx.count('· x')>=2, tx)
-    await pg.fill('#battWho','김민수'); await pg.click('[data-batt="0"]'); await pg.wait_for_timeout(300)
+    chk('창에 마지막 교체·최근 기록 표시 (이름 없이 날짜만)', '마지막 교체' in tx and '최근 교체 기록' in tx and '· x' not in tx and not await pg.is_visible('#battWho') and tx.count('오전')+tx.count('오후')>=3, tx)
+    await pg.click('[data-batt="0"]'); await pg.wait_for_timeout(300)
     await pg.click('#battBtn'); await pg.wait_for_timeout(300); await pg.click('[data-batt="0"]'); await pg.wait_for_timeout(300)
     last=SRV['posts'][-1]['data']
-    chk('이름 바꾸면 그 이름으로, 다음엔 기억, 기록은 3개까지', len(last['hist'])==3 and last['hist'][0]['by']=='김민수' and last['hist'][1]['by']=='김민수', str(last['hist']))
+    chk('기록은 3개까지', len(last['hist'])==3, str(last['hist']))
     # 옆 컴퓨터: 서버에 기록이 있으면 새로 열 때 가져옴
     SRV['batt']=int(time.time()*1000)-1.5*864e5; SRV['data']={"at":SRV['batt'],"hist":[{"at":SRV['batt'],"by":"옆PC","t":SRV['batt']}]+last['hist'][:2]}
+    SRV['wait']={"at":int(time.time()*1000)-60000}
     ctx2,pg2,errs2=await run(b)
     v=await pg2.evaluate("+localStorage.getItem('ilpum-battery')")
     chk('다른 컴퓨터가 서버 기록을 가져옴', abs(v-SRV['batt'])<1, str(v))
     await pg2.click('#battBtn'); await pg2.wait_for_timeout(300); tx=await pg2.inner_text('#dlgBody')
-    chk('다른 컴퓨터 창에도 누가 눌렀는지 보임', '옆PC' in tx and '김민수' in tx, tx); await pg2.click('#dlgBody [data-d="close"]')
+    chk('다른 컴퓨터 창에도 옆 컴퓨터 기록 날짜가 보임', tx.count('오전')+tx.count('오후')>=3 and '옆PC' not in tx, tx); await pg2.click('#dlgBody [data-d="close"]')
+    chk('재촉 알림 1분 전 → 머리줄에 "네이버 확정 대기"', await pg2.is_visible('#nWait'))
+    y=await pg2.evaluate("(()=>{const a=document.getElementById('nWait').getBoundingClientRect(),l=document.getElementById('listPanel').getBoundingClientRect();return a.bottom<=l.top})()")
+    chk('예약 목록을 가리지 않는 위치(머리줄)', y)
+    await pg2.evaluate("waitApply({at:Date.now()-60000,done:Date.now()})"); chk('확정 알림 들어오면 꺼짐', not await pg2.is_visible('#nWait'))
+    await pg2.evaluate("waitApply({at:Date.now()-20*60000})"); chk('15분 지나면 꺼짐', not await pg2.is_visible('#nWait'))
+    await pg2.evaluate("waitApply({at:Date.now()-1000})"); await pg2.click('#nWait'); chk('누르면 닫힘', not await pg2.is_visible('#nWait'))
+    await pg2.evaluate("waitApply({at:Date.now()})"); chk('새 재촉 알림이 오면 다시 보임', await pg2.is_visible('#nWait'))
     await pg2.evaluate("battApply(%d)"%(int(time.time()*1000)-60000)); w=await pg2.evaluate("parseFloat(document.querySelector('#battBtn .bfill').style.width)")
     chk('받은 기록으로 배터리 칸 갱신', w>=80, str(w)); await ctx2.close()
     chk('오류 없음', not errs, str(errs)); await ctx.close(); await b.close()
