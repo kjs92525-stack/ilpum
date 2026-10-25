@@ -18,8 +18,8 @@ async def handler(r):
   J=lambda o,st=200: r.fulfill(status=st,content_type='application/json',body=json.dumps(o))
   if '/rpc/sch_my_stores' in u: return await J([{"id":F1,"name":"유천점","is_hq":False,"role":"owner","can_pay":True}])
   if '/rest/v1/sch_items' in u and r.request.method=='POST':
-    SRV['posts'].append(json.loads(r.request.post_data)); SRV['batt']=SRV['posts'][-1]['data']['at']; return await J([])
-  if '/rest/v1/sch_items' in u and 'id=eq.battery' in u: return await J([{"data":{"at":SRV['batt']}}] if SRV['batt'] else [])
+    SRV['posts'].append(json.loads(r.request.post_data)); SRV['batt']=SRV['posts'][-1]['data']['at']; SRV['data']=SRV['posts'][-1]['data']; return await J([])
+  if '/rest/v1/sch_items' in u and 'id=eq.battery' in u: return await J([{"data":SRV.get('data') or {"at":SRV['batt']}}] if SRV['batt'] else [])
   if '/rest/v1/sch_items' in u: return await J([{"data":GRID if MODE['v']=='grid' else FREE}])
   if '/rest/v1/res_days' in u:
     if r.request.method=='GET': return await J([{"id":TODAY,"rev":3,"data":{"items":ITEMS}}] if 'select=data' in u else [{"rev":3}])
@@ -62,11 +62,22 @@ async def main():
     await pg.click('#battBtn'); await pg.wait_for_timeout(300); await pg.click('#dlgBody [data-d="close"]'); await pg.wait_for_timeout(300)
     chk('닫기 누르면 기록 안 바뀜', await pg.evaluate("localStorage.getItem('ilpum-battery')")=='123')
     chk('누르면 서버에 저장 (cfg battery)', SRV['posts'] and SRV['posts'][-1]['id']=='battery' and SRV['posts'][-1]['kind']=='cfg' and SRV['posts'][-1]['store_id']==F1, str(SRV['posts'][-1:]))
+    last=SRV['posts'][-1]['data']
+    chk('누가·언제 기록이 서버에 감 (최근 3개 이하, 아이디 x)', len(last.get('hist',[]))==2 and last['hist'][0]['by']=='x' and last['by']=='x', str(last))
+    await pg.click('#battBtn'); await pg.wait_for_timeout(300)
+    tx=await pg.inner_text('#dlgBody')
+    chk('창에 마지막 교체·최근 기록 표시', '마지막 교체' in tx and '최근 교체 기록' in tx and tx.count('· x')>=2, tx)
+    await pg.fill('#battWho','김민수'); await pg.click('[data-batt="0"]'); await pg.wait_for_timeout(300)
+    await pg.click('#battBtn'); await pg.wait_for_timeout(300); await pg.click('[data-batt="0"]'); await pg.wait_for_timeout(300)
+    last=SRV['posts'][-1]['data']
+    chk('이름 바꾸면 그 이름으로, 다음엔 기억, 기록은 3개까지', len(last['hist'])==3 and last['hist'][0]['by']=='김민수' and last['hist'][1]['by']=='김민수', str(last['hist']))
     # 옆 컴퓨터: 서버에 기록이 있으면 새로 열 때 가져옴
-    SRV['batt']=int(time.time()*1000)-1.5*864e5
+    SRV['batt']=int(time.time()*1000)-1.5*864e5; SRV['data']={"at":SRV['batt'],"hist":[{"at":SRV['batt'],"by":"옆PC","t":SRV['batt']}]+last['hist'][:2]}
     ctx2,pg2,errs2=await run(b)
     v=await pg2.evaluate("+localStorage.getItem('ilpum-battery')")
     chk('다른 컴퓨터가 서버 기록을 가져옴', abs(v-SRV['batt'])<1, str(v))
+    await pg2.click('#battBtn'); await pg2.wait_for_timeout(300); tx=await pg2.inner_text('#dlgBody')
+    chk('다른 컴퓨터 창에도 누가 눌렀는지 보임', '옆PC' in tx and '김민수' in tx, tx); await pg2.click('#dlgBody [data-d="close"]')
     await pg2.evaluate("battApply(%d)"%(int(time.time()*1000)-60000)); w=await pg2.evaluate("parseFloat(document.querySelector('#battBtn .bfill').style.width)")
     chk('받은 기록으로 배터리 칸 갱신', w>=80, str(w)); await ctx2.close()
     chk('오류 없음', not errs, str(errs)); await ctx.close(); await b.close()
