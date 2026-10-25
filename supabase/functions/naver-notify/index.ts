@@ -39,11 +39,16 @@ Deno.serve(async (req: Request) => {
     return out(200, res);
   };
   // "확정이 필요한 예약건이 있습니다" 재촉 알림은 몇 분마다 와서 기록을 덮어버림(2026-10-25) → 기록 없이 무시
-  // 재촉 알림이 왔다 = 스마트플레이스에 확정 기다리는 예약이 있음 → 본점 예약 화면 위쪽에 작게 안내(2026-10-25 사용자). 매장 이름이 없는 알림이라 본점에만.
-  const waitRow = async () => (await db.from("sch_items").select("data").eq("store_id", HQ_STORE).eq("kind", "cfg").eq("id", "naver_wait").maybeSingle()).data?.data || {};
-  const setWait = async (d: Record<string, unknown>) => { try { await db.from("sch_items").upsert({ store_id: HQ_STORE, kind: "cfg", id: "naver_wait", data: d, deleted: false }, { onConflict: "store_id,kind,id" }); } catch (_) {} };
+  // 재촉 알림이 왔다 = 스마트플레이스에 확정 기다리는 예약이 있음 → 예약 화면 위쪽에 작게 안내(2026-10-25 사용자).
+  // 재촉 알림엔 매장 이름이 없음 → 매장마다 "신청은 왔는데 확정·취소가 아직 안 온 이름"(pend)을 기억해 그 매장에만 켬.
+  // (2026-10-25 사용자: 달서(유천점) 예약 때문에 본점에 확정 대기가 뜸) 아무 매장에도 남은 게 없으면 예전처럼 본점.
+  const waitRow = async (sid: string) => (await db.from("sch_items").select("data").eq("store_id", sid).eq("kind", "cfg").eq("id", "naver_wait").maybeSingle()).data?.data || {};
+  const setWait = async (sid: string, d: Record<string, unknown>) => { try { await db.from("sch_items").upsert({ store_id: sid, kind: "cfg", id: "naver_wait", data: d, deleted: false }, { onConflict: "store_id,kind,id" }); } catch (_) {} };
+  const livePend = (w: any) => (Array.isArray(w.pend) ? w.pend : []).filter((p: any) => p && Date.now() - (p.t || 0) < 2 * 864e5);
   if (/확정이 필요한 예약건/.test(text) && !/님/.test(text)) {
-    const w: any = await waitRow(); if (!w.at || Date.now() - w.at > 120000 || (w.done || 0) > w.at) await setWait({ ...w, at: Date.now() });   // 2분에 한 번만 씀
+    const rows = await Promise.all(STORES.map(async (x) => ({ id: x.id, w: (await waitRow(x.id)) as any })));
+    let tg = rows.filter((x) => livePend(x.w).length); if (!tg.length) tg = rows.filter((x) => x.id === HQ_STORE);
+    for (const x of tg) { const w = x.w; if (!w.at || Date.now() - w.at > 120000 || (w.done || 0) > w.at) await setWait(x.id, { ...w, at: Date.now() }); }   // 2분에 한 번만 씀
     return out(200, { skip: "확정 재촉 알림" });
   }
   if (!/예약/.test(text) || !/(접수|신청|확정|취소|변경)/.test(text)) return log({ skip: "예약 알림 아님" });
@@ -54,8 +59,16 @@ Deno.serve(async (req: Request) => {
   const SID = st.id; SNAME = st.name;
   const today = kstToday();
   const r: any = parseResText(text, today);
-  // 본점 이름 있는 확정 알림이 오면 "확정 대기" 안내 끔(남은 게 있으면 다음 재촉 알림 때 다시 켜짐)
-  if (SID === HQ_STORE && r.name && /확정/.test(text)) { const w: any = await waitRow(); if (w.at && !((w.done || 0) > w.at)) await setWait({ ...w, done: Date.now() }); }
+  // 신청 알림 → 그 매장 pend 에 이름 추가 / 확정·취소 알림 → 빼고 "확정 대기" 안내 끔(남은 게 있으면 다음 재촉 알림 때 다시 켜짐)
+  if (r.name) {
+    const isReq = /(접수|신청)/.test(text) && !/확정/.test(text) && !r.cancel && !r.change, isEnd = /확정/.test(text) || r.cancel;
+    if (isReq || isEnd) {
+      const w: any = await waitRow(SID); let pend = livePend(w).filter((p: any) => p.n !== r.name);
+      if (isReq) pend = [...pend, { n: r.name, t: Date.now() }].slice(-20);
+      const nw: any = { ...w, pend }; if (isEnd && w.at && !((w.done || 0) > w.at)) nw.done = Date.now();
+      await setWait(SID, nw);
+    }
+  }
 
   const getDay = async (d: string) => (await db.from("res_days").select("id,rev,data").eq("store_id", SID).eq("id", d).maybeSingle()).data;
   // 그날 예약 목록을 고쳐서 저장(동시에 다른 기기가 저장하면 다시 받아 합침)
@@ -116,7 +129,7 @@ Deno.serve(async (req: Request) => {
       const from = ds(new Date(new Date(today + "T00:00").getTime() - 864e5));
       const rows = (await db.from("res_days").select("id,data").eq("store_id", SID).gte("id", from)).data || [];
       let cs: any[] = []; rows.forEach((row: any) => (row.data?.items || []).forEach((x: any) => { if (!x.deleted && r.name && x.name === r.name) cs.push({ d: row.id, x }); }));
-            if (r.cancel) {
+      if (r.cancel) {
         let pick = cs.filter((c) => !isCxl(c.x)); if (r.date) pick = pick.filter((c) => c.d === r.date); if (r.time && pick.length > 1) pick = pick.filter((c) => c.x.time === r.time);
         if (!pick.length) return log({ cancel: cs.some((c) => isCxl(c.x)) ? "이미 취소돼 있음" : "취소할 예약 못 찾음", name: r.name, date: r.date });
         if (pick.length > 1) return log({ cancel: "같은 이름 여러 건 — 직접 처리", name: r.name });

@@ -13,7 +13,7 @@ const mock=`export function createClient(){ const DB=globalThis.__DB;
     const b={ select(){ return b; }, eq(k,v){ f.push(x=>x[k]===v); return b; }, gte(k,v){ f.push(x=>x[k]>=v); return b; },
       maybeSingle(){ single=true; return Promise.resolve(run()); }, update(o){ op='update'; body=o; return b; },
       insert(o){ if(DB[t].some(x=>x.store_id===o.store_id&&x.id===o.id)) return Promise.resolve({error:{message:'dup'}}); DB[t].push(JSON.parse(JSON.stringify(o))); return Promise.resolve({error:null}); },
-      upsert(o){ const i=DB[t].findIndex(x=>x.key===o.key); if(i>=0) DB[t][i]=o; else DB[t].push(o); return Promise.resolve({error:null}); },
+      upsert(o){ const i=DB[t].findIndex(x=>o.key!=null?x.key===o.key:(x.store_id===o.store_id&&x.kind===o.kind&&x.id===o.id)); if(i>=0) DB[t][i]=o; else DB[t].push(o); return Promise.resolve({error:null}); },
       then(res,rej){ return Promise.resolve(run()).then(res,rej); } };
     return b; }
   return { from:q }; }`;
@@ -72,4 +72,16 @@ chk('기록 남김', (DB.sync_state.find(x=>x.key==='naver_log')||{val:[]}).val.
   chk('순서: 12,13,14,16,17,18,2,3,4,21,22,25,26,27 다음 나머지 1층(11)', order==='12,13,14,16,17,18,2,3,4,21,22,25,26,27,11', order); }
 { await call('일품집 본점, 예약신청박서연님, 일품집 본점 예약, 2026.10.18.(일) 오후 6:00, 2명 (성인2), 10% 할인쿠폰 사용, 새로운 예약이 접수되었습니다.');
   const x=day('2026-10-18').find(x=>x.name==='박서연'); chk('쿠폰 예약 → 메모에 10%', x&&x.req==='10%'&&x.time==='18:00', JSON.stringify(x&&[x.name,x.time,x.req])); }
+{ // 확정 대기 안내: 재촉 알림엔 매장 이름이 없음 → 신청만 오고 확정 안 된 매장에만 켬 (2026-10-25 달서 예약 때문에 본점에 뜸)
+  DB.sch_items=[]; const W=s=>(DB.sch_items.find(x=>x.store_id===s&&x.id==='naver_wait')||{data:{}}).data;
+  const NAG='확정이 필요한 예약건이 있습니다.\n확정이 필요한 예약건이 있습니다. 빠른 확정 부탁드립니다.';
+  await call('주식회사 일품집달서직영점, 예약신청박경숙님, 주식회사 일품집달서직영점, 2026.10.26.(월) 오후 7:30, 5명 (성인5), 새로운 예약이 접수되었습니다.');
+  await call(NAG);
+  chk('유천점(달서) 신청만 남음 → 재촉 알림은 유천점에만, 본점엔 안 켬', W(YC).at&&!W(HQ).at, JSON.stringify([W(HQ),W(YC)]));
+  await call('주식회사 일품집달서직영점, 예약확정박경숙님, 주식회사 일품집달서직영점, 2026.10.26.(월) 오후 7:30, 5명 (성인5), 새로운 예약이 확정되었습니다.');
+  chk('확정 알림 → 유천점 안내 끔·남은 이름 없음', W(YC).done>=W(YC).at&&!(W(YC).pend||[]).length, JSON.stringify(W(YC)));
+  await call('일품집 본점, 예약신청\n본점손님님, 일품집 본점 예약, 2026.10.26.(월) 오후 6:00, 2명 (성인2), 새로운 예약이 접수되었습니다.');
+  await call(NAG);
+  chk('본점 신청이 남으면 본점에 켬', W(HQ).at&&(W(HQ).pend||[]).some(p=>p.n==='본점손님'), JSON.stringify(W(HQ)));
+  DB.sch_items=[]; await call(NAG); chk('어느 매장도 모르면 예전처럼 본점', W(HQ).at&&!W(YC).at); }
 console.log(ok?'전체 OK':'실패 있음');
