@@ -1163,12 +1163,17 @@ dlg.addEventListener('click',e=>{
       }
     }); return; }
   if(d.d==='yes'){ const f=confirmCb; confirmCb=null; dlg.close(); if(f) f(); return; }
+  if(d.d==='dupfix'||d.d==='dupnew'){ const c=dupCb; dupCb=null; dlg.close(); if(!c) return;
+    if(d.d==='dupfix'){ saveItem(c.d,mergeInto(c.x,c.it)); toast(`${c.x.name} 예약을 고쳤어요 (새로 만들지 않음)`); }
+    else { saveItem(c.d,c.it); toast(`${c.it.name} ${c.it.time} 예약 추가`); }
+    if(c.done) c.done(); return; }
   if(d.d==='save'){ readForm();
     if(!draft.name){ document.getElementById('fName').focus(); toast('이름을 넣어주세요'); return; }
     if(!normTime(draft.time)){ document.getElementById('fTime').focus(); toast('예약 시간을 확인해 주세요 (예: 1830)'); return; }
     const it={id:draft.id,c:draft.c||(draft.isNew?ds(new Date()):undefined),name:draft.name,phone:draft.phone,time:normTime(draft.time),pp:draft.pp,tables:draft.tables,tnote:draft.tnote||'',req:draft.req,done:!!draft.done};
     const orig=draft.origDate;
     if(orig && orig!==draft.date){ const old=dayDoc(orig).items.find(y=>y.id===draft.id); if(old){ old.deleted=true; saveItem(orig,old); } it.id=uid(); }
+    if(draft.isNew){ const same=sameNameRes(draft.date,it); if(same){ const dd=draft.date; dupAsk(dd,it,same,()=>{ if(dd!==ui.date){ ui.date=dd; loadDate(); } }); return; } }
     saveItem(draft.date,it); dlg.close();
     if(draft.date!==ui.date){ ui.date=draft.date; loadDate(); }
     toast(draft.isNew?'예약을 추가했어요':'저장했어요'); }
@@ -1179,7 +1184,12 @@ dlg.addEventListener('input',e=>{
 });
 dlg.addEventListener('change',e=>{ if(['fDate','fTime'].includes(e.target.id)){ readForm(); drawForm(); } });
 dlg.addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.tagName==='INPUT' && !e.isComposing){ e.preventDefault(); dlg.querySelector('[data-d="save"]')?.click(); } });
-let confirmCb=null;
+let confirmCb=null, dupCb=null;
+// 손으로 넣는 예약이 같은 날 같은 이름(취소·삭제 아님)과 겹치면 물어봄 (2026-10-25 사용자: 네이버 자동 입력이 이미 있는데 또 입력해서 중복)
+function sameNameRes(d,it){ return dayDoc(d).items.find(x=>!x.deleted&&!isCxl(x)&&x.id!==it.id&&String(x.name||'').replace(/\s+/g,'')===String(it.name||'').replace(/\s+/g,'')); }
+function mergeInto(x,it){ x.time=it.time; if(it.pp) x.pp=it.pp; if(it.tables&&it.tables.length){ x.tables=it.tables; x.tnote=it.tnote||''; } if(it.phone) x.phone=it.phone; if(it.req) x.req=it.req; delete x.auto; return x; }
+function dupAsk(d,it,x,done){ dupCb={d,it,x,done};
+  dlgBody.innerHTML=`<h3>같은 이름 예약이 이미 있어요</h3><div class="hint" style="margin:6px 0 12px">${esc(mdLbl(d))} <b>${esc(x.name)}</b> ${esc(x.time)} · ${esc(x.pp||'?')}명${(x.tables||[]).length?' · '+esc(tablesText(x.tables)):''}${x.auto?' · <b>네이버 자동 입력</b>':''}<br>같은 손님이면 <b>그 예약 고치기</b>를 눌러 주세요 (지금 넣은 시간·인원·테이블·전화로 바뀌어요).</div><div class="dfoot"><button class="btn" data-d="close">취소</button><span class="spacer"></span><button class="btn" data-d="dupnew">다른 손님 — 따로 추가</button><button class="btn primary" data-d="dupfix">그 예약 고치기</button></div>`; dlg.showModal(); }
 function confirmBox(title,yes,fn){ confirmCb=fn; dlgBody.innerHTML=`<h3>${esc(title)}</h3><div class="dfoot"><span class="spacer"></span><button class="btn" data-d="close">취소</button><button class="btn primary" data-d="yes">${esc(yes)}</button></div>`; dlg.showModal(); }
 
 /* ---------- 이벤트 ---------- */
@@ -1278,11 +1288,13 @@ function quickAdd(){
   if(!quick.name.trim()){ toast('이름을 넣어주세요'); document.getElementById('qName').focus(); return; }
   if(!t){ toast('시간을 넣어주세요 (예: 1830)'); document.getElementById('qTime').focus(); return; }
   const it={id:uid(),c:ds(new Date()),name:quick.name.trim(),time:t,pp:quick.pp.trim(),tables:parseTables(quick.tables),tnote:tableNote(quick.tables),phone:fmtPhone(quick.phone),req:quick.req.trim(),done:false}; if(quick.auto) it.auto='new';
-  quick={time:'',name:'',pp:'',tables:'',phone:'',req:'',auto:false};
-  document.querySelectorAll('#quick input').forEach(i=>i.value='');
-  { const pa=document.getElementById('qPaste'); if(pa) pa.value=''; const pr=document.getElementById('qPasteRes'); if(pr) pr.innerHTML=''; quickPasteMsg=''; }
-  saveItem(ui.date,it); toast(`${it.name} ${it.time} 예약 추가`);
-  document.getElementById('qName').focus();
+  const clear=()=>{ quick={time:'',name:'',pp:'',tables:'',phone:'',req:'',auto:false};
+    document.querySelectorAll('#quick input').forEach(i=>i.value='');
+    { const pa=document.getElementById('qPaste'); if(pa) pa.value=''; const pr=document.getElementById('qPasteRes'); if(pr) pr.innerHTML=''; quickPasteMsg=''; }
+    document.getElementById('qName').focus(); };
+  const same=sameNameRes(ui.date,it);
+  if(same){ dupAsk(ui.date,it,same,clear); return; }   // 취소하면 입력한 칸은 그대로
+  clear(); saveItem(ui.date,it); toast(`${it.name} ${it.time} 예약 추가`);
 }
 document.getElementById('listPanel').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.closest('#quick') && !e.isComposing){ e.preventDefault(); quickAdd(); } });
 document.getElementById('listPanel').addEventListener('click',e=>{
