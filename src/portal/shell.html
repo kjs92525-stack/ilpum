@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1F4D3A">
+<meta name="theme-color" content="#191C2E">
 <title>일품집 통합관리</title>
 <style>
 :root{
@@ -119,6 +119,54 @@ select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var
   .hidebtn{display:none}
 }
 @media (prefers-reduced-motion:reduce){.nav,.main{transition:none}}
+
+/* ---------- 오늘 현황 디자인 맛보기 (2026-10-19, 테스트 사이트만) — 어두운 남색 바탕 + 둥근 카드, 숫자 카드 3장만 진한 색. 이 블록을 지우면 원래대로 ---------- */
+:root,:root:not(#_){--nav:#191C2E;--nav-h:#24284A;--nav-ink:#D5D8EE;--nav-sub:#7C81A3;--bg:#1E2136;--card:#272B45;--ink:#ECEEF8;--sub:#8E93B5;--line:#353A5A;--brand:#5B8CFF;--brand-soft:#2A3360;--ok:#3DDC97;--warn:#FFB547;--bad:#FF6B7A;--shadow:0 8px 24px rgba(8,10,25,.3);color-scheme:dark}
+#p-dash{--bg:#1E2136;--card:#272B45;--ink:#ECEEF8;--sub:#8E93B5;--line:rgba(255,255,255,.06);--brand:#5B8CFF;--brand-soft:rgba(91,140,255,.14);
+  --ok:#3DDC97;--warn:#FFB547;--bad:#FF6B7A;--shadow:0 10px 30px rgba(8,10,25,.35);color-scheme:dark;background:var(--bg);color:var(--ink)}
+/* 왼쪽 메뉴·상단바도 항상 남색 (초록과 안 섞이게) */
+body .nav{background:#191C2E}
+body .brand .mk{background:linear-gradient(150deg,#5B8CFF,#8B5CFF);color:#fff}
+body .mi:hover,body .si:hover{background:rgba(255,255,255,.06)}
+body .mi[aria-current="page"]{background:#5B8CFF;color:#fff}
+body .mi .bdg{background:#FF6B7A}
+body .si[aria-current="page"]{background:rgba(255,255,255,.06);box-shadow:inset 3px 0 0 #5B8CFF;color:#fff}
+body .nfoot .ver{background:rgba(91,140,255,.22)}
+body .hidebtn{border-color:rgba(255,255,255,.14)} body .hidebtn:hover{background:rgba(255,255,255,.06)}
+body .nav,body .bar{transition:none}
+body .bar{background:#1E2136;border-bottom-color:rgba(255,255,255,.06);color:#ECEEF8}
+body .bar .ib,body .bar .lk{background:#272B45;border-color:transparent;color:#C9CDE6}
+body .bar .ib:hover,body .bar .lk:hover{color:#fff;border-color:#5B8CFF}
+body .crumb small{color:#8E93B5}
+#p-dash .dh h1{font-size:28px;font-weight:800}
+#p-dash .btn{border-radius:12px;background:transparent;border:1.5px solid rgba(255,255,255,.14);color:#DDE0F2}
+#p-dash .btn:hover{border-color:#5B8CFF;color:#fff}
+#p-dash .btn.pri{background:#5B8CFF;border-color:#5B8CFF;color:#fff;box-shadow:0 8px 20px rgba(91,140,255,.35)}
+#p-dash .kpis{gap:16px}
+#p-dash .kpi{border:0;border-radius:22px;padding:18px 20px;background:var(--card);box-shadow:var(--shadow)}
+#p-dash .kpi .v{font-size:34px}
+#p-dash .kpi .bar2{background:rgba(255,255,255,.08)}
+#p-dash .kpi:nth-child(1){background:linear-gradient(150deg,#5B8CFF,#3F6BEA);box-shadow:0 14px 30px rgba(63,107,234,.35)}
+#p-dash .kpi:nth-child(2){background:linear-gradient(150deg,#8B5CFF,#6A3CF0);box-shadow:0 14px 30px rgba(106,60,240,.35)}
+#p-dash .kpi:nth-child(3){background:linear-gradient(150deg,#FF6B7A,#F0475A);box-shadow:0 14px 30px rgba(240,71,90,.32)}
+#p-dash .kpi:nth-child(-n+3) .k,#p-dash .kpi:nth-child(-n+3) .v small{color:rgba(255,255,255,.82)}
+#p-dash .kpi:nth-child(-n+3) .v{color:#fff}
+#p-dash .kpi:nth-child(-n+3) .bar2{background:rgba(255,255,255,.22)} #p-dash .kpi:nth-child(-n+3) .bar2 i{background:#fff}
+#p-dash .panel{border:0;border-radius:22px;box-shadow:var(--shadow)}
+#p-dash .ph{border-bottom:0;padding:18px 20px 10px}
+#p-dash .cnt{background:rgba(91,140,255,.16);color:#8FB0FF}
+#p-dash th{background:transparent;color:#7C81A3;text-transform:none;border-bottom:1px solid var(--line)}
+#p-dash td{border-top:1px solid var(--line)}
+#p-dash tbody tr:hover td{background:rgba(255,255,255,.025)}
+#p-dash .tag{background:transparent;border:1.5px solid rgba(91,140,255,.55);color:#8FB0FF;padding:0 10px}
+#p-dash .tag.w{border-color:rgba(255,181,71,.6);color:#FFC46B}
+#p-dash .tag.g{border-color:rgba(255,255,255,.18);color:#8E93B5}
+#p-dash .st{border-top:1px solid var(--line)}
+#p-dash .av{background:linear-gradient(150deg,#5B8CFF,#8B5CFF);color:#fff;border-radius:14px}
+#p-dash .note{background:rgba(255,255,255,.03)}
+#p-dash select{background:#1E2136;border-color:rgba(255,255,255,.12);color:#ECEEF8;border-radius:12px}
+#p-dash .err{color:#FF8A96}
+#p-dash .panel[style*="E5533D"]{color:#FFB3A8!important;box-shadow:inset 0 0 0 1.5px #FF6B7A}
 </style>
 </head>
 <body>
@@ -255,7 +303,7 @@ function go(id,opts){
   const g=GROUP_OF[id]; $$('#menu .mi[data-g]').forEach(b=>{ const open=b.dataset.g===g; b.setAttribute('aria-expanded',open); $('#sub-'+b.dataset.g).classList.toggle('on',open); if(open) b.setAttribute('aria-current','page'); });
   if(g){ const s=$(`#sub-${g} [data-go="${id}"]`); if(s) s.setAttribute('aria-current','page'); } else { const m=$(`#menu [data-m="${id}"]`); if(m) m.setAttribute('aria-current','page'); }
   // 본문
-  $('#p-dash').hidden=id!=='dash'; Object.values(frames).forEach(f=>f.hidden=true);
+  $('#p-dash').hidden=id!=='dash'; document.body.classList.toggle('on-dash',id==='dash'); Object.values(frames).forEach(f=>f.hidden=true);
   if(id==='dash'){ loadDash(); $('#solo').hidden=true; }
   else{
     const first=!frames[R.frame]; const f=ensureFrame(R.frame,R.view); f.hidden=false;
