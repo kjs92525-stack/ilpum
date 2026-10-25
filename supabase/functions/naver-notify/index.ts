@@ -44,10 +44,12 @@ Deno.serve(async (req: Request) => {
   // (2026-10-25 사용자: 달서(유천점) 예약 때문에 본점에 확정 대기가 뜸) 아무 매장에도 남은 게 없으면 예전처럼 본점.
   const waitRow = async (sid: string) => (await db.from("sch_items").select("data").eq("store_id", sid).eq("kind", "cfg").eq("id", "naver_wait").maybeSingle()).data?.data || {};
   const setWait = async (sid: string, d: Record<string, unknown>) => { try { await db.from("sch_items").upsert({ store_id: sid, kind: "cfg", id: "naver_wait", data: d, deleted: false }, { onConflict: "store_id,kind,id" }); } catch (_) {} };
-  const livePend = (w: any) => (Array.isArray(w.pend) ? w.pend : []).filter((p: any) => p && Date.now() - (p.t || 0) < 2 * 864e5);
+  const livePend = (w: any) => (Array.isArray(w.pend) ? w.pend : []).filter((p: any) => p && Date.now() - (p.t || 0) < 2 * 864e5 && !(p.d && p.d < kstToday()));
   if (/확정이 필요한 예약건/.test(text) && !/님/.test(text)) {
     const rows = await Promise.all(STORES.map(async (x) => ({ id: x.id, w: (await waitRow(x.id)) as any })));
-    let tg = rows.filter((x) => livePend(x.w).length); if (!tg.length) tg = rows.filter((x) => x.id === HQ_STORE);
+    // 당일 예약이 확정 대기일 때만 켬(2026-10-25 사용자: 급한 건 당일). 날짜를 모르는 대기는 당일로 간주. 대기가 어느 매장에도 없으면 예전처럼 본점.
+    const td = kstToday(), withPend = rows.filter((x) => livePend(x.w).length);
+    const tg = withPend.length ? withPend.filter((x) => livePend(x.w).some((p: any) => !p.d || p.d === td)) : rows.filter((x) => x.id === HQ_STORE);
     for (const x of tg) { const w = x.w; if (!w.at || Date.now() - w.at > 120000 || (w.done || 0) > w.at) await setWait(x.id, { ...w, at: Date.now() }); }   // 2분에 한 번만 씀
     return out(200, { skip: "확정 재촉 알림" });
   }
@@ -64,7 +66,7 @@ Deno.serve(async (req: Request) => {
     const isReq = /(접수|신청)/.test(text) && !/확정/.test(text) && !r.cancel && !r.change, isEnd = /확정/.test(text) || r.cancel;
     if (isReq || isEnd) {
       const w: any = await waitRow(SID); let pend = livePend(w).filter((p: any) => p.n !== r.name);
-      if (isReq) pend = [...pend, { n: r.name, t: Date.now() }].slice(-20);
+      if (isReq) pend = [...pend, { n: r.name, t: Date.now(), d: r.date || "" }].slice(-20);
       const nw: any = { ...w, pend }; if (isEnd && w.at && !((w.done || 0) > w.at)) nw.done = Date.now();
       await setWait(SID, nw);
     }
