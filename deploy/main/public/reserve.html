@@ -250,27 +250,6 @@ body.resizing iframe{pointer-events:none}
 .cell .arr{position:absolute;top:3px;left:4px;font-size:10.5px;font-weight:700;background:var(--use);color:var(--panel);border-radius:4px;padding:0 5px} .cell.st-use .cn,.cell.st-use .no{color:var(--use)}
 .cell.st-res{border-color:var(--res);background:var(--res-bg)} .cell.st-res .cn,.cell.st-res .no{color:var(--res)}
 .cell.st-soon{border:1.5px dashed var(--soon);background:var(--soon-bg)} .cell.st-soon .cn,.cell.st-soon .no{color:var(--soon)}
-
-/* ===== 예약 화면 디자인 맛보기 (2026-10-19, 테스트 사이트만) — 남색 테마. 이 블록을 지우면 원래대로 ===== */
-:root{
-  --bg:#1E2136; --panel:#272B45; --ink:#ECEEF8; --sub:#8E93B5; --line:rgba(255,255,255,.08); --soft:#2E3350;
-  --accent:#5B8CFF; --accent-ink:#FFFFFF; --warn:#FF8A80; --warn-bg:#3A1F1C; --ok:#7CC48E; --ok-bg:#1F3326; --tight:#FFB547; --tight-bg:#3A2E14;
-  --res:#FF8A80; --res-bg:#3A1F1C; --soon:#E7C15C; --soon-bg:#352D17; --use:#7CC48E; --use-bg:#1F3326; --past:#6E7A74;
-  --field:#1E2136; --field-line:rgba(255,255,255,.14); --dep:#FF9B54; --dep-bg:#5A300F; --dep-ink:#FFE2C2; color-scheme:dark;
-}
-body{background:var(--bg)}
-.panel{border:0;border-radius:16px;box-shadow:0 8px 24px rgba(8,10,25,.3)}
-.btn{border-radius:9px}
-.tbl{background:#0F1222;color:#fff;border-color:#0F1222}           /* 테이블 번호 칩: 먹남색 바탕 흰 숫자 */
-.btn.today{background:#0F1222;color:#fff;border-color:#0F1222}
-.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
-.fchip{border-color:var(--accent)}
-/* 현황판 칸: 상태 색은 테두리로만, 글씨는 흰색 (어두운 바탕에서 잘 보이게) */
-.cell.st-res,.cell.st-use,.cell.st-soon,.cell.st-dup{border-width:2.5px}
-.cell.st-res .cn,.cell.st-res .no,.cell.st-use .cn,.cell.st-use .no,.cell.st-soon .cn,.cell.st-soon .no,.cell.st-dup .no{color:#fff}
-.cell.st-res,.cell.st-use,.cell.st-soon,.cell.st-dup{color:#fff}
-.res .rq.depq{color:#2A1200}                                       /* 예약금 꼬리표: 주황 바탕엔 진한 갈색 글씨 */
-.res.cxl .rq.depq,.res.done .rq.depq{color:#fff}
 .cell.st-past{border-color:var(--past);background:var(--soft)} .cell.st-past .cn,.cell.st-past .no{color:var(--past)}
 .qpaste{margin-top:6px;font-size:13px}.qpaste summary{cursor:pointer;color:var(--sub);font-weight:700;padding:2px 0}
 .qpaste textarea{width:100%;box-sizing:border-box;margin-top:4px;font:inherit;font-size:13px;border:1.5px dashed var(--line);border-radius:8px;padding:6px 8px;background:var(--panel);color:var(--ink)}
@@ -355,7 +334,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1148</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1156</small>
   </div>
 
 </header>
