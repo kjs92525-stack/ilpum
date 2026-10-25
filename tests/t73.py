@@ -23,7 +23,7 @@ async def main():
     for f,q in pages.items():
       chk(f+' 도 바로 남색', await q.evaluate("document.documentElement.classList.contains('th-navy')"))
     r=pages['reserve.html']; await r.reload(); await r.wait_for_timeout(500)
-    chk('새로 열어도 남색 유지 (예약 바탕 #161929)', await r.evaluate("getComputedStyle(document.body).backgroundColor")=='rgb(22, 25, 41)')
+    chk('새로 열어도 남색 유지 (예약 바탕 #22253d)', await r.evaluate("getComputedStyle(document.body).backgroundColor")=='rgb(34, 37, 61)')
     await pg.evaluate("document.getElementById('themeBtn').click()"); await pg.wait_for_timeout(400)
     chk('한 번 더 → 원래 색', not await pg.evaluate("document.documentElement.classList.contains('th-navy')") and not await r.evaluate("document.documentElement.classList.contains('th-navy')") and await pg.evaluate("getComputedStyle(document.querySelector('.bar')).backgroundColor")==bg0)
     chk('오류 없음', not errs, str(errs[:3])); await b.close()

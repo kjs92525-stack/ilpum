@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>일품집 예약</title>
-<script>/* 남색 테마 (2026-10-25 사용자: 고르게) — 이 기기 설정 ilpum-theme, 통합관리 위쪽 "테마" 버튼으로 바꿈 */(function(){var d=document.documentElement,f=function(){var on=false;try{on=localStorage.getItem("ilpum-theme")==="navy"}catch(e){}d.classList.toggle("th-navy",on);var m=document.querySelector('meta[name="theme-color"]');if(m){if(!m.dataset.c)m.dataset.c=m.content;m.content=on?"#191C2E":m.dataset.c}};f();addEventListener("storage",function(e){if(e.key==="ilpum-theme")f()});addEventListener("DOMContentLoaded",f);window.themeApply=f})();</script>
+<script>/* 남색 테마 (2026-10-25 사용자: 고르게) — 이 기기 설정 ilpum-theme, 통합관리 위쪽 "테마" 버튼으로 바꿈 */(function(){var d=document.documentElement,f=function(){var on=false;try{on=localStorage.getItem("ilpum-theme")==="navy"}catch(e){}d.classList.toggle("th-navy",on);if(on&&!document.getElementById("thFont")){var l=document.createElement("link");l.id="thFont";l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Poppins:wght@500;600;700&display=swap";document.head.appendChild(l)}var m=document.querySelector('meta[name="theme-color"]');if(m){if(!m.dataset.c)m.dataset.c=m.content;m.content=on?"#191C2E":m.dataset.c}};f();addEventListener("storage",function(e){if(e.key==="ilpum-theme")f()});addEventListener("DOMContentLoaded",f);window.themeApply=f})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -45,7 +45,6 @@ header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1p
 .nwait{display:inline-flex;align-items:center;gap:6px;margin-right:8px;border:1px solid #E7B95A;background:#FFF6E0;color:#8A5A00;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .nwait i{width:7px;height:7px;border-radius:50%;background:#E8A317;animation:nwp 1.6s ease-in-out infinite}
 @keyframes nwp{50%{opacity:.25}} .nwait[hidden]{display:none}
-html.th-navy .nwait{background:#3A3116;border-color:#8A7230;color:#E6C27E}
 .battg{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--ink,#222)}
 .battg .bbody{position:relative;display:block;margin-right:4px;width:30px;height:15px;border:2px solid #555;border-radius:4px;padding:1px;box-sizing:border-box}
 .battg .bbody::after{content:'';position:absolute;right:-5px;top:3px;width:3px;height:5px;background:#555;border-radius:0 2px 2px 0}
@@ -318,29 +317,66 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .res .nm.sameday{color:#7B3FC4}
 .sdb{font-size:11px;font-weight:800;color:#fff;background:#7B3FC4;border-radius:4px;padding:0 5px}
 @media (prefers-color-scheme: dark){.res .nm.sameday{color:#C9A6FF}.sdb{background:#9A6BE0}}
-/* ===== 남색 테마 (2026-10-25 사용자: 고를 수 있게, html.th-navy 일 때만) ===== */
+/* ===== 남색 테마 (2026-10-25 사용자: 고를 수 있게, html.th-navy 일 때만) — 사용자가 보내 준 "앱 대시보드" 참고: 바탕 #22253d·판 #272b47·칸 #2e3354, 테두리 대신 밝기 차이, 글꼴 Noto Sans KR + 숫자 Poppins, 강조는 파랑·초록·코랄·주황만 ===== */
 html.th-navy{
-  --bg:#161929; --panel:#262B47; --ink:#D9DCEA; --sub:#A7ACC9; --line:rgba(255,255,255,.12); --soft:#2F3555;
-  --accent:#7C9CF2; --accent-ink:#FFFFFF; --warn:#EE9A92; --warn-bg:#3A1F1C; --ok:#7CC48E; --ok-bg:#1F3326; --tight:#E0B76A; --tight-bg:#3A2E14;
-  --res:#EE9A92; --res-bg:#3A1F1C; --soon:#D8BD6E; --soon-bg:#352D17; --use:#7CC48E; --use-bg:#1F3326; --past:#8A94A0;
-  --field:#161929; --field-line:rgba(255,255,255,.14); --dep:#FF9B54; --dep-bg:#5A300F; --dep-ink:#FFE2C2; color-scheme:dark;
+  --bg:#22253d; --panel:#272b47; --soft:#2e3354; --card2:#353b61; --line:#3a4068; --ink:#eef0ff; --sub:#8f95bd;
+  --accent:#4c7dff; --accent-ink:#FFFFFF; --warn:#ff5468; --warn-bg:rgba(255,84,104,.14); --ok:#2fd17c; --ok-bg:rgba(47,209,124,.14); --tight:#ffb547; --tight-bg:rgba(255,181,71,.14);
+  --res:#ff6b7d; --res-bg:rgba(255,84,104,.12); --soon:#ffb547; --soon-bg:rgba(255,181,71,.13); --use:#2fd17c; --use-bg:rgba(47,209,124,.13); --past:#666c96;
+  --field:#22253d; --field-line:#3a4068; --dep:#ff8a3d; --dep-bg:rgba(255,138,61,.2); --dep-ink:#ffe2c2; color-scheme:dark;
 }
-html.th-navy body{background:var(--bg)}
-html.th-navy .panel{border:0;border-radius:16px;box-shadow:0 8px 24px rgba(8,10,25,.3)}
-html.th-navy .btn{border-radius:9px}
-html.th-navy .tbl{background:#0F1220;color:#fff;border-color:#0F1220}
-html.th-navy .btn.today{background:#0F1220;color:#fff;border-color:#0F1220}
+html.th-navy body{background:var(--bg);font-family:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+html.th-navy .datelabel,html.th-navy .tnow,html.th-navy .thead .t,html.th-navy .rtime,html.th-navy .tbl,html.th-navy .thead .tgl,html.th-navy .stat .v,html.th-navy .cell .no,html.th-navy .cell .ci,html.th-navy .res .pp,html.th-navy .res .ph,html.th-navy .fchip,html.th-navy .pk1 .t,html.th-navy .gres .gd,html.th-navy .gres .gt,html.th-navy .seatline .sl b{font-family:"Poppins","Noto Sans KR",sans-serif;font-variant-numeric:tabular-nums;font-weight:600}
+html.th-navy header{background:var(--panel);border-bottom:1px solid var(--line)}
+html.th-navy main{gap:0}
+html.th-navy .panel{border:0;border-radius:22px;background:var(--panel);box-shadow:0 22px 40px -26px rgba(0,0,0,.7)}
+html.th-navy .thead{background:var(--panel)}
+html.th-navy .btn{background:var(--soft);border:1.5px solid var(--line);border-radius:12px;color:var(--ink)}
+html.th-navy .btn:hover{border-color:var(--accent)}
+html.th-navy .btn.primary,html.th-navy .btn.today{background:var(--accent);border-color:var(--accent);color:#fff}
+html.th-navy .seg{border:1.5px solid var(--line);border-radius:12px}
+html.th-navy .seg button{background:transparent;color:var(--sub)}
 html.th-navy .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
-html.th-navy .fchip{border-color:var(--accent)}
-html.th-navy .cell.st-res,html.th-navy .cell.st-use,html.th-navy .cell.st-soon,html.th-navy .cell.st-dup{border-width:2.5px;color:#fff}
-html.th-navy .cell.st-res .cn,html.th-navy .cell.st-res .no,html.th-navy .cell.st-use .cn,html.th-navy .cell.st-use .no,html.th-navy .cell.st-soon .cn,html.th-navy .cell.st-soon .no,html.th-navy .cell.st-dup .no{color:#fff}
-html.th-navy .res .rq.depq{color:#2A1200}
-html.th-navy .res.cxl .rq.depq,html.th-navy .res.done .rq.depq{color:#fff}
-/* 눈 편하게(2026-10-25 사용자: 글씨가 눈 아픔): 새하얀 글씨 → 회색 도는 흰색, 보조 글씨 밝게, 바탕 더 어둡게·카드와 구분, 원색 채도 낮춤, 이름 굵게 */
-html.th-navy .res .nm{font-weight:800;font-size:15px}
-html.th-navy .tbls .tbl{background:#3A4372;border-color:#3A4372;color:#F2F4FA}
-html.th-navy .cell .cn{font-weight:700}
-html.th-navy input:not([type=checkbox]):not([type=range]),html.th-navy textarea,html.th-navy select{background:#1C2034;color:var(--ink);border-color:#3B4166}
+html.th-navy .stat{background:var(--soft);border:0;border-radius:14px}
+html.th-navy .quick{background:var(--soft);border:1.5px solid rgba(76,125,255,.6);border-radius:18px}
+html.th-navy input:not([type=checkbox]):not([type=range]),html.th-navy textarea,html.th-navy select{background:var(--field);color:var(--ink);border:1.5px solid var(--line);border-radius:10px}
+html.th-navy input:focus,html.th-navy select:focus,html.th-navy textarea:focus{border-color:var(--accent)}
+html.th-navy .res{border-bottom:1px solid var(--line)}
+html.th-navy .res .nm{font-weight:700;font-size:15px}
+html.th-navy .res .rq{color:var(--ink);background:var(--soon-bg);border-left-color:var(--soon)}
+html.th-navy .rtime{background:transparent;border-color:var(--accent);color:#86a7ff}
+html.th-navy .rtime:hover{background:var(--accent);color:#fff}
+html.th-navy .tbls .tbl:not(.dupt):not(.tightt):not(.none),html.th-navy .thead .tgl{background:var(--accent);color:#fff;border:2px solid var(--accent)}
+html.th-navy .tbl{background:var(--card2);color:var(--ink);border-color:var(--card2)}
+html.th-navy .tnote{background:var(--soft);border-color:var(--line)}
+html.th-navy .res .rq.depq{color:#fff}
+html.th-navy .datelabel .dw.sat{color:#86a7ff}
+html.th-navy .split::after{background:var(--bg)}
+html.th-navy .freebox{border:1.5px solid rgba(76,125,255,.7);border-radius:18px;background:var(--soft)}
+html.th-navy .frow .fk b{color:#86a7ff}
+html.th-navy .fchip{background:transparent;border:1.5px solid var(--accent);color:var(--ink);border-radius:10px}
+html.th-navy .fchip:hover{background:var(--accent);color:#fff}
+html.th-navy .ftabs button{background:var(--soft);border:1.5px solid var(--line);border-radius:12px;color:var(--sub)}
+html.th-navy .ftabs button[aria-pressed="true"]{border-color:var(--accent);color:var(--ink)}
+html.th-navy .timebox{background:var(--soft);border-radius:14px}
+html.th-navy .grp h3::before{color:var(--accent)}
+html.th-navy .seatline .sl,html.th-navy .seatb{background:rgba(76,125,255,.18);color:#86a7ff}
+html.th-navy .seatline .sl.zero{background:rgba(255,84,104,.16);color:var(--warn)}
+html.th-navy .cell{background:var(--soft);border:1.5px solid transparent;border-radius:14px}
+html.th-navy .cell .cn{color:var(--ink)!important;font-weight:700}
+html.th-navy .cell.empty .no{color:var(--sub);font-weight:500}
+html.th-navy .cell.st-use{border:2px solid var(--use);background:var(--use-bg)}
+html.th-navy .cell.st-res{border:2px solid var(--res);background:var(--res-bg)}
+html.th-navy .cell.st-soon{border:2px dashed var(--soon);background:var(--soon-bg)}
+html.th-navy .cell.st-past{border-color:var(--line);background:var(--soft)}
+html.th-navy .cell.st-past .cn{color:var(--sub)!important}
+html.th-navy .cell .arr{color:#0f2a1b}
+html.th-navy .cell .memo{color:var(--ink)}
+html.th-navy .battg{background:var(--soft);border-color:var(--line);color:var(--ink)}
+html.th-navy .battg .bbody{border-color:#8f95bd}html.th-navy .battg .bbody::after{background:#8f95bd}
+html.th-navy dialog,html.th-navy .gres{background:var(--panel);border:1.5px solid var(--line);border-radius:18px}
+html.th-navy .lbtn,html.th-navy .seatset{background:var(--soft);border-color:var(--line);color:var(--ink)}
+html.th-navy .nwait{background:rgba(255,181,71,.14);border-color:rgba(255,181,71,.6);color:#ffb547}
+html.th-navy .res .nm.sameday{color:#c4a8ff}html.th-navy .sdb{background:#7a3dff}
 </style>
 </head>
 <body>
@@ -362,7 +398,7 @@ html.th-navy input:not([type=checkbox]):not([type=range]),html.th-navy textarea,
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <button class="nwait" id="nWait" type="button" hidden title="스마트플레이스에서 확정을 누르면 몇 초 뒤 자동으로 들어와요 (누르면 이 안내 닫기)"><i></i>네이버 확정 대기</button><span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1321</small>
+    <button class="nwait" id="nWait" type="button" hidden title="스마트플레이스에서 확정을 누르면 몇 초 뒤 자동으로 들어와요 (누르면 이 안내 닫기)"><i></i>네이버 확정 대기</button><span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1025-1336</small>
   </div>
 
 </header>

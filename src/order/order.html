@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>일품집 · 발주</title>
-<script>/* 남색 테마 (2026-10-25 사용자: 고르게) — 이 기기 설정 ilpum-theme, 통합관리 위쪽 "테마" 버튼으로 바꿈 */(function(){var d=document.documentElement,f=function(){var on=false;try{on=localStorage.getItem("ilpum-theme")==="navy"}catch(e){}d.classList.toggle("th-navy",on);var m=document.querySelector('meta[name="theme-color"]');if(m){if(!m.dataset.c)m.dataset.c=m.content;m.content=on?"#191C2E":m.dataset.c}};f();addEventListener("storage",function(e){if(e.key==="ilpum-theme")f()});addEventListener("DOMContentLoaded",f);window.themeApply=f})();</script>
+<script>/* 남색 테마 (2026-10-25 사용자: 고르게) — 이 기기 설정 ilpum-theme, 통합관리 위쪽 "테마" 버튼으로 바꿈 */(function(){var d=document.documentElement,f=function(){var on=false;try{on=localStorage.getItem("ilpum-theme")==="navy"}catch(e){}d.classList.toggle("th-navy",on);if(on&&!document.getElementById("thFont")){var l=document.createElement("link");l.id="thFont";l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Poppins:wght@500;600;700&display=swap";document.head.appendChild(l)}var m=document.querySelector('meta[name="theme-color"]');if(m){if(!m.dataset.c)m.dataset.c=m.content;m.content=on?"#191C2E":m.dataset.c}};f();addEventListener("storage",function(e){if(e.key==="ilpum-theme")f()});addEventListener("DOMContentLoaded",f);window.themeApply=f})();</script>
 <style>
 :root{--bg:#f6f6f4;--panel:#fff;--ink:#1c2420;--sub:#68736d;--line:#e2e5e1;--accent:#14524a;--accent-ink:#fff;--warn:#c0392b;--ok:#2e7d4f;--soft:#eef2ef;--gold:#b88a2a}
 @media (prefers-color-scheme:dark){:root{--bg:#121816;--panel:#1b2420;--ink:#e8ede9;--sub:#9aa7a0;--line:#2c3732;--accent:#2f8f82;--soft:#222d28;--warn:#ff7a6b;--ok:#6fcf97}}
@@ -74,9 +74,10 @@ label.f{display:block;margin:8px 0 2px;font-size:13px;font-weight:700;color:var(
 .stchip .n{display:inline-block;background:var(--warn);color:#fff;border-radius:999px;padding:0 8px;margin-left:6px;font-size:12.5px}
 .sname{display:inline-block;background:var(--accent);color:#fff;border-radius:6px;padding:1px 8px;font-size:12.5px;font-weight:800}
 /* ===== 남색 테마 (2026-10-25 사용자: 고를 수 있게, html.th-navy 일 때만) ===== */
-html.th-navy{--bg:#161929!important;--panel:#262B47!important;--ink:#D9DCEA!important;--sub:#A7ACC9!important;--line:#3B4166!important;--accent:#7C9CF2!important;--accent-ink:#FFFFFF!important;--warn:#EE9A92!important;--ok:#6FCF97!important;--soft:#2F3555!important;--gold:#D8B16E!important;color-scheme:dark}
-html.th-navy header{background:#121524!important;border-bottom:1px solid #3B4166}
-/* 눈 편하게(2026-10-25 사용자: 글씨가 눈 아픔): 새하얀 글씨 → 회색 도는 흰색, 보조 글씨 밝게, 바탕 더 어둡게·카드와 구분, 원색 채도 낮춤, 이름 굵게 */
+html.th-navy{--bg:#22253d!important;--panel:#272b47!important;--ink:#eef0ff!important;--sub:#8f95bd!important;--line:#3a4068!important;--accent:#4c7dff!important;--accent-ink:#FFFFFF!important;--warn:#ff5468!important;--ok:#2fd17c!important;--soft:#2e3354!important;--gold:#D8B16E!important;color-scheme:dark}
+html.th-navy header{background:#1d2036!important;border-bottom:1px solid #3a4068}
+/* (2026-10-25 사용자가 보낸 앱 대시보드 참고로 다시) 바탕 #22253d·판 #272b47·칸 #2e3354, 글꼴 Noto Sans KR */
+html.th-navy body{font-family:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
 </style>
 </head>
 <body>

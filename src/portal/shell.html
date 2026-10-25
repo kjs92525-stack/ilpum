@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1F4D3A">
 <title>일품집 통합관리</title>
-<script>/* 남색 테마 (2026-10-25 사용자: 고르게) — 이 기기 설정 ilpum-theme, 통합관리 위쪽 "테마" 버튼으로 바꿈 */(function(){var d=document.documentElement,f=function(){var on=false;try{on=localStorage.getItem("ilpum-theme")==="navy"}catch(e){}d.classList.toggle("th-navy",on);var m=document.querySelector('meta[name="theme-color"]');if(m){if(!m.dataset.c)m.dataset.c=m.content;m.content=on?"#191C2E":m.dataset.c}};f();addEventListener("storage",function(e){if(e.key==="ilpum-theme")f()});addEventListener("DOMContentLoaded",f);window.themeApply=f})();</script>
+<script>/* 남색 테마 (2026-10-25 사용자: 고르게) — 이 기기 설정 ilpum-theme, 통합관리 위쪽 "테마" 버튼으로 바꿈 */(function(){var d=document.documentElement,f=function(){var on=false;try{on=localStorage.getItem("ilpum-theme")==="navy"}catch(e){}d.classList.toggle("th-navy",on);if(on&&!document.getElementById("thFont")){var l=document.createElement("link");l.id="thFont";l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Poppins:wght@500;600;700&display=swap";document.head.appendChild(l)}var m=document.querySelector('meta[name="theme-color"]');if(m){if(!m.dataset.c)m.dataset.c=m.content;m.content=on?"#191C2E":m.dataset.c}};f();addEventListener("storage",function(e){if(e.key==="ilpum-theme")f()});addEventListener("DOMContentLoaded",f);window.themeApply=f})();</script>
 <style>
 :root{
   --nav:#1F4D3A; --nav-h:#2A5E49; --nav-ink:#DCE8E1; --nav-sub:#8FAE9F; --gold:#D8B16E;
@@ -121,52 +121,53 @@ select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var
 }
 @media (prefers-reduced-motion:reduce){.nav,.main{transition:none}}
 /* ===== 남색 테마 (2026-10-25 사용자: 고를 수 있게, html.th-navy 일 때만) ===== */
-html.th-navy,html.th-navy:not(#_){--nav:#121524;--nav-h:#24284A;--nav-ink:#D5D8EE;--nav-sub:#9A9FBE;--bg:#161929;--card:#262B47;--ink:#D9DCEA;--sub:#A7ACC9;--line:#3B4166;--brand:#7C9CF2;--brand-soft:#2A3360;--ok:#7CCB9E;--warn:#E0B76A;--bad:#E98B95;--shadow:0 8px 24px rgba(8,10,25,.3);color-scheme:dark}
-html.th-navy #p-dash{--bg:#161929;--card:#262B47;--ink:#D9DCEA;--sub:#A7ACC9;--line:rgba(255,255,255,.10);--brand:#7C9CF2;--brand-soft:rgba(91,140,255,.14);
-  --ok:#7CCB9E;--warn:#E0B76A;--bad:#E98B95;--shadow:0 10px 30px rgba(8,10,25,.35);color-scheme:dark;background:var(--bg);color:var(--ink)}
-html.th-navy .nav{background:#121524}
-html.th-navy .brand .mk{background:linear-gradient(150deg,#7C9CF2,#8B5CFF);color:#fff}
+html.th-navy,html.th-navy:not(#_){--nav:#1d2036;--nav-h:#24284A;--nav-ink:#D5D8EE;--nav-sub:#8f95bd;--bg:#22253d;--card:#272b47;--ink:#eef0ff;--sub:#8f95bd;--line:#3a4068;--brand:#4c7dff;--brand-soft:#2A3360;--ok:#2fd17c;--warn:#ffb547;--bad:#ff5468;--shadow:0 8px 24px rgba(8,10,25,.3);color-scheme:dark}
+html.th-navy #p-dash{--bg:#22253d;--card:#272b47;--ink:#eef0ff;--sub:#8f95bd;--line:rgba(255,255,255,.10);--brand:#4c7dff;--brand-soft:rgba(91,140,255,.14);
+  --ok:#2fd17c;--warn:#ffb547;--bad:#ff5468;--shadow:0 10px 30px rgba(8,10,25,.35);color-scheme:dark;background:var(--bg);color:var(--ink)}
+html.th-navy .nav{background:#1d2036}
+html.th-navy .brand .mk{background:linear-gradient(150deg,#4c7dff,#8B5CFF);color:#fff}
 html.th-navy .mi:hover,html.th-navy .si:hover{background:rgba(255,255,255,.06)}
-html.th-navy .mi[aria-current="page"]{background:#7C9CF2;color:#fff}
-html.th-navy .mi .bdg{background:#E98B95}
-html.th-navy .si[aria-current="page"]{background:rgba(255,255,255,.06);box-shadow:inset 3px 0 0 #7C9CF2;color:#fff}
+html.th-navy .mi[aria-current="page"]{background:#4c7dff;color:#fff}
+html.th-navy .mi .bdg{background:#ff5468}
+html.th-navy .si[aria-current="page"]{background:rgba(255,255,255,.06);box-shadow:inset 3px 0 0 #4c7dff;color:#fff}
 html.th-navy .nfoot .ver{background:rgba(91,140,255,.22)}
 html.th-navy .hidebtn{border-color:rgba(255,255,255,.14)} html.th-navy .hidebtn:hover{background:rgba(255,255,255,.06)}
-html.th-navy .bar{background:#161929;border-bottom-color:rgba(255,255,255,.06);color:#D9DCEA}
-html.th-navy .bar .ib,html.th-navy .bar .lk{background:#262B47;border-color:transparent;color:#C3C7DD}
-html.th-navy .bar .ib:hover,html.th-navy .bar .lk:hover{color:#fff;border-color:#7C9CF2}
-html.th-navy .crumb small{color:#A7ACC9}
+html.th-navy .bar{background:#22253d;border-bottom-color:rgba(255,255,255,.06);color:#eef0ff}
+html.th-navy .bar .ib,html.th-navy .bar .lk{background:#272b47;border-color:transparent;color:#c9cdf0}
+html.th-navy .bar .ib:hover,html.th-navy .bar .lk:hover{color:#fff;border-color:#4c7dff}
+html.th-navy .crumb small{color:#8f95bd}
 html.th-navy #p-dash .dh h1{font-size:28px;font-weight:800}
-html.th-navy #p-dash .btn{border-radius:12px;background:transparent;border:1.5px solid rgba(255,255,255,.14);color:#D0D3E4}
-html.th-navy #p-dash .btn:hover{border-color:#7C9CF2;color:#fff}
-html.th-navy #p-dash .btn.pri{background:#7C9CF2;border-color:#7C9CF2;color:#fff;box-shadow:0 8px 20px rgba(91,140,255,.35)}
+html.th-navy #p-dash .btn{border-radius:12px;background:transparent;border:1.5px solid rgba(255,255,255,.14);color:#dde0ff}
+html.th-navy #p-dash .btn:hover{border-color:#4c7dff;color:#fff}
+html.th-navy #p-dash .btn.pri{background:#4c7dff;border-color:#4c7dff;color:#fff;box-shadow:0 8px 20px rgba(91,140,255,.35)}
 html.th-navy #p-dash .kpis{gap:16px}
 html.th-navy #p-dash .kpi{border:0;border-radius:22px;padding:18px 20px;background:var(--card);box-shadow:var(--shadow)}
 html.th-navy #p-dash .kpi .v{font-size:34px}
 html.th-navy #p-dash .kpi .bar2{background:rgba(255,255,255,.08)}
-html.th-navy #p-dash .kpi:nth-child(1){background:linear-gradient(150deg,#7C9CF2,#3F6BEA);box-shadow:0 14px 30px rgba(63,107,234,.35)}
+html.th-navy #p-dash .kpi:nth-child(1){background:linear-gradient(150deg,#4c7dff,#3F6BEA);box-shadow:0 14px 30px rgba(63,107,234,.35)}
 html.th-navy #p-dash .kpi:nth-child(2){background:linear-gradient(150deg,#8B5CFF,#6A3CF0);box-shadow:0 14px 30px rgba(106,60,240,.35)}
-html.th-navy #p-dash .kpi:nth-child(3){background:linear-gradient(150deg,#E98B95,#F0475A);box-shadow:0 14px 30px rgba(240,71,90,.32)}
+html.th-navy #p-dash .kpi:nth-child(3){background:linear-gradient(150deg,#ff5468,#F0475A);box-shadow:0 14px 30px rgba(240,71,90,.32)}
 html.th-navy #p-dash .kpi:nth-child(-n+3) .k,html.th-navy #p-dash .kpi:nth-child(-n+3) .v small{color:rgba(255,255,255,.82)}
 html.th-navy #p-dash .kpi:nth-child(-n+3) .v{color:#fff}
 html.th-navy #p-dash .kpi:nth-child(-n+3) .bar2{background:rgba(255,255,255,.22)} html.th-navy #p-dash .kpi:nth-child(-n+3) .bar2 i{background:#fff}
 html.th-navy #p-dash .panel{border:0;border-radius:22px;box-shadow:var(--shadow)}
 html.th-navy #p-dash .ph{border-bottom:0;padding:18px 20px 10px}
-html.th-navy #p-dash .cnt{background:rgba(91,140,255,.16);color:#A3BAF2}
-html.th-navy #p-dash th{background:transparent;color:#9A9FBE;text-transform:none;border-bottom:1px solid var(--line)}
+html.th-navy #p-dash .cnt{background:rgba(91,140,255,.16);color:#86a7ff}
+html.th-navy #p-dash th{background:transparent;color:#8f95bd;text-transform:none;border-bottom:1px solid var(--line)}
 html.th-navy #p-dash td{border-top:1px solid var(--line)}
 html.th-navy #p-dash tbody tr:hover td{background:rgba(255,255,255,.025)}
-html.th-navy #p-dash .tag{background:transparent;border:1.5px solid rgba(91,140,255,.55);color:#A3BAF2;padding:0 10px}
+html.th-navy #p-dash .tag{background:transparent;border:1.5px solid rgba(91,140,255,.55);color:#86a7ff;padding:0 10px}
 html.th-navy #p-dash .tag.w{border-color:rgba(255,181,71,.6);color:#E6C27E}
-html.th-navy #p-dash .tag.g{border-color:rgba(255,255,255,.18);color:#A7ACC9}
+html.th-navy #p-dash .tag.g{border-color:rgba(255,255,255,.18);color:#8f95bd}
 html.th-navy #p-dash .st{border-top:1px solid var(--line)}
-html.th-navy #p-dash .av{background:linear-gradient(150deg,#7C9CF2,#8B5CFF);color:#fff;border-radius:14px}
+html.th-navy #p-dash .av{background:linear-gradient(150deg,#4c7dff,#8B5CFF);color:#fff;border-radius:14px}
 html.th-navy #p-dash .note{background:rgba(255,255,255,.03)}
-html.th-navy #p-dash select{background:#161929;border-color:rgba(255,255,255,.12);color:#D9DCEA;border-radius:12px}
+html.th-navy #p-dash select{background:#22253d;border-color:rgba(255,255,255,.12);color:#eef0ff;border-radius:12px}
 html.th-navy #p-dash .err{color:#EE9AA3}
-html.th-navy #p-dash .panel[style*="E5533D"]{color:#FFB3A8!important;box-shadow:inset 0 0 0 1.5px #E98B95}
-/* 눈 편하게(2026-10-25 사용자: 글씨가 눈 아픔): 새하얀 글씨 → 회색 도는 흰색, 보조 글씨 밝게, 바탕 더 어둡게·카드와 구분, 원색 채도 낮춤, 이름 굵게 */
-html.th-navy #p-dash td{color:#D9DCEA}
+html.th-navy #p-dash .panel[style*="E5533D"]{color:#FFB3A8!important;box-shadow:inset 0 0 0 1.5px #ff5468}
+/* (2026-10-25 사용자가 보낸 앱 대시보드 참고로 다시) 바탕 #22253d·판 #272b47·칸 #2e3354, 글꼴 Noto Sans KR */
+html.th-navy #p-dash td{color:#eef0ff}
+html.th-navy body{font-family:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
 </style>
 </head>
 <body>
