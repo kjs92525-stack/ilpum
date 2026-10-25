@@ -29,10 +29,12 @@ Deno.serve(async (req: Request) => {
     try {
       const cur = (await db.from("sync_state").select("val").eq("key", "naver_log").maybeSingle()).data?.val || [];
       const row = { at: new Date().toISOString(), text: text.slice(0, 300), ...res };
-      await db.from("sync_state").upsert({ key: "naver_log", val: [row, ...cur].slice(0, 50), updated_at: new Date().toISOString() });
+      await db.from("sync_state").upsert({ key: "naver_log", val: [row, ...cur].slice(0, 300), updated_at: new Date().toISOString() });
     } catch (_) {}
     return out(200, res);
   };
+  // "확정이 필요한 예약건이 있습니다" 재촉 알림은 몇 분마다 와서 기록을 덮어버림(2026-10-25) → 기록 없이 무시
+  if (/확정이 필요한 예약건/.test(text) && !/님/.test(text)) return out(200, { skip: "확정 재촉 알림" });
   if (!/예약/.test(text) || !/(접수|신청|확정|취소|변경)/.test(text)) return log({ skip: "예약 알림 아님" });
 
   // 지금은 본점 알림만 처리 (같은 폰에 유천점 알림도 옴 — 사용자 지시 2026-10-10)
