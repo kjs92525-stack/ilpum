@@ -67,9 +67,11 @@ label.l{font-size:12px;color:var(--sub);display:block;margin-bottom:3px}
 .tools{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .detail{margin-top:9px;border-top:1px solid var(--line);padding-top:6px;display:none}
 .detail.open{display:block}
-.dl{display:grid;grid-template-columns:64px 1fr auto auto;gap:6px;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--line);align-items:center}
+.dl{display:grid;grid-template-columns:64px 1fr auto auto;gap:2px 6px;font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--line);align-items:start}
+.dl .how{grid-column:2/-1;color:var(--sub);font-size:12px;line-height:1.45}
+.dl .how b{color:var(--ink);font-weight:600}
 .dl .d{color:var(--sub)}
-.dl .x{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dl .x{word-break:break-all;white-space:pre-wrap}
 .dl .m{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .k{font-size:11.5px;padding:1px 6px;border-radius:6px;white-space:nowrap;background:var(--soft)}
 .sug{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px}
@@ -158,7 +160,7 @@ html.th-navy body{font-family:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothi
     <div class="seg" id="filter">
       <span data-f="all" class="on">전체</span><span data-f="일당">일당</span><span data-f="시급">시급</span><span data-f="월급">월급</span><span data-f="미지정">미지정</span><span data-f="제외">제외</span>
     </div>
-    <div class="row" style="margin:8px 0 10px"><input type="text" id="search" placeholder="이름 검색"></div>
+    <div class="row" style="margin:8px 0 2px"><input type="text" id="search" placeholder="이름·스케줄 원문 검색" autocomplete="off" enterkeyhint="search"></div><div class="muted" id="searchInfo" style="margin-bottom:8px"></div>
     <div class="row" style="margin-bottom:10px">
       <button class="btn primary sm" id="copySum">사람별 요약 복사</button>
       <button class="btn sm" id="copyDay">일자별 지급 내역 복사</button>
@@ -451,14 +453,19 @@ function compute(){
       if(d.kind==='f') f++; else if(d.kind==='h') h++; else if(d.kind==='am') am++; else off++;
       const hr=d.kind==='off'?0:(d.hours!=null?d.hours:(d.kind==='f'?p.full:p.half));
       hours+=hr;
-      let pay=null, src='';
-      if(d.tags.includes('달서지급')){ ext++; src='달서지급'; }
-      else if(d.won!=null){ pay=d.won; src='적힌 금액'; }
-      else if(d.kind==='off'){ src='금액 없음'; }
-      else if(type==='일당'){ const v=(d.kind==='f')?p.dayFull:p.dayHalf; if(v>0){ pay=v; src='기본 일당'; } else { missing++; src='금액 없음'; } }
-      else if(type==='시급'){ pay=hr*p.wage; src='시급'; }
+      let pay=null, src='', how='';
+      const kl=KL[d.kind], hrWhy=d.kind==='off'?'휴무지급이라 근무시간 0':(d.hours!=null?`출퇴근 표시 ${d.start??11}시~${d.end??22}시 = ${fmtH(d.hours)}시간`:`${kl} 기본 ${fmtH(hr)}시간(설정값)`);
+      const man=d.won!=null?d.won/10000:null;
+      if(d.tags.includes('달서지급')){ ext++; src='달서지급'; how='달서지급 표시 → 우리 지급액에서 제외'; }
+      else if(d.won!=null){ pay=d.won; src='적힌 금액'; how=`칸에 적힌 숫자 ${man}(만원) → <b>${won(d.won)}원</b> (적힌 금액이 우선, 시간·시급은 곱하지 않음)`; }
+      else if(d.kind==='off'){ src='금액 없음'; how='휴무지급인데 칸에 금액이 없음 → 0원'; }
+      else if(type==='일당'){ const v=(d.kind==='f')?p.dayFull:p.dayHalf; if(v>0){ pay=v; src='기본 일당'; how=`적힌 금액 없음 → 이 사람 기본 ${d.kind==='f'?'종일':'오후'} 일당 <b>${won(v)}원</b>`; } else { missing++; src='금액 없음'; how=`적힌 금액 없음, 기본 ${d.kind==='f'?'종일':'오후'} 일당도 없음 → 아래 일당 칸에 입력하세요`; } }
+      else if(type==='시급'){ pay=hr*p.wage; src='시급'; how=`${hrWhy} × 시급 ${won(p.wage)}원 = <b>${won(pay)}원</b>`; }
+      else if(type==='월급'){ how='월급제 → 금액 계산 안 함 (근무일·시간만)'; }
+      else if(type==='제외'){ how='계산에서 제외한 사람'; }
+      else { how='지급방식을 아직 안 골랐어요 → 금액이 적힌 칸만 합산'; }
       if(pay!=null&&type!=='월급'&&type!=='제외'){ if(src==='시급') hourly+=pay; else daily+=pay; }
-      return Object.assign({},d,{hr,pay,src});
+      return Object.assign({},d,{hr,pay,src,how,hrWhy});
     });
     return {name:n,type,p,f,h,am,off,hours,daily,hourly,total:daily+hourly,missing,ext,rows,cnt:days.length};
   });
@@ -470,8 +477,11 @@ function render(){
   $('cards').innerHTML=[['인원',act.length+'명'],['총 근무일',act.reduce((s,r)=>s+r.cnt,0)+'일'],['총 지급액',won(tp)+'원'],['일당 합계',won(dsum)+'원'],['시급 합계',won(hsum)+'원'],['금액 없는 일당',miss+'건',miss?'warn':'']]
     .map(([k,v,c])=>`<div class="sc ${c||''}"><span>${k}</span><b>${v}</b></div>`).join('');
   const q=$('search').value.trim(); const order={'일당':0,'시급':1,'미지정':2,'월급':3,'제외':4};
-  const rows=results.filter(r=>(filter==='all'||r.type===filter)&&(!q||r.name.includes(q))).sort((a,b)=>order[a.type]-order[b.type]||b.total-a.total||b.cnt-a.cnt);
+  const qq=q.replace(/\s/g,'');
+  const hit=r=>!qq||[r.name,...Object.keys(S.alias).filter(k=>canon(k)===r.name),...r.rows.map(x=>x.text)].some(s=>String(s).replace(/\s/g,'').includes(qq));
+  const rows=results.filter(r=>qq?hit(r):(filter==='all'||r.type===filter)).sort((a,b)=>order[a.type]-order[b.type]||b.total-a.total||b.cnt-a.cnt);
   const list=$('list'); list.innerHTML='';
+  $('searchInfo').textContent=qq?`"${q}" 검색 결과 ${rows.length}명 (이름·합친 이름·스케줄 원문에서 찾아요. 필터와 상관없이 전체에서 찾아요)`:'';
   if(!rows.length){ list.innerHTML='<div class="muted">해당하는 사람이 없어요</div>'; return; }
   const allNames=results.map(r=>r.name).sort();
   rows.forEach(r=>{
@@ -494,7 +504,7 @@ function render(){
     <div class="tools"><button class="btn sm" data-x="detail">일자별 내역</button>
     <select data-x="merge" style="width:auto;flex:1;font-size:13px;padding:6px"><option value="">같은 사람과 합치기…</option>${allNames.filter(n=>n!==r.name).map(n=>`<option>${esc(n)}</option>`).join('')}</select>
     ${aliases.length?'<button class="btn sm" data-x="split">합친 것 풀기</button>':''}</div>
-    <div class="detail">${r.rows.map(x=>`<div class="dl"><span class="d">${md(x.date)}</span><span class="x" title="${esc(x.text)}">${esc(x.list&&x.list!=='목록'?x.list+': '+x.name:x.text.replace(/\s+/g,' '))}</span><span class="k">${KL[x.kind]} ${fmtH(x.hr)}h</span><span class="m">${x.pay!=null&&r.type!=='월급'&&r.type!=='제외'?won(x.pay):`<span class="muted">${x.src==='금액 없음'||x.src==='달서지급'?x.src:'-'}</span>`}</span></div>`).join('')}</div>`;
+    <div class="detail">${r.rows.map(x=>`<div class="dl"><span class="d">${md(x.date)}</span><span class="x">${esc(x.list&&x.list!=='목록'?x.list+' 칸의 '+x.name:x.text.replace(/\s+/g,' '))}</span><span class="k">${KL[x.kind]} ${fmtH(x.hr)}h</span><span class="m">${x.pay!=null&&r.type!=='월급'&&r.type!=='제외'?won(x.pay):`<span class="muted">${x.src==='금액 없음'||x.src==='달서지급'?x.src:'-'}</span>`}</span><span class="how">${x.how}${x.kind!=='off'&&!(x.pay!=null&&x.src==='시급')?` · 시간: ${esc(x.hrWhy)}`:''}${x.tags.length?` · 표시: ${esc(x.tags.join(', '))}`:''}</span></div>`).join('')}</div>`;
     d.querySelectorAll('.seg span').forEach(s=>s.onclick=()=>{ setP(r.name,'type',s.dataset.t); compute(); });
     d.querySelectorAll('input[data-k]').forEach(inp=>inp.addEventListener('change',()=>{ setP(r.name,inp.dataset.k,num(inp.value,0)); compute(); }));
     d.querySelector('[data-x=detail]').onclick=()=>d.querySelector('.detail').classList.toggle('open');
@@ -515,7 +525,7 @@ $('sWage').addEventListener('change',()=>{ S.wage=num($('sWage').value,10320); s
 $('sCol').addEventListener('change',()=>{ const v=$('sCol').value.trim().toUpperCase();
   if(/^[C-Z]$/.test(v)){ S.col=v; save(); if(lastValues){ raw=rawFromValues(lastValues); afterLoad(lastInfo,false); } } else { $('sCol').value=S.col; toast('C~Z 사이 열을 입력하세요'); } });
 $('sList').addEventListener('change',()=>{ S.list=$('sList').value==='1'; save(); compute(); });
-$('search').addEventListener('input',render);
+['input','keyup','change','search','compositionend'].forEach(ev=>$('search').addEventListener(ev,render));
 $('filter').querySelectorAll('span').forEach(s=>s.onclick=()=>{ filter=s.dataset.f; $('filter').querySelectorAll('span').forEach(x=>x.classList.toggle('on',x===s)); render(); });
 $('btnSheet').onclick=loadFromSheet;
 async function copy(txt){
@@ -534,7 +544,7 @@ function dayText(){
   const L=['날짜\t이름\t지급방식\t구분\t시간\t지급액\t근거\t스케줄 원문']; const all=[];
   results.filter(r=>r.type==='일당'||r.type==='시급'||r.type==='미지정').forEach(r=>r.rows.forEach(x=>all.push([r,x])));
   all.sort((a,b)=>a[1].date.localeCompare(b[1].date)||a[0].name.localeCompare(b[0].name)).forEach(([r,x])=>{
-    L.push([x.date,r.name,r.type,KL[x.kind],fmtH(x.hr),x.pay??'',x.src,x.text.replace(/\s+/g,' ')].join('\t'));
+    L.push([x.date,r.name,r.type,KL[x.kind],fmtH(x.hr),x.pay??'',String(x.how||x.src).replace(/<[^>]+>/g,''),x.text.replace(/\s+/g,' ')].join('\t'));
   });
   return L.join('\n');
 }

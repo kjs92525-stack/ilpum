@@ -95,6 +95,17 @@ async def main():
     sv=SRV.get('calc:agg',{}).get('data',{})
     chk('서버(calc:agg)에 저장됨', sv.get('alias')=={'준성':'홍준성'} and sv.get('people',{}).get('민호',{}).get('type')=='시급' and sv.get('wage')==11000 and sv.get('url')==SHEET and sv.get('col')=='K', sv)
     chk('localStorage 에는 집계기 설정 안 둠', not await pg.evaluate("Object.keys(localStorage).some(k=>/payagg|ilpum-pay/.test(k))"))
+    # 3-2) 검색(필터와 상관없이 전체에서, 원문도) + 일자별 계산 설명
+    await pg.evaluate("filter='일당'; render()"); await pg.fill('#search','민호'); await pg.wait_for_timeout(200)
+    chk('필터가 일당이어도 검색은 전체에서 찾음(시급인 민호)', await pg.locator('.person').count()>=1 and '민호' in await pg.inner_text('#list'))
+    await pg.fill('#search','5시출'); await pg.wait_for_timeout(200)
+    chk('스케줄 원문(5시출)으로도 찾음', await pg.locator('.person').count()==1)
+    await pg.fill('#search',''); await pg.evaluate("filter='all'; render()"); await pg.fill('#search','민호'); await pg.wait_for_timeout(200)
+    hw=await pg.evaluate("results.find(r=>r.name==='민호').rows.map(x=>x.how.replace(/<[^>]+>/g,''))")
+    chk('시급 민호 계산 설명(시간×시급)', any('시급 11,000원 = 55,000원' in h and '5시간' in h for h in hw), hw)
+    hw2=await pg.evaluate("results.find(r=>r.name==='황거만').rows.map(x=>x.how.replace(/<[^>]+>/g,''))")
+    chk('일당 황거만 계산 설명(적힌 숫자 6.5만원)', all('6.5(만원) → 65,000원' in h for h in hw2), hw2)
+    await pg.fill('#search','')
     # 4) 복사 텍스트
     st=await pg.evaluate("summaryText()"); dt=await pg.evaluate("dayText()")
     chk('요약 복사 머리글', st.split('\n')[1]=='이름\t지급방식\t근무일\t종일\t오후\t오전\t휴무지급\t총시간\t일당합계\t시급지급\t총지급액\t금액없는날', st[:200])
