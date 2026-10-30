@@ -70,6 +70,8 @@ label.l{font-size:12px;color:var(--sub);display:block;margin-bottom:3px}
 .dl{display:grid;grid-template-columns:64px 1fr auto auto;gap:2px 6px;font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--line);align-items:start}
 .dl .how{grid-column:2/-1;color:var(--sub);font-size:12px;line-height:1.45}
 .dl .how b{color:var(--ink);font-weight:600}
+.dl.sk .x,.dl.sk .d,.dl.sk .k,.dl.sk .m{opacity:.45;text-decoration:line-through}
+.dl .how .btn{margin-left:6px;padding:2px 8px}
 .dl .d{color:var(--sub)}
 .dl .x{word-break:break-all;white-space:pre-wrap}
 .dl .m{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -247,9 +249,9 @@ function pinChangeDialog(){
 function lockClear(){ const u=document.getElementById('ui'); if(u) u.hidden=true; raw=[]; entries=[]; results=[]; loaded=false; lastValues=null; wbCache=null;
   ['periodCard','resCard','sugCard'].forEach(id=>{ const e=document.getElementById(id); if(e) e.classList.add('hide'); }); const l=document.getElementById('list'); if(l) l.innerHTML=''; const f=document.getElementById('fileInfo'); if(f) f.textContent='위의 시트에서 불러오기를 눌러 주세요. (처음이면 아래 설정에 시트 주소를 먼저 넣어요)'; }
 const AGG_ID='calc:agg';
-const DEF={full:10,half:5,wage:10320,col:'L',list:true,people:{},alias:{},dismiss:[],url:'',key:''};
+const DEF={full:10,half:5,wage:10320,col:'L',list:true,people:{},alias:{},dismiss:[],skip:{},url:'',key:''};
 let S=JSON.parse(JSON.stringify(DEF)), sentH='', pushT=null, pushFails=0, pushBusy=false, pulled=false;
-function fixS(){ S=Object.assign(JSON.parse(JSON.stringify(DEF)),S); ['people','alias'].forEach(k=>{ if(!S[k]||typeof S[k]!=='object'||Array.isArray(S[k])) S[k]={}; }); if(!Array.isArray(S.dismiss)) S.dismiss=[]; S.list=S.list!==false && S.list!==0; }
+function fixS(){ S=Object.assign(JSON.parse(JSON.stringify(DEF)),S); ['people','alias','skip'].forEach(k=>{ if(!S[k]||typeof S[k]!=='object'||Array.isArray(S[k])) S[k]={}; }); if(!Array.isArray(S.dismiss)) S.dismiss=[]; S.list=S.list!==false && S.list!==0; }
 function save(){ queuePush(); }
 function queuePush(){ if(!READY||!ST||!ST.can_pay||!pulled) return; clearTimeout(pushT); pushT=setTimeout(pushNow,1200*Math.pow(2,Math.min(pushFails,5))); }
 async function pushNow(){
@@ -431,7 +433,7 @@ function buildSugs(){
 }
 
 /* ================== 계산 ================== */
-const TYPES=['일당','시급','월급','제외'];
+const TYPES=['일당','시급','월급','제외'], OPEN=new Set();
 const KL={f:'종일',h:'오후',am:'오전',off:'휴무지급'};
 function P(n){ const p=S.people[n]||{}; return {type:p.type||null,full:p.full??S.full,half:p.half??S.half,wage:p.wage??S.wage,dayFull:p.dayFull??0,dayHalf:p.dayHalf??0}; }
 function setP(n,k,v){ S.people[n]=S.people[n]||{}; S.people[n][k]=v; save(); }
@@ -446,10 +448,12 @@ function compute(){
   });
   results=Object.keys(by).map(n=>{
     const days=Object.values(by[n]).sort((a,b)=>a.date.localeCompare(b.date));
-    const hasAmt=days.some(d=>d.won!=null||d.tags.includes('당일지급'));
+    const isSk=d=>!!S.skip[n+'|'+d.date], live=days.filter(d=>!isSk(d));
+    const hasAmt=live.some(d=>d.won!=null||d.tags.includes('당일지급'));
     const p=P(n), type=p.type||(hasAmt?'일당':'미지정');
     let f=0,h=0,am=0,off=0,hours=0,daily=0,hourly=0,missing=0,ext=0;
     const rows=days.map(d=>{
+      if(isSk(d)) return Object.assign({},d,{hr:0,pay:null,src:'뺌',how:'직접 뺀 날 → 근무일·시간·금액 모두 계산에서 제외',hrWhy:'',skipped:true});
       if(d.kind==='f') f++; else if(d.kind==='h') h++; else if(d.kind==='am') am++; else off++;
       const hr=d.kind==='off'?0:(d.hours!=null?d.hours:(d.kind==='f'?p.full:p.half));
       hours+=hr;
@@ -467,7 +471,7 @@ function compute(){
       if(pay!=null&&type!=='월급'&&type!=='제외'){ if(src==='시급') hourly+=pay; else daily+=pay; }
       return Object.assign({},d,{hr,pay,src,how,hrWhy});
     });
-    return {name:n,type,p,f,h,am,off,hours,daily,hourly,total:daily+hourly,missing,ext,rows,cnt:days.length};
+    return {name:n,type,p,f,h,am,off,hours,daily,hourly,total:daily+hourly,missing,ext,rows,cnt:live.length,skipN:days.length-live.length};
   });
   render();
 }
@@ -497,17 +501,18 @@ function render(){
     const aliases=Object.keys(S.alias).filter(k=>canon(k)===r.name);
     d.dataset.name=r.name;
     d.innerHTML=`<div class="ptop"><div class="pname">${esc(r.name)}${aliases.length?`<small>(${aliases.map(esc).join(', ')} 포함)</small>`:''}</div><div class="pay">${payHtml}</div></div>
-    <div class="badges"><span class="bd">${r.cnt}일</span>${r.f?`<span class="bd">종일 ${r.f}</span>`:''}${r.h?`<span class="bd">오후 ${r.h}</span>`:''}${r.am?`<span class="bd">오전 ${r.am}</span>`:''}${r.off?`<span class="bd">휴무지급 ${r.off}</span>`:''}${r.daily&&r.type!=='월급'&&r.type!=='제외'?`<span class="bd">일당 ${won(r.daily)}</span>`:''}${r.missing?`<span class="bd w">금액 없음 ${r.missing}</span>`:''}${r.ext?`<span class="bd">달서지급 ${r.ext}</span>`:''}</div>
+    <div class="badges"><span class="bd">${r.cnt}일</span>${r.f?`<span class="bd">종일 ${r.f}</span>`:''}${r.h?`<span class="bd">오후 ${r.h}</span>`:''}${r.am?`<span class="bd">오전 ${r.am}</span>`:''}${r.off?`<span class="bd">휴무지급 ${r.off}</span>`:''}${r.daily&&r.type!=='월급'&&r.type!=='제외'?`<span class="bd">일당 ${won(r.daily)}</span>`:''}${r.missing?`<span class="bd w">금액 없음 ${r.missing}</span>`:''}${r.ext?`<span class="bd">달서지급 ${r.ext}</span>`:''}${r.skipN?`<span class="bd w">뺀 날 ${r.skipN}</span>`:''}</div>
     <div class="seg">${TYPES.map(t=>`<span data-t="${t}" class="${r.type===t?'on':''}">${t}</span>`).join('')}</div>
     ${r.type==='미지정'?'<div class="muted" style="margin-bottom:6px">지급 방식을 골라주세요 (적힌 금액만 합산 중)</div>':''}
     ${inputs}
     <div class="tools"><button class="btn sm" data-x="detail">일자별 내역</button>
     <select data-x="merge" style="width:auto;flex:1;font-size:13px;padding:6px"><option value="">같은 사람과 합치기…</option>${allNames.filter(n=>n!==r.name).map(n=>`<option>${esc(n)}</option>`).join('')}</select>
     ${aliases.length?'<button class="btn sm" data-x="split">합친 것 풀기</button>':''}</div>
-    <div class="detail">${r.rows.map(x=>`<div class="dl"><span class="d">${md(x.date)}</span><span class="x">${esc(x.list&&x.list!=='목록'?x.list+' 칸의 '+x.name:x.text.replace(/\s+/g,' '))}</span><span class="k">${KL[x.kind]} ${fmtH(x.hr)}h</span><span class="m">${x.pay!=null&&r.type!=='월급'&&r.type!=='제외'?won(x.pay):`<span class="muted">${x.src==='금액 없음'||x.src==='달서지급'?x.src:'-'}</span>`}</span><span class="how">${x.how}${x.kind!=='off'&&!(x.pay!=null&&x.src==='시급')?` · 시간: ${esc(x.hrWhy)}`:''}${x.tags.length?` · 표시: ${esc(x.tags.join(', '))}`:''}</span></div>`).join('')}</div>`;
+    <div class="detail${OPEN.has(r.name)?' open':''}">${r.rows.map(x=>`<div class="dl${x.skipped?' sk':''}"><span class="d">${md(x.date)}</span><span class="x">${esc(x.list&&x.list!=='목록'?x.list+' 칸의 '+x.name:x.text.replace(/\s+/g,' '))}</span><span class="k">${KL[x.kind]} ${fmtH(x.hr)}h</span><span class="m">${x.pay!=null&&r.type!=='월급'&&r.type!=='제외'?won(x.pay):`<span class="muted">${x.src==='금액 없음'||x.src==='달서지급'?x.src:'-'}</span>`}</span><span class="how">${x.how}${x.kind!=='off'&&!(x.pay!=null&&x.src==='시급')?` · 시간: ${esc(x.hrWhy)}`:''}${x.tags.length?` · 표시: ${esc(x.tags.join(', '))}`:''} <button class="btn sm" data-skip="${esc(r.name)}|${x.date}">${x.skipped?'다시 넣기':'이 날 빼기'}</button></span></div>`).join('')}</div>`;
     d.querySelectorAll('.seg span').forEach(s=>s.onclick=()=>{ setP(r.name,'type',s.dataset.t); compute(); });
     d.querySelectorAll('input[data-k]').forEach(inp=>inp.addEventListener('change',()=>{ setP(r.name,inp.dataset.k,num(inp.value,0)); compute(); }));
-    d.querySelector('[data-x=detail]').onclick=()=>d.querySelector('.detail').classList.toggle('open');
+    d.querySelector('[data-x=detail]').onclick=()=>{ const o=d.querySelector('.detail').classList.toggle('open'); if(o) OPEN.add(r.name); else OPEN.delete(r.name); };
+    d.querySelectorAll('[data-skip]').forEach(b=>b.onclick=()=>{ const k=b.dataset.skip; if(S.skip[k]) delete S.skip[k]; else S.skip[k]=1; save(); compute(); toast(S.skip[k]?'이 날을 계산에서 뺐어요':'다시 넣었어요'); });
     d.querySelector('[data-x=merge]').onchange=e=>{ const t=e.target.value; if(!t) return; S.alias[r.name]=t; save(); buildSugs(); compute(); toast(`${r.name} → ${t} 합침`); };
     const sp=d.querySelector('[data-x=split]'); if(sp) sp.onclick=()=>{ aliases.forEach(a=>delete S.alias[a]); save(); buildSugs(); compute(); };
     list.appendChild(d);
@@ -542,7 +547,7 @@ function summaryText(){
 }
 function dayText(){
   const L=['날짜\t이름\t지급방식\t구분\t시간\t지급액\t근거\t스케줄 원문']; const all=[];
-  results.filter(r=>r.type==='일당'||r.type==='시급'||r.type==='미지정').forEach(r=>r.rows.forEach(x=>all.push([r,x])));
+  results.filter(r=>r.type==='일당'||r.type==='시급'||r.type==='미지정').forEach(r=>r.rows.forEach(x=>{ if(!x.skipped) all.push([r,x]); }));
   all.sort((a,b)=>a[1].date.localeCompare(b[1].date)||a[0].name.localeCompare(b[0].name)).forEach(([r,x])=>{
     L.push([x.date,r.name,r.type,KL[x.kind],fmtH(x.hr),x.pay??'',String(x.how||x.src).replace(/<[^>]+>/g,''),x.text.replace(/\s+/g,' ')].join('\t'));
   });
