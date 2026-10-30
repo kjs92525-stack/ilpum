@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
-<!-- 판 2026-10-30 휠 확대 고침 -->
+<!-- 판 2026-10-30 주방 도면대로 -->
 <title>일품집 매장 3D</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -583,43 +583,65 @@ label('착화실', 1100, 700, 2.0, 'room');
   };
   const bin = (x1, y1, x2, y2) => { box(x1, y1, x2, y2, .7, P.binB); box(x1+.5, y1+.5, x2-.5, y2-.5, .02, mat.sty, .7, {edges:false, solid:false}); };
 
-  // 서쪽 벽: 냉장·냉동고 3대(기존)
+  // 2층 도면대로: 서쪽 벽 냉장고 → 바로 뒤 반찬 준비 → (가운데) 개수대·식기세척기·싱크대 섬 → 초벌대 바로 뒤 화구 줄
+  // 서쪽 벽: 냉장·냉동고
   box(950, 274, 970, 395, 1.9, mat.steel); for (const y of [304, 334, 364]) box(950, y-.5, 970, y+.5, 1.9, mat.dark, 0, {edges:false, solid:false});
   label('냉장·냉동고', 960, 335, 2.2);
 
-  // ① 반찬·상차림 준비(사진 1): 냉장 작업대 + 위 선반 + 트레이 랙 + 카트
-  under(975, 266, 1013, 287, 's'); overShelf(975, 266, 1013, 272);
-  for (let x = 978; x < 1010; x += 8) box(x, 278, x+7, 285, .03, mat.steel, .85, {batch:true, edges:false});   // 반찬 철판
-  for (let x = 979; x < 1009; x += 8) box(x+1, 279, x+6, 284, .025, (x % 2) ? P.veg : mat.ember, .88, {batch:true, edges:false});
-  panRack(1015, 266, 1030, 283);
-  cart(980, 300, 999, 316);
-  label('반찬 준비', 994, 290, 2.3, 'room');
-
-  // ② 세척 라인(북쪽 벽): 작업대 · 3구 개수대 · 식기세척기(위 후드) · 퇴식대
-  box(1040, 264, 1080, 286, .9, mat.steel); box(1040, 264, 1080, 286, .03, mat.steel, .2, {solid:false});
-  cups(1046, 280, 6);
-  box(1080, 264, 1130, 286, .9, mat.steel);
-  for (let i = 0; i < 3; i++) box(1082 + i*16, 267, 1094 + i*16, 283, .02, mat.grill, .89, {edges:false});
-  for (let i = 0; i < 3; i++) cyl(1088 + i*16, 265.5, .02, .02, .9, .35, mat.steel);
-  box(1130, 264, 1155, 286, .85, mat.steel); box(1131, 268, 1154, 286, .55, mat.dark, .9, {solid:false});   // 도어형 식기세척기
-  ceilGroup.add(box(1126, 262, 1159, 290, .45, mat.steel, 2.0, {solid:false}));
-  box(1155, 264, 1185, 286, .9, mat.steel);
-  for (const x of [1160, 1168, 1176]) box(x, 268, x+6, 282, .1, mat.binB, .9, {batch:true, edges:false});        // 파란 바구니
-  label('세척', 1110, 275, 2.4, 'room');
-
-  // ③ 가운데 작업대(사진 3 오른쪽): 수저통 · 아래 선반 철판
-  box(1040, 305, 1160, 327, .9, mat.steel);
-  box(1040, 305, 1160, 327, .03, mat.steel, .22, {solid:false});
-  for (let x = 1044; x < 1156; x += 9) box(x, 308, x+8, 324, .06, mat.steel, .25, {batch:true, edges:false});
-  cups(1120, 316, 5);
-  label('작업대', 1080, 316, 1.4);
-
-  // ④ 작업대 줄(위에는 아무것도 없음)
-  for (const [x1, x2] of [[1030, 1080], [1080, 1130], [1130, 1180]]) {
-    box(x1, 368, x2, 396, .9, mat.steel);
-    box(x1, 368, x2, 396, .03, mat.steel, .2, {solid:false});
+  // ① 반찬 준비: 냉장고 바로 뒤(동쪽), 반찬 냉장 테이블(위에 반찬통) + 위 2단 선반 + 트레이 랙 + 카트
+  box(972, 280, 996, 386, .85, mat.steel);
+  for (let y = 284; y < 382; y += 18) { box(995.6, y, 996.4, y+16, .62, mat.steel, .12, {solid:false}); box(996.4, y+3, 996.8, y+13, .03, mat.dark, .66, {edges:false, solid:false}); }
+  for (let y = 300; y < 340; y += 6.5) for (const x of [975, 983]) {
+    box(x, y, x+7, y+5.5, .05, mat.steel, .85, {batch:true, edges:false});
+    box(x+.6, y+.6, x+6.4, y+4.9, .03, [P.veg, mat.ember, P.sauce][((y|0)+x) % 3], .87, {batch:true, edges:false});
   }
-  label('주방', 1100, 345, 2.0, 'room');
+  for (let y = 346; y < 382; y += 9) box(975, y, 993, y+8, .03, mat.steel, .85, {batch:true, edges:false});   // 상차림 철판
+  for (const y of [281, 384]) box(972, y-.4, 974, y+.4, 1.0, mat.steel, .85, {edges:false, solid:false});
+  for (const h of [1.35, 1.75]) { box(972, 281, 977, 385, .025, mat.steel, h, {solid:false}); for (let y = 285; y < 382; y += 6) stack(974.5, y, .1 + (y % 3)*.04, h + .025); }
+  panRack(999, 372, 1015, 388);
+  cart(1002, 340, 1020, 356);
+  label('반찬 준비', 984, 330, 2.3, 'room');
+
+  // ② 세척 섬(가운데, 등을 맞댄 두 줄)
+  // 북쪽 줄(y 288~306, 앞이 북쪽): 작업대 · 3구 개수대 · 식기세척기(위 후드) · 퇴식대
+  box(1027, 288, 1060, 306, .9, mat.steel); cups(1032, 292, 6);
+  box(1060, 288, 1105, 306, .9, mat.steel);
+  for (let i = 0; i < 3; i++) box(1062 + i*14.5, 290, 1074 + i*14.5, 303, .02, mat.grill, .89, {edges:false});
+  for (let i = 0; i < 3; i++) cyl(1068 + i*14.5, 304.5, .02, .02, .9, .35, mat.steel);
+  box(1105, 288, 1128, 306, .85, mat.steel); box(1106, 288, 1127, 304, .55, mat.dark, .9, {solid:false});   // 도어형 식기세척기
+  ceilGroup.add(box(1101, 284, 1132, 310, .45, mat.steel, 2.0, {solid:false}));
+  box(1128, 288, 1150, 306, .9, mat.steel);
+  for (const x of [1131, 1138, 1145]) box(x, 291, x+5.5, 303, .1, mat.binB, .9, {batch:true, edges:false});   // 파란 바구니
+  // 남쪽 줄(y 307~330, 앞이 남쪽): 큰 싱크대 2구 · 세척 작업대 · 식기 건조 선반
+  box(1027, 307, 1075, 330, .9, mat.steel);
+  for (const x of [1030, 1052]) box(x, 311, x+20, 327, .02, mat.grill, .89, {edges:false});
+  for (const x of [1040, 1062]) cyl(x, 309, .02, .02, .9, .4, mat.steel);
+  box(1075, 307, 1135, 330, .9, mat.steel); box(1075, 307, 1135, 330, .03, mat.steel, .2, {solid:false});
+  for (let x = 1078; x < 1132; x += 9) box(x, 310, x+8, 327, .06, mat.steel, .23, {batch:true, edges:false});
+  box(1135, 307, 1177, 330, .9, mat.steel);
+  for (const h of [1.2, 1.55]) { box(1137, 309, 1175, 328, .02, mat.steel, h, {solid:false}); for (let x = 1140; x < 1173; x += 5) stack(x, 318.5, .08, h + .02); }
+  for (const x of [1137, 1175]) box(x-.4, 309, x+.4, 310, .8, mat.steel, .9, {edges:false, solid:false});
+  label('세척 (개수대·식기세척기·싱크대)', 1100, 309, 2.5, 'room');
+
+  // ③ 화구 줄: 초벌대 바로 뒤(y 365~397, 손잡이는 북쪽 통로 쪽), 위에 큰 후드
+  box(1030, 365, 1100, 397, .45, mat.steel);                                   // 낮은 국솥 화구 3구
+  for (const x of [1042, 1065, 1088]) {
+    cyl(x, 381, .2, .2, .45, .02, mat.grill); cyl(x, 381, .25, .23, .47, .38, mat.steel); cyl(x, 381, .26, .26, .85, .02, mat.steel);
+    const kb = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .05, 10), mat.knob); kb.rotation.x = Math.PI/2; kb.position.set(X(x), .3, Z(365) - .03); scene.add(kb);
+  }
+  box(1100, 365, 1150, 397, .85, mat.steel);                                   // 가스레인지 4구
+  box(1100, 365, 1150, 366.5, .55, mat.dark, .15, {edges:false, solid:false});
+  for (const [x, y, k] of [[1112, 373, 'pot'], [1138, 373, 'pan'], [1112, 389, 'pan'], [1138, 389, 'pot']]) {
+    cyl(x, y, .11, .11, .85, .03, mat.grill);
+    if (k === 'pot') cyl(x, y, .13, .12, .88, .2, mat.steel); else { cyl(x, y, .16, .14, .88, .07, mat.dark); cyl(x, y, .14, .14, .95, .01, P.sauce); }
+  }
+  for (let k = 0; k < 4; k++) { const kb = new THREE.Mesh(new THREE.CylinderGeometry(.028, .028, .05, 10), mat.knob); kb.rotation.x = Math.PI/2; kb.position.set(X(1106 + k*12.5), .72, Z(365) - .03); scene.add(kb); }
+  box(1150, 365, 1178, 397, .9, mat.steel);                                    // 양념 작업대
+  for (const x of [1156, 1164, 1172]) { cyl(x, 372, .09, .09, .9, .2, mat.steel); cyl(x, 372, .08, .08, 1.1, .01, P.sauce); }
+  ceilGroup.add(box(1026, 362, 1182, 400, .5, mat.steel, 2.05, {solid:false}));   // 캐노피 후드
+  bin(1180, 368, 1190, 380);
+  label('화구', 1100, 381, 2.7, 'room');
+  label('주방', 1100, 348, 2.0, 'room');
 }
 
 /* ── 초벌대 4.9m : 냉장 테이블 + 린나이 6구 3대, 손잡이는 주방 쪽 ── */
