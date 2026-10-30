@@ -209,6 +209,7 @@ scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnviron
 const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 400);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.zoomSpeed = .35;   // 휠 한 칸에 너무 확대되지 않게(사용자 요청)
 controls.maxPolarAngle = Math.PI*0.495;
 controls.minDistance = 3; controls.maxDistance = 90;
 
