@@ -48,7 +48,7 @@
 
 - **미적용 DDL**(사용자가 SQL Editor 에서 직접 실행하거나 허용 필요): `pending_staff_no_pay.sql`, `pending_pay_pin_reset_owner.sql`, `pending_audit_deletes.sql`.
 - 실서버 미확인 항목·예전 서버 이전·보안 정리 등 목록은 reference.md §8.
-- 매장 3D 배치도(새 2층 매장, 2026-10-25~29): 저장소에는 없고 아티팩트 https://claude.ai/artifact/NbKEDF1BW18uSveaaccNkw (치수 도면 39,890×22,119mm 기준, Three.js). 사람 걷기 기능은 사용자 요청으로 뺌. 고칠 땐 Artifact `read` 로 받아서 수정.
+- 매장 3D 배치도(새 매장 1층 판매장 + 2층 식당, 2026-10-25~30): **원본 `src/store3d/store3d.html` → `dist/store3d.html`**(운영 `https://ilpum.yoyo925.workers.dev/store3d.html`, 통합관리 로그인 토큰 `ilpum-fr-conf` 이 있어야 보임, Three.js 0.160 jsdelivr). 1층 도면 21,862×22,639mm·2층 39,890×22,119mm, 도면 좌표(px)→미터 변환 `X/Z`. 사람 걷기·그릴/화구 라인은 사용자 요청으로 뺌. 같은 내용의 아티팩트 https://claude.ai/artifact/NbKEDF1BW18uSveaaccNkw 는 이전 미리보기용(저장소 파일이 기준).
 
 ## 5. 함정 (꼭 지킬 것 — 나머지는 reference.md §9)
 
