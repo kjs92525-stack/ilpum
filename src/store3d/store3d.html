@@ -209,7 +209,22 @@ scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnviron
 const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 400);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.zoomSpeed = .35;   // 휠 한 칸에 너무 확대되지 않게(사용자 요청)
+controls.zoomSpeed = .35;
+/* 휠 확대: 마우스·터치패드가 한 번에 이벤트를 많이 보내도 끝까지 튀지 않게, 휠 양에 비례해서 조금씩 부드럽게 (사용자 요청) */
+let zoomAcc = 0;
+renderer.domElement.addEventListener('wheel', e => {
+  e.preventDefault(); e.stopImmediatePropagation();
+  const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+  zoomAcc = Math.max(-.35, Math.min(.35, zoomAcc + Math.max(-120, Math.min(120, dy)) * .0012));   // 한 칸(100) ≈ 12%
+}, { capture:true, passive:false });
+const _zo = new THREE.Vector3();
+function applyZoom(dt){
+  if (Math.abs(zoomAcc) < .0005) { zoomAcc = 0; return; }
+  const lim = dt * 1.1, step = Math.max(-lim, Math.min(lim, zoomAcc * Math.min(1, dt * 12))); zoomAcc -= step;   // 1초에 최대 약 3배
+  _zo.subVectors(camera.position, controls.target);
+  const L = Math.max(controls.minDistance, Math.min(controls.maxDistance, _zo.length() * Math.exp(step)));
+  _zo.setLength(L); camera.position.copy(controls.target).add(_zo); anim = null;
+}
 controls.maxPolarAngle = Math.PI*0.495;
 controls.minDistance = 3; controls.maxDistance = 90;
 
@@ -1228,6 +1243,7 @@ renderer.setAnimationLoop(now => {
   const dt = Math.min(.1, (now - last)/1000); last = now;
   stepMe(dt);
   camMove(dt);
+  applyZoom(dt);
   if (anim){
     const k = reduce ? 1 : Math.min(1, (now - anim.t0)/900), e = 1 - Math.pow(1-k, 3);
     camera.position.lerpVectors(anim.fp, anim.tp, e);
