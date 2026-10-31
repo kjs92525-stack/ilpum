@@ -43,7 +43,7 @@ header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1p
 .datelabel .dw.sun{color:var(--warn)} .datelabel .dw.sat{color:#3C5A86}
 .trashwrap{position:relative;display:inline-block}
 /* 새 예약(확정 대기) 안내: 검색칸 바로 밑에 깜빡이는 알림만 (누르는 것 없음, 확정 알림이 오면 저절로 꺼짐) */
-.nwait{position:absolute;top:calc(100% + 3px);left:0;z-index:30;display:inline-flex;align-items:center;gap:6px;border:1.5px solid #03C75A;background:#DDF6E7;color:#05632F;border-radius:8px;padding:4px 11px;font-size:13.5px;font-weight:800;white-space:nowrap;pointer-events:none;animation:nwb 1.3s ease-in-out infinite}
+.nwait{position:absolute;top:calc(100% + 3px);left:0;z-index:30;display:inline-flex;align-items:center;gap:6px;border:1.5px solid #03C75A;background:#DDF6E7;color:#05632F;border-radius:8px;padding:4px 11px;font-size:13.5px;font-weight:800;white-space:nowrap;cursor:pointer;font-family:inherit;animation:nwb 1.3s ease-in-out infinite}
 .nwait i{width:9px;height:9px;border-radius:50%;background:#03C75A}
 @keyframes nwb{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(3,199,90,.5)}50%{opacity:.65;box-shadow:0 0 0 5px rgba(3,199,90,0)}} .nwait[hidden]{display:none}
 .battg{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--ink,#222)}
@@ -401,14 +401,14 @@ html.th-navy .grp{border-left-color:#3f4675}
     <button class="btn today" id="todayBtn">오늘 예약</button>
     <div class="gsearch"><input type="search" id="gq" placeholder="전체 예약 검색 (이름·전화번호·테이블)" autocomplete="off" aria-label="예약 검색">
       <div class="gres" id="gres" hidden></div>
-      <div class="nwait" id="nWait" hidden role="status"><i></i>새 예약이 있어요 · 스마트플레이스에서 확정 대기 중</div></div>
+      <button type="button" class="nwait" id="nWait" hidden title="확인했으면 누르세요 — 다음 확정 대기 알림이 오면 다시 떠요"><i></i>새 예약이 있어요 · 스마트플레이스에서 확정 대기 중 <b style="margin-left:2px;opacity:.7">✕</b></button></div>
     <span class="spacer"></span>
     <button class="btn" id="printBtn">인쇄</button>
     <button class="btn" id="xlsxBtn">엑셀 내보내기</button>
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1030-2021</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1031-1636</small>
   </div>
 
 </header>
@@ -1469,7 +1469,10 @@ battPaint(); setInterval(()=>{ battPaint(); waitPaint(); },60000);
 /* 네이버 확정 대기 안내 (2026-10-25): 재촉 알림이 오면 서버가 sch_items cfg naver_wait {at,done} 을 씀 → 15분 안에 왔고 확정 알림 뒤가 아니면 머리줄에 작게 */
 let WAIT={};
 function waitPaint(){ const b=document.getElementById('nWait'); if(!b) return;
-  const at=+WAIT.at||0; b.hidden=!(at&&Date.now()-at<15*60000&&at>(+WAIT.done||0)); }
+  const at=+WAIT.at||0; let x=0; try{ x=+localStorage.getItem('ilpum-nwait-x')||0; }catch(e){}
+  b.hidden=!(at&&Date.now()-at<15*60000&&at>(+WAIT.done||0)&&at>x); }
+/* (2026-10-31 사용자: 다시 누를 수 있게) 누르면 닫힘 — 이 기기에서 그 알림 시각까지만, 다음 재촉 알림이 오면 다시 뜸 */
+document.getElementById('nWait').addEventListener('click',()=>{ try{ localStorage.setItem('ilpum-nwait-x',String(+WAIT.at||Date.now())); }catch(e){} waitPaint(); });
 function waitApply(d){ WAIT=d||{}; waitPaint(); }
 async function waitPull(){ if(!REST||!SID) return; try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.naver_wait&select=data`); if(!r.ok) return; const a=await r.json(); waitApply(a[0]&&a[0].data); }catch(e){} }
 // 서버 동기화: 가장 늦게 누른 기록이 이김. 요청은 시작할 때·탭 다시 볼 때·실시간 알림 때만

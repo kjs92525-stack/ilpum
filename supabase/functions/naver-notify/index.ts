@@ -163,9 +163,9 @@ Deno.serve(async (req: Request) => {
     if (!r.date || !r.time || !r.name) return log({ skip: "날짜·시간·이름을 못 읽음", r });
     if (!r.pp) return log({ skip: "인원을 못 읽음 — 직접 입력", r });
     const day = await getDay(r.date);
-    // 같은 이름·시간이면 중복. "확정" 알림은 앞서 "신청" 알림으로 넣은 예약을 매장에서 시간 등을 고쳤을 수 있어 같은 날 같은 이름이면 중복으로 봄(2026-10-25 김준현: 신청 18:00 → 매장이 17:30 으로 고침 → 확정 알림이 18:00 으로 또 넣음)
-    const isConf = /확정/.test(text) && !/(접수|신청)/.test(text);
-    const dupe = (day?.data?.items || []).find((x: any) => !x.deleted && !isCxl(x) && x.name === r.name && (x.time === r.time || isConf));
+    // 같은 이름·시간이면 중복(신청·확정 모두). (2026-10-31 사용자: 확정 알림도 이름+시간 같을 때만 넘어가고 아니면 등록 —
+    //  예전 v13 의 "확정이면 같은 날 같은 이름은 중복" 규칙 때문에 전현주 18:30 2명이 같은 날 전현주 18:00 8명에 묻혀 빠졌음)
+    const dupe = (day?.data?.items || []).find((x: any) => !x.deleted && !isCxl(x) && x.name === r.name && x.time === r.time);
     if (dupe) return log({ skip: "이미 있는 예약", item: lbl(r.date, dupe) });
     const it: any = { id: uid(), c: today, u: Date.now(), name: r.name, time: r.time, pp: r.pp, tables: [], tnote: "", phone: r.phone || "", req: r.req || "", done: false, auto: "new" };
     await editDay(r.date, (items) => { if (ppNum(r.pp) > AUTO_MAX) it.tables = []; else if (ppNum(r.pp) > 4) it.tables = pickGroup(items, r.time, ppNum(r.pp)); else { const t = pickTable(items, r.time, r.req || ""); it.tables = t ? [t] : []; } items.push(it); });
