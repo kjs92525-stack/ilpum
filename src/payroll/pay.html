@@ -278,6 +278,7 @@ const WD=['일','월','화','수','목','금','토'];
 const md=d=>{ const t=new Date(d+'T00:00:00'); return (t.getMonth()+1)+'/'+t.getDate()+'('+WD[t.getDay()]+')'; };
 const won=n=>Math.round(n).toLocaleString('ko-KR');
 const fmtH=n=>Math.round(n*10)/10;
+const hhm=h=>{ const m=Math.round((h-Math.floor(h))*60); return Math.floor(h)+'시'+(m?m+'분':''); };
 const num=(v,d)=>{ const n=parseFloat(v); return isNaN(n)?d:n; };
 const colIdx=L=>{ L=String(L||'L').toUpperCase().replace(/[^A-Z]/g,''); let n=0; for(const c of L) n=n*26+(c.charCodeAt(0)-64); return Math.max(2,n-1); };
 const colName=i=>{ let s='',n=i+1; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; };
@@ -368,11 +369,14 @@ function parseEntry(text){
   if(/일괄/.test(r)) tags.push('일괄');
   if(/달서지급/.test(r)) tags.push('달서지급');
   const off=/휴무지급/.test(r);
-  let x=r.replace(/\d{1,2}:\d{2}\s*(도착)?/g,' ');
-  let start=null, end=null, mm;
-  if(mm=x.match(/(\d{1,2})\s*~\s*(\d{1,2})/)){ start=pm(+mm[1]); end=pm(+mm[2]); x=x.replace(mm[0],' '); }
-  if(mm=x.match(/(\d{1,2})\s*시\s*(출근|출)/)){ start=pm(+mm[1]); x=x.replace(mm[0],' '); }
-  if(mm=x.match(/(\d{1,2})\s*시\s*(퇴근|퇴)/)){ end=pm(+mm[1]); x=x.replace(mm[0],' '); }
+  let start=null, end=null, mm, x=r;
+  // (2026-10-31 사용자: "12시출" 은 12시~22시) 출근·퇴근 시각: 12시출 / 12시 출근 / 12:00출 / 12시반출 / 12시30분출 / 12출 — 1~9시는 저녁
+  const HM=/(\d{1,2})\s*(?::\s*(\d{2})|시\s*(?:(\d{1,2})\s*분|(반))?)?\s*/;
+  const hm=a=>pm(+a[1])+((a[2]!=null?+a[2]:a[3]!=null?+a[3]:a[4]?30:0)/60);
+  if(mm=x.match(new RegExp(HM.source+'(출근|출)'))){ start=hm(mm); x=x.replace(mm[0],' '); }
+  if(mm=x.match(new RegExp(HM.source+'(퇴근|퇴)'))){ end=hm(mm); x=x.replace(mm[0],' '); }
+  x=x.replace(/\d{1,2}:\d{2}\s*(도착)?/g,' ');
+  if(start==null&&end==null&&(mm=x.match(/(\d{1,2})\s*~\s*(\d{1,2})/))){ start=pm(+mm[1]); end=pm(+mm[2]); x=x.replace(mm[0],' '); }
   x=x.replace(/\d{1,2}\s*시/g,' ').replace(/\d+\s*일/g,' ');
   const am=x.match(/\d+(?:\.\d+)?/); const amt=am?parseFloat(am[0]):null;
   const man=amt==null?null:(amt>=1000?amt/10000:amt);
@@ -385,7 +389,7 @@ function parseEntry(text){
   else if(start!=null&&start>=15) kind='h';
   else kind='f';
   let hours=null;
-  if(kind!=='off'&&(start!=null||end!=null)) hours=Math.max(0,(end??22)-(start??11));
+  if(kind!=='off'&&(start!=null||end!=null)) hours=Math.round(Math.max(0,(end??22)-(start??11))*100)/100;
   return {name:sp.name,kind,hours,won:man==null?null:Math.round(man*10000),tags,start,end,list:null};
 }
 function parseCell(text){
@@ -458,9 +462,10 @@ function compute(){
       const hr=d.kind==='off'?0:(d.hours!=null?d.hours:(d.kind==='f'?p.full:p.half));
       hours+=hr;
       let pay=null, src='', how='';
-      const kl=KL[d.kind], hrWhy=d.kind==='off'?'휴무지급이라 근무시간 0':(d.hours!=null?`출퇴근 표시 ${d.start??11}시~${d.end??22}시 = ${fmtH(d.hours)}시간`:`${kl} 기본 ${fmtH(hr)}시간(설정값)`);
+      const kl=KL[d.kind], hrWhy=d.kind==='off'?'휴무지급이라 근무시간 0':(d.hours!=null?`출퇴근 표시 ${hhm(d.start??11)}~${hhm(d.end??22)} = ${fmtH(d.hours)}시간`:`${kl} 기본 ${fmtH(hr)}시간(설정값)`);
       const man=d.won!=null?d.won/10000:null;
       if(d.tags.includes('달서지급')){ ext++; src='달서지급'; how='달서지급 표시 → 우리 지급액에서 제외'; }
+      else if(d.list==='달서지원'){ ext++; src='달서지원'; how='달서지원 칸에 있는 이름 → 우리 지급액에서 제외 (2026-10-31)'; }
       else if(d.won!=null){ pay=d.won; src='적힌 금액'; how=`칸에 적힌 숫자 ${man}(만원) → <b>${won(d.won)}원</b> (적힌 금액이 우선, 시간·시급은 곱하지 않음)`; }
       else if(d.kind==='off'){ src='금액 없음'; how='휴무지급인데 칸에 금액이 없음 → 0원'; }
       else if(type==='일당'){ const v=(d.kind==='f')?p.dayFull:p.dayHalf; if(v>0){ pay=v; src='기본 일당'; how=`적힌 금액 없음 → 이 사람 기본 ${d.kind==='f'?'종일':'오후'} 일당 <b>${won(v)}원</b>`; } else { missing++; src='금액 없음'; how=`적힌 금액 없음, 기본 ${d.kind==='f'?'종일':'오후'} 일당도 없음 → 아래 일당 칸에 입력하세요`; } }
@@ -501,14 +506,14 @@ function render(){
     const aliases=Object.keys(S.alias).filter(k=>canon(k)===r.name);
     d.dataset.name=r.name;
     d.innerHTML=`<div class="ptop"><div class="pname">${esc(r.name)}${aliases.length?`<small>(${aliases.map(esc).join(', ')} 포함)</small>`:''}</div><div class="pay">${payHtml}</div></div>
-    <div class="badges"><span class="bd">${r.cnt}일</span>${r.f?`<span class="bd">종일 ${r.f}</span>`:''}${r.h?`<span class="bd">오후 ${r.h}</span>`:''}${r.am?`<span class="bd">오전 ${r.am}</span>`:''}${r.off?`<span class="bd">휴무지급 ${r.off}</span>`:''}${r.daily&&r.type!=='월급'&&r.type!=='제외'?`<span class="bd">일당 ${won(r.daily)}</span>`:''}${r.missing?`<span class="bd w">금액 없음 ${r.missing}</span>`:''}${r.ext?`<span class="bd">달서지급 ${r.ext}</span>`:''}${r.skipN?`<span class="bd w">뺀 날 ${r.skipN}</span>`:''}</div>
+    <div class="badges"><span class="bd">${r.cnt}일</span>${r.f?`<span class="bd">종일 ${r.f}</span>`:''}${r.h?`<span class="bd">오후 ${r.h}</span>`:''}${r.am?`<span class="bd">오전 ${r.am}</span>`:''}${r.off?`<span class="bd">휴무지급 ${r.off}</span>`:''}${r.daily&&r.type!=='월급'&&r.type!=='제외'?`<span class="bd">일당 ${won(r.daily)}</span>`:''}${r.missing?`<span class="bd w">금액 없음 ${r.missing}</span>`:''}${r.ext?`<span class="bd">달서(지급·지원) ${r.ext}일 제외</span>`:''}${r.skipN?`<span class="bd w">뺀 날 ${r.skipN}</span>`:''}</div>
     <div class="seg">${TYPES.map(t=>`<span data-t="${t}" class="${r.type===t?'on':''}">${t}</span>`).join('')}</div>
     ${r.type==='미지정'?'<div class="muted" style="margin-bottom:6px">지급 방식을 골라주세요 (적힌 금액만 합산 중)</div>':''}
     ${inputs}
     <div class="tools"><button class="btn sm" data-x="detail">일자별 내역</button>
     <select data-x="merge" style="width:auto;flex:1;font-size:13px;padding:6px"><option value="">같은 사람과 합치기…</option>${allNames.filter(n=>n!==r.name).map(n=>`<option>${esc(n)}</option>`).join('')}</select>
     ${aliases.length?'<button class="btn sm" data-x="split">합친 것 풀기</button>':''}</div>
-    <div class="detail${OPEN.has(r.name)?' open':''}">${r.rows.map(x=>`<div class="dl${x.skipped?' sk':''}"><span class="d">${md(x.date)}</span><span class="x">${esc(x.list&&x.list!=='목록'?x.list+' 칸의 '+x.name:x.text.replace(/\s+/g,' '))}</span><span class="k">${KL[x.kind]} ${fmtH(x.hr)}h</span><span class="m">${x.pay!=null&&r.type!=='월급'&&r.type!=='제외'?won(x.pay):`<span class="muted">${x.src==='금액 없음'||x.src==='달서지급'?x.src:'-'}</span>`}</span><span class="how">${x.how}${x.kind!=='off'&&!(x.pay!=null&&x.src==='시급')?` · 시간: ${esc(x.hrWhy)}`:''}${x.tags.length?` · 표시: ${esc(x.tags.join(', '))}`:''} <button class="btn sm" data-skip="${esc(r.name)}|${x.date}">${x.skipped?'다시 넣기':'이 날 빼기'}</button></span></div>`).join('')}</div>`;
+    <div class="detail${OPEN.has(r.name)?' open':''}">${r.rows.map(x=>`<div class="dl${x.skipped?' sk':''}"><span class="d">${md(x.date)}</span><span class="x">${esc(x.list&&x.list!=='목록'?x.list+' 칸의 '+x.name:x.text.replace(/\s+/g,' '))}</span><span class="k">${KL[x.kind]} ${fmtH(x.hr)}h</span><span class="m">${x.pay!=null&&r.type!=='월급'&&r.type!=='제외'?won(x.pay):`<span class="muted">${x.src==='금액 없음'||x.src==='달서지급'||x.src==='달서지원'?x.src:'-'}</span>`}</span><span class="how">${x.how}${x.kind!=='off'&&!(x.pay!=null&&x.src==='시급')?` · 시간: ${esc(x.hrWhy)}`:''}${x.tags.length?` · 표시: ${esc(x.tags.join(', '))}`:''} <button class="btn sm" data-skip="${esc(r.name)}|${x.date}">${x.skipped?'다시 넣기':'이 날 빼기'}</button></span></div>`).join('')}</div>`;
     d.querySelectorAll('.seg span').forEach(s=>s.onclick=()=>{ setP(r.name,'type',s.dataset.t); compute(); });
     d.querySelectorAll('input[data-k]').forEach(inp=>inp.addEventListener('change',()=>{ setP(r.name,inp.dataset.k,num(inp.value,0)); compute(); }));
     d.querySelector('[data-x=detail]').onclick=()=>{ const o=d.querySelector('.detail').classList.toggle('open'); if(o) OPEN.add(r.name); else OPEN.delete(r.name); };

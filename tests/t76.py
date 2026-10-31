@@ -65,6 +65,12 @@ async def main():
     c=await case("한수연(오후금일괄)"); chk('한수연(오후금일괄) → 오후 일괄',c[0]['kind']=='h' and '일괄' in c[0]['tags'] and c[0]['name']=='한수연',c)
     c=await case("강윤선오후)"); chk('강윤선오후) → 이름 강윤선 + 오후',c[0]['name']=='강윤선' and c[0]['kind']=='h',c)
     c=await case("1팀장"); chk('1팀장 → 1팀',c[0]['name']=='1팀',c)
+    c=await case("김재민12시출"); chk('김재민12시출 → 12시~22시 10시간', c[0]['hours']==10 and c[0]['kind']=='f', c)
+    c=await case("김재민(12시 출근)"); chk('12시 출근(띄어쓰기) → 10시간', c[0]['hours']==10, c)
+    c=await case("김재민12:00출"); chk('12:00출 → 10시간', c[0]['hours']==10, c)
+    c=await case("김재민12시반출"); chk('12시반출 → 9.5시간', c[0]['hours']==9.5, c)
+    c=await case("김재민(12출"); chk('12출 → 10시간', c[0]['hours']==10, c)
+    c=await case("정미옥(오후6.5(17:10도착)"); chk('도착 시각은 여전히 무시', c[0]['hours'] is None and c[0]['won']==65000, c)
     c=await case("17:10도착"); chk('17:10도착만 있으면 무시',c==[],c)
     for memo in ["민호휴무","민혁장치금지","규하씨 16일 출근x","강윤선:원,수 오후/토,일 종일","진현 : X","연순 19,20 오후 24 토요일 종일"]:
       chk('메모 건너뜀: '+memo, await case(memo)==[])
@@ -119,6 +125,11 @@ async def main():
     await pg.evaluate("document.querySelector('.person [data-skip$=\"2026-10-06\"]').click()"); await pg.wait_for_timeout(300)
     chk('다시 넣기 → 원래대로', await pg.evaluate("results.find(x=>x.name==='황거만').total")==130000)
     await pg.fill('#search','')
+    # 3-4) 달서지원 칸 이름은 급여 제외
+    dj=await pg.evaluate("(()=>{const r=results.find(x=>x.name==='김지수');return r&&[r.total,r.ext,r.rows[0].src,r.rows[0].pay]})()")
+    chk('달서지원 칸 이름(김지수) → 급여 제외', dj and dj[0]==0 and dj[1]==1 and dj[2]=='달서지원' and dj[3] is None, str(dj))
+    await pg.evaluate("setP('김지수','type','시급'); compute()")
+    chk('시급으로 바꿔도 달서지원 날은 0원', await pg.evaluate("results.find(x=>x.name==='김지수').total")==0)
     # 4) 복사 텍스트
     st=await pg.evaluate("summaryText()"); dt=await pg.evaluate("dayText()")
     chk('요약 복사 머리글', st.split('\n')[1]=='이름\t지급방식\t근무일\t종일\t오후\t오전\t휴무지급\t총시간\t일당합계\t시급지급\t총지급액\t금액없는날', st[:200])
