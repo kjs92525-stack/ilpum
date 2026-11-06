@@ -551,6 +551,7 @@ document.addEventListener('input',e=>{ const t=e.target, id=t.id||''; if(id==='s
   if(id==='rQ'){ const q=t.value.trim(); $$('#rPick label').forEach(l=>l.hidden=!!q&&!l.dataset.rn.includes(q)); }
   if(t.closest&&t.closest('#dBody')&&$('#rPrev')) rulePrev();
   if(id==='staffQ'&&!e.isComposing) staffSearch(t);
+  if(id==='calQ'){ APP.calQ=t.value; calHi(); }
   if(id==='aName'||id==='aS'||id==='aE') spotAuto();
   if(id==='aMemo') t.dataset.auto='';   // 한글 조합 중에 화면을 다시 그리면 ㅇㅣㅈㅐ 처럼 낱글자로 풀려요 → 조합이 끝난 뒤에만
 });

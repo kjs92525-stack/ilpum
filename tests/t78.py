@@ -91,6 +91,14 @@ async def main():
     await pg.fill('[data-calnote="r0"]','치과'); await pg.dispatch_event('[data-calnote="r0"]','change'); await pg.click('[data-a="calsave"]'); await pg.wait_for_timeout(250)
     chk('메모 칸으로 고치기 → 홍주(치과)', '홍주(치과)' in await pg.inner_text('[data-a="calday"][data-k="2026-11-20"]'))
     await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(250)
+    # 이름 찾기 → 그 사람만 반짝
+    await pg.click('[data-a="view"][data-v="cal"]'); await pg.wait_for_timeout(200)
+    await pg.fill('#calQ','홍주'); await pg.wait_for_timeout(150)
+    r=await pg.evaluate("(()=>{const h=[...document.querySelectorAll('.cc .nm i.hit')];return [h.length>0,h.every(i=>i.dataset.n.includes('홍주')),getComputedStyle(h[0]).animationName,document.getElementById('calQn').textContent]})()")
+    chk('홍주만 반짝(애니메이션)·몇 일 쉬는지', r[0] and r[1] and r[2]!='none' and '일 쉬어요' in r[3], r)
+    await pg.fill('#calQ',''); await pg.wait_for_timeout(100)
+    chk('지우면 원래대로', await pg.locator('.cc .nm i.hit').count()==0)
+    await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(250)
     # 빈자리
     await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(300)
     await pg.click('.dcard.today .ch [data-a="add"]'); await pg.wait_for_timeout(250)

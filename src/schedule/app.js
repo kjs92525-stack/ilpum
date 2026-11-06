@@ -166,7 +166,7 @@ function render(){
   if(!navAllowed(APP.view)) APP.view=canEdit()?'cards':'me';
   $$('#nav button,#mbar button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===APP.view?'page':'false'));
   const V={cards:vCards,cal:vCal,week:vWeek,month:vMonth,day:vDay,staff:vStaff,rules:vRules,me:vMe,hq:vHQ,set:vSet,acct:vAcct}[APP.view]||vCards;
-  $('#main').innerHTML=V();
+  $('#main').innerHTML=V(); if(APP.view==='cal') calHi();
   if(EMBED&&window.parent!==window){ try{ window.parent.postMessage({type:'fr-state',view:APP.view,hq:isHQ(),edit:canEdit(),role:role()},'*'); }catch(e){} }
   if(APP.view==='hq'&&!APP.sum) loadSum();
 }
@@ -290,6 +290,10 @@ function vMonth(){
    요일 칸 = 고정휴무(직원의 쉬는 요일, 매달 그대로) / 날짜 칸 = 그날만 휴무·월차·오전 쉼(그 날짜 기록이라 다음 달엔 없음).
    새 자료 없이 근무표 자료(staff.off, dc)를 그대로 보여 주고 고쳐요 → 스케줄에 바로 반영. 고정 근무 직원만. */
 const CAL_L={off:'',fixed:'',annual:'(월)',am:'(오전)',pmoff:'(오후)',poff:''};
+// 이름 찾기(2026-11-06 사용자: 특정인 검색하면 달력에서 그 사람만 반짝) — 다시 그리지 않고 표시만 바꿈
+function calHi(){ const q=(APP.calQ||'').trim(), box=$('.hcal'); if(!box) return; box.classList.toggle('q',!!q); let n=0;
+  $$('.hcal .cc').forEach(c=>{ let hit=false; c.querySelectorAll('.nm i').forEach(i=>{ const h=!!q&&i.dataset.n.includes(q); i.classList.toggle('hit',h); if(h) hit=true; }); c.classList.toggle('hitd',hit); if(hit) n++; });
+  const el=$('#calQn'); if(el) el.textContent=q?`${n}일 쉬어요`:''; }
 // 달력 이름 옆 메모(dc.cn, 2026-11-06 사용자: 메모 따로 말고 달력에 바로) — 예: 홍주(병원), 애현(월·병원)
 const calLbl=(v,cn)=>{ const a=(CAL_L[v]||'').replace(/[()]/g,''); const parts=[a,cn].filter(Boolean); return parts.length?'('+esc(parts.join('·'))+')':''; };
 function calStates(D,d){   // 고정 근무 직원의 그날 상태: work / fixed(고정휴무) / off / annual(월차) / am(오전 쉼=오후 출근)
@@ -307,10 +311,11 @@ function vCal(){
   const head=[0,1,2,3,4,5,6].map(wd=>`<button class="hc ${wd===0?'sun':wd===6?'sat':''}" ${ed?`data-a="calwd" data-wd="${wd}" title="${DOW[wd]}요일 고정휴무 고치기"`:'disabled'}><b>${DOW[wd]}</b></button>`).join('');
   let cells=''; for(let i=0;i<first.getDay();i++) cells+='<div class="cc out"></div>';
   for(let day=1;day<=last;day++){ const d=new Date(y,m,day), key=ds(d), S=calStates(D,d);
-    const names=regs.filter(s=>S[s.id]&&S[s.id]!=='work').sort((p,q)=>(S[q.id]==='fixed')-(S[p.id]==='fixed')).map(s=>{ const L=calLbl(S[s.id],(D.dc[key+'|'+s.id]||{}).cn); return `<i class="${S[s.id]}${L?' wide':''}">${esc(s.name)}${L}</i>`; }).join('');
+    const names=regs.filter(s=>S[s.id]&&S[s.id]!=='work').sort((p,q)=>(S[q.id]==='fixed')-(S[p.id]==='fixed')).map(s=>{ const L=calLbl(S[s.id],(D.dc[key+'|'+s.id]||{}).cn); return `<i class="${S[s.id]}${L?' wide':''}" data-n="${esc(s.name)}">${esc(s.name)}${L}</i>`; }).join('');
     cells+=`<button class="cc ${key===todayStr?'today':''}" ${ed?`data-a="calday" data-k="${key}"`:'disabled'}><span class="n ${d.getDay()===0?'sun':d.getDay()===6?'sat':''}">${day}</span><span class="nm">${names}</span></button>`; }
   return `<div class="vh"><div><h1>${y}년 ${m+1}월 휴무 달력</h1><div class="sub">쉬는 사람 · (월) 월차 · (오전)(오후) 반차${ed?' · 날짜를 눌러 그날만, 요일을 눌러 고정휴무를 고쳐요':''}</div></div>
-    <div class="row"><button class="btn ic" data-a="calm" data-n="-1" aria-label="지난달">‹</button><button class="btn" data-a="calm" data-n="0">이번 달</button><button class="btn ic" data-a="calm" data-n="1" aria-label="다음 달">›</button></div></div>
+    <div class="row"><button class="btn ic" data-a="calm" data-n="-1" aria-label="지난달">‹</button><button class="btn" data-a="calm" data-n="0">이번 달</button><button class="btn ic" data-a="calm" data-n="1" aria-label="다음 달">›</button></div>
+    <div class="row"><input type="search" id="calQ" class="calq" placeholder="이름 찾기" value="${esc(APP.calQ||'')}" autocomplete="off" aria-label="달력에서 이름 찾기"><span class="muted" id="calQn"></span></div></div>
     <div class="hcal"><div class="hrow">${head}</div><div class="hgrid">${cells}</div></div>`;
 }
 
