@@ -437,10 +437,10 @@ html.th-navy .cards.big .chip{background:color-mix(in srgb,var(--pc,#2e3354) 22%
 .hrow .hc{border:0;border-right:1px solid var(--line);border-bottom:2px solid var(--line2);background:var(--bg);padding:7px 8px;text-align:left;display:flex;flex-direction:column;gap:3px;min-height:0;color:var(--ink)}
 .hrow .hc b{font-size:13px;font-weight:800} .hrow .hc span{font-size:14px;font-weight:700;color:var(--ink2);line-height:1.35;word-break:keep-all}
 .hrow .hc.sun b,.cc .n.sun{color:var(--bad)} .hrow .hc.sat b,.cc .n.sat{color:var(--pm)}
-.cc{border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--card);min-height:92px;padding:6px 6px 8px;text-align:left;display:flex;flex-direction:column;gap:3px;color:var(--ink)}
+.cc{border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--card);min-height:74px;padding:5px 6px 6px;text-align:left;display:flex;flex-direction:column;gap:3px;color:var(--ink)}
 .cc.out{background:var(--bg)} .cc.today{box-shadow:inset 0 0 0 2px var(--amber)}
 .cc .n{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
-.cc .nm{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:2px 6px;font-size:14.5px;font-weight:700;line-height:1.4;width:100%}   /* 이름을 같은 넓이 칸에 줄 맞춰 (2026-11-06) */
+.cc .nm{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:0 5px;font-size:13.5px;font-weight:700;line-height:1.35;width:100%}   /* 이름을 같은 넓이 칸에 줄 맞춰 (2026-11-06) */
 .cc .nm i{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cc .nm i.wide{grid-column:1/-1;white-space:normal}   /* (월)·(오전)·메모가 붙은 이름은 한 줄 통째로 */
 .cc .nm i{font-style:normal} .cc .nm i.annual{color:var(--bad)} .cc .nm i.am{color:var(--pm)} .cc .nm i.pmoff{color:var(--tm)} .cc .nm i.poff{text-decoration:underline dotted}
