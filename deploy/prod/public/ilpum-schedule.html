@@ -451,7 +451,9 @@ html.th-navy .cards.big .chip{background:color-mix(in srgb,var(--pc,#2e3354) 22%
 .cc{border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--card);min-height:92px;padding:6px 6px 8px;text-align:left;display:flex;flex-direction:column;gap:3px;color:var(--ink)}
 .cc.out{background:var(--bg)} .cc.today{box-shadow:inset 0 0 0 2px var(--amber)}
 .cc .n{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
-.cc .nm{display:flex;flex-wrap:wrap;gap:2px 6px;font-size:14.5px;font-weight:700;line-height:1.35}
+.cc .nm{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:2px 6px;font-size:14.5px;font-weight:700;line-height:1.4;width:100%}   /* 이름을 같은 넓이 칸에 줄 맞춰 (2026-11-06) */
+.cc .nm i{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc .nm i.wide{grid-column:1/-1;white-space:normal}   /* (월)·(오전)·메모가 붙은 이름은 한 줄 통째로 */
 .cc .nm i{font-style:normal} .cc .nm i.annual{color:var(--bad)} .cc .nm i.am{color:var(--pm)} .cc .nm i.pmoff{color:var(--tm)} .cc .nm i.poff{text-decoration:underline dotted}
 button.cc:hover,.hrow button.hc:hover{background:var(--amber-soft)}
 .calpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
@@ -462,10 +464,12 @@ button.cc:hover,.hrow button.hc:hover{background:var(--amber-soft)}
 .cp.am{border-color:var(--pm);background:color-mix(in srgb,var(--pm) 12%,var(--card))} .cp.am span{color:var(--pm)}
 .cp.fixed{opacity:.55}
 .cp.pmoff{border-color:var(--tm);background:color-mix(in srgb,var(--tm) 12%,var(--card))} .cp.pmoff span{color:var(--tm)}
-@media (max-width:700px){ .cc{min-height:70px;padding:4px 3px} .cc .nm{font-size:12.5px;gap:1px 4px} .hrow .hc span{font-size:12px} .cc .n{font-size:13px} }
+@media (max-width:700px){ .cc{min-height:70px;padding:4px 3px} .cc .nm{font-size:12.5px;gap:1px 4px;grid-template-columns:1fr} .hrow .hc span{font-size:12px} .cc .n{font-size:13px} }
 /* 필요 인원 빈자리(??? ) — 점선 칸 (2026-11-06) */
 .chip.vac,.cards.big .chip.vac{background:transparent;border:2px dashed var(--line2);color:var(--sub)}
 .vacn{margin-left:4px;font-size:.9em;font-weight:800;color:var(--amber-deep)}
+.cpw{display:flex;flex-direction:column;gap:3px}
+.cpn{width:100%;font-size:12.5px;padding:4px 6px;border:1px solid var(--line2);border-radius:7px;background:var(--card);color:var(--ink);text-align:center}
 
 </style>
 </head>
@@ -1086,6 +1090,8 @@ function vMonth(){
    요일 칸 = 고정휴무(직원의 쉬는 요일, 매달 그대로) / 날짜 칸 = 그날만 휴무·월차·오전 쉼(그 날짜 기록이라 다음 달엔 없음).
    새 자료 없이 근무표 자료(staff.off, dc)를 그대로 보여 주고 고쳐요 → 스케줄에 바로 반영. 고정 근무 직원만. */
 const CAL_L={off:'',fixed:'',annual:'(월)',am:'(오전)',pmoff:'(오후)',poff:''};
+// 달력 이름 옆 메모(dc.cn, 2026-11-06 사용자: 메모 따로 말고 달력에 바로) — 예: 홍주(병원), 애현(월·병원)
+const calLbl=(v,cn)=>{ const a=(CAL_L[v]||'').replace(/[()]/g,''); const parts=[a,cn].filter(Boolean); return parts.length?'('+esc(parts.join('·'))+')':''; };
 function calStates(D,d){   // 고정 근무 직원의 그날 상태: work / fixed(고정휴무) / off / annual(월차) / am(오전 쉼=오후 출근)
   const R=resolve(D,d,{quiet:true}), key=R.key, out={};
   staffList(D).filter(s=>s.type==='regular').forEach(s=>{
@@ -1101,9 +1107,9 @@ function vCal(){
   const head=[0,1,2,3,4,5,6].map(wd=>`<button class="hc ${wd===0?'sun':wd===6?'sat':''}" ${ed?`data-a="calwd" data-wd="${wd}" title="${DOW[wd]}요일 고정휴무 고치기"`:'disabled'}><b>${DOW[wd]}</b></button>`).join('');
   let cells=''; for(let i=0;i<first.getDay();i++) cells+='<div class="cc out"></div>';
   for(let day=1;day<=last;day++){ const d=new Date(y,m,day), key=ds(d), S=calStates(D,d);
-    const names=regs.filter(s=>S[s.id]&&S[s.id]!=='work').sort((p,q)=>(S[q.id]==='fixed')-(S[p.id]==='fixed')).map(s=>`<i class="${S[s.id]}">${esc(s.name)}${CAL_L[S[s.id]]}</i>`).join('');
+    const names=regs.filter(s=>S[s.id]&&S[s.id]!=='work').sort((p,q)=>(S[q.id]==='fixed')-(S[p.id]==='fixed')).map(s=>{ const L=calLbl(S[s.id],(D.dc[key+'|'+s.id]||{}).cn); return `<i class="${S[s.id]}${L?' wide':''}">${esc(s.name)}${L}</i>`; }).join('');
     cells+=`<button class="cc ${key===todayStr?'today':''}" ${ed?`data-a="calday" data-k="${key}"`:'disabled'}><span class="n ${d.getDay()===0?'sun':d.getDay()===6?'sat':''}">${day}</span><span class="nm">${names}</span></button>`; }
-  return `<div class="vh"><div><h1>${y}년 ${m+1}월 휴무 달력</h1><div class="sub">날마다 쉬는 사람 전부(고정휴무 포함) · 월차(월) · 반차 (오전)=오후 출근·(오후)=오전만 · 다른 날 휴무를 쓰거나 반차 두 번이면 그 주 고정휴무는 출근${ed?' · 날짜를 눌러 그날만, 요일을 눌러 고정휴무를 고쳐요':''}</div></div>
+  return `<div class="vh"><div><h1>${y}년 ${m+1}월 휴무 달력</h1><div class="sub">쉬는 사람 · (월) 월차 · (오전)(오후) 반차${ed?' · 날짜를 눌러 그날만, 요일을 눌러 고정휴무를 고쳐요':''}</div></div>
     <div class="row"><button class="btn ic" data-a="calm" data-n="-1" aria-label="지난달">‹</button><button class="btn" data-a="calm" data-n="0">이번 달</button><button class="btn ic" data-a="calm" data-n="1" aria-label="다음 달">›</button></div></div>
     <div class="hcal"><div class="hrow">${head}</div><div class="hgrid">${cells}</div></div>`;
 }
@@ -1615,14 +1621,14 @@ function applyQuick(nameV,noteV,memoV,pickSh){
 let CALD=null;
 function dCalDay(key){
   const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular'), S=calStates(D,pd(key));
-  if(!CALD||CALD.key!==key) CALD={key,orig:{...S},map:{...S}};
+  if(!CALD||CALD.key!==key){ const N={}; regs.forEach(s=>{ const c=(D.dc[key+'|'+s.id]||{}).cn; if(c) N[s.id]=c; }); CALD={key,orig:{...S},map:{...S},origN:{...N},note:N}; }
   const lbl=v=>({work:'근무',fixed:'고정휴무',off:'휴무',annual:'월차',am:'오전 쉼',pmoff:'오후 쉼',poff:'휴무지급'}[v]);
   openDrawer('휴무 달력',`${mdw(key)} · 쉬는 사람을 고르세요`,
-    `<div class="sect"><div class="lb"><span>글로 적기</span><span class="bt">예: 홍주, 애현(월), 김지수(오전)</span></div>
+    `<div class="sect"><div class="lb"><span>글로 적기</span><span class="bt">예: 홍주, 애현(월), 김지수(오전), 홍주(병원)</span></div>
       <div class="row" style="flex-wrap:nowrap"><input type="text" id="calTxt" class="grow" placeholder="이름, 이름(월), 이름(오전)" autocomplete="off"><button class="btn" data-a="caltxt">적용</button></div>
-      <div class="hint">(월) = 월차 · (오전) = 오전 쉬고 오후 출근 · (오후) = 오전만 근무 · 그냥 이름 = 그날 휴무<br>고정휴무가 있는 사람이 같은 주 다른 날 휴무를 쓰거나 반차를 두 번 쓰면 그 주 고정휴무 날은 출근이 돼요 (11/7부터)</div></div>
+      <div class="hint">(월) = 월차 · (오전) = 오전 쉬고 오후 출근 · (오후) = 오전만 근무 · 그냥 이름 = 그날 휴무 · 다른 말을 괄호에 쓰면 휴무 + 메모(달력에 그대로 보임)<br>고정휴무가 있는 사람이 같은 주 다른 날 휴무를 쓰거나 반차를 두 번 쓰면 그 주 고정휴무 날은 출근이 돼요 (11/7부터)</div></div>
     <div class="sect"><div class="lb"><span>직원</span><span class="bt">누를 때마다 근무 → 휴무 → 월차 → 오전 쉼 → 오후 쉼</span></div>
-      <div class="calpick">${regs.map(s=>{ const v=CALD.map[s.id]||'work'; return `<button class="cp ${v}" data-a="calst" data-sid="${s.id}" ${v==='fixed'?'title="고정휴무 — 누르면 그날만 출근"':''}><b>${esc(s.name)}</b><span>${lbl(v)}</span></button>`; }).join('')}</div></div>`,
+      <div class="calpick">${regs.map(s=>{ const v=CALD.map[s.id]||'work'; return `<div class="cpw"><button class="cp ${v}" data-a="calst" data-sid="${s.id}" ${v==='fixed'?'title="고정휴무 — 누르면 그날만 출근"':''}><b>${esc(s.name)}</b><span>${lbl(v)}</span></button>${v!=='work'||CALD.note[s.id]?`<input type="text" class="cpn" data-calnote="${s.id}" value="${esc(CALD.note[s.id]||'')}" placeholder="메모" maxlength="12">`:''}</div>`; }).join('')}</div></div>`,
     `<button class="btn pri grow" data-a="calsave">저장</button>`);
 }
 function calApplyText(txt){
@@ -1631,11 +1637,14 @@ function calApplyText(txt){
     const m=tok.match(/^([가-힣0-9]+)\s*(?:\(([^)]*)\)?)?/); if(!m) return; const nm=m[1], tag=m[2]||'';
     let s=regs.find(z=>z.name===nm); if(!s){ const c=regs.filter(z=>z.name.endsWith(nm)||nm.endsWith(z.name)); if(c.length===1) s=c[0]; }
     if(!s){ miss.push(nm); return; }
-    CALD.map[s.id]=/오후/.test(tag)?'pmoff':/오/.test(tag)?'am':/월/.test(tag)?'annual':'off'; });
+    const parts=tag.split(/[·,\s]+/).filter(Boolean), st=parts.find(x=>/^(오후|오전|오|월|월차)$/.test(x)), note=parts.filter(x=>x!==st).join(' ');
+    CALD.map[s.id]=st==='오후'?'pmoff':st==='오전'||st==='오'?'am':st?'annual':'off'; if(note) CALD.note[s.id]=note.slice(0,12); });
   return miss;
 }
 function calSave(){
   const D=APP.D, key=CALD.key; let n=0;
+  Object.keys(CALD.note).concat(Object.keys(CALD.origN)).forEach(sid=>{ if((CALD.note[sid]||'')===(CALD.origN[sid]||'')||CALD.map[sid]!==CALD.orig[sid]) return;   // 상태는 그대로, 메모만 바뀜
+    const o=Object.assign({},D.dc[key+'|'+sid]||{}); if(CALD.note[sid]) o.cn=CALD.note[sid]; else delete o.cn; put('dc',key+'|'+sid,Object.keys(o).length?o:null); n++; });
   Object.keys(CALD.map).forEach(sid=>{ const v=CALD.map[sid], o0=CALD.orig[sid]; if(v===o0) return;
     const s=D.staff[sid]; if(!s) return; const baseWork=!(s.off||[]).includes(pd(key).getDay());
     const o=Object.assign({},D.dc[key+'|'+sid]||{});
@@ -1644,6 +1653,7 @@ function calSave(){
     else if(v==='off') o.st='off';
     else if(v==='annual') o.st='annual';
     else if(v==='am'||v==='pmoff'){ o.sh={k:v==='am'?'pm':'am'}; o.half=v==='am'?'am':'pm'; if(baseWork) delete o.st; else o.st='extra'; }   // 반차: 오전 쉼=오후 출근, 오후 쉼=오전 근무
+    if(v==='work'&&!CALD.note[sid]) delete o.cn; else if(CALD.note[sid]) o.cn=CALD.note[sid]; else delete o.cn;
     put('dc',key+'|'+sid,Object.keys(o).length?o:null); n++; });
   CALD=null; closeDrawer(); render(); toast(n?`${n}명 바꿨어요`:'바뀐 게 없어요');
 }
@@ -2031,6 +2041,7 @@ document.addEventListener('change',e=>{ const t=e.target, d=t.dataset, D=APP.D; 
   if(d.pat!==undefined){ const i=$(`[data-patt="${d.pat}"]`); i.hidden=t.value!=='t'; i.placeholder=t.value==='t'?'예: 11 또는 11~9':''; if(t.value==='t') i.focus(); }
   if(d.wt&&WD){ const mm=WD.map[d.wt], i=+d.i; mm.dirty=true; const v=t.value.trim(); if(!v) delete mm.t[i]; else { const s=parseT(v,false); if(!s){ toast('시간을 알아보지 못했어요'); t.value=''; return; } mm.t[i]={s}; mm.pm=mm.pm.filter(x=>x!==i); t.value=tLbl(s); } }
   if(d.a==='mepick'){ APP.me=t.value; render(); }
+  if(d.calnote&&CALD){ CALD.note[d.calnote]=t.value.trim().slice(0,12); }
   if(d.a==='cgo'&&t.value){ APP.anchor=pd(t.value); render(); }   // 원하는 날짜로 바로 가기(2026-11-06)
   if(d.a==='stf'){ const st={...D.store}; const f=d.f; let v=t.type==='checkbox'?t.checked:t.value;
     if(['open','close','pmStart','amStart'].includes(f)){ const p=parseT(v,f!=='open'); if(!p){ toast('시간을 확인하세요 (예: 11:00)'); t.value=st[f]; return; } v=p; t.value=p; }

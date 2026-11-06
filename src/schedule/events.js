@@ -143,14 +143,14 @@ function applyQuick(nameV,noteV,memoV,pickSh){
 let CALD=null;
 function dCalDay(key){
   const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular'), S=calStates(D,pd(key));
-  if(!CALD||CALD.key!==key) CALD={key,orig:{...S},map:{...S}};
+  if(!CALD||CALD.key!==key){ const N={}; regs.forEach(s=>{ const c=(D.dc[key+'|'+s.id]||{}).cn; if(c) N[s.id]=c; }); CALD={key,orig:{...S},map:{...S},origN:{...N},note:N}; }
   const lbl=v=>({work:'근무',fixed:'고정휴무',off:'휴무',annual:'월차',am:'오전 쉼',pmoff:'오후 쉼',poff:'휴무지급'}[v]);
   openDrawer('휴무 달력',`${mdw(key)} · 쉬는 사람을 고르세요`,
-    `<div class="sect"><div class="lb"><span>글로 적기</span><span class="bt">예: 홍주, 애현(월), 김지수(오전)</span></div>
+    `<div class="sect"><div class="lb"><span>글로 적기</span><span class="bt">예: 홍주, 애현(월), 김지수(오전), 홍주(병원)</span></div>
       <div class="row" style="flex-wrap:nowrap"><input type="text" id="calTxt" class="grow" placeholder="이름, 이름(월), 이름(오전)" autocomplete="off"><button class="btn" data-a="caltxt">적용</button></div>
-      <div class="hint">(월) = 월차 · (오전) = 오전 쉬고 오후 출근 · (오후) = 오전만 근무 · 그냥 이름 = 그날 휴무<br>고정휴무가 있는 사람이 같은 주 다른 날 휴무를 쓰거나 반차를 두 번 쓰면 그 주 고정휴무 날은 출근이 돼요 (11/7부터)</div></div>
+      <div class="hint">(월) = 월차 · (오전) = 오전 쉬고 오후 출근 · (오후) = 오전만 근무 · 그냥 이름 = 그날 휴무 · 다른 말을 괄호에 쓰면 휴무 + 메모(달력에 그대로 보임)<br>고정휴무가 있는 사람이 같은 주 다른 날 휴무를 쓰거나 반차를 두 번 쓰면 그 주 고정휴무 날은 출근이 돼요 (11/7부터)</div></div>
     <div class="sect"><div class="lb"><span>직원</span><span class="bt">누를 때마다 근무 → 휴무 → 월차 → 오전 쉼 → 오후 쉼</span></div>
-      <div class="calpick">${regs.map(s=>{ const v=CALD.map[s.id]||'work'; return `<button class="cp ${v}" data-a="calst" data-sid="${s.id}" ${v==='fixed'?'title="고정휴무 — 누르면 그날만 출근"':''}><b>${esc(s.name)}</b><span>${lbl(v)}</span></button>`; }).join('')}</div></div>`,
+      <div class="calpick">${regs.map(s=>{ const v=CALD.map[s.id]||'work'; return `<div class="cpw"><button class="cp ${v}" data-a="calst" data-sid="${s.id}" ${v==='fixed'?'title="고정휴무 — 누르면 그날만 출근"':''}><b>${esc(s.name)}</b><span>${lbl(v)}</span></button>${v!=='work'||CALD.note[s.id]?`<input type="text" class="cpn" data-calnote="${s.id}" value="${esc(CALD.note[s.id]||'')}" placeholder="메모" maxlength="12">`:''}</div>`; }).join('')}</div></div>`,
     `<button class="btn pri grow" data-a="calsave">저장</button>`);
 }
 function calApplyText(txt){
@@ -159,11 +159,14 @@ function calApplyText(txt){
     const m=tok.match(/^([가-힣0-9]+)\s*(?:\(([^)]*)\)?)?/); if(!m) return; const nm=m[1], tag=m[2]||'';
     let s=regs.find(z=>z.name===nm); if(!s){ const c=regs.filter(z=>z.name.endsWith(nm)||nm.endsWith(z.name)); if(c.length===1) s=c[0]; }
     if(!s){ miss.push(nm); return; }
-    CALD.map[s.id]=/오후/.test(tag)?'pmoff':/오/.test(tag)?'am':/월/.test(tag)?'annual':'off'; });
+    const parts=tag.split(/[·,\s]+/).filter(Boolean), st=parts.find(x=>/^(오후|오전|오|월|월차)$/.test(x)), note=parts.filter(x=>x!==st).join(' ');
+    CALD.map[s.id]=st==='오후'?'pmoff':st==='오전'||st==='오'?'am':st?'annual':'off'; if(note) CALD.note[s.id]=note.slice(0,12); });
   return miss;
 }
 function calSave(){
   const D=APP.D, key=CALD.key; let n=0;
+  Object.keys(CALD.note).concat(Object.keys(CALD.origN)).forEach(sid=>{ if((CALD.note[sid]||'')===(CALD.origN[sid]||'')||CALD.map[sid]!==CALD.orig[sid]) return;   // 상태는 그대로, 메모만 바뀜
+    const o=Object.assign({},D.dc[key+'|'+sid]||{}); if(CALD.note[sid]) o.cn=CALD.note[sid]; else delete o.cn; put('dc',key+'|'+sid,Object.keys(o).length?o:null); n++; });
   Object.keys(CALD.map).forEach(sid=>{ const v=CALD.map[sid], o0=CALD.orig[sid]; if(v===o0) return;
     const s=D.staff[sid]; if(!s) return; const baseWork=!(s.off||[]).includes(pd(key).getDay());
     const o=Object.assign({},D.dc[key+'|'+sid]||{});
@@ -172,6 +175,7 @@ function calSave(){
     else if(v==='off') o.st='off';
     else if(v==='annual') o.st='annual';
     else if(v==='am'||v==='pmoff'){ o.sh={k:v==='am'?'pm':'am'}; o.half=v==='am'?'am':'pm'; if(baseWork) delete o.st; else o.st='extra'; }   // 반차: 오전 쉼=오후 출근, 오후 쉼=오전 근무
+    if(v==='work'&&!CALD.note[sid]) delete o.cn; else if(CALD.note[sid]) o.cn=CALD.note[sid]; else delete o.cn;
     put('dc',key+'|'+sid,Object.keys(o).length?o:null); n++; });
   CALD=null; closeDrawer(); render(); toast(n?`${n}명 바꿨어요`:'바뀐 게 없어요');
 }
@@ -559,6 +563,7 @@ document.addEventListener('change',e=>{ const t=e.target, d=t.dataset, D=APP.D; 
   if(d.pat!==undefined){ const i=$(`[data-patt="${d.pat}"]`); i.hidden=t.value!=='t'; i.placeholder=t.value==='t'?'예: 11 또는 11~9':''; if(t.value==='t') i.focus(); }
   if(d.wt&&WD){ const mm=WD.map[d.wt], i=+d.i; mm.dirty=true; const v=t.value.trim(); if(!v) delete mm.t[i]; else { const s=parseT(v,false); if(!s){ toast('시간을 알아보지 못했어요'); t.value=''; return; } mm.t[i]={s}; mm.pm=mm.pm.filter(x=>x!==i); t.value=tLbl(s); } }
   if(d.a==='mepick'){ APP.me=t.value; render(); }
+  if(d.calnote&&CALD){ CALD.note[d.calnote]=t.value.trim().slice(0,12); }
   if(d.a==='cgo'&&t.value){ APP.anchor=pd(t.value); render(); }   // 원하는 날짜로 바로 가기(2026-11-06)
   if(d.a==='stf'){ const st={...D.store}; const f=d.f; let v=t.type==='checkbox'?t.checked:t.value;
     if(['open','close','pmStart','amStart'].includes(f)){ const p=parseT(v,f!=='open'); if(!p){ toast('시간을 확인하세요 (예: 11:00)'); t.value=st[f]; return; } v=p; t.value=p; }

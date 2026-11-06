@@ -79,6 +79,18 @@ async def main():
     x=await pg.evaluate(f"(()=>{{const x=resolve(APP.D,pd('{sun2}')).list.find(z=>z.name==='홍주');return x&&[x.payoff,APP.D.dc['{sun2}|r0'].st]}})()")
     chk('쉬는 날 고정 직원 넣기 → 휴무지급', x==[True,'paidoff'], x)
     await pg.evaluate(f"put('dc','{sun2}|r0',null)")
+    # 달력 이름 옆 메모
+    await pg.click('[data-a="view"][data-v="cal"]'); await pg.wait_for_timeout(200)
+    await pg.evaluate("APP.calAnchor=new Date(2026,10,1); render()")
+    await pg.click('[data-a="calday"][data-k="2026-11-20"]'); await pg.wait_for_timeout(200)
+    await pg.fill('#calTxt','홍주(병원), 애현(월 결혼식)'); await pg.click('[data-a="caltxt"]'); await pg.click('[data-a="calsave"]'); await pg.wait_for_timeout(250)
+    c=await pg.inner_text('[data-a="calday"][data-k="2026-11-20"]')
+    chk('달력에 홍주(병원)·애현(월·결혼식)', '홍주(병원)' in c and '애현(월·결혼식)' in c, c)
+    chk('홍주는 휴무, 애현은 월차', await pg.evaluate("[APP.D.dc['2026-11-20|r0'].st,APP.D.dc['2026-11-20|r1'].st]")==['off','annual'])
+    await pg.click('[data-a="calday"][data-k="2026-11-20"]'); await pg.wait_for_timeout(200)
+    await pg.fill('[data-calnote="r0"]','치과'); await pg.dispatch_event('[data-calnote="r0"]','change'); await pg.click('[data-a="calsave"]'); await pg.wait_for_timeout(250)
+    chk('메모 칸으로 고치기 → 홍주(치과)', '홍주(치과)' in await pg.inner_text('[data-a="calday"][data-k="2026-11-20"]'))
+    await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(250)
     # 빈자리
     await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(300)
     await pg.click('.dcard.today .ch [data-a="add"]'); await pg.wait_for_timeout(250)
