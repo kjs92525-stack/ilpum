@@ -429,3 +429,4 @@ html.th-navy .cards.big .chip{background:color-mix(in srgb,var(--pc,#2e3354) 22%
 @media (max-width:860px){ .cards.big .chip{min-width:72px} }
 .cards.big .add{opacity:.5;min-width:34px;align-self:center}   /* 안 보이는 + 가 줄을 넘어가 빈 줄처럼 보이던 것 → 흐리게 보이게 */
 .cards.big .bc:hover .add{opacity:1}
+.cgo{width:132px;padding:5px 6px;font-size:13px;border:1px solid var(--line2);border-radius:8px;background:var(--card);color:var(--ink)}   /* 날짜로 바로 가기 */

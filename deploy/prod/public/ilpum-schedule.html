@@ -440,6 +440,7 @@ html.th-navy .cards.big .chip{background:color-mix(in srgb,var(--pc,#2e3354) 22%
 @media (max-width:860px){ .cards.big .chip{min-width:72px} }
 .cards.big .add{opacity:.5;min-width:34px;align-self:center}   /* 안 보이는 + 가 줄을 넘어가 빈 줄처럼 보이던 것 → 흐리게 보이게 */
 .cards.big .bc:hover .add{opacity:1}
+.cgo{width:132px;padding:5px 6px;font-size:13px;border:1px solid var(--line2);border-radius:8px;background:var(--card);color:var(--ink)}   /* 날짜로 바로 가기 */
 
 </style>
 </head>
@@ -961,7 +962,7 @@ function vCards(){
       ${R.list.length?'':'<div class="cr0">근무자가 없어요</div>'}${rows}${offs?`<div class="cf"><b>쉬는 사람</b>${offs}</div>`:''}</div>`; }
   const hiddenN=allPos.size-usedAny.size;
   return `<div class="vh"><div><h1>${title}</h1><div class="sub">이름을 누르면 시간·금액·휴무, 끌어서(폰은 꾹) 옮기기·복사</div></div>
-    <div class="row"><button class="btn ic" data-a="cnav" data-n="-1" aria-label="이전">‹</button><button class="btn" data-a="cnav" data-n="0">${mode==='month'?'이번 달':'오늘'}</button><button class="btn ic" data-a="cnav" data-n="1" aria-label="다음">›</button></div>
+    <div class="row"><button class="btn ic" data-a="cnav" data-n="-1" aria-label="이전">‹</button><button class="btn" data-a="cnav" data-n="0">${mode==='month'?'이번 달':'오늘'}</button><button class="btn ic" data-a="cnav" data-n="1" aria-label="다음">›</button><input type="date" class="cgo" data-a="cgo" value="${ds(a)}" title="날짜로 바로 가기" aria-label="날짜로 바로 가기"></div>
     <div class="seg" role="group" aria-label="기간"><button data-a="cmode" data-v="week7" aria-pressed="${mode!=='month'}">오늘부터 7일</button><button data-a="cmode" data-v="month" aria-pressed="${mode==='month'}">한 달</button></div>${viewSeg()}<div class="seg" role="group" aria-label="글자 크기"><button data-a="clook" data-v="big" aria-pressed="${cardBig()}">크게</button><button data-a="clook" data-v="compact" aria-pressed="${!cardBig()}">촘촘히</button></div><span class="sp"></span>
     ${hiddenN>0||APP.showEmpty?`<button class="btn" data-a="empty">${APP.showEmpty?'빈 포지션 숨기기':`빈 포지션 ${hiddenN}개 보기`}</button>`:''}
     ${ed?'<button class="btn" data-a="posmgr">포지션 관리</button>':''}
@@ -1903,6 +1904,7 @@ document.addEventListener('change',e=>{ const t=e.target, d=t.dataset, D=APP.D; 
   if(d.pat!==undefined){ const i=$(`[data-patt="${d.pat}"]`); i.hidden=t.value!=='t'; i.placeholder=t.value==='t'?'예: 11 또는 11~9':''; if(t.value==='t') i.focus(); }
   if(d.wt&&WD){ const mm=WD.map[d.wt], i=+d.i; mm.dirty=true; const v=t.value.trim(); if(!v) delete mm.t[i]; else { const s=parseT(v,false); if(!s){ toast('시간을 알아보지 못했어요'); t.value=''; return; } mm.t[i]={s}; mm.pm=mm.pm.filter(x=>x!==i); t.value=tLbl(s); } }
   if(d.a==='mepick'){ APP.me=t.value; render(); }
+  if(d.a==='cgo'&&t.value){ APP.anchor=pd(t.value); render(); }   // 원하는 날짜로 바로 가기(2026-11-06)
   if(d.a==='stf'){ const st={...D.store}; const f=d.f; let v=t.type==='checkbox'?t.checked:t.value;
     if(['open','close','pmStart','amStart'].includes(f)){ const p=parseT(v,f!=='open'); if(!p){ toast('시간을 확인하세요 (예: 11:00)'); t.value=st[f]; return; } v=p; t.value=p; }
     if(['fullH','pmH','amH','target'].includes(f)) v=+v||0; st[f]=v; put('cfg','store',st); if(f==='name') renderShell(),render(); toast('저장했어요'); }

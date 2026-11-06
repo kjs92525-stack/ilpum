@@ -496,6 +496,7 @@ document.addEventListener('change',e=>{ const t=e.target, d=t.dataset, D=APP.D; 
   if(d.pat!==undefined){ const i=$(`[data-patt="${d.pat}"]`); i.hidden=t.value!=='t'; i.placeholder=t.value==='t'?'예: 11 또는 11~9':''; if(t.value==='t') i.focus(); }
   if(d.wt&&WD){ const mm=WD.map[d.wt], i=+d.i; mm.dirty=true; const v=t.value.trim(); if(!v) delete mm.t[i]; else { const s=parseT(v,false); if(!s){ toast('시간을 알아보지 못했어요'); t.value=''; return; } mm.t[i]={s}; mm.pm=mm.pm.filter(x=>x!==i); t.value=tLbl(s); } }
   if(d.a==='mepick'){ APP.me=t.value; render(); }
+  if(d.a==='cgo'&&t.value){ APP.anchor=pd(t.value); render(); }   // 원하는 날짜로 바로 가기(2026-11-06)
   if(d.a==='stf'){ const st={...D.store}; const f=d.f; let v=t.type==='checkbox'?t.checked:t.value;
     if(['open','close','pmStart','amStart'].includes(f)){ const p=parseT(v,f!=='open'); if(!p){ toast('시간을 확인하세요 (예: 11:00)'); t.value=st[f]; return; } v=p; t.value=p; }
     if(['fullH','pmH','amH','target'].includes(f)) v=+v||0; st[f]=v; put('cfg','store',st); if(f==='name') renderShell(),render(); toast('저장했어요'); }
