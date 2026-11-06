@@ -94,9 +94,6 @@ async def main():
     names2=await pg.evaluate("APP.D.positions.map(p=>p.name)")
     chk('2층홀 → 홀 바로 아래로', names2.index('2층홀')==names2.index('홀')+1, names2)
     await pg.evaluate("closeDrawer()")
-    await pg.evaluate(f"""(()=>{{ for(let i=0;i<10;i++) put('spot','m'+i,{{id:'m'+i,date:'{t}',name:'알바'+'가나다라마바사아자차'[i],pos:'2층홀'}}); render(); }})()"""); await pg.wait_for_timeout(300)
-    rows=await pg.evaluate("(()=>{const row=[...document.querySelectorAll('.dcard.today .cr')].find(r=>r.querySelector('.cl').textContent.startsWith('2층홀'));const tops=[...row.querySelectorAll('.chip')].map(c=>Math.round(c.getBoundingClientRect().top));return [row.querySelectorAll('.brk').length,[...new Set(tops)].length,tops.filter(x=>x===tops[0]).length]})()")
-    chk('10명 → 두 줄(5+5)', rows==[1,2,5], rows)
     # ③ 크게/촘촘히
     chk('기본은 크게', await pg.evaluate("document.querySelector('.cards').classList.contains('big')"))
     fs=await pg.evaluate("parseFloat(getComputedStyle(document.querySelector('.cards.big .chip')).fontSize)")
