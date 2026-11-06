@@ -144,12 +144,12 @@ let CALD=null;
 function dCalDay(key){
   const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular'), S=calStates(D,pd(key));
   if(!CALD||CALD.key!==key) CALD={key,orig:{...S},map:{...S}};
-  const lbl=v=>({work:'근무',fixed:'고정휴무',off:'휴무',annual:'월차',am:'오전 쉼'}[v]);
+  const lbl=v=>({work:'근무',fixed:'고정휴무',off:'휴무',annual:'월차',am:'오전 쉼',pmoff:'오후 쉼'}[v]);
   openDrawer('휴무 달력',`${mdw(key)} · 쉬는 사람을 고르세요`,
     `<div class="sect"><div class="lb"><span>글로 적기</span><span class="bt">예: 홍주, 애현(월), 김지수(오전)</span></div>
       <div class="row" style="flex-wrap:nowrap"><input type="text" id="calTxt" class="grow" placeholder="이름, 이름(월), 이름(오전)" autocomplete="off"><button class="btn" data-a="caltxt">적용</button></div>
-      <div class="hint">(월) = 월차 · (오전) = 오전만 쉬고 오후 출근 · 그냥 이름 = 그날 휴무</div></div>
-    <div class="sect"><div class="lb"><span>직원</span><span class="bt">누를 때마다 근무 → 휴무 → 월차 → 오전 쉼</span></div>
+      <div class="hint">(월) = 월차 · (오전) = 오전 쉬고 오후 출근 · (오후) = 오전만 근무 · 그냥 이름 = 그날 휴무<br>고정휴무가 있는 사람이 같은 주 다른 날 휴무를 쓰거나 반차를 두 번 쓰면 그 주 고정휴무 날은 출근이 돼요 (11/7부터)</div></div>
+    <div class="sect"><div class="lb"><span>직원</span><span class="bt">누를 때마다 근무 → 휴무 → 월차 → 오전 쉼 → 오후 쉼</span></div>
       <div class="calpick">${regs.map(s=>{ const v=CALD.map[s.id]||'work'; return `<button class="cp ${v}" data-a="calst" data-sid="${s.id}" ${v==='fixed'?'title="고정휴무 — 누르면 그날만 출근"':''}><b>${esc(s.name)}</b><span>${lbl(v)}</span></button>`; }).join('')}</div></div>`,
     `<button class="btn pri grow" data-a="calsave">저장</button>`);
 }
@@ -159,7 +159,7 @@ function calApplyText(txt){
     const m=tok.match(/^([가-힣0-9]+)\s*(?:\(([^)]*)\)?)?/); if(!m) return; const nm=m[1], tag=m[2]||'';
     let s=regs.find(z=>z.name===nm); if(!s){ const c=regs.filter(z=>z.name.endsWith(nm)||nm.endsWith(z.name)); if(c.length===1) s=c[0]; }
     if(!s){ miss.push(nm); return; }
-    CALD.map[s.id]=/오/.test(tag)?'am':/월/.test(tag)?'annual':'off'; });
+    CALD.map[s.id]=/오후/.test(tag)?'pmoff':/오/.test(tag)?'am':/월/.test(tag)?'annual':'off'; });
   return miss;
 }
 function calSave(){
@@ -167,11 +167,11 @@ function calSave(){
   Object.keys(CALD.map).forEach(sid=>{ const v=CALD.map[sid], o0=CALD.orig[sid]; if(v===o0) return;
     const s=D.staff[sid]; if(!s) return; const baseWork=!(s.off||[]).includes(pd(key).getDay());
     const o=Object.assign({},D.dc[key+'|'+sid]||{});
-    if(o0==='am'&&o.sh&&o.sh.k==='pm') delete o.sh;
+    if((o0==='am'||o0==='pmoff')&&o.sh&&(o.sh.k==='pm'||o.sh.k==='am')) delete o.sh; if(o0==='am'||o0==='pmoff') delete o.half;
     if(v==='work'||v==='fixed'){ if(baseWork||v==='fixed') delete o.st; else o.st='extra'; }
     else if(v==='off') o.st='off';
     else if(v==='annual') o.st='annual';
-    else if(v==='am'){ o.sh={k:'pm'}; if(baseWork) delete o.st; else o.st='extra'; }
+    else if(v==='am'||v==='pmoff'){ o.sh={k:v==='am'?'pm':'am'}; o.half=v==='am'?'am':'pm'; if(baseWork) delete o.st; else o.st='extra'; }   // 반차: 오전 쉼=오후 출근, 오후 쉼=오전 근무
     put('dc',key+'|'+sid,Object.keys(o).length?o:null); n++; });
   CALD=null; closeDrawer(); render(); toast(n?`${n}명 바꿨어요`:'바뀐 게 없어요');
 }
@@ -383,7 +383,7 @@ document.addEventListener('click',async e=>{
     case 'cmode': APP.cardMode=d.v; APP.anchor=new Date(); render(); break;
     case 'calm': { const a=APP.calAnchor||new Date(); APP.calAnchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }
     case 'calday': CALD=null; dCalDay(d.k); break;
-    case 'calst': { const order=['work','off','annual','am']; const cur=CALD.map[d.sid]||'work'; CALD.map[d.sid]=cur==='fixed'?'work':order[(order.indexOf(cur)+1)%order.length]; dCalDay(CALD.key); break; }
+    case 'calst': { const order=['work','off','annual','am','pmoff']; const cur=CALD.map[d.sid]||'work'; CALD.map[d.sid]=cur==='fixed'?'work':order[(order.indexOf(cur)+1)%order.length]; dCalDay(CALD.key); break; }
     case 'caltxt': { const miss=calApplyText($('#calTxt').value); dCalDay(CALD.key); if(miss.length) toast('못 찾은 이름: '+miss.join(', ')); break; }
     case 'calsave': calSave(); break;
     case 'calwd': dCalWd(+d.wd); break;

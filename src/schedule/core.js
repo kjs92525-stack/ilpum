@@ -217,6 +217,17 @@ function staffList(D,all){ return Object.values(D.staff).filter(s=>all||s.active
 /* ================= 근무 계산 엔진: 요일 패턴 → 기간 설정 → 주간 입력 → 그날만 ================= */
 function rulesSorted(D){ return Object.values(D.rules).filter(r=>r&&r.from&&Array.isArray(r.ids)).sort((a,b)=>(a.at||0)-(b.at||0)); }
 function ruleHit(r,sid,key,wd){ return r.ids.includes(sid)&&key>=r.from&&key<=(r.to||r.from)&&(!r.days||!r.days.length||r.days.includes(wd)); }
+/* 휴무 옮기기(2026-11-06 사용자): 고정 근무 직원이 같은 주(일~토)의 다른 날 '휴무'(월차 아님)를 쓰면 그 주 고정휴무 하루가 출근으로 바뀜.
+   반차(오전 쉼·오후 쉼, dc.half)는 두 번이면 휴무 하루로 침. SWAP_FROM 전 날짜는 예전 그대로(지난 급여가 바뀌지 않게). */
+const SWAP_FROM='2026-11-07';
+function swapFree(D,s,d){
+  const out=new Set(), key=ds(d); if(key<SWAP_FROM||!(s.off||[]).length) return out;
+  const sun=addDays(new Date(d.getFullYear(),d.getMonth(),d.getDate()),-d.getDay()); let n=0, half=0; const fixed=[];
+  for(let i=0;i<7;i++){ const dd=addDays(sun,i), k=ds(dd); if(k<SWAP_FROM) continue; const isFix=(s.off||[]).includes(dd.getDay()); const dc=D.dc[k+'|'+s.id];
+    if(isFix){ if(!dc||!dc.st) fixed.push(k); continue; }
+    if(dc&&dc.st==='off') n++; else if(dc&&dc.half) half++; }
+  n+=Math.floor(half/2); fixed.slice(0,n).forEach(k=>out.add(k)); return out;
+}
 function resolve(D,d,opt={}){
   const rules=opt.rules||rulesSorted(D);
   const key=ds(d), wd=d.getDay(), di=(wd+6)%7, wk=weekKey(d);
@@ -229,7 +240,7 @@ function resolve(D,d,opt={}){
         else { const tt=(en.t||{})[di]; if(tt&&tt.s) awSh={k:'t',s:tt.s,e:tt.e||''}; else if((en.pm||[]).includes(di)) awSh={k:'pm'}; } }
       else awMissing=true; }
     else if(s.type==='spot'){ working=false; }
-    else { working=!(s.off||[]).includes(wd); if(!working) reason='고정휴무'; }
+    else { working=!(s.off||[]).includes(wd); if(!working){ reason='고정휴무'; if(swapFree(D,s,d).has(key)){ working=true; reason=null; tag='swap'; } } }
     const pat=(s.wk||{})[wd]; if(pat&&pat.sh){ sh=pat.sh; shSrc='pat'; }
     rules.forEach(r=>{ if(!ruleHit(r,s.id,key,wd)) return; ruleIds.push(r.id);
       if(r.w==='off'){ working=false; reason=(r.memo&&r.memo.length<=8)?r.memo:'기간휴무'; }
