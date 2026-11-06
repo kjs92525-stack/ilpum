@@ -65,7 +65,9 @@ async def main():
     sp=await pg.evaluate(f"Object.values(APP.D.spot).find(x=>x.date==='{t}'&&x.name==='새알바')")
     chk('저장: 이름은 새알바, 출근 12시, 메모 6.5', sp and sp['sh']['s']=='12:00' and sp['memo']=='6.5', sp)
     chip=await pg.evaluate("[...document.querySelectorAll('.dcard.today .chip')].map(c=>c.textContent).find(x=>x.includes('새알바'))")
-    chk('카드에는 이름과 시간 표시(6.5는 안 보임)', chip and '6.5' not in chip and '12' in chip, chip)
+    chk('화면 카드에는 이름 옆에 6.5 보임(고칠 권한)', chip and '6.5' in chip and '12' in chip, chip)
+    img=await pg.evaluate(f"(()=>{{const R=resolve(APP.D,pd('{t}'));const x=R.list.find(z=>z.name==='새알바');return imgItem(x,APP.D.store).t}})()")
+    chk('사진에는 이름만', img=='새알바', img)
     # 글씨가 버튼보다 우선: 오후 버튼 + "7시출" → 19:00~마감
     await pg.click('.dcard.today .ch [data-a="add"]'); await pg.wait_for_timeout(300)
     await pg.click('[data-a="shk"][data-p="a"][data-v="pm"]'); await pg.fill('#aName','칠시알바 7시출'); await pg.click('[data-a="addspot"]'); await pg.wait_for_timeout(300)
