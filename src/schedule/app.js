@@ -221,7 +221,7 @@ function chipH(x,dd,cp,ed){
   const st=APP.D.store, l=shLbl(x.sh,st);
   const tb=l?`<i class="${x.sh.k==='pm'?'pmb':'tm'}${x.shSrc==='pat'?' soft':''}">${esc(l)}</i>`:'';
   const pb=cp&&x.cost&&(x.cost.ov||x.cost.base)&&x.cost.ov?`<i class="won">${esc(payLbl(x.cost.ov))}</i>`:'';
-  const cls=['chip','t-'+x.type,x.tag?'g-'+x.tag:''].join(' ');
+  const cls=['chip','t-'+x.type,x.tag?'g-'+x.tag:'',ed&&memoMan(x.memo)?'hasmn':''].join(' ');
   const tip=[x.name,TYPES[x.type]||'',l?l+' 출근':'',x.memo].filter(Boolean).join(' · ');
   // 메모가 숫자뿐(일당, 예: 6.5)이면 화면에서는 이름 옆에 그대로 보여 줌(2026-11-06 사용자: 컴퓨터로 볼 땐 나오고 카톡 사진에서만 빠지게). 고칠 권한 있는 사람에게만
   const mn=ed&&memoMan(x.memo); const mmH=mn?`<i class="mn">${esc(mn)}</i>`:x.memo?'<i class="mm">✎</i>':'';
