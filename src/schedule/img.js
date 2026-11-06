@@ -23,7 +23,8 @@ function drawDay(key){
   const D=APP.D, st=D.store, R=resolve(D,pd(key)), d=pd(key); const W=720, P=30, sc=2;
   const rows=D.positions.map(p=>({p,items:R.list.filter(x=>x.pos===p.name).map(x=>imgItem(x,st))})).filter(r=>r.items.length);
   const g0=scratch(), labelW=128, fs=32, lh=46, pad=16;
-  const laid=rows.map(r=>({r,f:flow(g0,r.items,0,0,W-2*P-labelW-26,fs,lh,24)}));
+  const nameW=W-2*P-labelW-26-16;   // 줄 높이 계산과 그릴 때 같은 폭(2026-11-06: 달라서 그릴 때만 한 줄 더 넘어가 아래 칸과 겹쳤음)
+  const laid=rows.map(r=>({r,f:flow(g0,r.items,0,0,nameW,fs,lh,24)}));
   const bodyH=rows.length?laid.reduce((a,l)=>a+l.f.h+pad*2,0):120, top=P+134, H=top+bodyH+P+8;
   const {c,g}=mkCanvas(W,H,sc); g.textBaseline='alphabetic';
   g.font=`600 20px ${IMG_FONT}`; g.fillStyle='#777'; g.fillText('일품집 근무표',P,P+18); g.textAlign='right'; g.fillText(`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`,W-P,P+18); g.textAlign='left';
@@ -35,7 +36,7 @@ function drawDay(key){
     g.save(); rr(g,P,top,W-2*P,bodyH,14); g.clip(); g.fillStyle=l.r.p.color; g.fillRect(P,y,10,h); g.restore();
     if(i){ g.save(); g.setLineDash([7,6]); g.strokeStyle='#bbb'; g.lineWidth=2; g.beginPath(); g.moveTo(P+14,y); g.lineTo(W-P-14,y); g.stroke(); g.restore(); }
     g.font=`800 28px ${IMG_FONT}`; g.fillStyle=l.r.p.color; g.fillText(l.r.p.name,P+26,y+pad+fs*.9);
-    const f=flow(g,l.r.items,P+26+labelW,y+pad,W-2*P-labelW-26-16,fs,lh,24); paintFlow(g,f); y+=h; });
+    const f=flow(g,l.r.items,P+26+labelW,y+pad,nameW,fs,lh,24); paintFlow(g,f); y+=h; });
   return c;
 }
 
