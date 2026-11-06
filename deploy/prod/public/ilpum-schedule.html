@@ -400,10 +400,10 @@ html.th-navy .chip{background:#2e3354}
 
 /* ===== 스케줄 카드 "크게" (2026-11-06 사용자: 오늘 누가 일하는지 한눈에, 하루씩 크게·스크롤 OK) =====
    하루 = 넓은 판 한 장. 왼쪽에 포지션 이름과 인원 수, 오른쪽에 이름을 큰 글씨로. 이름 칸 바탕은 포지션 색을 옅게 → 색만 봐도 어느 포지션인지 */
-.cards.big{grid-template-columns:minmax(0,920px);gap:16px}
+.cards.big{grid-template-columns:minmax(0,920px);gap:8px}
 .cards.big .dcard{border-radius:16px}
 .cards.big .dcard.today{border-width:2.5px;box-shadow:0 0 0 4px var(--amber-soft),var(--shadow)}
-.cards.big .ch{padding:12px 14px 11px 16px;gap:10px}
+.cards.big .ch{padding:8px 14px 7px 16px;gap:10px}
 .cards.big .cdate b{font-size:26px;font-weight:800;letter-spacing:-.02em}
 .cards.big .cdate span{font-size:17px;font-weight:750}
 .cards.big .ch>.cn{font-size:14px} .cards.big .ch>.cn b{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
@@ -424,7 +424,7 @@ html.th-navy .chip{background:#2e3354}
 .cards.big .cf button{font-size:14px}
 .cards.big .cr0{padding:16px;font-size:15px}
 @media (max-width:860px){
-  .cards.big{grid-template-columns:1fr;gap:12px}
+  .cards.big{grid-template-columns:1fr;gap:7px}
   .cards.big .cr{grid-template-columns:78px minmax(0,1fr)}
   .cards.big .cl{font-size:14px;padding:5px 4px 4px 9px}
   .cards.big .chip{font-size:16px;padding:4px 10px}
