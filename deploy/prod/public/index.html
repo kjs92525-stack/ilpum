@@ -317,7 +317,7 @@ function resolve(D,d,opt={}){
     else if(reason||(awMissing&&!opt.quiet)) offs.push({sid:s.id,name:s.name,reason:reason||'미입력',ruleIds,missing:!reason&&awMissing});
   });
   Object.values(D.spot).filter(x=>x&&x.date===key).forEach(x=>{
-    list.push({spotId:x.id,name:x.name,type:'spot',pos:pnames.includes(x.pos)?x.pos:pnames[0],tag:'spot',sh:x.sh||null,shSrc:x.sh?'day':'',ruleIds:[],memo:x.memo||'',nl:x.note||''}); });
+    list.push({spotId:x.id,name:x.name,type:'spot',pos:pnames.includes(x.pos)?x.pos:pnames[0],tag:'spot',sh:x.sh||null,shSrc:x.sh?'day':'',ruleIds:[],memo:x.memo||'',nl:x.note||'',vac:!!x.vac}); });
   return {key,wd,list,offs};
 }
 function findItem(D,key,sid,opt={}){ return resolve(D,pd(key),opt).list.find(x=>x.sid===sid)||null; }
@@ -395,7 +395,7 @@ const ic=n=>`<svg class="i" viewBox="0 0 24 24">${ICON[n]}</svg>`;
 const ROUTES={
   dash:{t:'오늘 현황'}, res:{t:'예약 관리',frame:'res'},
   staff:{t:'직원 관리',frame:'sch',view:'staff'},
-  cards:{t:'근무 스케줄',frame:'sch',view:'cards'}, week:{t:'근무 스케줄 · 주간표',frame:'sch',view:'week'}, day:{t:'근무 스케줄 · 하루',frame:'sch',view:'day'},
+  cards:{t:'근무 스케줄',frame:'sch',view:'cards'}, week:{t:'근무 스케줄 · 주간표',frame:'sch',view:'week'}, cal:{t:'근무 스케줄 · 휴무 달력',frame:'sch',view:'cal'}, day:{t:'근무 스케줄 · 하루',frame:'sch',view:'day'},
   rules:{t:'근무 스케줄 · 기간 설정',frame:'sch',view:'rules'}, me:{t:'근무 스케줄 · 내 스케줄',frame:'sch',view:'me'},
   pay:{t:'급여 관리',frame:'pay'}, hq:{t:'매장 관리',frame:'sch',view:'hq'}, acct:{t:'계정 · 권한',frame:'sch',view:'acct'}, set:{t:'설정',frame:'sch',view:'set'},
   ord:{t:'발주 관리',frame:'ord'}, notice:{t:'공지사항',frame:'notice'}, board:{t:'게시판 · 본사와 1:1 상담',frame:'board'}
@@ -405,7 +405,7 @@ const MENU=[
   {id:'notice',label:'공지사항',icon:'bell'},
   {id:'dash',label:'오늘 현황',icon:'grid'},
   {id:'res',label:'예약 관리',icon:'cal'},
-  {id:'sch',label:'근무 스케줄',icon:'clock',sub:[['cards','스케줄'],['week','주간표'],['rules','기간 설정'],['me','내 스케줄']]},
+  {id:'sch',label:'근무 스케줄',icon:'clock',sub:[['cards','스케줄'],['cal','휴무 달력'],['week','주간표'],['rules','기간 설정'],['me','내 스케줄']]},
   {id:'staff',label:'직원 관리',icon:'user',needEdit:true},
   {id:'pay',label:'급여 관리',icon:'card',payOnly:true},
   {id:'board',label:'게시판',icon:'chat',boardOnly:true},
@@ -497,7 +497,7 @@ window.addEventListener('message',e=>{
   if(!frames.sch||e.source!==frames.sch.contentWindow) return;
   if(m.type==='fr-state'){
     info={hq:!!m.hq,edit:!!m.edit,role:m.role||'',seen:true}; applyInfo();
-    if(['cards','week','day','rules','me','staff','hq','set','acct'].includes(m.view)&&ROUTES[cur]&&ROUTES[cur].frame==='sch'&&cur!==m.view){ go(m.view,{fromFrame:true}); }
+    if(['cards','cal','week','day','rules','me','staff','hq','set','acct'].includes(m.view)&&ROUTES[cur]&&ROUTES[cur].frame==='sch'&&cur!==m.view){ go(m.view,{fromFrame:true}); }
   }
 });
 function applyInfo(){ $$('#menu [data-acct]').forEach(b=>b.hidden=!(info.hq||info.role==='owner')||(ME&&ME.mode==='in'&&!ME.acct)); $$('#menu [data-hq]').forEach(b=>b.hidden=!info.hq); $$('#menu [data-edit]').forEach(b=>b.hidden=!info.edit); }

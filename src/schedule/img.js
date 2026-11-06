@@ -15,7 +15,7 @@ function paintFlow(g,f){ f.ops.forEach(o=>{ g.font=`${o.it.b?800:600} ${o.fs}px 
   if(o.it.s){ g.font=`600 ${o.sf}px ${IMG_FONT}`; g.fillStyle=o.it.sc||'#8A6A3A'; g.fillText(o.it.s,o.x+o.w1+2,o.y+o.fs*.9); } }); }
 // 사진에는 이름만: 이름 칸에 같이 적힌 "6.5"·"12시출" 은 빼고 그림(2026-11-06)
 const imgName=n=>{ try{ const q=quickParse(n); return q.found&&q.rest.length>=2?q.rest:n; }catch(e){ return n; } };
-function imgItem(x,st,color){ return {t:imgName(x.name),s:shLbl(x.sh,st)||(x.type==='spot'?'종일':''),c:x.type==='spot'?'#B8621B':(color||'#111'),b:x.type==='spot'}; }
+function imgItem(x,st,color){ return {t:imgName(x.name),s:shLbl(x.sh,st)||(x.type==='spot'?'종일':''),c:x.vac?'#9A9A9A':x.type==='spot'?'#B8621B':(color||'#111'),b:x.type==='spot'&&!x.vac}; }
 async function loadFonts(){ try{ if(document.fonts){ await Promise.race([Promise.all([document.fonts.load(`600 20px ${IMG_FONT}`),document.fonts.load(`800 20px ${IMG_FONT}`)]),new Promise(r=>setTimeout(r,1200))]); } }catch(e){} }
 
 /* ---------- 하루 ---------- */
@@ -29,7 +29,7 @@ function drawDay(key){
   const {c,g}=mkCanvas(W,H,sc); g.textBaseline='alphabetic';
   g.font=`600 20px ${IMG_FONT}`; g.fillStyle='#777'; g.fillText('일품집 근무표',P,P+18); g.textAlign='right'; g.fillText(`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`,W-P,P+18); g.textAlign='left';
   g.font=`800 54px ${IMG_FONT}`; g.fillStyle='#111'; g.fillText(`${d.getMonth()+1}월 ${d.getDate()}일 (${DOW[d.getDay()]})`,P,P+78);
-  g.font=`600 22px ${IMG_FONT}`; g.fillStyle='#777'; g.fillText(`${st.name} · 근무 ${R.list.length}명`,P,P+110);
+  g.font=`600 22px ${IMG_FONT}`; g.fillStyle='#777'; g.fillText(`${st.name} · 근무 ${R.list.filter(x=>!x.vac).length}명${R.list.some(x=>x.vac)?` · 빈자리 ${R.list.filter(x=>x.vac).length}`:''}`,P,P+110);
   rr(g,P,top,W-2*P,bodyH,14); g.lineWidth=3; g.strokeStyle='#555'; g.stroke();
   if(!rows.length){ g.font=`600 28px ${IMG_FONT}`; g.fillStyle='#888'; g.textAlign='center'; g.fillText('근무자가 없어요',W/2,top+70); g.textAlign='left'; }
   let y=top; laid.forEach((l,i)=>{ const h=l.f.h+pad*2;

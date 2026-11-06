@@ -1,0 +1,55 @@
+# 휴무 달력(2026-11-06): 요일 칸 = 고정휴무, 날짜 칸 = 그날 휴무·월차(월)·오전 쉼(오전 → 오후 출근), 글로 적기 / 필요 인원 빈자리(종일 ??? · 오후 ???) (체험 모드)
+import asyncio, json
+from playwright.async_api import async_playwright
+async def main():
+  ok=True
+  def chk(n,c,x=''):
+    nonlocal ok; ok&=bool(c); print('OK  ' if c else 'FAIL',n,x)
+  async with async_playwright() as p:
+    b=await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
+    pg=await b.new_page(viewport={'width':1300,'height':950}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
+    await pg.route('**/*', lambda r: r.abort() if 'jsdelivr' in r.request.url or 'supabase' in r.request.url else r.continue_())
+    await pg.goto('http://localhost:8765/ilpum-schedule.html'); await pg.evaluate("localStorage.clear(); localStorage.setItem('ilpum-fr-conf','{\"mode\":\"local\"}')"); await pg.reload(); await pg.wait_for_timeout(1200)
+    t=await pg.evaluate("ds(new Date())")
+    # 고정 직원 3명 (고정휴무 일요일)
+    await pg.evaluate("""(()=>{ const D=APP.D; Object.values(D.staff).forEach(s=>put('staff',s.id,{...s,active:false})); [['홍주',[0]],['애현',[]],['김지수',[]]].forEach(([n,off],i)=>put('staff','r'+i,{id:'r'+i,name:n,pos:D.positions[1].name,type:'regular',off,active:true,order:i})); render(); })()""")
+    await pg.click('[data-a="view"][data-v="cal"]'); await pg.wait_for_timeout(300)
+    chk('휴무 달력 화면', '휴무 달력' in await pg.inner_text('.vh h1'))
+    sun=await pg.inner_text('.hrow .hc.sun')
+    chk('일요일 칸에 고정휴무 홍주', '홍주' in sun, sun)
+    # 날짜 칸 눌러 글로 적기
+    await pg.click(f'[data-a="calday"][data-k="{t}"]'); await pg.wait_for_timeout(250)
+    await pg.fill('#calTxt','애현(월), 김지수(오전)'); await pg.click('[data-a="caltxt"]'); await pg.wait_for_timeout(150)
+    await pg.click('[data-a="calsave"]'); await pg.wait_for_timeout(300)
+    cell=await pg.inner_text(f'[data-a="calday"][data-k="{t}"]')
+    chk('날짜 칸에 애현(월)·김지수(오전)', '애현(월)' in cell and '김지수(오전)' in cell, cell)
+    R=await pg.evaluate(f"(()=>{{const R=resolve(APP.D,pd('{t}'));return {{list:R.list.map(x=>[x.name,x.sh&&x.sh.k]),offs:R.offs.map(o=>[o.name,o.reason])}}}})()")
+    chk('스케줄: 애현은 월차로 빠짐', ['애현','월차'] in R['offs'] and not any(x[0]=='애현' for x in R['list']), R)
+    chk('스케줄: 김지수는 오후 출근', ['김지수','pm'] in R['list'], R)
+    nxt=await pg.evaluate(f"(()=>{{const d=addDays(pd('{t}'),35);return resolve(APP.D,d).offs.filter(o=>o.reason==='월차').map(o=>o.name)}})()")
+    chk('다음 달엔 월차 없음', nxt==[], nxt)
+    # 직원 버튼으로 되돌리기: 애현 → (월차→오전 쉼→근무) 두 번 누르기
+    await pg.click(f'[data-a="calday"][data-k="{t}"]'); await pg.wait_for_timeout(200)
+    await pg.click('[data-a="calst"][data-sid="r1"]'); await pg.click('[data-a="calst"][data-sid="r1"]'); await pg.click('[data-a="calsave"]'); await pg.wait_for_timeout(300)
+    chk('버튼으로 근무로 되돌림', await pg.evaluate(f"resolve(APP.D,pd('{t}')).list.some(x=>x.name==='애현')"))
+    # 요일 고정휴무 바꾸기
+    await pg.click('.hrow .hc[data-wd="3"]'); await pg.wait_for_timeout(200)
+    await pg.check('[data-calwd="r2"]'); await pg.click('[data-a="calwdsave"]'); await pg.wait_for_timeout(300)
+    chk('수요일 고정휴무에 김지수 추가 → 직원 쉬는 요일', await pg.evaluate("APP.D.staff.r2.off.includes(3)"))
+    # 빈자리
+    await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(300)
+    await pg.click('.dcard.today .ch [data-a="add"]'); await pg.wait_for_timeout(250)
+    await pg.click('[data-a="addvac"][data-v="pm"]'); await pg.wait_for_timeout(300)
+    v=await pg.evaluate(f"Object.values(APP.D.spot).find(x=>x.vac&&x.date==='{t}')")
+    chk('오후 ??? 빈자리 저장', v and v['name']=='???' and v['sh']=={'k':'pm'}, v)
+    chip=await pg.evaluate("[...document.querySelectorAll('.dcard.today .chip.vac')].map(c=>c.textContent)")
+    chk('카드에 점선 빈자리 "??? 오후"', chip and '???' in chip[0] and '오후' in chip[0], chip)
+    hd=await pg.inner_text('.dcard.today .ch')
+    chk('머리줄에 빈자리 1 (총 인원엔 안 셈)', '빈자리 1' in hd, hd)
+    await pg.click('.dcard.today .chip.vac'); await pg.wait_for_timeout(250)
+    await pg.fill('#spName','채운알바'); await pg.click('[data-a="spotsave"]'); await pg.wait_for_timeout(300)
+    v=await pg.evaluate(f"APP.D.spot['{v['id']}']")
+    chk('이름 넣으면 보통 알바로', v['name']=='채운알바' and not v.get('vac'), v)
+    chk('오류 없음', not errs, errs); await b.close()
+  print('전체 OK' if ok else '실패 있음')
+asyncio.run(main())

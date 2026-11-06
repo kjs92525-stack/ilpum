@@ -82,7 +82,7 @@ function saveStaffDay(sid,key){
 function dSpot(id){
   const D=APP.D, x=D.spot[id]; if(!x) return; const cp=canPay();
   openDrawer(x.name,`${mdw(x.date)} · 단기·당일`,
-    `<div class="sect"><div class="lb"><span>이름</span></div><input type="text" id="spName" value="${esc(x.name)}"></div>
+    `<div class="sect"><div class="lb"><span>이름</span>${x.vac?'<span class="bt">빈자리 — 들어갈 사람 이름을 넣으세요</span>':''}</div><input type="text" id="spName" value="${x.vac?'':esc(x.name)}" placeholder="${x.vac?'예: 박알바 (비우면 ??? 그대로)':''}"></div>
     <div class="sect"><div class="lb"><span>포지션</span></div><select id="spPos">${D.positions.map(p=>`<option ${x.pos===p.name?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
     <div class="sect"><div class="lb"><span>이름 옆 표기</span><span class="bt">메모와 별개 · 급여엔 안 쓰임</span></div><div class="row"><input type="text" id="spNote" class="grow" maxlength="12" value="${esc(x.note||'')}" placeholder="예: 당일지급"><button type="button" class="btn sm" data-a="notefill" data-t="spNote" data-v="당일지급">당일지급</button></div></div>
     ${timeW('s',x.sh||null,null)}${cp?payW('s',(D.pay||{})['spot:'+id]||null,'','안 정함'):''}
@@ -139,6 +139,49 @@ function applyQuick(nameV,noteV,memoV,pickSh){
   return {name:qn.rest||String(nameV||'').trim(),note:qt.found?qt.rest:String(noteV||'').trim(),memo,sh,man,lbl:qpLbl({sh:qn.sh||qt.sh||qm.sh,man})};
 }
 
+/* ---------- 휴무 달력 고치기 (2026-11-06) ---------- */
+let CALD=null;
+function dCalDay(key){
+  const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular'), S=calStates(D,pd(key));
+  if(!CALD||CALD.key!==key) CALD={key,orig:{...S},map:{...S}};
+  const lbl=v=>({work:'근무',fixed:'고정휴무',off:'휴무',annual:'월차',am:'오전 쉼'}[v]);
+  openDrawer('휴무 달력',`${mdw(key)} · 쉬는 사람을 고르세요`,
+    `<div class="sect"><div class="lb"><span>글로 적기</span><span class="bt">예: 홍주, 애현(월), 김지수(오전)</span></div>
+      <div class="row" style="flex-wrap:nowrap"><input type="text" id="calTxt" class="grow" placeholder="이름, 이름(월), 이름(오전)" autocomplete="off"><button class="btn" data-a="caltxt">적용</button></div>
+      <div class="hint">(월) = 월차 · (오전) = 오전만 쉬고 오후 출근 · 그냥 이름 = 그날 휴무</div></div>
+    <div class="sect"><div class="lb"><span>직원</span><span class="bt">누를 때마다 근무 → 휴무 → 월차 → 오전 쉼</span></div>
+      <div class="calpick">${regs.map(s=>{ const v=CALD.map[s.id]||'work'; return `<button class="cp ${v}" data-a="calst" data-sid="${s.id}" ${v==='fixed'?'title="고정휴무 — 누르면 그날만 출근"':''}><b>${esc(s.name)}</b><span>${lbl(v)}</span></button>`; }).join('')}</div></div>`,
+    `<button class="btn pri grow" data-a="calsave">저장</button>`);
+}
+function calApplyText(txt){
+  const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular'); const miss=[];
+  String(txt||'').split(/[,，\/\n]+|\s{2,}/).map(x=>x.trim()).filter(Boolean).forEach(tok=>{
+    const m=tok.match(/^([가-힣0-9]+)\s*(?:\(([^)]*)\)?)?/); if(!m) return; const nm=m[1], tag=m[2]||'';
+    let s=regs.find(z=>z.name===nm); if(!s){ const c=regs.filter(z=>z.name.endsWith(nm)||nm.endsWith(z.name)); if(c.length===1) s=c[0]; }
+    if(!s){ miss.push(nm); return; }
+    CALD.map[s.id]=/오/.test(tag)?'am':/월/.test(tag)?'annual':'off'; });
+  return miss;
+}
+function calSave(){
+  const D=APP.D, key=CALD.key; let n=0;
+  Object.keys(CALD.map).forEach(sid=>{ const v=CALD.map[sid], o0=CALD.orig[sid]; if(v===o0) return;
+    const s=D.staff[sid]; if(!s) return; const baseWork=!(s.off||[]).includes(pd(key).getDay());
+    const o=Object.assign({},D.dc[key+'|'+sid]||{});
+    if(o0==='am'&&o.sh&&o.sh.k==='pm') delete o.sh;
+    if(v==='work'||v==='fixed'){ if(baseWork||v==='fixed') delete o.st; else o.st='extra'; }
+    else if(v==='off') o.st='off';
+    else if(v==='annual') o.st='annual';
+    else if(v==='am'){ o.sh={k:'pm'}; if(baseWork) delete o.st; else o.st='extra'; }
+    put('dc',key+'|'+sid,Object.keys(o).length?o:null); n++; });
+  CALD=null; closeDrawer(); render(); toast(n?`${n}명 바꿨어요`:'바뀐 게 없어요');
+}
+function dCalWd(wd){
+  const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular');
+  openDrawer(`${DOW[wd]}요일 고정휴무`,'매주 이 요일에 쉬는 직원 · 다음 달에도 그대로',
+    `<div class="pick">${regs.map(s=>`<label><input type="checkbox" data-calwd="${s.id}" ${(s.off||[]).includes(wd)?'checked':''}> ${esc(s.name)} <small class="muted">${esc(s.pos)}</small></label>`).join('')}</div>`,
+    `<button class="btn pri grow" data-a="calwdsave" data-wd="${wd}">저장</button>`);
+}
+
 /* ---------- 사람 넣기 ---------- */
 function dAdd(pos,key){
   const D=APP.D, R=resolve(D,pd(key)); const on=new Set(R.list.map(x=>x.sid).filter(Boolean)); const cand=staffList(D).filter(s=>!on.has(s.id)); const cp=canPay();
@@ -148,6 +191,8 @@ function dAdd(pos,key){
     <div class="sect"><div class="lb"><span>쉬는 직원 불러오기</span><span class="bt">${cand.length}명</span></div>
       ${cand.length?`<div class="pick">${cand.map(s=>`<label><input type="checkbox" data-add="${s.id}"> ${esc(s.name)} <small class="muted">${esc(s.pos)}</small></label>`).join('')}</div>
       <button class="btn" data-a="addstaff" data-k="${key}">고른 직원 출근시키기</button>`:'<span class="muted" style="font-size:13px">모두 출근해요</span>'}</div>
+    <div class="sect"><div class="lb"><span>필요 인원 (빈자리)</span><span class="bt">아직 사람이 안 정해진 자리 — 나중에 눌러서 이름을 넣어요</span></div>
+      <div class="row"><button class="btn" data-a="addvac" data-k="${key}" data-v="full">+ 종일 ???</button><button class="btn" data-a="addvac" data-k="${key}" data-v="pm">+ 오후 ???</button></div></div>
     <div class="sect"><div class="lb"><span>새 단기·당일 알바</span></div>
       <div class="row"><input type="text" id="aName" class="grow" placeholder="이름 (예: 박알바)" list="aNames" autocomplete="off"><input type="text" id="aMemo" class="grow" placeholder="메모 · 일당 (예: 6.5)"></div>
       <datalist id="aNames">${[...new Set(Object.values(D.spot||{}).filter(x=>x&&x.name).sort((a,b)=>b.date.localeCompare(a.date)).map(x=>x.name))].slice(0,80).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
@@ -336,6 +381,15 @@ document.addEventListener('click',async e=>{
     case 'wk': APP.anchor=d.n==='0'?new Date():addDays(weekStart(APP.anchor),7*+d.n); render(); break;
     case 'cnav': { const a=APP.anchor; if(d.n==='0') APP.anchor=new Date(); else if((APP.cardMode||'month')==='month') APP.anchor=new Date(a.getFullYear(),a.getMonth()+(+d.n),1); else APP.anchor=addDays(a,7*(+d.n)); render(); break; }
     case 'cmode': APP.cardMode=d.v; APP.anchor=new Date(); render(); break;
+    case 'calm': { const a=APP.calAnchor||new Date(); APP.calAnchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }
+    case 'calday': CALD=null; dCalDay(d.k); break;
+    case 'calst': { const order=['work','off','annual','am']; const cur=CALD.map[d.sid]||'work'; CALD.map[d.sid]=cur==='fixed'?'work':order[(order.indexOf(cur)+1)%order.length]; dCalDay(CALD.key); break; }
+    case 'caltxt': { const miss=calApplyText($('#calTxt').value); dCalDay(CALD.key); if(miss.length) toast('못 찾은 이름: '+miss.join(', ')); break; }
+    case 'calsave': calSave(); break;
+    case 'calwd': dCalWd(+d.wd); break;
+    case 'calwdsave': { const wd=+d.wd; let n=0; $$('[data-calwd]').forEach(c=>{ const s=D.staff[c.dataset.calwd]; if(!s) return; const has=(s.off||[]).includes(wd);
+        if(c.checked!==has){ const off=c.checked?[...(s.off||[]),wd].sort():(s.off||[]).filter(x=>x!==wd); put('staff',s.id,{...s,off}); n++; } });
+      closeDrawer(); render(); toast(n?`${n}명 바꿨어요`:'바뀐 게 없어요'); break; }
     case 'clook': try{ localStorage.setItem('ilpum-card-look',d.v); }catch(e){} render(); break;
     case 'mon': { const a=APP.anchor; APP.anchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }
     case 'dayn': APP.day=d.n==='0'?todayStr:ds(addDays(pd(APP.day),+d.n)); render(); break;
@@ -353,6 +407,7 @@ document.addEventListener('click',async e=>{
     case 'dcclear': put('dc',d.k+'|'+d.sid,null); if((D.pay||{})['dc:'+d.k+'|'+d.sid]) putPay('dc:'+d.k+'|'+d.sid,null); closeDrawer(); render(); toast('원래대로 되돌렸어요'); break;
     case 'spotsave': { const x={...D.spot[d.id]}; const t=readTime('s'); if(!t.ok) return toast(t.msg); const pr=readPay('s'); if(!pr.ok) return toast(pr.msg);
       const Q=applyQuick($('#spName').value,$('#spNote').value,$('#spMemo').value,t.sh); t.sh=Q.sh||t.sh;
+      if(x.vac&&Q.name&&!/^\?+$/.test(Q.name)) delete x.vac;   // 빈자리에 이름을 넣으면 보통 단기 알바로
       x.name=Q.name||x.name; x.pos=$('#spPos').value; x.memo=Q.memo; { const nt=(Q.note||'').slice(0,12); if(nt) x.note=nt; else delete x.note; }
       if(t.sh&&t.sh.k!=='full') x.sh=t.sh; else delete x.sh; put('spot',d.id,x); if(!pr.skip) putPay('spot:'+d.id,pr.pay); closeDrawer(); render(); toast('저장했어요'); break; }
     case 'notefill': { const el=$('#'+d.t); if(el) el.value=(el.value===d.v?'':d.v); break; }
@@ -361,6 +416,7 @@ document.addEventListener('click',async e=>{
       const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg); const pos=$('#aPos').value;
       ids.forEach(sid=>{ const k=d.k+'|'+sid; const o=Object.assign({},D.dc[k]||{}); o.st='extra'; if(pos!==D.staff[sid].pos) o.pos=pos; else delete o.pos; if(t.sh&&t.sh.k!=='full') o.sh=t.sh; put('dc',k,o); if(!pr.skip&&pr.pay) putPay('dc:'+k,pr.pay); });
       closeDrawer(); render(); toast(`${ids.length}명 출근시켰어요`); break; }
+    case 'addvac': { const id=uid(); const x={id,date:d.k,name:'???',pos:$('#aPos').value,vac:true}; if(d.v==='pm') x.sh={k:'pm'}; put('spot',id,x); closeDrawer(); render(); toast(`빈자리(${d.v==='pm'?'오후':'종일'} ???)를 넣었어요`); break; }
     case 'addspot': { const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg);
       const Q=applyQuick($('#aName').value,$('#aNote').value,$('#aMemo').value,t.sh); const name=Q.name; if(!name){ $('#aName').focus(); return toast('알바 이름을 넣으세요'); }
       $('#aNote').value=Q.note; $('#aMemo').value=Q.memo; t.sh=Q.sh||t.sh;   // 적은 글씨가 버튼보다 우선
