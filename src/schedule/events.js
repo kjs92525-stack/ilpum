@@ -338,7 +338,6 @@ document.addEventListener('click',async e=>{
     case 'clook': try{ localStorage.setItem('ilpum-card-look',d.v); }catch(e){} render(); break;
     case 'mon': { const a=APP.anchor; APP.anchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }
     case 'dayn': APP.day=d.n==='0'?todayStr:ds(addDays(pd(APP.day),+d.n)); render(); break;
-    case 'gday': APP.day=d.k; APP.view='day'; render(); break;
     case 'gweek': APP.anchor=pd(d.k); APP.view='week'; render(); break;
     case 'jump': $('#'+d.to)?.scrollIntoView({behavior:'smooth'}); break;
     case 'paytog': sessionStorage.setItem('fr-pay',canPay()?'0':'1'); render(); break;

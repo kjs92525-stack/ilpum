@@ -13,7 +13,9 @@ function flow(g,items,x,y,maxW,fs,lh,gap){
 }
 function paintFlow(g,f){ f.ops.forEach(o=>{ g.font=`${o.it.b?800:600} ${o.fs}px ${IMG_FONT}`; g.fillStyle=o.it.c||'#111'; g.fillText(o.it.t,o.x,o.y+o.fs*.9);
   if(o.it.s){ g.font=`600 ${o.sf}px ${IMG_FONT}`; g.fillStyle=o.it.sc||'#8A6A3A'; g.fillText(o.it.s,o.x+o.w1+2,o.y+o.fs*.9); } }); }
-function imgItem(x,st,color){ return {t:x.name,s:shLbl(x.sh,st),c:x.type==='spot'?'#B8621B':(color||'#111'),b:x.type==='spot'}; }
+// 사진에는 이름만: 이름 칸에 같이 적힌 "6.5"·"12시출" 은 빼고 그림(2026-11-06)
+const imgName=n=>{ try{ const q=quickParse(n); return q.found&&q.rest.length>=2?q.rest:n; }catch(e){ return n; } };
+function imgItem(x,st,color){ return {t:imgName(x.name),s:shLbl(x.sh,st),c:x.type==='spot'?'#B8621B':(color||'#111'),b:x.type==='spot'}; }
 async function loadFonts(){ try{ if(document.fonts){ await Promise.race([Promise.all([document.fonts.load(`600 20px ${IMG_FONT}`),document.fonts.load(`800 20px ${IMG_FONT}`)]),new Promise(r=>setTimeout(r,1200))]); } }catch(e){} }
 
 /* ---------- 하루 ---------- */

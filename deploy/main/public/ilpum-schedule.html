@@ -895,8 +895,9 @@ async function summaryFor(sid,silent){
 }
 
 /* ================= 화면 틀 ================= */
-const NAV=[['cards','▦','스케줄'],['week','▤','주간 표'],['day','◫','하루 타임라인'],['staff','◉','직원'],['rules','⟷','기간 설정'],['me','☺','내 스케줄'],['hq','◆','본사 현황'],['acct','⚿','계정 · 권한'],['set','⚙','설정']];
-function navAllowed(v){ if(v==='hq') return isHQ(); if(v==='acct') return APP.be===Remote&&(isHQ()||role()==='owner'); if(!canEdit()) return v==='me'||((v==='cards'||v==='week')&&APP.D.store.vis==='week'); return true; }
+const NAV=[['cards','▦','스케줄'],['week','▤','주간 표'],['staff','◉','직원'],['rules','⟷','기간 설정'],['me','☺','내 스케줄'],['hq','◆','본사 현황'],['acct','⚿','계정 · 권한'],['set','⚙','설정']];
+function navAllowed(v){ if(v==='day') return false;   // 하루 타임라인은 없앰(2026-11-06 사용자: 보기 불편)
+  if(v==='hq') return isHQ(); if(v==='acct') return APP.be===Remote&&(isHQ()||role()==='owner'); if(!canEdit()) return v==='me'||((v==='cards'||v==='week')&&APP.D.store.vis==='week'); return true; }
 function renderShell(){
   const st=APP.st, r=role();
   $('#app').innerHTML=`<aside class="side">
@@ -906,12 +907,12 @@ function renderShell(){
     <div class="foot"><span class="sync" id="sync"></span>
       <div class="who"><span>${APP.open?'':esc(showId(APP.user&&APP.user.email||''))}</span>${APP.be===Remote?(APP.open?'<button class="btn sm ghost" data-a="gologin">로그인</button>':'<button class="btn sm ghost" data-a="logout">로그아웃</button>'):''}</div></div>
   </aside><main class="main" id="main"></main>
-  <nav class="mbar" id="mbar">${st?NAV.filter(n=>navAllowed(n[0])&&['cards','day','staff','me','set','hq'].includes(n[0])).map(n=>`<button data-a="view" data-v="${n[0]}"><span class="ic">${n[1]}</span>${n[2].replace(' 타임라인','').replace(' 보드','').replace(' 현황','')}</button>`).join(''):''}</nav>`;
+  <nav class="mbar" id="mbar">${st?NAV.filter(n=>navAllowed(n[0])&&['cards','week','staff','me','set','hq'].includes(n[0])).map(n=>`<button data-a="view" data-v="${n[0]}"><span class="ic">${n[1]}</span>${n[2].replace(' 타임라인','').replace(' 보드','').replace(' 현황','')}</button>`).join(''):''}</nav>`;
 }
 function afterShell(){ if(APP.sync) setSync(APP.sync[0],APP.sync[1]); }
 const roleName=r=>({hq:'본사 · 본점 관리',owner:'점주',manager:'매니저',staff:'직원',order:'발주 전용',open:'바로 저장'}[r]||'보기 전용');
 function render(){
-  if(!APP.st) return; afterShell();
+  if(!APP.st) return; afterShell(); if(canEdit()) fixSpotNames();
   if(!navAllowed(APP.view)) APP.view=canEdit()?'cards':'me';
   $$('#nav button,#mbar button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===APP.view?'page':'false'));
   const V={cards:vCards,week:vWeek,month:vMonth,day:vDay,staff:vStaff,rules:vRules,me:vMe,hq:vHQ,set:vSet,acct:vAcct}[APP.view]||vCards;
@@ -920,8 +921,16 @@ function render(){
   if(APP.view==='hq'&&!APP.sum) loadSum();
 }
 function payToggle(){ return payAllowed()?`<button class="btn ${canPay()?'ink':''}" data-a="paytog" title="금액은 권한 있는 사람만, 켰을 때만 보여요">${canPay()?'₩ 금액 숨기기':'₩ 금액 보기'}</button>`:''; }
-function viewSeg(){ return `<div class="seg" role="group" aria-label="보기">${[['cards','카드'],['week','주간표'],['day','하루']].map(([v,t])=>`<button data-a="view" data-v="${v}" aria-pressed="${APP.view===v}">${t}</button>`).join('')}</div>`; }
+function viewSeg(){ return `<div class="seg" role="group" aria-label="보기">${[['cards','카드'],['week','주간표']].map(([v,t])=>`<button data-a="view" data-v="${v}" aria-pressed="${APP.view===v}">${t}</button>`).join('')}</div>`; }
 
+/* 예전에 이름 칸에 "박명순6.5"·"홍길동 12시출" 처럼 같이 적어 둔 단기·당일 알바를 정리(2026-11-06): 이름에서 빼고 메모·출근 시간으로. 고칠 권한이 있을 때 한 번씩 */
+const FIXED_SPOT=new Set();
+function fixSpotNames(){
+  Object.values(APP.D.spot||{}).forEach(x=>{ if(!x||!x.id||FIXED_SPOT.has(x.id)) return; FIXED_SPOT.add(x.id);
+    const q=quickParse(x.name); if(!q.found||q.rest.length<2||q.rest===x.name) return;
+    const n={...x,name:q.rest}; if(q.man&&!memoMan(x.memo)) n.memo=x.memo?q.man+' '+x.memo:q.man; if(q.sh&&q.sh.k!=='full') n.sh=q.sh;
+    setTimeout(()=>put('spot',x.id,n),0); });
+}
 /* ================= 스케줄 카드 (날짜마다 포지션 줄이 다 보이는 화면) ================= */
 // (2026-11-06 사용자: 오늘 누가 일하는지 한눈에) "크게" = 하루씩 한 줄로 크게, "촘촘히" = 예전 여러 칸. 이 기기에 기억(ilpum-card-look)
 function cardBig(){ try{ return localStorage.getItem('ilpum-card-look')!=='compact'; }catch(e){ return true; } }
@@ -939,7 +948,7 @@ function vCards(){
     const rows=D.positions.map(p=>`<div class="cr ${(!APP.showEmpty&&!by[p.name].length)?'empty':''}" style="--pc:${p.color}"><div class="cl">${esc(p.name)}${by[p.name].length?`<span class="cn">${by[p.name].length}명</span>`:''}</div><div class="bc" data-drop="${esc(p.name)}" data-k="${key}">${by[p.name].map(x=>chipH(x,{key},cp,ed)).join('')}${ed?`<button class="add" data-a="add" data-pos="${esc(p.name)}" data-k="${key}" aria-label="${esc(p.name)}에 사람 넣기">+</button>`:''}</div></div>`).join('');
     const offs=R.offs.filter(o=>!o.missing||key>=ds(ws)).map(o=>`<button data-a="edit" data-sid="${o.sid}" data-k="${key}" ${o.missing?`data-k2="${weekKey(d)}"`:''}>${esc(o.name)}${o.reason!=='고정휴무'&&o.reason!=='주간휴무'&&!o.missing?`<span class="rs">(${esc(o.reason)})</span>`:''}</button>`).join('');
     const wd=R.wd;
-    cards+=`<div class="dcard ${key===todayStr?'today':''} ${key<todayStr?'past':''}"><div class="ch"><button class="cdate ${wd===0?'sun':wd===6?'sat':''}" data-a="gday" data-k="${key}" title="하루 타임라인"><b>${d.getMonth()+1}/${d.getDate()}</b><span>${DOW[wd]}</span></button>${key===todayStr?'<span class="tag amber">오늘</span>':''}<span class="cn">총 <b>${R.list.length}</b>명</span><span class="sp"></span>${ed?`<button class="btn sm" data-a="add" data-pos="${esc(D.positions[0].name)}" data-k="${key}">+ 사람</button>`:''}<button class="btn sm" data-a="img" data-t="day" data-k="${key}" title="카톡용 사진">사진</button></div>
+    cards+=`<div class="dcard ${key===todayStr?'today':''} ${key<todayStr?'past':''}"><div class="ch"><button class="cdate ${wd===0?'sun':wd===6?'sat':''}" data-k="${key}"><b>${d.getMonth()+1}/${d.getDate()}</b><span>${DOW[wd]}</span></button>${key===todayStr?'<span class="tag amber">오늘</span>':''}<span class="cn">총 <b>${R.list.length}</b>명</span><span class="sp"></span>${ed?`<button class="btn sm" data-a="add" data-pos="${esc(D.positions[0].name)}" data-k="${key}">+ 사람</button>`:''}<button class="btn sm" data-a="img" data-t="day" data-k="${key}" title="카톡용 사진">사진</button></div>
       ${R.list.length?'':'<div class="cr0">근무자가 없어요</div>'}${rows}${offs?`<div class="cf"><b>쉬는 사람</b>${offs}</div>`:''}</div>`; }
   const hiddenN=allPos.size-usedAny.size;
   return `<div class="vh"><div><h1>${title}</h1><div class="sub">이름을 누르면 시간·금액·휴무, 끌어서(폰은 꾹) 옮기기·복사</div></div>
@@ -985,7 +994,7 @@ function vWeek(){
   // 보드
   let g=`<div class="bh corner">포지션</div>`;
   W.days.forEach(dd=>{ const d=dd.d; const cls=['bh',dd.wd===0?'sun':'',dd.wd===6?'sat':'',dd.key===todayStr?'today':''].join(' ');
-    g+=`<div class="${cls}"><button class="dt" data-a="gday" data-k="${dd.key}" title="하루 타임라인"><b>${d.getDate()}</b><span>${DOW[dd.wd]}</span></button><button class="dimg" data-a="img" data-t="day" data-k="${dd.key}" title="${mdw(dd.key)} 근무표를 카톡용 사진으로">사진</button></div>`; });
+    g+=`<div class="${cls}"><button class="dt" data-k="${dd.key}"><b>${d.getDate()}</b><span>${DOW[dd.wd]}</span></button><button class="dimg" data-a="img" data-t="day" data-k="${dd.key}" title="${mdw(dd.key)} 근무표를 카톡용 사진으로">사진</button></div>`; });
   D.positions.forEach(p=>{ const hide=(!APP.showEmpty&&!W.days.some(dd=>(dd.by[p.name]||[]).length))?' empty':'';
     g+=`<div class="bl${hide}" style="--pc:${p.color}"><b>${esc(p.name)}</b></div>`;
     W.days.forEach(dd=>{ const list=dd.by[p.name]||[];
@@ -1249,7 +1258,9 @@ function flow(g,items,x,y,maxW,fs,lh,gap){
 }
 function paintFlow(g,f){ f.ops.forEach(o=>{ g.font=`${o.it.b?800:600} ${o.fs}px ${IMG_FONT}`; g.fillStyle=o.it.c||'#111'; g.fillText(o.it.t,o.x,o.y+o.fs*.9);
   if(o.it.s){ g.font=`600 ${o.sf}px ${IMG_FONT}`; g.fillStyle=o.it.sc||'#8A6A3A'; g.fillText(o.it.s,o.x+o.w1+2,o.y+o.fs*.9); } }); }
-function imgItem(x,st,color){ return {t:x.name,s:shLbl(x.sh,st),c:x.type==='spot'?'#B8621B':(color||'#111'),b:x.type==='spot'}; }
+// 사진에는 이름만: 이름 칸에 같이 적힌 "6.5"·"12시출" 은 빼고 그림(2026-11-06)
+const imgName=n=>{ try{ const q=quickParse(n); return q.found&&q.rest.length>=2?q.rest:n; }catch(e){ return n; } };
+function imgItem(x,st,color){ return {t:imgName(x.name),s:shLbl(x.sh,st),c:x.type==='spot'?'#B8621B':(color||'#111'),b:x.type==='spot'}; }
 async function loadFonts(){ try{ if(document.fonts){ await Promise.race([Promise.all([document.fonts.load(`600 20px ${IMG_FONT}`),document.fonts.load(`800 20px ${IMG_FONT}`)]),new Promise(r=>setTimeout(r,1200))]); } }catch(e){} }
 
 /* ---------- 하루 ---------- */
@@ -1722,7 +1733,6 @@ document.addEventListener('click',async e=>{
     case 'clook': try{ localStorage.setItem('ilpum-card-look',d.v); }catch(e){} render(); break;
     case 'mon': { const a=APP.anchor; APP.anchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }
     case 'dayn': APP.day=d.n==='0'?todayStr:ds(addDays(pd(APP.day),+d.n)); render(); break;
-    case 'gday': APP.day=d.k; APP.view='day'; render(); break;
     case 'gweek': APP.anchor=pd(d.k); APP.view='week'; render(); break;
     case 'jump': $('#'+d.to)?.scrollIntoView({behavior:'smooth'}); break;
     case 'paytog': sessionStorage.setItem('fr-pay',canPay()?'0':'1'); render(); break;

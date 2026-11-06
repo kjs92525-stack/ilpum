@@ -78,6 +78,13 @@ async def main():
     await pg.click('[data-a="shk"][data-p="c"][data-v="pm"]'); await pg.fill('#cMemo','5시출'); await pg.click('[data-a="dcsave"]'); await pg.wait_for_timeout(300)
     dc=await pg.evaluate(f"APP.D.dc['{t}|{sid}']")
     chk('직원 메모 5시출 → 17시 출근', dc and dc.get('sh',{}).get('s')=='17:00', dc)
+    # 예전에 이름에 같이 적은 "박명순6.5" → 열 때 정리 + 사진에는 이름만
+    await pg.evaluate(f"put('spot','old1',{{id:'old1',date:'{t}',name:'박명순6.5',pos:APP.D.positions[1].name,sh:{{k:'pm'}},memo:''}}); FIXED_SPOT.delete('old1'); render()"); await pg.wait_for_timeout(300)
+    o=await pg.evaluate("APP.D.spot.old1")
+    chk('예전 이름 박명순6.5 → 이름 박명순·메모 6.5로 정리', o['name']=='박명순' and o['memo']=='6.5' and o['sh']=={'k':'pm'}, o)
+    chk('사진용 이름에서도 숫자 빠짐', await pg.evaluate("imgName('김순자7') ")=='김순자' and await pg.evaluate("imgName('홍길동')")=='홍길동')
+    # 하루 타임라인 없앰
+    chk('하루 타임라인 메뉴·버튼 없음', await pg.locator('[data-a="view"][data-v="day"]').count()==0 and await pg.locator('[data-a="gday"]').count()==0)
     # ③ 크게/촘촘히
     chk('기본은 크게', await pg.evaluate("document.querySelector('.cards').classList.contains('big')"))
     fs=await pg.evaluate("parseFloat(getComputedStyle(document.querySelector('.cards.big .chip')).fontSize)")
