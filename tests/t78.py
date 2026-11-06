@@ -72,6 +72,13 @@ async def main():
     await pg.evaluate(f"APP.calAnchor=pd('{fri}'); render()"); await pg.wait_for_timeout(200)
     chk('달력 금요일 칸에 애현 이름 그대로', '애현' in await pg.inner_text(f'[data-a="calday"][data-k="{fri}"]'))
     await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(300)
+    # 달력에 쉬는 걸로 적힌 고정 직원을 그날 넣으면 휴무지급
+    sun2=await pg.evaluate("(()=>{let d=addDays(new Date(),1);while(d.getDay()!==0)d=addDays(d,1);return ds(d)})()")
+    await pg.evaluate(f"dAdd(APP.D.positions[1].name,'{sun2}')"); await pg.wait_for_timeout(200)
+    await pg.check('[data-add="r0"]'); await pg.click('[data-a="addstaff"]'); await pg.wait_for_timeout(300)
+    x=await pg.evaluate(f"(()=>{{const x=resolve(APP.D,pd('{sun2}')).list.find(z=>z.name==='홍주');return x&&[x.payoff,APP.D.dc['{sun2}|r0'].st]}})()")
+    chk('쉬는 날 고정 직원 넣기 → 휴무지급', x==[True,'paidoff'], x)
+    await pg.evaluate(f"put('dc','{sun2}|r0',null)")
     # 빈자리
     await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(300)
     await pg.click('.dcard.today .ch [data-a="add"]'); await pg.wait_for_timeout(250)

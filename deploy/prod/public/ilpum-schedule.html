@@ -1656,13 +1656,16 @@ function dCalWd(wd){
     `<button class="btn pri grow" data-a="calwdsave" data-wd="${wd}">저장</button>`);
 }
 
+// 쉬는 날인 고정 근무 직원을 그날 넣으면 휴무지급으로(2026-11-06 사용자: 달력에 쉬는 걸로 적혔는데 출근하면 일급 주고 휴무지급). 매주 변동·단기는 예전처럼 추가 출근
+const offAdd=s=>s&&s.type==='regular'?'paidoff':'extra';
+
 /* ---------- 사람 넣기 ---------- */
 function dAdd(pos,key){
   const D=APP.D, R=resolve(D,pd(key)); const on=new Set(R.list.map(x=>x.sid).filter(Boolean)); const cand=staffList(D).filter(s=>!on.has(s.id)); const cp=canPay();
   openDrawer('사람 넣기',mdw(key),
     `<div class="sect"><div class="lb"><span>포지션</span></div><select id="aPos">${D.positions.map(p=>`<option ${p.name===pos?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
     ${timeW('a',null,null)}${cp?payW('a',null,'','안 정함'):''}
-    <div class="sect"><div class="lb"><span>쉬는 직원 불러오기</span><span class="bt">${cand.length}명</span></div>
+    <div class="sect"><div class="lb"><span>쉬는 직원 불러오기</span><span class="bt">${cand.length}명 · 고정 근무 직원은 휴무지급으로 들어가요(일급은 위 금액 칸에)</span></div>
       ${cand.length?`<div class="pick">${cand.map(s=>`<label><input type="checkbox" data-add="${s.id}"> ${esc(s.name)} <small class="muted">${esc(s.pos)}</small></label>`).join('')}</div>
       <button class="btn" data-a="addstaff" data-k="${key}">고른 직원 출근시키기</button>`:'<span class="muted" style="font-size:13px">모두 출근해요</span>'}</div>
     <div class="sect"><div class="lb"><span>필요 인원 (빈자리)</span><span class="bt">아직 사람이 안 정해진 자리 — 나중에 눌러서 이름을 넣어요</span></div>
@@ -1890,7 +1893,7 @@ document.addEventListener('click',async e=>{
     case 'spotdel': put('spot',d.id,null); if((D.pay||{})['spot:'+d.id]) putPay('spot:'+d.id,null); closeDrawer(); render(); toast('뺐어요'); break;
     case 'addstaff': { const ids=$$('[data-add]').filter(x=>x.checked).map(x=>x.dataset.add); if(!ids.length) return toast('출근시킬 직원을 고르세요');
       const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg); const pos=$('#aPos').value;
-      ids.forEach(sid=>{ const k=d.k+'|'+sid; const o=Object.assign({},D.dc[k]||{}); o.st='extra'; if(pos!==D.staff[sid].pos) o.pos=pos; else delete o.pos; if(t.sh&&t.sh.k!=='full') o.sh=t.sh; put('dc',k,o); if(!pr.skip&&pr.pay) putPay('dc:'+k,pr.pay); });
+      ids.forEach(sid=>{ const k=d.k+'|'+sid; const o=Object.assign({},D.dc[k]||{}); o.st=offAdd(D.staff[sid]); if(pos!==D.staff[sid].pos) o.pos=pos; else delete o.pos; if(t.sh&&t.sh.k!=='full') o.sh=t.sh; put('dc',k,o); if(!pr.skip&&pr.pay) putPay('dc:'+k,pr.pay); });
       closeDrawer(); render(); toast(`${ids.length}명 출근시켰어요`); break; }
     case 'addvac': { const id=uid(); const x={id,date:d.k,name:'???',pos:$('#aPos').value,vac:true}; if(d.v==='pm') x.sh={k:'pm'}; put('spot',id,x); closeDrawer(); render(); toast(`빈자리(${d.v==='pm'?'오후':'종일'} ???)를 넣었어요`); break; }
     case 'addspot': { const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg);
@@ -2089,8 +2092,8 @@ function dropTo(src,tk,pos){
   const s=D.staff[src.sid]; if(!s) return;
   if(findItem(D,tk,src.sid)) return toast(`${s.name}님은 ${mdw(tk)}에 이미 근무해요`);
   const from=findItem(D,src.k,src.sid); const k=tk+'|'+src.sid; const o=Object.assign({},D.dc[k]||{});
-  o.st='extra'; if(pos!==s.pos) o.pos=pos; else delete o.pos; if(from&&from.shSrc==='day'&&from.sh) o.sh=from.sh;
-  put('dc',k,o); toast(`${s.name} → ${mdw(tk)} ${pos}에 복사했어요`); render(); }
+  o.st=offAdd(s); if(pos!==s.pos) o.pos=pos; else delete o.pos; if(from&&from.shSrc==='day'&&from.sh) o.sh=from.sh;
+  put('dc',k,o); toast(`${s.name} → ${mdw(tk)} ${pos}에 복사했어요${o.st==='paidoff'?' (휴무지급)':''}`); render(); }
 const chipAt=t=>t&&t.closest?t.closest('.board .chip[data-k], .cards .chip[data-k]'):null;
 document.addEventListener('pointerdown',ev=>{ if(!canEdit()||ev.pointerType!=='mouse'||ev.button!==0) return; const c=chipAt(ev.target); if(c) dragBegin(c,ev.clientX,ev.clientY,false); });
 document.addEventListener('pointermove',ev=>{ if(!DR||DR.touch||ev.pointerType!=='mouse') return; if(!DR.on){ if(Math.hypot(ev.clientX-DR.x0,ev.clientY-DR.y0)<6) return; dragStart(); } dragMove(ev.clientX,ev.clientY); });
