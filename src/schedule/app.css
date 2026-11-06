@@ -461,7 +461,7 @@ button.cc:hover,.hrow button.hc:hover{background:var(--amber-soft)}
 .cpn{width:100%;font-size:12.5px;padding:4px 6px;border:1px solid var(--line2);border-radius:7px;background:var(--card);color:var(--ink);text-align:center}
 /* 달력 이름 찾기 — 찾은 사람만 진하게 반짝, 나머지는 흐리게 (2026-11-06) */
 .calq{width:150px;padding:6px 10px;border:1px solid var(--line2);border-radius:9px;background:var(--card);color:var(--ink);font-size:14px}
-.hcal.q .cc .nm i{opacity:.3}
+.hcal.q .cc .nm i{opacity:.7}   /* 나머지 이름: 살짝만 흐리게(사용자: .3 은 너무 흐림) */
 .hcal.q .cc .nm i.hit{opacity:1;background:var(--amber);color:#fff;border-radius:5px;padding:0 4px;animation:calblink 1.1s ease-in-out infinite}
 .hcal.q .cc.hitd{background:var(--amber-soft)}
 @keyframes calblink{0%,100%{box-shadow:0 0 0 0 rgba(200,105,28,.55)}50%{box-shadow:0 0 0 4px rgba(200,105,28,0);filter:brightness(1.15)}}
