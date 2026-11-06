@@ -440,7 +440,7 @@ html.th-navy .cards.big .chip{background:color-mix(in srgb,var(--pc,#2e3354) 22%
 .cc{border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--card);min-height:74px;padding:5px 6px 6px;text-align:left;display:flex;flex-direction:column;gap:3px;color:var(--ink)}
 .cc.out{background:var(--bg)} .cc.today{box-shadow:inset 0 0 0 2px var(--amber)}
 .cc .n{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
-.cc .nm{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:0 5px;font-size:13.5px;font-weight:700;line-height:1.35;width:100%}   /* 이름을 같은 넓이 칸에 줄 맞춰 (2026-11-06) */
+.cc .nm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 4px;font-size:14.5px;letter-spacing:-.02em;font-weight:700;line-height:1.35;width:100%}   /* 이름을 같은 넓이 칸에 줄 맞춰 (2026-11-06) */
 .cc .nm i{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cc .nm i.wide{grid-column:1/-1;white-space:normal}   /* (월)·(오전)·메모가 붙은 이름은 한 줄 통째로 */
 .cc .nm i{font-style:normal} .cc .nm i.annual{color:var(--bad)} .cc .nm i.am{color:var(--pm)} .cc .nm i.pmoff{color:var(--tm)} .cc .nm i.poff{text-decoration:underline dotted}
@@ -453,7 +453,7 @@ button.cc:hover,.hrow button.hc:hover{background:var(--amber-soft)}
 .cp.am{border-color:var(--pm);background:color-mix(in srgb,var(--pm) 12%,var(--card))} .cp.am span{color:var(--pm)}
 .cp.fixed{opacity:.55}
 .cp.pmoff{border-color:var(--tm);background:color-mix(in srgb,var(--tm) 12%,var(--card))} .cp.pmoff span{color:var(--tm)}
-@media (max-width:700px){ .cc{min-height:70px;padding:4px 3px} .cc .nm{font-size:12.5px;gap:1px 4px;grid-template-columns:1fr} .hrow .hc span{font-size:12px} .cc .n{font-size:13px} }
+@media (max-width:700px){ .cc{min-height:70px;padding:4px 3px} .cc .nm{font-size:13.5px;gap:1px 4px;grid-template-columns:1fr} .hrow .hc span{font-size:12px} .cc .n{font-size:13px} }
 /* 필요 인원 빈자리(??? ) — 점선 칸 (2026-11-06) */
 .chip.vac,.cards.big .chip.vac{background:transparent;border:2px dashed var(--line2);color:var(--sub)}
 .vacn{margin-left:4px;font-size:.9em;font-weight:800;color:var(--amber-deep)}
