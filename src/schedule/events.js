@@ -64,7 +64,10 @@ function dStaffDay(sid,key){
     `<button class="btn pri grow" data-a="dcsave" data-sid="${sid}" data-k="${key}">이 날 저장</button>${Object.keys(dc).length||(D.pay||{})['dc:'+key+'|'+sid]?`<button class="btn" data-a="dcclear" data-sid="${sid}" data-k="${key}">원래대로</button>`:''}`);
 }
 function saveStaffDay(sid,key){
-  const D=APP.D; const t=readTime('c'); if(!t.ok){ updHints('c'); return toast(t.msg); } const pr=readPay('c'); if(!pr.ok) return toast(pr.msg);
+  const D=APP.D; const t=readTime('c'); if(!t.ok){ updHints('c'); return toast(t.msg); }
+  // 메모에 "12시출"·"오후" 라고만 적어도 출근 시간으로 (2026-11-06)
+  if(!t.sh){ const q=quickParse($('#cMemo').value); if(q.sh) t.sh=q.sh; }
+  const pr=readPay('c'); if(!pr.ok) return toast(pr.msg);
   const b=findItem(D,key,sid,{noDc:sid}); const want=$('#stK').value; const o={};
   if(want==='work'){ if(!b) o.st='extra'; } else if(want==='off'){ if(b) o.st='off'; } else o.st=want;
   if(t.sh&&!shSame(t.sh,b?b.sh:null)) o.sh=t.sh;
@@ -99,11 +102,41 @@ function spotRates(name){
 }
 function spotAuto(){
   const nm=$('#aName'), mm=$('#aMemo'), hint=$('#aAuto'); if(!nm||!mm) return;
-  const r=spotRates(nm.value), k=kindOfSh(readTime('a').sh), L={full:'종일',pm:'오후',am:'오전'};
-  const has=Object.keys(r).length; if(hint) hint.textContent=has?'지난 일당: '+Object.keys(r).map(x=>L[x]+' '+r[x]).join(' · ')+(k&&r[k]?` → 메모에 ${r[k]} 자동`:''):'';
+  const q=applyQuick(nm.value,($('#aNote')||{}).value,'',null);
+  const r=spotRates(q.name), k=kindOfSh(readTime('a').sh||q.sh), L={full:'종일',pm:'오후',am:'오전'};
+  const has=Object.keys(r).length; if(hint) hint.textContent=[q.lbl?'알아서 읽음: '+q.lbl:'',has?'지난 일당: '+Object.keys(r).map(x=>L[x]+' '+r[x]).join(' · ')+(k&&r[k]&&!q.man?` → 메모에 ${r[k]} 자동`:''):''].filter(Boolean).join(' / ');
+  if(q.man) return;
   if(mm.value&&mm.dataset.auto!=='1') return;                // 직접 적은 메모는 건드리지 않음
   const v=k&&r[k]?r[k]:''; mm.value=v; mm.dataset.auto=v?'1':'';
   const nt=$('#aNote'); if(v&&nt&&!nt.value){ nt.value='당일지급'; nt.dataset.auto='1'; }
+}
+
+/* ---------- 이름·표기·메모 칸의 "12시출", "6.5" 자동 인식 (2026-11-06 사용자: 버튼 누르기 불편 → 적으면 알아서)
+   이름 칸에 "박알바 12시출 6.5" 처럼 적으면 → 이름은 박알바, 출근 12시, 메모에 6.5(일당 만원). 이름에서는 빼서 카톡 사진에 안 나감.
+   1~9시는 저녁(5시출 = 17시). 오후·종일·오전 글자도 읽음. */
+function quickParse(txt){
+  let s=String(txt||''), sh=null, man=null, st=null, en=null, m;
+  const T=(h,mi)=>parseT(h+':'+String(mi||0).padStart(2,'0'),false);
+  const HM='(\\d{1,2})\\s*(?::\\s*(\\d{2})|시\\s*(?:(\\d{1,2})\\s*분|(반))?)?';
+  const mi=a=>a[2]!=null?+a[2]:a[3]!=null?+a[3]:a[4]?30:0;
+  if((m=s.match(new RegExp(HM+'\\s*(?:출근|출)')))){ st=T(m[1],mi(m)); s=s.replace(m[0],' '); }
+  if((m=s.match(new RegExp(HM+'\\s*(?:퇴근|퇴)')))){ const h=+m[1]; en=parseT(h+':'+String(mi(m)).padStart(2,'0'),true); s=s.replace(m[0],' '); }
+  if(!st&&!en&&(m=s.match(/(\d{1,2})(?::(\d{2}))?\s*~\s*(\d{1,2})(?::(\d{2}))?/))){ st=T(m[1],m[2]); en=parseT(m[3]+':'+(m[4]||'00'),true); s=s.replace(m[0],' '); }
+  if(st) sh={k:'t',s:st,e:en&&en!==APP.D.store.close?en:''}; else if(en) sh={k:'t',s:APP.D.store.open||'11:00',e:en};
+  // 오후·오전·종일: 따로 쓴 말이거나 2자 이상 이름 바로 뒤에 붙은 것만 ("이종일"·"김오후" 같은 이름은 그대로)
+  [['오후','pm'],['오전','am'],['종일','full']].forEach(([w,k])=>{ const re=new RegExp('(^|[^가-힣]|[가-힣]{2})'+w+'(?![가-힣])');
+    if((m=s.match(re))){ if(!sh) sh={k}; s=s.replace(re,'$1 '); } });
+  if((m=s.match(/(?:^|[^\d.])(\d{1,2}(?:\.\d)?)\s*(?:만원|만)?(?![\d.:시])/))){ man=m[1]; s=s.replace(m[0],m[0].replace(m[1],' ').replace(/만원|만/,'')); }
+  const rest=s.replace(/[()\[\]]/g,' ').replace(/\s+/g,' ').trim();
+  return {rest,sh,man,found:!!(sh||man)};
+}
+const qpLbl=q=>[q.sh?(q.sh.k==='t'?tLbl(q.sh.s)+' 출근'+(q.sh.e?' ~ '+tLbl(q.sh.e):''):{pm:'오후',am:'오전',full:'종일'}[q.sh.k]):'',q.man?'일당 '+q.man+'만':''].filter(Boolean).join(' · ');
+// 이름·표기·메모를 한꺼번에 읽어서 {name, note, memo, sh} 로. 출근 시간 버튼을 따로 누른 게 있으면 그게 우선
+function applyQuick(nameV,noteV,memoV,pickSh){
+  const qn=quickParse(nameV), qt=quickParse(noteV), qm=quickParse(memoV);
+  const sh=pickSh||qn.sh||qt.sh||qm.sh||null; const man=qn.man||qt.man||qm.man||null;
+  let memo=String(memoV||'').trim(); if(man&&!qm.man) memo=memo?man+' '+memo:man;
+  return {name:qn.rest||String(nameV||'').trim(),note:qt.found?qt.rest:String(noteV||'').trim(),memo,sh,man,lbl:qpLbl({sh:qn.sh||qt.sh||qm.sh,man})};
 }
 
 /* ---------- 사람 넣기 ---------- */
@@ -318,8 +351,9 @@ document.addEventListener('click',async e=>{
     case 'stk': $('#stK').value=d.v; $$('[data-a="stk"]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===d.v)); break;
     case 'dcsave': saveStaffDay(d.sid,d.k); break;
     case 'dcclear': put('dc',d.k+'|'+d.sid,null); if((D.pay||{})['dc:'+d.k+'|'+d.sid]) putPay('dc:'+d.k+'|'+d.sid,null); closeDrawer(); render(); toast('원래대로 되돌렸어요'); break;
-    case 'spotsave': { const x={...D.spot[d.id]}; x.name=$('#spName').value.trim()||x.name; x.pos=$('#spPos').value; x.memo=$('#spMemo').value.trim(); { const nt=($('#spNote').value||'').trim().slice(0,12); if(nt) x.note=nt; else delete x.note; }
-      const t=readTime('s'); if(!t.ok) return toast(t.msg); const pr=readPay('s'); if(!pr.ok) return toast(pr.msg);
+    case 'spotsave': { const x={...D.spot[d.id]}; const t=readTime('s'); if(!t.ok) return toast(t.msg); const pr=readPay('s'); if(!pr.ok) return toast(pr.msg);
+      const Q=applyQuick($('#spName').value,$('#spNote').value,$('#spMemo').value,t.sh&&!shSame(t.sh,x.sh||null)?t.sh:null); t.sh=Q.sh||t.sh;
+      x.name=Q.name||x.name; x.pos=$('#spPos').value; x.memo=Q.memo; { const nt=(Q.note||'').slice(0,12); if(nt) x.note=nt; else delete x.note; }
       if(t.sh&&t.sh.k!=='full') x.sh=t.sh; else delete x.sh; put('spot',d.id,x); if(!pr.skip) putPay('spot:'+d.id,pr.pay); closeDrawer(); render(); toast('저장했어요'); break; }
     case 'notefill': { const el=$('#'+d.t); if(el) el.value=(el.value===d.v?'':d.v); break; }
     case 'spotdel': put('spot',d.id,null); if((D.pay||{})['spot:'+d.id]) putPay('spot:'+d.id,null); closeDrawer(); render(); toast('뺐어요'); break;
@@ -327,11 +361,12 @@ document.addEventListener('click',async e=>{
       const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg); const pos=$('#aPos').value;
       ids.forEach(sid=>{ const k=d.k+'|'+sid; const o=Object.assign({},D.dc[k]||{}); o.st='extra'; if(pos!==D.staff[sid].pos) o.pos=pos; else delete o.pos; if(t.sh&&t.sh.k!=='full') o.sh=t.sh; put('dc',k,o); if(!pr.skip&&pr.pay) putPay('dc:'+k,pr.pay); });
       closeDrawer(); render(); toast(`${ids.length}명 출근시켰어요`); break; }
-    case 'addspot': { const name=$('#aName').value.trim(); if(!name){ $('#aName').focus(); return toast('알바 이름을 넣으세요'); }
-      const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg);
+    case 'addspot': { const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg);
+      const Q=applyQuick($('#aName').value,$('#aNote').value,$('#aMemo').value,t.sh&&t.sh.k!=='full'?t.sh:null); const name=Q.name; if(!name){ $('#aName').focus(); return toast('알바 이름을 넣으세요'); }
+      $('#aNote').value=Q.note; $('#aMemo').value=Q.memo; t.sh=Q.sh||t.sh;   // 출근 버튼을 종일(기본) 말고 따로 골랐으면 그게 우선
       const to=$('#aTo').value||d.k; const dates=ruleDates(d.k,to<d.k?d.k:to,[]).slice(0,62);
       dates.forEach(dt=>{ const id=uid(); const x={id,date:dt,name,pos:$('#aPos').value,memo:$('#aMemo').value.trim()}; { const nt=($('#aNote').value||'').trim().slice(0,12); if(nt) x.note=nt; } if(t.sh&&t.sh.k!=='full') x.sh=t.sh; put('spot',id,x); if(!pr.skip&&pr.pay) putPay('spot:'+id,pr.pay); });
-      closeDrawer(); render(); toast(dates.length>1?`${name} ${dates.length}일 넣었어요`:`${name} 넣었어요`); break; }
+      closeDrawer(); render(); toast((dates.length>1?`${name} ${dates.length}일 넣었어요`:`${name} 넣었어요`)+(Q.lbl?` · ${Q.lbl}`:'')); break; }
     case 'weekly': dWeekly(d.k2||weekKey(pd(d.k))); break;
     case 'wcell': { const m=WD.map[d.sid], i=+d.i; m.dirty=true; if(m.off.includes(i)){ m.off=m.off.filter(x=>x!==i); } else if(m.pm.includes(i)){ m.pm=m.pm.filter(x=>x!==i); m.off.push(i); delete m.t[i]; } else { m.pm.push(i); } dWeekly(WD.wk); break; }
     case 'wmode': WD.mode=d.v; dWeekly(WD.wk); break;
