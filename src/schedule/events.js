@@ -87,6 +87,25 @@ function dSpot(id){
     `<button class="btn pri grow" data-a="spotsave" data-id="${id}">저장</button><button class="btn bad" data-a="spotdel" data-id="${id}">이 날 빼기</button>`);
 }
 
+/* ---------- 당일알바 일당 자동 (2026-11-06 사용자: 오후 6.5·종일 13 처럼 적었던 사람은 다음에 넣을 때 자동으로) ----------
+   지난 단기·당일 기록에서 같은 이름의 "숫자만 적힌 메모"(만원)를 근무 형태(종일·오후·오전)별로 가장 최근 것을 찾아요.
+   메모는 화면에만 보이고 카톡 사진·인쇄에는 안 나가요. */
+const kindOfSh=sh=>!sh||sh.k==='full'?'full':sh.k==='pm'?'pm':sh.k==='am'?'am':null;
+const memoMan=m=>{ const x=String(m||'').trim().match(/^(\d{1,3}(?:\.\d)?)\s*(만|만원)?$/); return x?x[1]:null; };
+function spotRates(name){
+  const out={}, at={}; name=String(name||'').trim(); if(!name) return out;
+  Object.values(APP.D.spot||{}).forEach(x=>{ if(!x||x.name!==name) return; const v=memoMan(x.memo), k=kindOfSh(x.sh); if(!v||!k) return; if(!at[k]||x.date>at[k]){ at[k]=x.date; out[k]=v; } });
+  return out;
+}
+function spotAuto(){
+  const nm=$('#aName'), mm=$('#aMemo'), hint=$('#aAuto'); if(!nm||!mm) return;
+  const r=spotRates(nm.value), k=kindOfSh(readTime('a').sh), L={full:'종일',pm:'오후',am:'오전'};
+  const has=Object.keys(r).length; if(hint) hint.textContent=has?'지난 일당: '+Object.keys(r).map(x=>L[x]+' '+r[x]).join(' · ')+(k&&r[k]?` → 메모에 ${r[k]} 자동`:''):'';
+  if(mm.value&&mm.dataset.auto!=='1') return;                // 직접 적은 메모는 건드리지 않음
+  const v=k&&r[k]?r[k]:''; mm.value=v; mm.dataset.auto=v?'1':'';
+  const nt=$('#aNote'); if(v&&nt&&!nt.value){ nt.value='당일지급'; nt.dataset.auto='1'; }
+}
+
 /* ---------- 사람 넣기 ---------- */
 function dAdd(pos,key){
   const D=APP.D, R=resolve(D,pd(key)); const on=new Set(R.list.map(x=>x.sid).filter(Boolean)); const cand=staffList(D).filter(s=>!on.has(s.id)); const cp=canPay();
@@ -97,7 +116,9 @@ function dAdd(pos,key){
       ${cand.length?`<div class="pick">${cand.map(s=>`<label><input type="checkbox" data-add="${s.id}"> ${esc(s.name)} <small class="muted">${esc(s.pos)}</small></label>`).join('')}</div>
       <button class="btn" data-a="addstaff" data-k="${key}">고른 직원 출근시키기</button>`:'<span class="muted" style="font-size:13px">모두 출근해요</span>'}</div>
     <div class="sect"><div class="lb"><span>새 단기·당일 알바</span></div>
-      <div class="row"><input type="text" id="aName" class="grow" placeholder="이름 (예: 박알바)"><input type="text" id="aMemo" class="grow" placeholder="메모 (선택)"></div>
+      <div class="row"><input type="text" id="aName" class="grow" placeholder="이름 (예: 박알바)" list="aNames" autocomplete="off"><input type="text" id="aMemo" class="grow" placeholder="메모 · 일당 (예: 6.5)"></div>
+      <datalist id="aNames">${[...new Set(Object.values(D.spot||{}).filter(x=>x&&x.name).sort((a,b)=>b.date.localeCompare(a.date)).map(x=>x.name))].slice(0,80).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+      <div class="hint" id="aAuto"></div>
       <div class="row"><input type="text" id="aNote" class="grow" maxlength="12" placeholder="이름 옆 표기 (예: 당일지급)"><button type="button" class="btn sm" data-a="notefill" data-t="aNote" data-v="당일지급">당일지급</button></div>
       <div class="row"><span class="muted" style="font-size:13px">마지막 날</span><input type="date" id="aTo" value="${key}" min="${key}"><span class="hint">며칠 연속이면 바꾸세요</span></div>
       <button class="btn pri" data-a="addspot" data-k="${key}">알바 넣기</button></div>`,'');
@@ -107,7 +128,7 @@ function dAdd(pos,key){
 let WD=null;
 function dWeekly(wk){
   const D=APP.D, ws=pd(wk); const list=staffList(D).filter(s=>s.type==='weekly');
-  if(!WD||WD.wk!==wk){ WD={wk,mode:(WD&&WD.mode)||'st',map:{}}; list.forEach(s=>{ const en=(D.aw[wk]||{})[s.id]; WD.map[s.id]=en?JSON.parse(JSON.stringify({off:en.off||[],pm:en.pm||[],t:en.t||{},saved:true})):{off:[],pm:[],t:{},saved:false}; }); }
+  if(!WD||WD.wk!==wk){ WD={wk,mode:(WD&&WD.mode)||'st',map:{}}; list.forEach(s=>{ const en=(D.aw[wk]||{})[s.id]; WD.map[s.id]=en?JSON.parse(JSON.stringify({off:en.off||[],pm:en.pm||[],t:en.t||{},saved:true})):{off:[0,1,2,3,4,5,6],pm:[],t:{},saved:false}; }); }   // (2026-11-06 사용자) 입력 안 한 사람은 쉬는 날 — 한 명만 넣어도 나머지가 근무로 들어가지 않게
   const cell=(sid,i)=>{ const m=WD.map[sid]; const st=m.off.includes(i)?'off':m.pm.includes(i)?'pm':'on'; const tt=m.t[i];
     if(WD.mode==='time'){ if(st==='off') return '<span class="tag bad" style="width:100%;justify-content:center;padding:7px 0">휴무</span>';
       return `<input type="text" data-wt="${sid}" data-i="${i}" value="${tt?esc(tLbl(tt.s)):''}" placeholder="${st==='pm'?'오후':'기본'}" style="width:100%;text-align:center;padding:6px 2px">`; }
@@ -116,9 +137,9 @@ function dWeekly(wk){
   openDrawer('매주 변동 입력',`${mdw(wk)} ~ ${mdw(ds(addDays(ws,6)))} · 매주 스케줄이 바뀌는 사람`,
     `<div class="row"><button class="btn sm" data-a="wnav" data-n="-7">‹ 지난주</button><button class="btn sm" data-a="wnav" data-n="7">다음 주 ›</button><span class="grow"></span>
       <div class="seg"><button data-a="wmode" data-v="st" aria-pressed="${WD.mode!=='time'}">근무·휴무·오후</button><button data-a="wmode" data-v="time" aria-pressed="${WD.mode==='time'}">출근 시간</button></div></div>
-    <p class="hint" style="margin:0">${WD.mode==='time'?'칸에 출근 시간을 적으세요 (예: 11, 5, 5시반). 비우면 요일 패턴대로.':'칸을 누를 때마다 근무 → 휴무 → 오후로 바뀌어요.'}</p>
+    <p class="hint" style="margin:0">${WD.mode==='time'?'칸에 출근 시간을 적으세요 (예: 11, 5, 5시반). 비우면 요일 패턴대로.':'출근하는 날만 누르세요 — 누를 때마다 휴무 → 근무 → 오후. 손대지 않은 사람은 그 주 쉬어요. 하루만 넣을 땐 스케줄 카드의 이름(쉬는 사람)을 눌러도 돼요.'}</p>
     ${list.length?`<div class="scroll"><table class="t"><thead><tr><th>이름</th>${WD_MON.map((w,i)=>`<th style="text-align:center">${DOW[w]}<br><span class="muted" style="font-weight:500">${addDays(ws,i).getDate()}</span></th>`).join('')}</tr></thead><tbody>
-    ${list.map(s=>`<tr><td style="white-space:nowrap"><b>${esc(s.name)}</b>${WD.map[s.id].saved?'':'<br><span class="tag warn">미입력</span>'}</td>${[0,1,2,3,4,5,6].map(i=>`<td style="padding:4px 2px;min-width:52px">${cell(s.id,i)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
+    ${list.map(s=>`<tr><td style="white-space:nowrap"><b>${esc(s.name)}</b>${WD.map[s.id].saved||WD.map[s.id].dirty?'':'<br><span class="muted" style="font-size:12px">쉼</span>'}</td>${[0,1,2,3,4,5,6].map(i=>`<td style="padding:4px 2px;min-width:52px">${cell(s.id,i)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
       :'<div class="empty">‘매주 변동’ 직원이 없어요. 직원 화면에서 종류를 바꾸세요.</div>'}`,
     `<button class="btn" data-a="wcopy">지난주와 같게</button><span class="grow"></span><button class="btn pri" data-a="wsave">이번 주 저장</button>`,true);
 }
@@ -281,6 +302,7 @@ document.addEventListener('click',async e=>{
     case 'wk': APP.anchor=d.n==='0'?new Date():addDays(weekStart(APP.anchor),7*+d.n); render(); break;
     case 'cnav': { const a=APP.anchor; if(d.n==='0') APP.anchor=new Date(); else if((APP.cardMode||'month')==='month') APP.anchor=new Date(a.getFullYear(),a.getMonth()+(+d.n),1); else APP.anchor=addDays(a,7*(+d.n)); render(); break; }
     case 'cmode': APP.cardMode=d.v; APP.anchor=new Date(); render(); break;
+    case 'clook': try{ localStorage.setItem('ilpum-card-look',d.v); }catch(e){} render(); break;
     case 'mon': { const a=APP.anchor; APP.anchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }
     case 'dayn': APP.day=d.n==='0'?todayStr:ds(addDays(pd(APP.day),+d.n)); render(); break;
     case 'gday': APP.day=d.k; APP.view='day'; render(); break;
@@ -291,7 +313,7 @@ document.addEventListener('click',async e=>{
     case 'edit': if(!canEdit()){ if(d.sid&&role()==='staff') return; toast('보기 전용이에요'); return; }
       if(d.spot) dSpot(d.spot); else if(d.sid) dStaffDay(d.sid,d.k); break;
     case 'add': dAdd(d.pos,d.k); break;
-    case 'shk': setShk(d.p,d.v); break;
+    case 'shk': setShk(d.p,d.v); if(d.p==='a') spotAuto(); break;
     case 'qt': $('#'+d.p+'S').value=d.v+'시'; updHints(d.p); break;
     case 'stk': $('#stK').value=d.v; $$('[data-a="stk"]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===d.v)); break;
     case 'dcsave': saveStaffDay(d.sid,d.k); break;
@@ -311,11 +333,11 @@ document.addEventListener('click',async e=>{
       dates.forEach(dt=>{ const id=uid(); const x={id,date:dt,name,pos:$('#aPos').value,memo:$('#aMemo').value.trim()}; { const nt=($('#aNote').value||'').trim().slice(0,12); if(nt) x.note=nt; } if(t.sh&&t.sh.k!=='full') x.sh=t.sh; put('spot',id,x); if(!pr.skip&&pr.pay) putPay('spot:'+id,pr.pay); });
       closeDrawer(); render(); toast(dates.length>1?`${name} ${dates.length}일 넣었어요`:`${name} 넣었어요`); break; }
     case 'weekly': dWeekly(d.k2||weekKey(pd(d.k))); break;
-    case 'wcell': { const m=WD.map[d.sid], i=+d.i; if(m.off.includes(i)){ m.off=m.off.filter(x=>x!==i); m.pm.push(i); } else if(m.pm.includes(i)){ m.pm=m.pm.filter(x=>x!==i); } else { m.off.push(i); delete m.t[i]; } dWeekly(WD.wk); break; }
+    case 'wcell': { const m=WD.map[d.sid], i=+d.i; m.dirty=true; if(m.off.includes(i)){ m.off=m.off.filter(x=>x!==i); } else if(m.pm.includes(i)){ m.pm=m.pm.filter(x=>x!==i); m.off.push(i); delete m.t[i]; } else { m.pm.push(i); } dWeekly(WD.wk); break; }
     case 'wmode': WD.mode=d.v; dWeekly(WD.wk); break;
     case 'wnav': dWeekly(ds(addDays(pd(WD.wk),+d.n))); break;
-    case 'wcopy': { const prev=D.aw[ds(addDays(pd(WD.wk),-7))]; if(!prev) return toast('지난주 입력이 없어요'); Object.keys(WD.map).forEach(sid=>{ if(prev[sid]) Object.assign(WD.map[sid],JSON.parse(JSON.stringify({off:prev[sid].off||[],pm:prev[sid].pm||[],t:prev[sid].t||{}}))); }); dWeekly(WD.wk); toast('지난주를 불러왔어요 · 저장해야 반영돼요'); break; }
-    case 'wsave': { const out=Object.assign({},D.aw[WD.wk]||{}); Object.keys(WD.map).forEach(sid=>{ const m=WD.map[sid]; out[sid]={off:[...m.off].sort(),pm:[...m.pm].sort()}; if(Object.keys(m.t).length) out[sid].t=m.t; m.saved=true; });
+    case 'wcopy': { const prev=D.aw[ds(addDays(pd(WD.wk),-7))]; if(!prev) return toast('지난주 입력이 없어요'); Object.keys(WD.map).forEach(sid=>{ if(prev[sid]) Object.assign(WD.map[sid],JSON.parse(JSON.stringify({off:prev[sid].off||[],pm:prev[sid].pm||[],t:prev[sid].t||{}})),{dirty:true}); }); dWeekly(WD.wk); toast('지난주를 불러왔어요 · 저장해야 반영돼요'); break; }
+    case 'wsave': { const out=Object.assign({},D.aw[WD.wk]||{}); Object.keys(WD.map).forEach(sid=>{ const m=WD.map[sid]; if(!m.saved&&!m.dirty) return; out[sid]={off:[...m.off].sort(),pm:[...m.pm].sort()}; if(Object.keys(m.t).length) out[sid].t=m.t; m.saved=true; });
       put('aw',WD.wk,out); dWeekly(WD.wk); render(); toast('이번 주 입력을 저장했어요'); break; }
     case 'staff': dStaff(d.sid); break;
     case 'staffnew': dStaff(null); break;
@@ -426,7 +448,9 @@ document.addEventListener('input',e=>{ const t=e.target, id=t.id||''; if(id==='s
   const m=id.match(/^([a-z])(S|E|Pv)$/); if(m) updHints(m[1]);
   if(id==='rQ'){ const q=t.value.trim(); $$('#rPick label').forEach(l=>l.hidden=!!q&&!l.dataset.rn.includes(q)); }
   if(t.closest&&t.closest('#dBody')&&$('#rPrev')) rulePrev();
-  if(id==='staffQ'&&!e.isComposing) staffSearch(t);   // 한글 조합 중에 화면을 다시 그리면 ㅇㅣㅈㅐ 처럼 낱글자로 풀려요 → 조합이 끝난 뒤에만
+  if(id==='staffQ'&&!e.isComposing) staffSearch(t);
+  if(id==='aName'||id==='aS'||id==='aE') spotAuto();
+  if(id==='aMemo') t.dataset.auto='';   // 한글 조합 중에 화면을 다시 그리면 ㅇㅣㅈㅐ 처럼 낱글자로 풀려요 → 조합이 끝난 뒤에만
 });
 function staffSearch(t){ APP.q=t.value; const pos=t.selectionStart; render(); const n=$('#staffQ'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(er){} } }
 document.addEventListener('compositionend',e=>{ if(e.target&&e.target.id==='staffQ') staffSearch(e.target); });
@@ -435,7 +459,7 @@ document.addEventListener('change',e=>{ const t=e.target, d=t.dataset, D=APP.D; 
   const m=id.match(/^([a-z])(Pk|Pc)$/); if(m) updHints(m[1]);
   if(t.closest&&t.closest('#dBody')&&$('#rPrev')) rulePrev();
   if(d.pat!==undefined){ const i=$(`[data-patt="${d.pat}"]`); i.hidden=t.value!=='t'; i.placeholder=t.value==='t'?'예: 11 또는 11~9':''; if(t.value==='t') i.focus(); }
-  if(d.wt&&WD){ const mm=WD.map[d.wt], i=+d.i; const v=t.value.trim(); if(!v) delete mm.t[i]; else { const s=parseT(v,false); if(!s){ toast('시간을 알아보지 못했어요'); t.value=''; return; } mm.t[i]={s}; mm.pm=mm.pm.filter(x=>x!==i); t.value=tLbl(s); } }
+  if(d.wt&&WD){ const mm=WD.map[d.wt], i=+d.i; mm.dirty=true; const v=t.value.trim(); if(!v) delete mm.t[i]; else { const s=parseT(v,false); if(!s){ toast('시간을 알아보지 못했어요'); t.value=''; return; } mm.t[i]={s}; mm.pm=mm.pm.filter(x=>x!==i); t.value=tLbl(s); } }
   if(d.a==='mepick'){ APP.me=t.value; render(); }
   if(d.a==='stf'){ const st={...D.store}; const f=d.f; let v=t.type==='checkbox'?t.checked:t.value;
     if(['open','close','pmStart','amStart'].includes(f)){ const p=parseT(v,f!=='open'); if(!p){ toast('시간을 확인하세요 (예: 11:00)'); t.value=st[f]; return; } v=p; t.value=p; }

@@ -173,6 +173,8 @@ function payToggle(){ return payAllowed()?`<button class="btn ${canPay()?'ink':'
 function viewSeg(){ return `<div class="seg" role="group" aria-label="보기">${[['cards','카드'],['week','주간표'],['day','하루']].map(([v,t])=>`<button data-a="view" data-v="${v}" aria-pressed="${APP.view===v}">${t}</button>`).join('')}</div>`; }
 
 /* ================= 스케줄 카드 (날짜마다 포지션 줄이 다 보이는 화면) ================= */
+// (2026-11-06 사용자: 오늘 누가 일하는지 한눈에) "크게" = 하루씩 한 줄로 크게, "촘촘히" = 예전 여러 칸. 이 기기에 기억(ilpum-card-look)
+function cardBig(){ try{ return localStorage.getItem('ilpum-card-look')!=='compact'; }catch(e){ return true; } }
 function vCards(){
   const D=APP.D, ed=canEdit(), cp=canPay(); const rules=rulesSorted(D); const mode=APP.cardMode||'month', a=APP.anchor;
   let start,end,title;
@@ -185,19 +187,19 @@ function vCards(){
     const R=resolve(D,d,{rules}), key=R.key; if(cp) R.list.forEach(x=>{ x.cost=costOf(D,x,key,R.wd); });
     const by={}; D.positions.forEach(p=>by[p.name]=[]); R.list.forEach(x=>(by[x.pos]=by[x.pos]||[]).push(x)); D.positions.forEach(p=>{ allPos.add(p.name); if(by[p.name].length) usedAny.add(p.name); });
     const rows=D.positions.map(p=>`<div class="cr ${(!APP.showEmpty&&!by[p.name].length)?'empty':''}" style="--pc:${p.color}"><div class="cl">${esc(p.name)}${by[p.name].length?`<span class="cn">${by[p.name].length}명</span>`:''}</div><div class="bc" data-drop="${esc(p.name)}" data-k="${key}">${by[p.name].map(x=>chipH(x,{key},cp,ed)).join('')}${ed?`<button class="add" data-a="add" data-pos="${esc(p.name)}" data-k="${key}" aria-label="${esc(p.name)}에 사람 넣기">+</button>`:''}</div></div>`).join('');
-    const offs=R.offs.filter(o=>!o.missing||key>=ds(ws)).map(o=>`<button data-a="${o.missing?'weekly':'edit'}" data-sid="${o.sid}" data-k="${key}" ${o.missing?`data-k2="${weekKey(d)}"`:''}>${esc(o.name)}${o.reason!=='고정휴무'&&o.reason!=='주간휴무'&&!o.missing?`<span class="rs">(${esc(o.reason)})</span>`:''}${o.missing?'<span class="rs">(미입력)</span>':''}</button>`).join('');
+    const offs=R.offs.filter(o=>!o.missing||key>=ds(ws)).map(o=>`<button data-a="edit" data-sid="${o.sid}" data-k="${key}" ${o.missing?`data-k2="${weekKey(d)}"`:''}>${esc(o.name)}${o.reason!=='고정휴무'&&o.reason!=='주간휴무'&&!o.missing?`<span class="rs">(${esc(o.reason)})</span>`:''}</button>`).join('');
     const wd=R.wd;
     cards+=`<div class="dcard ${key===todayStr?'today':''} ${key<todayStr?'past':''}"><div class="ch"><button class="cdate ${wd===0?'sun':wd===6?'sat':''}" data-a="gday" data-k="${key}" title="하루 타임라인"><b>${d.getMonth()+1}/${d.getDate()}</b><span>${DOW[wd]}</span></button>${key===todayStr?'<span class="tag amber">오늘</span>':''}<span class="cn">총 <b>${R.list.length}</b>명</span><span class="sp"></span>${ed?`<button class="btn sm" data-a="add" data-pos="${esc(D.positions[0].name)}" data-k="${key}">+ 사람</button>`:''}<button class="btn sm" data-a="img" data-t="day" data-k="${key}" title="카톡용 사진">사진</button></div>
       ${R.list.length?'':'<div class="cr0">근무자가 없어요</div>'}${rows}${offs?`<div class="cf"><b>쉬는 사람</b>${offs}</div>`:''}</div>`; }
   const hiddenN=allPos.size-usedAny.size;
   return `<div class="vh"><div><h1>${title}</h1><div class="sub">이름을 누르면 시간·금액·휴무, 끌어서(폰은 꾹) 옮기기·복사</div></div>
     <div class="row"><button class="btn ic" data-a="cnav" data-n="-1" aria-label="이전">‹</button><button class="btn" data-a="cnav" data-n="0">${mode==='month'?'이번 달':'오늘'}</button><button class="btn ic" data-a="cnav" data-n="1" aria-label="다음">›</button></div>
-    <div class="seg" role="group" aria-label="기간"><button data-a="cmode" data-v="week7" aria-pressed="${mode!=='month'}">오늘부터 7일</button><button data-a="cmode" data-v="month" aria-pressed="${mode==='month'}">한 달</button></div>${viewSeg()}<span class="sp"></span>
+    <div class="seg" role="group" aria-label="기간"><button data-a="cmode" data-v="week7" aria-pressed="${mode!=='month'}">오늘부터 7일</button><button data-a="cmode" data-v="month" aria-pressed="${mode==='month'}">한 달</button></div>${viewSeg()}<div class="seg" role="group" aria-label="글자 크기"><button data-a="clook" data-v="big" aria-pressed="${cardBig()}">크게</button><button data-a="clook" data-v="compact" aria-pressed="${!cardBig()}">촘촘히</button></div><span class="sp"></span>
     ${hiddenN>0||APP.showEmpty?`<button class="btn" data-a="empty">${APP.showEmpty?'빈 포지션 숨기기':`빈 포지션 ${hiddenN}개 보기`}</button>`:''}
     ${ed?'<button class="btn" data-a="posmgr">포지션 관리</button>':''}
-    ${ed&&hasWeekly?`<button class="btn ${missingAw?'pri':''}" data-a="weekly" data-k="${ds(ws)}">매주 변동 입력${missingAw?` (${missingAw}명 미입력)`:''}</button>`:''}
+    ${ed&&hasWeekly?`<button class="btn" data-a="weekly" data-k="${ds(ws)}">매주 변동 입력</button>`:''}
     ${payToggle()}${EMBED&&window.parent!==window?'<button class="btn" data-a="tores">예약 보기 ›</button>':''}<button class="btn" data-a="print">인쇄</button></div>
-    <div class="cards">${cards}</div>
+    <div class="cards ${cardBig()?'big':''}">${cards}</div>
     <div class="legend"><span><span class="chip">이름</span> 기본</span><span><span class="chip g-add">이름</span> 추가 출근</span><span><span class="chip g-chg">이름</span> 포지션 변경</span><span><span class="chip t-spot">이름</span> 단기·당일</span><span><span class="chip t-weekly">이름</span> 매주 변동</span><span><span class="chip">이름<i class="pmb">오후</i></span><span class="chip">이름<i class="tm soft">11시</i></span> 출근 시간</span></div>`;
 }
 
@@ -225,7 +227,7 @@ function vWeek(){
     ${viewSeg()}<span class="sp"></span>
     ${hiddenN||APP.showEmpty?`<button class="btn" data-a="empty">${APP.showEmpty?'빈 포지션 숨기기':`빈 포지션 ${hiddenN}개 보기`}</button>`:''}
     ${ed?'<button class="btn" data-a="posmgr">포지션 관리</button>':''}
-    ${ed&&hasWeekly?`<button class="btn ${missingAw?'pri':''}" data-a="weekly" data-k="${ds(ws)}">매주 변동 입력${missingAw?` <span class="tag" style="background:rgba(255,255,255,.25);color:inherit">${missingAw}명 미입력</span>`:''}</button>`:''}
+    ${ed&&hasWeekly?`<button class="btn" data-a="weekly" data-k="${ds(ws)}">매주 변동 입력</button>`:''}
     ${payToggle()}<button class="btn pri" data-a="img" data-t="day" data-k="${(todayStr>=ds(ws)&&todayStr<=ds(we))?todayStr:ds(ws)}">하루 사진 보내기</button><button class="btn" data-a="print">인쇄</button></div>`;
   if(cp) h+=`<div class="kpis">
     <div class="kpi"><div class="k">예상 인건비${W.costKnown?'':' (급여 미입력 있음)'}</div><div class="v">${Math.round(W.cost/10000).toLocaleString('ko-KR')}<small>만원</small></div></div>
@@ -240,7 +242,7 @@ function vWeek(){
       g+=`<div class="bc${hide} ${dd.key<todayStr?'past':''}" data-drop="${esc(p.name)}" data-k="${dd.key}">${list.map(x=>chipH(x,dd,cp,ed)).join('')}${ed?`<button class="add" data-a="add" data-pos="${esc(p.name)}" data-k="${dd.key}" aria-label="${esc(p.name)}에 사람 넣기">+</button>`:''}</div>`; });
   });
   g+=`<div class="bl off"><b>휴무</b><small>누르면 출근으로</small></div>`;
-  W.days.forEach(dd=>{ g+=`<div class="offs">${dd.R.offs.filter(o=>!o.missing||dd.key>=ds(weekStart(new Date()))).map(o=>`<button data-a="${o.missing?'weekly':'edit'}" data-sid="${o.sid}" data-k="${dd.key}" ${o.missing?`data-k2="${ds(ws)}"`:''}>${esc(o.name)}${o.reason!=='고정휴무'&&o.reason!=='주간휴무'?`<span class="rs">(${esc(o.reason)})</span>`:''}</button>`).join('')}</div>`; });
+  W.days.forEach(dd=>{ g+=`<div class="offs">${dd.R.offs.filter(o=>!o.missing||dd.key>=ds(weekStart(new Date()))).map(o=>`<button data-a="edit" data-sid="${o.sid}" data-k="${dd.key}" ${o.missing?`data-k2="${ds(ws)}"`:''}>${esc(o.name)}${o.reason!=='고정휴무'&&o.reason!=='주간휴무'&&!o.missing?`<span class="rs">(${esc(o.reason)})</span>`:''}</button>`).join('')}</div>`; });
   if(cp){ g+=`<div class="bl foot"><b>인건비</b><small>매출 · 비율</small></div>`;
     W.days.forEach(dd=>{ const r=dd.sales&&!dd.costMissing?dd.cost/dd.sales*100:null;
       g+=`<div class="bf"><b>${dd.costMissing?`${Math.round(dd.cost/10000)}만+`:`${Math.round(dd.cost/10000)}만`}</b>${dd.costMissing?` <span class="r">미입력 ${dd.costMissing}명</span>`:''}
