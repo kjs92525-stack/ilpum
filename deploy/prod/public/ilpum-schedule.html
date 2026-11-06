@@ -435,9 +435,9 @@ html.th-navy .chip{background:#2e3354}
 html.th-navy .cards.big .chip{background:color-mix(in srgb,var(--pc,#2e3354) 22%,#2e3354);border-color:color-mix(in srgb,var(--pc,#4a5285) 40%,transparent)}
 .chip .mn{font-style:normal;font-weight:800;font-size:1em;color:var(--amber-deep);margin-left:4px}   /* 일당 메모(6.5) — 화면에만, 사진엔 안 나감 */
 /* 카드 "크게": 이름 칸 넓이를 모두 같게(2026-11-06 사용자) — 일당 숫자(6.5)가 붙은 칸만 길이대로. 긴 이름·시간 표시는 넘치지 않게 넓어짐(min-width) */
-.cards.big .chip{min-width:124px;justify-content:center}
+.cards.big .chip{min-width:80px;justify-content:center}
 .cards.big .chip.hasmn{min-width:0}
-@media (max-width:860px){ .cards.big .chip{min-width:108px} }
+@media (max-width:860px){ .cards.big .chip{min-width:72px} }
 .cards.big .add{opacity:.5;min-width:34px;align-self:center}   /* 안 보이는 + 가 줄을 넘어가 빈 줄처럼 보이던 것 → 흐리게 보이게 */
 .cards.big .bc:hover .add{opacity:1}
 
