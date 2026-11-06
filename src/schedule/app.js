@@ -173,6 +173,8 @@ function render(){
 function payToggle(){ return payAllowed()?`<button class="btn ${canPay()?'ink':''}" data-a="paytog" title="금액은 권한 있는 사람만, 켰을 때만 보여요">${canPay()?'₩ 금액 숨기기':'₩ 금액 보기'}</button>`:''; }
 function viewSeg(){ return `<div class="seg" role="group" aria-label="보기">${[['cards','카드'],['week','주간표']].map(([v,t])=>`<button data-a="view" data-v="${v}" aria-pressed="${APP.view===v}">${t}</button>`).join('')}</div>`; }
 
+// 쉬는 사람 칸에는 고정 근무 직원만(2026-11-06 사용자: 매주 변동은 빼고). 매주 변동을 하루만 넣을 땐 "+ 사람 → 쉬는 직원 불러오기"
+const offShow=o=>{ const s=APP.D.staff[o.sid]; return !!s&&s.type!=='weekly'&&s.type!=='spot'&&!o.missing; };
 /* 예전에 이름 칸에 "박명순6.5"·"홍길동 12시출" 처럼 같이 적어 둔 단기·당일 알바를 정리(2026-11-06): 이름에서 빼고 메모·출근 시간으로. 고칠 권한이 있을 때 한 번씩 */
 const FIXED_SPOT=new Set();
 function fixSpotNames(){
@@ -196,7 +198,7 @@ function vCards(){
     const R=resolve(D,d,{rules}), key=R.key; if(cp) R.list.forEach(x=>{ x.cost=costOf(D,x,key,R.wd); });
     const by={}; D.positions.forEach(p=>by[p.name]=[]); R.list.forEach(x=>(by[x.pos]=by[x.pos]||[]).push(x)); D.positions.forEach(p=>{ allPos.add(p.name); if(by[p.name].length) usedAny.add(p.name); });
     const rows=D.positions.map(p=>`<div class="cr ${(!APP.showEmpty&&!by[p.name].length)?'empty':''}" style="--pc:${p.color}"><div class="cl">${esc(p.name)}${by[p.name].length?`<span class="cn">${by[p.name].length}명</span>`:''}</div><div class="bc" data-drop="${esc(p.name)}" data-k="${key}">${by[p.name].map(x=>chipH(x,{key},cp,ed)).join('')}${ed?`<button class="add" data-a="add" data-pos="${esc(p.name)}" data-k="${key}" aria-label="${esc(p.name)}에 사람 넣기">+</button>`:''}</div></div>`).join('');
-    const offs=R.offs.filter(o=>!o.missing||key>=ds(ws)).map(o=>`<button data-a="edit" data-sid="${o.sid}" data-k="${key}" ${o.missing?`data-k2="${weekKey(d)}"`:''}>${esc(o.name)}${o.reason!=='고정휴무'&&o.reason!=='주간휴무'&&!o.missing?`<span class="rs">(${esc(o.reason)})</span>`:''}</button>`).join('');
+    const offs=R.offs.filter(offShow).map(o=>`<button data-a="edit" data-sid="${o.sid}" data-k="${key}" ${o.missing?`data-k2="${weekKey(d)}"`:''}>${esc(o.name)}${o.reason!=='고정휴무'&&o.reason!=='주간휴무'&&!o.missing?`<span class="rs">(${esc(o.reason)})</span>`:''}</button>`).join('');
     const wd=R.wd;
     cards+=`<div class="dcard ${key===todayStr?'today':''} ${key<todayStr?'past':''}"><div class="ch"><button class="cdate ${wd===0?'sun':wd===6?'sat':''}" data-k="${key}"><b>${d.getMonth()+1}/${d.getDate()}</b><span>${DOW[wd]}</span></button>${key===todayStr?'<span class="tag amber">오늘</span>':''}<span class="cn">총 <b>${R.list.length}</b>명</span><span class="sp"></span>${ed?`<button class="btn sm" data-a="add" data-pos="${esc(D.positions[0].name)}" data-k="${key}">+ 사람</button>`:''}<button class="btn sm" data-a="img" data-t="day" data-k="${key}" title="카톡용 사진">사진</button></div>
       ${R.list.length?'':'<div class="cr0">근무자가 없어요</div>'}${rows}${offs?`<div class="cf"><b>쉬는 사람</b>${offs}</div>`:''}</div>`; }
@@ -251,7 +253,7 @@ function vWeek(){
       g+=`<div class="bc${hide} ${dd.key<todayStr?'past':''}" data-drop="${esc(p.name)}" data-k="${dd.key}">${list.map(x=>chipH(x,dd,cp,ed)).join('')}${ed?`<button class="add" data-a="add" data-pos="${esc(p.name)}" data-k="${dd.key}" aria-label="${esc(p.name)}에 사람 넣기">+</button>`:''}</div>`; });
   });
   g+=`<div class="bl off"><b>휴무</b><small>누르면 출근으로</small></div>`;
-  W.days.forEach(dd=>{ g+=`<div class="offs">${dd.R.offs.filter(o=>!o.missing||dd.key>=ds(weekStart(new Date()))).map(o=>`<button data-a="edit" data-sid="${o.sid}" data-k="${dd.key}" ${o.missing?`data-k2="${ds(ws)}"`:''}>${esc(o.name)}${o.reason!=='고정휴무'&&o.reason!=='주간휴무'&&!o.missing?`<span class="rs">(${esc(o.reason)})</span>`:''}</button>`).join('')}</div>`; });
+  W.days.forEach(dd=>{ g+=`<div class="offs">${dd.R.offs.filter(offShow).map(o=>`<button data-a="edit" data-sid="${o.sid}" data-k="${dd.key}" ${o.missing?`data-k2="${ds(ws)}"`:''}>${esc(o.name)}${o.reason!=='고정휴무'&&o.reason!=='주간휴무'&&!o.missing?`<span class="rs">(${esc(o.reason)})</span>`:''}</button>`).join('')}</div>`; });
   if(cp){ g+=`<div class="bl foot"><b>인건비</b><small>매출 · 비율</small></div>`;
     W.days.forEach(dd=>{ const r=dd.sales&&!dd.costMissing?dd.cost/dd.sales*100:null;
       g+=`<div class="bf"><b>${dd.costMissing?`${Math.round(dd.cost/10000)}만+`:`${Math.round(dd.cost/10000)}만`}</b>${dd.costMissing?` <span class="r">미입력 ${dd.costMissing}명</span>`:''}
@@ -301,7 +303,7 @@ function dayText(key){
   const D=APP.D, R=resolve(D,pd(key)), d=pd(key);
   const lines=[`[${D.store.name}] ${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]}) 근무`];
   D.positions.forEach(p=>{ const l=R.list.filter(x=>x.pos===p.name); if(l.length) lines.push(`${p.name}: ${l.map(x=>x.name+(shLbl(x.sh,D.store)?'('+shLbl(x.sh,D.store)+')':'')).join(', ')}`); });
-  const off=R.offs.filter(x=>!x.missing); if(off.length) lines.push(`휴무: ${off.map(x=>x.name).join(', ')}`);
+  const off=R.offs.filter(offShow); if(off.length) lines.push(`휴무: ${off.map(x=>x.name).join(', ')}`);
   return lines.join('\n');
 }
 

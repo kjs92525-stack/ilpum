@@ -47,7 +47,7 @@ function drawWeek(wk){
   const pos=D.positions.filter(p=>days.some(x=>x.R.list.some(z=>z.pos===p.name)));
   const cellF=(list,cw)=>flow(g0,list.map(x=>imgItem(x,st,null)),0,0,cw-14,fs,lh,10);
   const rowsH=pos.map(p=>Math.max(...days.map(x=>cellF(x.R.list.filter(z=>z.pos===p.name),CW).h))+14);
-  const offF=days.map(x=>flow(g0,x.R.offs.filter(o=>!o.missing).map(o=>({t:o.name,c:'#777'})),0,0,CW-14,16,22,8)); const offH=Math.max(...offF.map(f=>f.h),22)+14;
+  const offF=days.map(x=>flow(g0,x.R.offs.filter(offShow).map(o=>({t:o.name,c:'#777'})),0,0,CW-14,16,22,8)); const offH=Math.max(...offF.map(f=>f.h),22)+14;
   const top=P+84, hh=58, H=top+hh+rowsH.reduce((a,b)=>a+b,0)+offH+P;
   const {c,g}=mkCanvas(W,H,sc); const we=addDays(ws,6);
   g.font=`800 40px ${IMG_FONT}`; g.fillStyle='#111'; g.fillText(`${ws.getMonth()+1}/${ws.getDate()}(${DOW[ws.getDay()]}) ~ ${we.getMonth()+1}/${we.getDate()}(${DOW[we.getDay()]})`,P,P+40);
@@ -59,7 +59,7 @@ function drawWeek(wk){
   let y=top+hh; pos.forEach((p,r)=>{ const h=rowsH[r]; g.fillStyle=p.color; g.fillRect(P,y,7,h); g.font=`800 20px ${IMG_FONT}`; g.fillText(p.name,P+18,y+34);
     days.forEach((x,i)=>{ const f=flow(g,x.R.list.filter(z=>z.pos===p.name).map(z=>imgItem(z,st,null)),X(i)+8,y+8,CW-14,fs,lh,10); paintFlow(g,f); }); y+=h; });
   g.fillStyle='#F7F5F2'; g.fillRect(P,y,PC+CW*7,offH); g.font=`800 18px ${IMG_FONT}`; g.fillStyle='#777'; g.fillText('휴무',P+18,y+30);
-  days.forEach((x,i)=>{ const f=flow(g,x.R.offs.filter(o=>!o.missing).map(o=>({t:o.name,c:'#777'})),X(i)+8,y+8,CW-14,16,22,8); paintFlow(g,f); });
+  days.forEach((x,i)=>{ const f=flow(g,x.R.offs.filter(offShow).map(o=>({t:o.name,c:'#777'})),X(i)+8,y+8,CW-14,16,22,8); paintFlow(g,f); });
   // 격자
   g.strokeStyle='#bbb'; g.lineWidth=1.5; g.strokeRect(P,top,PC+CW*7,H-top-P); g.beginPath();
   for(let i=0;i<=7;i++){ g.moveTo(P+PC+i*CW,top); g.lineTo(P+PC+i*CW,H-P); } g.moveTo(P,top+hh); g.lineTo(P+PC+CW*7,top+hh);
@@ -74,7 +74,7 @@ function drawMonth(ym){
   const g0=scratch(); const fs=16, lh=22; const cells=[]; const used=new Set();
   for(let day=1;day<=last;day++){ const d=new Date(y,m,day); const R=resolve(D,d,{rules,quiet:true});
     const list=R.list.slice().sort((a,b)=>order.indexOf(a.pos)-order.indexOf(b.pos)); list.forEach(x=>used.add(x.pos));
-    const items=list.map(x=>imgItem(x,st,posColor(x.pos))); const offs=R.offs.filter(o=>!o.missing).map(o=>({t:o.name,c:'#888'}));
+    const items=list.map(x=>imgItem(x,st,posColor(x.pos))); const offs=R.offs.filter(offShow).map(o=>({t:o.name,c:'#888'}));
     const f=flow(g0,items,0,0,CW-14,fs,lh,9), of=offs.length?flow(g0,[{t:'휴',c:'#aaa'},...offs],0,0,CW-14,14,19,7):null;
     cells.push({day,d,items,offs,f,of,h:34+f.h+(of?of.h+6:0)+8}); }
   const weeks=[]; let row=Array(lead).fill(null); cells.forEach(c=>{ row.push(c); if(row.length===7){ weeks.push(row); row=[]; } }); if(row.length){ while(row.length<7) row.push(null); weeks.push(row); }

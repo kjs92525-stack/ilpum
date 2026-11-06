@@ -27,8 +27,9 @@ async def main():
     chk('가알바만 오늘 근무', '가알바' in on and '나알바' not in on and '다알바' not in on, on)
     # 쉬는 사람 이름 → 그날만 편집 창
     await pg.evaluate("closeDrawer()")
-    await pg.click(f'.dcard.today .cf button[data-sid="w1"]'); await pg.wait_for_timeout(300)
-    chk('쉬는 사람 이름 → 하루 편집 창(1주일 표 아님)', await pg.inner_text('#dTitle')=='나알바' and await pg.is_visible('#stK') if False else (await pg.inner_text('#dTitle'))=='나알바')
+    chk('쉬는 사람 칸에 매주 변동 직원은 안 나옴', await pg.locator('.dcard.today .cf button[data-sid="w1"]').count()==0)
+    await pg.evaluate(f"dStaffDay('w1','{t}')"); await pg.wait_for_timeout(300)
+    chk('하루 편집 창(1주일 표 아님)', await pg.inner_text('#dTitle')=='나알바' and await pg.is_visible('#stK') if False else (await pg.inner_text('#dTitle'))=='나알바')
     await pg.click('[data-a="stk"][data-v="work"]'); await pg.click('[data-a="dcsave"]'); await pg.wait_for_timeout(300)
     on=await pg.evaluate(f"resolve(APP.D,pd('{t}')).list.map(x=>x.name)")
     chk('오늘만 근무로 넣어짐', '나알바' in on, on)
