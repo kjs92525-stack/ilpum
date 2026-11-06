@@ -58,6 +58,9 @@ async def main():
     await pg.click(f'[data-a="calday"][data-k="{wk[4]}"]'); await pg.wait_for_timeout(200)
     await pg.fill('#calTxt','홍주(오전)'); await pg.click('[data-a="caltxt"]'); await pg.click('[data-a="calsave"]'); await pg.wait_for_timeout(250)
     chk('반차 두 번 → 그 주 고정휴무(일)는 출근', await pg.evaluate(f"resolve(APP.D,pd('{wk[0]}')).list.some(x=>x.name==='홍주')"))
+    await pg.evaluate("put('staff','r0',{...APP.D.staff.r0,noSwap:true}); render()")
+    chk('noSwap 직원은 반차 두 번이어도 고정휴무 그대로', not await pg.evaluate(f"resolve(APP.D,pd('{wk[0]}')).list.some(x=>x.name==='홍주')"))
+    await pg.evaluate("put('staff','r0',{...APP.D.staff.r0,noSwap:false}); render()")
     chk('11/7 전 날짜엔 적용 안 됨', await pg.evaluate("swapFree(APP.D,APP.D.staff.r0,new Date(2026,10,1)).size")==0)
     # 요일 휴무지급: 김지수 금요일 휴무지급 → 스케줄엔 휴무지급으로 출근, 달력엔 이름
     await pg.click('[data-a="view"][data-v="cal"]'); await pg.wait_for_timeout(250)

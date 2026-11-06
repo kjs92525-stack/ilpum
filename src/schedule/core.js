@@ -221,7 +221,7 @@ function ruleHit(r,sid,key,wd){ return r.ids.includes(sid)&&key>=r.from&&key<=(r
    반차(오전 쉼·오후 쉼, dc.half)는 두 번이면 휴무 하루로 침. SWAP_FROM 전 날짜는 예전 그대로(지난 급여가 바뀌지 않게). */
 const SWAP_FROM='2026-11-07';
 function swapFree(D,s,d){
-  const out=new Set(), key=ds(d); if(key<SWAP_FROM||!(s.off||[]).length) return out;
+  const out=new Set(), key=ds(d); if(key<SWAP_FROM||!(s.off||[]).length||s.noSwap) return out;   // noSwap: 적힌 날 그대로(2026-11-06 사용자: 점장·매니저)
   const sun=addDays(new Date(d.getFullYear(),d.getMonth(),d.getDate()),-d.getDay()); let n=0, half=0; const fixed=[];
   for(let i=0;i<7;i++){ const dd=addDays(sun,i), k=ds(dd); if(k<SWAP_FROM) continue; const isFix=(s.off||[]).includes(dd.getDay()); const dc=D.dc[k+'|'+s.id];
     if(isFix){ if(!dc||!dc.st) fixed.push(k); continue; }
