@@ -94,7 +94,8 @@ function dSpot(id){
    지난 단기·당일 기록에서 같은 이름의 "숫자만 적힌 메모"(만원)를 근무 형태(종일·오후·오전)별로 가장 최근 것을 찾아요.
    메모는 화면에만 보이고 카톡 사진·인쇄에는 안 나가요. */
 const kindOfSh=sh=>!sh||sh.k==='full'?'full':sh.k==='pm'?'pm':sh.k==='am'?'am':null;
-const memoMan=m=>{ const x=String(m||'').trim().match(/^(\d{1,3}(?:\.\d)?)\s*(만|만원)?$/); return x?x[1]:null; };
+// 숫자만(6.5) 또는 6.5+0.5 같은 더하기 식 — 적은 그대로 돌려줌(2026-11-06 사용자: 6.5+0.5 도 그대로 보이게)
+const memoMan=m=>{ const x=String(m||'').trim().match(/^(\d{1,3}(?:\.\d+)?(?:\s*\+\s*\d{1,3}(?:\.\d+)?)*)\s*(만|만원)?$/); return x?x[1].replace(/\s+/g,''):null; };
 function spotRates(name){
   const out={}, at={}; name=String(name||'').trim(); if(!name) return out;
   Object.values(APP.D.spot||{}).forEach(x=>{ if(!x||x.name!==name) return; const v=memoMan(x.memo), k=kindOfSh(x.sh); if(!v||!k) return; if(!at[k]||x.date>at[k]){ at[k]=x.date; out[k]=v; } });
@@ -108,7 +109,6 @@ function spotAuto(){
   if(q.man) return;
   if(mm.value&&mm.dataset.auto!=='1') return;                // 직접 적은 메모는 건드리지 않음
   const v=k&&r[k]?r[k]:''; mm.value=v; mm.dataset.auto=v?'1':'';
-  const nt=$('#aNote'); if(v&&nt&&!nt.value){ nt.value='당일지급'; nt.dataset.auto='1'; }
 }
 
 /* ---------- 이름·표기·메모 칸의 "12시출", "6.5" 자동 인식 (2026-11-06 사용자: 버튼 누르기 불편 → 적으면 알아서)
@@ -126,7 +126,7 @@ function quickParse(txt){
   // 오후·오전·종일: 따로 쓴 말이거나 2자 이상 이름 바로 뒤에 붙은 것만 ("이종일"·"김오후" 같은 이름은 그대로)
   [['오후','pm'],['오전','am'],['종일','full']].forEach(([w,k])=>{ const re=new RegExp('(^|[^가-힣]|[가-힣]{2})'+w+'(?![가-힣])');
     if((m=s.match(re))){ if(!sh) sh={k}; s=s.replace(re,'$1 '); } });
-  if((m=s.match(/(?:^|[^\d.])(\d{1,2}(?:\.\d)?)\s*(?:만원|만)?(?![\d.:시])/))){ man=m[1]; s=s.replace(m[0],m[0].replace(m[1],' ').replace(/만원|만/,'')); }
+  if((m=s.match(/(?:^|[^\d.])(\d{1,2}(?:\.\d+)?(?:\s*\+\s*\d{1,2}(?:\.\d+)?)*)\s*(?:만원|만)?(?![\d.:시])/))){ man=m[1].replace(/\s+/g,''); s=s.replace(m[0],m[0].replace(m[1],' ').replace(/만원|만/,'')); }
   const rest=s.replace(/[()\[\]]/g,' ').replace(/\s+/g,' ').trim();
   return {rest,sh,man,found:!!(sh||man)};
 }

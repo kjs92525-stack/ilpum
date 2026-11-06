@@ -218,8 +218,8 @@ function vCards(){
 // 이름 옆 표기(직원 편집 창의 "이름 옆 표기"): 화면에만 보이는 꼬리표, 메모·급여와 무관
 const nlH=x=>x&&x.nl?`<em class="nl2">${esc(x.nl)}</em>`:'';
 function chipH(x,dd,cp,ed){
-  const st=APP.D.store, l=shLbl(x.sh,st);
-  const tb=l?`<i class="${x.sh.k==='pm'?'pmb':'tm'}${x.shSrc==='pat'?' soft':''}">${esc(l)}</i>`:'';
+  const st=APP.D.store, l=shLbl(x.sh,st)||(x.type==='spot'?'종일':'');   // 단기·당일은 종일도 '종일'로 표시(2026-11-06)
+  const tb=l?`<i class="${x.sh&&x.sh.k==='pm'?'pmb':'tm'}${x.shSrc==='pat'?' soft':''}">${esc(l)}</i>`:'';
   const pb=cp&&x.cost&&(x.cost.ov||x.cost.base)&&x.cost.ov?`<i class="won">${esc(payLbl(x.cost.ov))}</i>`:'';
   const cls=['chip','t-'+x.type,x.tag?'g-'+x.tag:'',ed&&memoMan(x.memo)?'hasmn':''].join(' ');
   const tip=[x.name,TYPES[x.type]||'',l?l+' 출근':'',x.memo].filter(Boolean).join(' · ');

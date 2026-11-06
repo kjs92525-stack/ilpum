@@ -43,7 +43,7 @@ async def main():
     chk('지난 일당 안내', '오후 6.5' in await pg.inner_text('#aAuto') and '종일 13' in await pg.inner_text('#aAuto'))
     await pg.click('[data-a="shk"][data-p="a"][data-v="pm"]'); await pg.wait_for_timeout(150)
     chk('오후로 바꾸면 6.5', await pg.input_value('#aMemo')=='6.5')
-    chk('이름 옆 표기 당일지급 자동', await pg.input_value('#aNote')=='당일지급')
+    chk('이름 옆 표기 당일지급은 자동으로 안 씀', await pg.input_value('#aNote')=='')
     await pg.fill('#aMemo','7'); await pg.click('[data-a="shk"][data-p="a"][data-v="full"]'); await pg.wait_for_timeout(150)
     chk('직접 고친 메모는 안 덮어씀', await pg.input_value('#aMemo')=='7')
     await pg.fill('#aMemo',''); await pg.dispatch_event('#aMemo','input'); await pg.fill('#aName','처음보는'); await pg.wait_for_timeout(150)
@@ -75,6 +75,12 @@ async def main():
     chk('오후 버튼 + 7시출 → 19:00 출근(글씨 우선)', sp and sp.get('sh',{}).get('s')=='19:00' and sp['sh'].get('e','')=='', sp)
     hrs=await pg.evaluate(f"(()=>{{const x=Object.values(APP.D.spot).find(x=>x.name==='칠시알바');return hoursOf(APP.D.store,x.sh)}})()")
     chk('19~22시 = 3시간', hrs==3, hrs)
+    # 6.5+0.5 는 그대로 보이고, 종일 단기 알바는 '종일' 표시
+    await pg.evaluate(f"put('spot','pp1',{{id:'pp1',date:'{t}',name:'더하기',pos:APP.D.positions[1].name,memo:'6.5+0.5'}}); render()"); await pg.wait_for_timeout(200)
+    chip=await pg.evaluate("[...document.querySelectorAll('.dcard.today .chip')].map(c=>c.textContent).find(x=>x.includes('더하기'))")
+    chk('6.5+0.5 그대로·종일 표시', chip and '6.5+0.5' in chip and '종일' in chip and '✎' not in chip, chip)
+    chk('사진에도 종일(금액은 없음)', await pg.evaluate("(()=>{const x=resolve(APP.D,new Date()).list.find(z=>z.name==='더하기');const i=imgItem(x,APP.D.store);return i.s==='종일'&&!i.t.includes('6.5')})()"))
+    q=await pg.evaluate("quickParse('박명순 6.5+0.5')"); chk('이름칸 6.5+0.5 → 메모 6.5+0.5', q['rest']=='박명순' and q['man']=='6.5+0.5', q)
     # 직원 하루 편집 메모에 "5시출" → 출근 시간
     sid=await pg.evaluate("Object.values(APP.D.staff).find(s=>s.type==='regular').id")
     await pg.evaluate(f"dStaffDay('{sid}','{t}')"); await pg.wait_for_timeout(200)
