@@ -85,6 +85,18 @@ async def main():
     chk('사진용 이름에서도 숫자 빠짐', await pg.evaluate("imgName('김순자7') ")=='김순자' and await pg.evaluate("imgName('홍길동')")=='홍길동')
     # 하루 타임라인 없앰
     chk('하루 타임라인 메뉴·버튼 없음', await pg.locator('[data-a="view"][data-v="day"]').count()==0 and await pg.locator('[data-a="gday"]').count()==0)
+    # 포지션 위치 옮기기 + 새 포지션을 만들어도 빈 포지션이 갑자기 나오지 않음 + 8명 넘으면 두 줄
+    await pg.click('[data-a="posmgr"]'); await pg.wait_for_timeout(250)
+    await pg.fill('#npN','2층홀'); await pg.press('#npN','Enter'); await pg.wait_for_timeout(250)
+    chk('새 포지션 추가해도 빈 포지션은 숨김 그대로', await pg.evaluate("!APP.showEmpty"))
+    names=await pg.evaluate("APP.D.positions.map(p=>p.name)"); hi=names.index('홀'); ni=names.index('2층홀')
+    await pg.select_option(f'select[data-a="pmto"][data-i="{ni}"]', str(hi)); await pg.wait_for_timeout(250)
+    names2=await pg.evaluate("APP.D.positions.map(p=>p.name)")
+    chk('2층홀 → 홀 바로 아래로', names2.index('2층홀')==names2.index('홀')+1, names2)
+    await pg.evaluate("closeDrawer()")
+    await pg.evaluate(f"""(()=>{{ for(let i=0;i<10;i++) put('spot','m'+i,{{id:'m'+i,date:'{t}',name:'알바'+'가나다라마바사아자차'[i],pos:'2층홀'}}); render(); }})()"""); await pg.wait_for_timeout(300)
+    rows=await pg.evaluate("(()=>{const row=[...document.querySelectorAll('.dcard.today .cr')].find(r=>r.querySelector('.cl').textContent.startsWith('2층홀'));const tops=[...row.querySelectorAll('.chip')].map(c=>Math.round(c.getBoundingClientRect().top));return [row.querySelectorAll('.brk').length,[...new Set(tops)].length,tops.filter(x=>x===tops[0]).length]})()")
+    chk('10명 → 두 줄(5+5)', rows==[1,2,5], rows)
     # ③ 크게/촘촘히
     chk('기본은 크게', await pg.evaluate("document.querySelector('.cards').classList.contains('big')"))
     fs=await pg.evaluate("parseFloat(getComputedStyle(document.querySelector('.cards.big .chip')).fontSize)")

@@ -422,3 +422,4 @@ html.th-navy .chip{background:#2e3354}
 }
 @media print{ .cards.big{grid-template-columns:repeat(2,1fr)} }
 html.th-navy .cards.big .chip{background:color-mix(in srgb,var(--pc,#2e3354) 22%,#2e3354);border-color:color-mix(in srgb,var(--pc,#4a5285) 40%,transparent)}
+.brk{flex-basis:100%;height:0;display:block}   /* 카드: 8명 넘으면 줄바꿈 */

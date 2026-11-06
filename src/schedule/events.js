@@ -269,7 +269,8 @@ function dPositions(delIdx){
       <input type="text" value="${esc(p.name)}" data-a="pmf" data-i="${i}" data-f="name" aria-label="포지션 이름">
       <div class="row" style="flex-wrap:nowrap;gap:4px"><span class="muted" style="font-size:12px;white-space:nowrap">${n}명</span>
         <button class="btn sm" data-a="pmmv" data-i="${i}" data-n="-1" aria-label="위로" ${i===0?'disabled':''}>↑</button><button class="btn sm" data-a="pmmv" data-i="${i}" data-n="1" aria-label="아래로" ${i===D.positions.length-1?'disabled':''}>↓</button>
-        <button class="btn sm bad" data-a="pmdel" data-i="${i}">삭제</button></div></div>`; }).join('');
+        <button class="btn sm bad" data-a="pmdel" data-i="${i}">삭제</button></div>
+      <select data-a="pmto" data-i="${i}" style="grid-column:2/-1;font-size:13px;padding:5px 8px" aria-label="위치 옮기기"><option value="">위치 옮기기…</option>${i>0?'<option value="top">맨 위로</option>':''}${D.positions.map((q,j)=>j!==i&&j!==i-1?`<option value="${j}">‘${esc(q.name)}’ 바로 아래로</option>`:'').join('')}</select></div>`; }).join('');
   let panel='';
   if(del!=null&&D.positions[del]){ const p=D.positions[del], users=posUsers(p.name), others=D.positions.filter((_,i)=>i!==del);
     panel=`<div class="why" style="border:1px solid var(--bad)"><b>‘${esc(p.name)}’ 포지션을 삭제할까요?</b><br>${users.length?`여기 있는 ${users.length}명(${esc(users.slice(0,6).map(s=>s.name).join(', '))}${users.length>6?' 외':''})은 다른 포지션으로 옮겨요.`:'이 포지션에는 기본으로 배정된 사람이 없어요.'}
@@ -283,7 +284,7 @@ function dPositions(delIdx){
 }
 function addPos(){ const name=($('#npN').value||'').trim(), color=$('#npC').value||'#6B7A8F'; if(!name) return toast('포지션 이름을 넣어주세요');
   const D=APP.D; if(D.positions.some(p=>p.name===name)) return toast('이미 있는 이름이에요');
-  put('cfg','positions',[...D.positions.map(p=>({...p})),{name,color,req:[0,0,0,0,0,0,0]}]); APP.showEmpty=true; render(); dPositions(); toast(`‘${name}’ 포지션을 추가했어요`); }
+  put('cfg','positions',[...D.positions.map(p=>({...p})),{name,color,req:[0,0,0,0,0,0,0]}]); render(); dPositions(); toast(`‘${name}’ 포지션을 추가했어요`); }
 function delPos(i){ const D=APP.D; const p=D.positions[i]; if(!p) return; if(D.positions.length<=1) return toast('포지션은 하나 이상 있어야 해요');
   const users=posUsers(p.name); const sel=$('#pmTo'); const to=sel?sel.value:(D.positions.find((_,j)=>j!==i)||{}).name;
   Object.values(D.staff).forEach(s=>{ if(s.pos===p.name) put('staff',s.id,{...s,pos:to}); });
@@ -498,6 +499,9 @@ document.addEventListener('change',e=>{ const t=e.target, d=t.dataset, D=APP.D; 
   if(d.a==='stf'){ const st={...D.store}; const f=d.f; let v=t.type==='checkbox'?t.checked:t.value;
     if(['open','close','pmStart','amStart'].includes(f)){ const p=parseT(v,f!=='open'); if(!p){ toast('시간을 확인하세요 (예: 11:00)'); t.value=st[f]; return; } v=p; t.value=p; }
     if(['fullH','pmH','amH','target'].includes(f)) v=+v||0; st[f]=v; put('cfg','store',st); if(f==='name') renderShell(),render(); toast('저장했어요'); }
+  if(d.a==='pmto'&&t.value!==''){ const pos=D.positions.map(p=>({...p})); const i=+d.i; const [it]=pos.splice(i,1);   // (2026-11-06) "○○ 바로 아래로" 한 번에 옮기기
+    if(t.value==='top') pos.unshift(it); else { const tgt=D.positions[+t.value].name; const k=pos.findIndex(p=>p.name===tgt); pos.splice(k+1,0,it); }
+    put('cfg','positions',pos); render(); dPositions(); toast(`‘${it.name}’ 위치를 옮겼어요`); return; }
   if(d.a==='pmf'){ const pos=D.positions.map(p=>({...p,req:[...(p.req||[0,0,0,0,0,0,0])]})); const p=pos[+d.i]; if(!p) return;
     if(d.f==='name'){ const v=t.value.trim(); if(!v||pos.some((x,j)=>j!==+d.i&&x.name===v)){ toast('이름이 비었거나 이미 있어요'); t.value=p.name; return; } if(v===p.name) return; const old=p.name; p.name=v; renamePos(old,v); }
     else p.color=t.value;
