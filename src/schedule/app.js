@@ -289,7 +289,7 @@ function vMonth(){
 /* ================= 휴무 달력 (2026-11-06 사용자: 종이 달력처럼) =================
    요일 칸 = 고정휴무(직원의 쉬는 요일, 매달 그대로) / 날짜 칸 = 그날만 휴무·월차·오전 쉼(그 날짜 기록이라 다음 달엔 없음).
    새 자료 없이 근무표 자료(staff.off, dc)를 그대로 보여 주고 고쳐요 → 스케줄에 바로 반영. 고정 근무 직원만. */
-const CAL_L={off:'',annual:'(월)',am:'(오전)'};
+const CAL_L={off:'',fixed:'',annual:'(월)',am:'(오전)'};
 function calStates(D,d){   // 고정 근무 직원의 그날 상태: work / fixed(고정휴무) / off / annual(월차) / am(오전 쉼=오후 출근)
   const R=resolve(D,d,{quiet:true}), key=R.key, out={};
   staffList(D).filter(s=>s.type==='regular').forEach(s=>{
@@ -301,12 +301,12 @@ function calStates(D,d){   // 고정 근무 직원의 그날 상태: work / fixe
 function vCal(){
   const D=APP.D, ed=canEdit(), a=APP.calAnchor||new Date(), y=a.getFullYear(), m=a.getMonth();
   const first=new Date(y,m,1), last=new Date(y,m+1,0).getDate(), regs=staffList(D).filter(s=>s.type==='regular');
-  const head=[0,1,2,3,4,5,6].map(wd=>`<button class="hc ${wd===0?'sun':wd===6?'sat':''}" ${ed?`data-a="calwd" data-wd="${wd}"`:'disabled'}><b>${DOW[wd]}</b><span>${regs.filter(s=>(s.off||[]).includes(wd)).map(s=>esc(s.name)).join(' ')||'&nbsp;'}</span></button>`).join('');
+  const head=[0,1,2,3,4,5,6].map(wd=>`<button class="hc ${wd===0?'sun':wd===6?'sat':''}" ${ed?`data-a="calwd" data-wd="${wd}" title="${DOW[wd]}요일 고정휴무 고치기"`:'disabled'}><b>${DOW[wd]}</b></button>`).join('');
   let cells=''; for(let i=0;i<first.getDay();i++) cells+='<div class="cc out"></div>';
   for(let day=1;day<=last;day++){ const d=new Date(y,m,day), key=ds(d), S=calStates(D,d);
-    const names=regs.filter(s=>S[s.id]&&S[s.id]!=='work'&&S[s.id]!=='fixed').map(s=>`<i class="${S[s.id]}">${esc(s.name)}${CAL_L[S[s.id]]}</i>`).join('');
+    const names=regs.filter(s=>S[s.id]&&S[s.id]!=='work').sort((p,q)=>(S[q.id]==='fixed')-(S[p.id]==='fixed')).map(s=>`<i class="${S[s.id]}">${esc(s.name)}${CAL_L[S[s.id]]}</i>`).join('');
     cells+=`<button class="cc ${key===todayStr?'today':''}" ${ed?`data-a="calday" data-k="${key}"`:'disabled'}><span class="n ${d.getDay()===0?'sun':d.getDay()===6?'sat':''}">${day}</span><span class="nm">${names}</span></button>`; }
-  return `<div class="vh"><div><h1>${y}년 ${m+1}월 휴무 달력</h1><div class="sub">요일 칸 = 고정휴무(매달 그대로) · 날짜 칸 = 그날만 휴무·월차(월)·오전 쉼(오전 → 오후 출근)${ed?' · 눌러서 고쳐요':''}</div></div>
+  return `<div class="vh"><div><h1>${y}년 ${m+1}월 휴무 달력</h1><div class="sub">날마다 쉬는 사람 전부(고정휴무 포함) · 월차(월) · 오전 쉼(오전 → 오후 출근)${ed?' · 날짜를 눌러 그날만, 요일을 눌러 고정휴무를 고쳐요':''}</div></div>
     <div class="row"><button class="btn ic" data-a="calm" data-n="-1" aria-label="지난달">‹</button><button class="btn" data-a="calm" data-n="0">이번 달</button><button class="btn ic" data-a="calm" data-n="1" aria-label="다음 달">›</button></div></div>
     <div class="hcal"><div class="hrow">${head}</div><div class="hgrid">${cells}</div></div>`;
 }

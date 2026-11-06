@@ -434,7 +434,7 @@ html.th-navy .cards.big .chip{background:color-mix(in srgb,var(--pc,#2e3354) 22%
 /* ===== 휴무 달력 (2026-11-06) — 종이 달력처럼: 요일 칸 = 고정휴무, 날짜 칸 = 그날 쉬는 사람 ===== */
 .hcal{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;max-width:1100px}
 .hrow,.hgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
-.hrow .hc{border:0;border-right:1px solid var(--line);border-bottom:2px solid var(--line2);background:var(--bg);padding:7px 6px 8px;text-align:left;display:flex;flex-direction:column;gap:3px;min-height:58px;color:var(--ink)}
+.hrow .hc{border:0;border-right:1px solid var(--line);border-bottom:2px solid var(--line2);background:var(--bg);padding:7px 8px;text-align:left;display:flex;flex-direction:column;gap:3px;min-height:0;color:var(--ink)}
 .hrow .hc b{font-size:13px;font-weight:800} .hrow .hc span{font-size:14px;font-weight:700;color:var(--ink2);line-height:1.35;word-break:keep-all}
 .hrow .hc.sun b,.cc .n.sun{color:var(--bad)} .hrow .hc.sat b,.cc .n.sat{color:var(--pm)}
 .cc{border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--card);min-height:92px;padding:6px 6px 8px;text-align:left;display:flex;flex-direction:column;gap:3px;color:var(--ink)}

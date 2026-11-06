@@ -15,8 +15,11 @@ async def main():
     await pg.evaluate("""(()=>{ const D=APP.D; Object.values(D.staff).forEach(s=>put('staff',s.id,{...s,active:false})); [['홍주',[0]],['애현',[]],['김지수',[]]].forEach(([n,off],i)=>put('staff','r'+i,{id:'r'+i,name:n,pos:D.positions[1].name,type:'regular',off,active:true,order:i})); render(); })()""")
     await pg.click('[data-a="view"][data-v="cal"]'); await pg.wait_for_timeout(300)
     chk('휴무 달력 화면', '휴무 달력' in await pg.inner_text('.vh h1'))
-    sun=await pg.inner_text('.hrow .hc.sun')
-    chk('일요일 칸에 고정휴무 홍주', '홍주' in sun, sun)
+    sunday=await pg.evaluate("(()=>{const d=new Date();d.setDate(1);while(d.getDay()!==0)d.setDate(d.getDate()+1);return ds(d)})()")
+    c=await pg.inner_text(f'[data-a="calday"][data-k="{sunday}"]')
+    chk('고정휴무(일요일 홍주)도 날짜 칸마다 같이 써짐', '홍주' in c, c)
+    chk('맨 위 요일 줄엔 이름 없음', '홍주' not in await pg.inner_text('.hrow'))
+    chk('이름 뒤에 undefined 같은 글자 없음', 'undefined' not in await pg.inner_text('.hgrid'))
     # 날짜 칸 눌러 글로 적기
     await pg.click(f'[data-a="calday"][data-k="{t}"]'); await pg.wait_for_timeout(250)
     await pg.fill('#calTxt','애현(월), 김지수(오전)'); await pg.click('[data-a="caltxt"]'); await pg.wait_for_timeout(150)
