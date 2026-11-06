@@ -65,10 +65,17 @@ async def main():
     chk('저장: 이름은 새알바, 출근 12시, 메모 6.5', sp and sp['sh']['s']=='12:00' and sp['memo']=='6.5', sp)
     chip=await pg.evaluate("[...document.querySelectorAll('.dcard.today .chip')].map(c=>c.textContent).find(x=>x.includes('새알바'))")
     chk('카드에는 이름과 시간 표시(6.5는 안 보임)', chip and '6.5' not in chip and '12' in chip, chip)
+    # 글씨가 버튼보다 우선: 오후 버튼 + "7시출" → 19:00~마감
+    await pg.click('.dcard.today .ch [data-a="add"]'); await pg.wait_for_timeout(300)
+    await pg.click('[data-a="shk"][data-p="a"][data-v="pm"]'); await pg.fill('#aName','칠시알바 7시출'); await pg.click('[data-a="addspot"]'); await pg.wait_for_timeout(300)
+    sp=await pg.evaluate(f"Object.values(APP.D.spot).find(x=>x.date==='{t}'&&x.name==='칠시알바')")
+    chk('오후 버튼 + 7시출 → 19:00 출근(글씨 우선)', sp and sp.get('sh',{}).get('s')=='19:00' and sp['sh'].get('e','')=='', sp)
+    hrs=await pg.evaluate(f"(()=>{{const x=Object.values(APP.D.spot).find(x=>x.name==='칠시알바');return hoursOf(APP.D.store,x.sh)}})()")
+    chk('19~22시 = 3시간', hrs==3, hrs)
     # 직원 하루 편집 메모에 "5시출" → 출근 시간
     sid=await pg.evaluate("Object.values(APP.D.staff).find(s=>s.type==='regular').id")
     await pg.evaluate(f"dStaffDay('{sid}','{t}')"); await pg.wait_for_timeout(200)
-    await pg.fill('#cMemo','5시출'); await pg.click('[data-a="dcsave"]'); await pg.wait_for_timeout(300)
+    await pg.click('[data-a="shk"][data-p="c"][data-v="pm"]'); await pg.fill('#cMemo','5시출'); await pg.click('[data-a="dcsave"]'); await pg.wait_for_timeout(300)
     dc=await pg.evaluate(f"APP.D.dc['{t}|{sid}']")
     chk('직원 메모 5시출 → 17시 출근', dc and dc.get('sh',{}).get('s')=='17:00', dc)
     # ③ 크게/촘촘히

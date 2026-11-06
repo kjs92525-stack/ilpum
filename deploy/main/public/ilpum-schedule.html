@@ -1450,7 +1450,7 @@ function dStaffDay(sid,key){
 function saveStaffDay(sid,key){
   const D=APP.D; const t=readTime('c'); if(!t.ok){ updHints('c'); return toast(t.msg); }
   // 메모에 "12시출"·"오후" 라고만 적어도 출근 시간으로 (2026-11-06)
-  if(!t.sh){ const q=quickParse($('#cMemo').value); if(q.sh) t.sh=q.sh; }
+  { const q=quickParse($('#cMemo').value); if(q.sh) t.sh=q.sh; }   // 적은 글씨가 버튼보다 우선
   const pr=readPay('c'); if(!pr.ok) return toast(pr.msg);
   const b=findItem(D,key,sid,{noDc:sid}); const want=$('#stK').value; const o={};
   if(want==='work'){ if(!b) o.st='extra'; } else if(want==='off'){ if(b) o.st='off'; } else o.st=want;
@@ -1487,7 +1487,7 @@ function spotRates(name){
 function spotAuto(){
   const nm=$('#aName'), mm=$('#aMemo'), hint=$('#aAuto'); if(!nm||!mm) return;
   const q=applyQuick(nm.value,($('#aNote')||{}).value,'',null);
-  const r=spotRates(q.name), k=kindOfSh(readTime('a').sh||q.sh), L={full:'종일',pm:'오후',am:'오전'};
+  const r=spotRates(q.name), k=kindOfSh(q.sh||readTime('a').sh), L={full:'종일',pm:'오후',am:'오전'};
   const has=Object.keys(r).length; if(hint) hint.textContent=[q.lbl?'알아서 읽음: '+q.lbl:'',has?'지난 일당: '+Object.keys(r).map(x=>L[x]+' '+r[x]).join(' · ')+(k&&r[k]&&!q.man?` → 메모에 ${r[k]} 자동`:''):''].filter(Boolean).join(' / ');
   if(q.man) return;
   if(mm.value&&mm.dataset.auto!=='1') return;                // 직접 적은 메모는 건드리지 않음
@@ -1515,10 +1515,10 @@ function quickParse(txt){
   return {rest,sh,man,found:!!(sh||man)};
 }
 const qpLbl=q=>[q.sh?(q.sh.k==='t'?tLbl(q.sh.s)+' 출근'+(q.sh.e?' ~ '+tLbl(q.sh.e):''):{pm:'오후',am:'오전',full:'종일'}[q.sh.k]):'',q.man?'일당 '+q.man+'만':''].filter(Boolean).join(' · ');
-// 이름·표기·메모를 한꺼번에 읽어서 {name, note, memo, sh} 로. 출근 시간 버튼을 따로 누른 게 있으면 그게 우선
+// 이름·표기·메모를 한꺼번에 읽어서 {name, note, memo, sh} 로. (2026-11-06 사용자) 적은 글씨가 출근 시간 버튼보다 우선 — 오후 체크 + "7시출" = 19시~22시
 function applyQuick(nameV,noteV,memoV,pickSh){
   const qn=quickParse(nameV), qt=quickParse(noteV), qm=quickParse(memoV);
-  const sh=pickSh||qn.sh||qt.sh||qm.sh||null; const man=qn.man||qt.man||qm.man||null;
+  const sh=qn.sh||qt.sh||qm.sh||pickSh||null; const man=qn.man||qt.man||qm.man||null;
   let memo=String(memoV||'').trim(); if(man&&!qm.man) memo=memo?man+' '+memo:man;
   return {name:qn.rest||String(nameV||'').trim(),note:qt.found?qt.rest:String(noteV||'').trim(),memo,sh,man,lbl:qpLbl({sh:qn.sh||qt.sh||qm.sh,man})};
 }
@@ -1736,7 +1736,7 @@ document.addEventListener('click',async e=>{
     case 'dcsave': saveStaffDay(d.sid,d.k); break;
     case 'dcclear': put('dc',d.k+'|'+d.sid,null); if((D.pay||{})['dc:'+d.k+'|'+d.sid]) putPay('dc:'+d.k+'|'+d.sid,null); closeDrawer(); render(); toast('원래대로 되돌렸어요'); break;
     case 'spotsave': { const x={...D.spot[d.id]}; const t=readTime('s'); if(!t.ok) return toast(t.msg); const pr=readPay('s'); if(!pr.ok) return toast(pr.msg);
-      const Q=applyQuick($('#spName').value,$('#spNote').value,$('#spMemo').value,t.sh&&!shSame(t.sh,x.sh||null)?t.sh:null); t.sh=Q.sh||t.sh;
+      const Q=applyQuick($('#spName').value,$('#spNote').value,$('#spMemo').value,t.sh); t.sh=Q.sh||t.sh;
       x.name=Q.name||x.name; x.pos=$('#spPos').value; x.memo=Q.memo; { const nt=(Q.note||'').slice(0,12); if(nt) x.note=nt; else delete x.note; }
       if(t.sh&&t.sh.k!=='full') x.sh=t.sh; else delete x.sh; put('spot',d.id,x); if(!pr.skip) putPay('spot:'+d.id,pr.pay); closeDrawer(); render(); toast('저장했어요'); break; }
     case 'notefill': { const el=$('#'+d.t); if(el) el.value=(el.value===d.v?'':d.v); break; }
@@ -1746,8 +1746,8 @@ document.addEventListener('click',async e=>{
       ids.forEach(sid=>{ const k=d.k+'|'+sid; const o=Object.assign({},D.dc[k]||{}); o.st='extra'; if(pos!==D.staff[sid].pos) o.pos=pos; else delete o.pos; if(t.sh&&t.sh.k!=='full') o.sh=t.sh; put('dc',k,o); if(!pr.skip&&pr.pay) putPay('dc:'+k,pr.pay); });
       closeDrawer(); render(); toast(`${ids.length}명 출근시켰어요`); break; }
     case 'addspot': { const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg);
-      const Q=applyQuick($('#aName').value,$('#aNote').value,$('#aMemo').value,t.sh&&t.sh.k!=='full'?t.sh:null); const name=Q.name; if(!name){ $('#aName').focus(); return toast('알바 이름을 넣으세요'); }
-      $('#aNote').value=Q.note; $('#aMemo').value=Q.memo; t.sh=Q.sh||t.sh;   // 출근 버튼을 종일(기본) 말고 따로 골랐으면 그게 우선
+      const Q=applyQuick($('#aName').value,$('#aNote').value,$('#aMemo').value,t.sh); const name=Q.name; if(!name){ $('#aName').focus(); return toast('알바 이름을 넣으세요'); }
+      $('#aNote').value=Q.note; $('#aMemo').value=Q.memo; t.sh=Q.sh||t.sh;   // 적은 글씨가 버튼보다 우선
       const to=$('#aTo').value||d.k; const dates=ruleDates(d.k,to<d.k?d.k:to,[]).slice(0,62);
       dates.forEach(dt=>{ const id=uid(); const x={id,date:dt,name,pos:$('#aPos').value,memo:$('#aMemo').value.trim()}; { const nt=($('#aNote').value||'').trim().slice(0,12); if(nt) x.note=nt; } if(t.sh&&t.sh.k!=='full') x.sh=t.sh; put('spot',id,x); if(!pr.skip&&pr.pay) putPay('spot:'+id,pr.pay); });
       closeDrawer(); render(); toast((dates.length>1?`${name} ${dates.length}일 넣었어요`:`${name} 넣었어요`)+(Q.lbl?` · ${Q.lbl}`:'')); break; }
