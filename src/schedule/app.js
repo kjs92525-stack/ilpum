@@ -289,12 +289,13 @@ function vMonth(){
 /* ================= 휴무 달력 (2026-11-06 사용자: 종이 달력처럼) =================
    요일 칸 = 고정휴무(직원의 쉬는 요일, 매달 그대로) / 날짜 칸 = 그날만 휴무·월차·오전 쉼(그 날짜 기록이라 다음 달엔 없음).
    새 자료 없이 근무표 자료(staff.off, dc)를 그대로 보여 주고 고쳐요 → 스케줄에 바로 반영. 고정 근무 직원만. */
-const CAL_L={off:'',fixed:'',annual:'(월)',am:'(오전)',pmoff:'(오후)'};
+const CAL_L={off:'',fixed:'',annual:'(월)',am:'(오전)',pmoff:'(오후)',poff:''};
 function calStates(D,d){   // 고정 근무 직원의 그날 상태: work / fixed(고정휴무) / off / annual(월차) / am(오전 쉼=오후 출근)
   const R=resolve(D,d,{quiet:true}), key=R.key, out={};
   staffList(D).filter(s=>s.type==='regular').forEach(s=>{
     const x=R.list.find(z=>z.sid===s.id), o=R.offs.find(z=>z.sid===s.id), dc=D.dc[key+'|'+s.id]||{};
-    if(x) out[s.id]=dc.half==='pm'||(!dc.half&&dc.sh&&dc.sh.k==='am')?'pmoff':dc.half==='am'||(dc.sh&&dc.sh.k==='pm')?'am':'work';   // 오전 쉼 = 오후 출근 / 오후 쉼 = 오전만 근무
+    if(x&&x.payoff) out[s.id]='poff';   // 휴무지급: 달력엔 쉬는 사람으로 이름이 그대로 보임
+    else if(x) out[s.id]=dc.half==='pm'||(!dc.half&&dc.sh&&dc.sh.k==='am')?'pmoff':dc.half==='am'||(dc.sh&&dc.sh.k==='pm')?'am':'work';   // 오전 쉼 = 오후 출근 / 오후 쉼 = 오전만 근무
     else if(o) out[s.id]=o.reason==='월차'?'annual':o.reason==='고정휴무'?'fixed':'off'; });
   return out;
 }

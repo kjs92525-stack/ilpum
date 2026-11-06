@@ -257,7 +257,9 @@ function resolve(D,d,opt={}){
         else { const tt=(en.t||{})[di]; if(tt&&tt.s) awSh={k:'t',s:tt.s,e:tt.e||''}; else if((en.pm||[]).includes(di)) awSh={k:'pm'}; } }
       else awMissing=true; }
     else if(s.type==='spot'){ working=false; }
-    else { working=!(s.off||[]).includes(wd); if(!working){ reason='고정휴무'; if(swapFree(D,s,d).has(key)){ working=true; reason=null; tag='swap'; } } }
+    else { working=!(s.off||[]).includes(wd); if(!working){ reason='고정휴무'; if(swapFree(D,s,d).has(key)){ working=true; reason=null; tag='swap'; } }
+      // 요일마다 휴무지급(2026-11-06 사용자: 승엽은 금요일 휴무지만 휴무지급) — staff.poff 요일, staff.poffFrom 부터
+      if((s.poff||[]).includes(wd)&&key>=(s.poffFrom||'')){ working=true; payoff=true; tag='payoff'; reason=null; } }
     const pat=(s.wk||{})[wd]; if(pat&&pat.sh){ sh=pat.sh; shSrc='pat'; }
     rules.forEach(r=>{ if(!ruleHit(r,s.id,key,wd)) return; ruleIds.push(r.id);
       if(r.w==='off'){ working=false; reason=(r.memo&&r.memo.length<=8)?r.memo:'기간휴무'; }

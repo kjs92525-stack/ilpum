@@ -59,6 +59,16 @@ async def main():
     await pg.fill('#calTxt','홍주(오전)'); await pg.click('[data-a="caltxt"]'); await pg.click('[data-a="calsave"]'); await pg.wait_for_timeout(250)
     chk('반차 두 번 → 그 주 고정휴무(일)는 출근', await pg.evaluate(f"resolve(APP.D,pd('{wk[0]}')).list.some(x=>x.name==='홍주')"))
     chk('11/7 전 날짜엔 적용 안 됨', await pg.evaluate("swapFree(APP.D,APP.D.staff.r0,new Date(2026,10,1)).size")==0)
+    # 요일 휴무지급: 김지수 금요일 휴무지급 → 스케줄엔 휴무지급으로 출근, 달력엔 이름
+    await pg.click('[data-a="view"][data-v="cal"]'); await pg.wait_for_timeout(250)
+    await pg.click('.hrow .hc[data-wd="5"]'); await pg.wait_for_timeout(200)
+    await pg.check('[data-calpw="r1"]'); await pg.click('[data-a="calwdsave"]'); await pg.wait_for_timeout(300)
+    fri=await pg.evaluate("(()=>{let d=addDays(new Date(),1);while(d.getDay()!==5)d=addDays(d,1);return ds(d)})()")
+    x=await pg.evaluate(f"(()=>{{const x=resolve(APP.D,pd('{fri}')).list.find(z=>z.name==='애현');return x&&[x.payoff,x.tag]}})()")
+    chk('금요일 애현 → 휴무지급(출근 목록에 payoff)', x==[True,'payoff'], x)
+    await pg.evaluate(f"APP.calAnchor=pd('{fri}'); render()"); await pg.wait_for_timeout(200)
+    chk('달력 금요일 칸에 애현 이름 그대로', '애현' in await pg.inner_text(f'[data-a="calday"][data-k="{fri}"]'))
+    await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(300)
     # 빈자리
     await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(300)
     await pg.click('.dcard.today .ch [data-a="add"]'); await pg.wait_for_timeout(250)

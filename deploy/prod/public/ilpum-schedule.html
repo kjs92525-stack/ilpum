@@ -452,7 +452,7 @@ html.th-navy .cards.big .chip{background:color-mix(in srgb,var(--pc,#2e3354) 22%
 .cc.out{background:var(--bg)} .cc.today{box-shadow:inset 0 0 0 2px var(--amber)}
 .cc .n{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
 .cc .nm{display:flex;flex-wrap:wrap;gap:2px 6px;font-size:14.5px;font-weight:700;line-height:1.35}
-.cc .nm i{font-style:normal} .cc .nm i.annual{color:var(--bad)} .cc .nm i.am{color:var(--pm)} .cc .nm i.pmoff{color:var(--tm)}
+.cc .nm i{font-style:normal} .cc .nm i.annual{color:var(--bad)} .cc .nm i.am{color:var(--pm)} .cc .nm i.pmoff{color:var(--tm)} .cc .nm i.poff{text-decoration:underline dotted}
 button.cc:hover,.hrow button.hc:hover{background:var(--amber-soft)}
 .calpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
 .cp{border:1.5px solid var(--line2);background:var(--card);border-radius:10px;padding:7px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--ink)}
@@ -721,7 +721,9 @@ function resolve(D,d,opt={}){
         else { const tt=(en.t||{})[di]; if(tt&&tt.s) awSh={k:'t',s:tt.s,e:tt.e||''}; else if((en.pm||[]).includes(di)) awSh={k:'pm'}; } }
       else awMissing=true; }
     else if(s.type==='spot'){ working=false; }
-    else { working=!(s.off||[]).includes(wd); if(!working){ reason='고정휴무'; if(swapFree(D,s,d).has(key)){ working=true; reason=null; tag='swap'; } } }
+    else { working=!(s.off||[]).includes(wd); if(!working){ reason='고정휴무'; if(swapFree(D,s,d).has(key)){ working=true; reason=null; tag='swap'; } }
+      // 요일마다 휴무지급(2026-11-06 사용자: 승엽은 금요일 휴무지만 휴무지급) — staff.poff 요일, staff.poffFrom 부터
+      if((s.poff||[]).includes(wd)&&key>=(s.poffFrom||'')){ working=true; payoff=true; tag='payoff'; reason=null; } }
     const pat=(s.wk||{})[wd]; if(pat&&pat.sh){ sh=pat.sh; shSrc='pat'; }
     rules.forEach(r=>{ if(!ruleHit(r,s.id,key,wd)) return; ruleIds.push(r.id);
       if(r.w==='off'){ working=false; reason=(r.memo&&r.memo.length<=8)?r.memo:'기간휴무'; }
@@ -1083,12 +1085,13 @@ function vMonth(){
 /* ================= 휴무 달력 (2026-11-06 사용자: 종이 달력처럼) =================
    요일 칸 = 고정휴무(직원의 쉬는 요일, 매달 그대로) / 날짜 칸 = 그날만 휴무·월차·오전 쉼(그 날짜 기록이라 다음 달엔 없음).
    새 자료 없이 근무표 자료(staff.off, dc)를 그대로 보여 주고 고쳐요 → 스케줄에 바로 반영. 고정 근무 직원만. */
-const CAL_L={off:'',fixed:'',annual:'(월)',am:'(오전)',pmoff:'(오후)'};
+const CAL_L={off:'',fixed:'',annual:'(월)',am:'(오전)',pmoff:'(오후)',poff:''};
 function calStates(D,d){   // 고정 근무 직원의 그날 상태: work / fixed(고정휴무) / off / annual(월차) / am(오전 쉼=오후 출근)
   const R=resolve(D,d,{quiet:true}), key=R.key, out={};
   staffList(D).filter(s=>s.type==='regular').forEach(s=>{
     const x=R.list.find(z=>z.sid===s.id), o=R.offs.find(z=>z.sid===s.id), dc=D.dc[key+'|'+s.id]||{};
-    if(x) out[s.id]=dc.half==='pm'||(!dc.half&&dc.sh&&dc.sh.k==='am')?'pmoff':dc.half==='am'||(dc.sh&&dc.sh.k==='pm')?'am':'work';   // 오전 쉼 = 오후 출근 / 오후 쉼 = 오전만 근무
+    if(x&&x.payoff) out[s.id]='poff';   // 휴무지급: 달력엔 쉬는 사람으로 이름이 그대로 보임
+    else if(x) out[s.id]=dc.half==='pm'||(!dc.half&&dc.sh&&dc.sh.k==='am')?'pmoff':dc.half==='am'||(dc.sh&&dc.sh.k==='pm')?'am':'work';   // 오전 쉼 = 오후 출근 / 오후 쉼 = 오전만 근무
     else if(o) out[s.id]=o.reason==='월차'?'annual':o.reason==='고정휴무'?'fixed':'off'; });
   return out;
 }
@@ -1613,7 +1616,7 @@ let CALD=null;
 function dCalDay(key){
   const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular'), S=calStates(D,pd(key));
   if(!CALD||CALD.key!==key) CALD={key,orig:{...S},map:{...S}};
-  const lbl=v=>({work:'근무',fixed:'고정휴무',off:'휴무',annual:'월차',am:'오전 쉼',pmoff:'오후 쉼'}[v]);
+  const lbl=v=>({work:'근무',fixed:'고정휴무',off:'휴무',annual:'월차',am:'오전 쉼',pmoff:'오후 쉼',poff:'휴무지급'}[v]);
   openDrawer('휴무 달력',`${mdw(key)} · 쉬는 사람을 고르세요`,
     `<div class="sect"><div class="lb"><span>글로 적기</span><span class="bt">예: 홍주, 애현(월), 김지수(오전)</span></div>
       <div class="row" style="flex-wrap:nowrap"><input type="text" id="calTxt" class="grow" placeholder="이름, 이름(월), 이름(오전)" autocomplete="off"><button class="btn" data-a="caltxt">적용</button></div>
@@ -1647,7 +1650,9 @@ function calSave(){
 function dCalWd(wd){
   const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular');
   openDrawer(`${DOW[wd]}요일 고정휴무`,'매주 이 요일에 쉬는 직원 · 다음 달에도 그대로',
-    `<div class="pick">${regs.map(s=>`<label><input type="checkbox" data-calwd="${s.id}" ${(s.off||[]).includes(wd)?'checked':''}> ${esc(s.name)} <small class="muted">${esc(s.pos)}</small></label>`).join('')}</div>`,
+    `<div class="pick">${regs.map(s=>`<label><input type="checkbox" data-calwd="${s.id}" ${(s.off||[]).includes(wd)?'checked':''}> ${esc(s.name)} <small class="muted">${esc(s.pos)}</small></label>`).join('')}</div>
+    <div class="sect" style="margin-top:14px"><div class="lb"><span>${DOW[wd]}요일 휴무지급</span><span class="bt">쉬지만 돈은 나가는 사람 — 달력엔 쉬는 사람으로, 스케줄엔 휴무지급으로</span></div>
+    <div class="pick">${regs.map(s=>`<label><input type="checkbox" data-calpw="${s.id}" ${(s.poff||[]).includes(wd)?'checked':''}> ${esc(s.name)}</label>`).join('')}</div></div>`,
     `<button class="btn pri grow" data-a="calwdsave" data-wd="${wd}">저장</button>`);
 }
 
@@ -1858,6 +1863,8 @@ document.addEventListener('click',async e=>{
     case 'calwd': dCalWd(+d.wd); break;
     case 'calwdsave': { const wd=+d.wd; let n=0; $$('[data-calwd]').forEach(c=>{ const s=D.staff[c.dataset.calwd]; if(!s) return; const has=(s.off||[]).includes(wd);
         if(c.checked!==has){ const off=c.checked?[...(s.off||[]),wd].sort():(s.off||[]).filter(x=>x!==wd); put('staff',s.id,{...s,off}); n++; } });
+      $$('[data-calpw]').forEach(c=>{ const s=D.staff[c.dataset.calpw]; if(!s) return; const has=(s.poff||[]).includes(wd);
+        if(c.checked!==has){ const poff=c.checked?[...(s.poff||[]),wd].sort():(s.poff||[]).filter(x=>x!==wd); const ns={...D.staff[s.id],poff}; if(c.checked) ns.poffFrom=todayStr; put('staff',s.id,ns); n++; } });
       closeDrawer(); render(); toast(n?`${n}명 바꿨어요`:'바뀐 게 없어요'); break; }
     case 'clook': try{ localStorage.setItem('ilpum-card-look',d.v); }catch(e){} render(); break;
     case 'mon': { const a=APP.anchor; APP.anchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }

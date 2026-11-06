@@ -144,7 +144,7 @@ let CALD=null;
 function dCalDay(key){
   const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular'), S=calStates(D,pd(key));
   if(!CALD||CALD.key!==key) CALD={key,orig:{...S},map:{...S}};
-  const lbl=v=>({work:'근무',fixed:'고정휴무',off:'휴무',annual:'월차',am:'오전 쉼',pmoff:'오후 쉼'}[v]);
+  const lbl=v=>({work:'근무',fixed:'고정휴무',off:'휴무',annual:'월차',am:'오전 쉼',pmoff:'오후 쉼',poff:'휴무지급'}[v]);
   openDrawer('휴무 달력',`${mdw(key)} · 쉬는 사람을 고르세요`,
     `<div class="sect"><div class="lb"><span>글로 적기</span><span class="bt">예: 홍주, 애현(월), 김지수(오전)</span></div>
       <div class="row" style="flex-wrap:nowrap"><input type="text" id="calTxt" class="grow" placeholder="이름, 이름(월), 이름(오전)" autocomplete="off"><button class="btn" data-a="caltxt">적용</button></div>
@@ -178,7 +178,9 @@ function calSave(){
 function dCalWd(wd){
   const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular');
   openDrawer(`${DOW[wd]}요일 고정휴무`,'매주 이 요일에 쉬는 직원 · 다음 달에도 그대로',
-    `<div class="pick">${regs.map(s=>`<label><input type="checkbox" data-calwd="${s.id}" ${(s.off||[]).includes(wd)?'checked':''}> ${esc(s.name)} <small class="muted">${esc(s.pos)}</small></label>`).join('')}</div>`,
+    `<div class="pick">${regs.map(s=>`<label><input type="checkbox" data-calwd="${s.id}" ${(s.off||[]).includes(wd)?'checked':''}> ${esc(s.name)} <small class="muted">${esc(s.pos)}</small></label>`).join('')}</div>
+    <div class="sect" style="margin-top:14px"><div class="lb"><span>${DOW[wd]}요일 휴무지급</span><span class="bt">쉬지만 돈은 나가는 사람 — 달력엔 쉬는 사람으로, 스케줄엔 휴무지급으로</span></div>
+    <div class="pick">${regs.map(s=>`<label><input type="checkbox" data-calpw="${s.id}" ${(s.poff||[]).includes(wd)?'checked':''}> ${esc(s.name)}</label>`).join('')}</div></div>`,
     `<button class="btn pri grow" data-a="calwdsave" data-wd="${wd}">저장</button>`);
 }
 
@@ -389,6 +391,8 @@ document.addEventListener('click',async e=>{
     case 'calwd': dCalWd(+d.wd); break;
     case 'calwdsave': { const wd=+d.wd; let n=0; $$('[data-calwd]').forEach(c=>{ const s=D.staff[c.dataset.calwd]; if(!s) return; const has=(s.off||[]).includes(wd);
         if(c.checked!==has){ const off=c.checked?[...(s.off||[]),wd].sort():(s.off||[]).filter(x=>x!==wd); put('staff',s.id,{...s,off}); n++; } });
+      $$('[data-calpw]').forEach(c=>{ const s=D.staff[c.dataset.calpw]; if(!s) return; const has=(s.poff||[]).includes(wd);
+        if(c.checked!==has){ const poff=c.checked?[...(s.poff||[]),wd].sort():(s.poff||[]).filter(x=>x!==wd); const ns={...D.staff[s.id],poff}; if(c.checked) ns.poffFrom=todayStr; put('staff',s.id,ns); n++; } });
       closeDrawer(); render(); toast(n?`${n}명 바꿨어요`:'바뀐 게 없어요'); break; }
     case 'clook': try{ localStorage.setItem('ilpum-card-look',d.v); }catch(e){} render(); break;
     case 'mon': { const a=APP.anchor; APP.anchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }
