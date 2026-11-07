@@ -99,6 +99,12 @@ async def main():
     await pg.fill('#calQ',''); await pg.wait_for_timeout(100)
     chk('지우면 원래대로', await pg.locator('.cc .nm i.hit').count()==0)
     await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(250)
+    # 매니저 이름 굵게
+    await pg.evaluate("put('staff','mg',{id:'mg',name:'매니저',type:'regular',pos:'카운터',off:[1],active:true})")
+    await pg.click('[data-a="view"][data-v="cal"]'); await pg.wait_for_timeout(300)
+    r=await pg.evaluate("(()=>{const m=[...document.querySelectorAll('.cc .nm i.mgr')];const o=[...document.querySelectorAll('.cc .nm i:not(.mgr)')];return [m.length, m.every(i=>i.dataset.n.includes('매니저')), m[0]?getComputedStyle(m[0]).fontWeight:'', o[0]?getComputedStyle(o[0]).fontWeight:'']})()")
+    chk('휴무 달력 매니저 이름만 굵게', r[0]>0 and r[1] and int(r[2])>int(r[3]), r)
+    await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(250)
     # 빈자리
     await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(300)
     await pg.click('.dcard.today .ch [data-a="add"]'); await pg.wait_for_timeout(250)
