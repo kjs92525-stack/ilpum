@@ -228,6 +228,7 @@ body.resizing iframe{pointer-events:none}
 .twin{font-size:12.5px;color:var(--sub)}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;font-weight:600}
 .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:2px solid currentColor}
+.legend .lg-cxl{font:inherit;color:var(--warn);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.legend .lg-cxl::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:2px solid currentColor;background:repeating-linear-gradient(45deg,currentColor 0 2px,transparent 2px 4px)}.legend .lg-cxl:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 .lg-use{color:var(--use)} .lg-res{color:var(--res)} .lg-soon{color:var(--soon)}
 .lg-tight{color:var(--tight);font-weight:700} .lg-past{color:var(--past)}
 .floor{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;flex:1}
@@ -408,7 +409,7 @@ html.th-navy .grp{border-left-color:#3f4675}
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1107-1415</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1107-1555</small>
   </div>
 
 </header>
@@ -622,6 +623,14 @@ const isCxl=x=>/취소/.test(x.tnote||'');
 // 받았다는 표시는 '입완'(입금 완료) 또는 '확인필'
 const hasPct=x=>/(^|[^0-9])10\s*[%％]/.test(String((x&&x.req)||''));
 const hasDep=x=>{ const t=String((x&&x.req)||''); return /입완|확인필/.test(t)&&/예약금(?!\s*[xX×✕]|\s*(?:없|무|안|미))/.test(t); };
+// 취소·노쇼 예약만 보기(2026-11-08 사용자: 도착 옆에) — 테이블 칸에 취소/노쇼, 또는 요청사항에 노쇼·취소('취소 불가' 같은 안내 문구 빼고)
+const isCxlAny=x=>!x.deleted&&(isCxl(x)||/노쇼/.test(x.tnote||'')||/노쇼|취소(?!\s*(불가|시|하면|하실|할\s*경우|규정|수수료|안내))/.test(x.req||''));
+function cxlDialog(){ const list=items(ui.date).filter(isCxlAny).sort((a,b)=>(toMin(a.time)??0)-(toMin(b.time)??0));
+  dlgBody.innerHTML=`<h3>취소·노쇼 예약 ${list.length}건</h3>${list.length?`<div class="hint" style="margin-bottom:8px">이 날 취소·노쇼로 적힌 예약이에요. 되살리려면 수정에서 테이블 칸의 '취소'를 지우세요.</div>`:`<div class="hint" style="margin-bottom:8px">이 날 취소·노쇼 예약이 없어요.</div>`}
+    <div class="pick">${list.map(x=>`<div class="pk1"><div><div class="l1"><span class="t">${esc(x.time)}</span><span class="n">${esc(x.name)}</span>${x.pp?`<b>${esc(x.pp)}명</b>`:''}${x.tnote?`<span class="badge warn">${esc(x.tnote)}</span>`:''}</div>
+      <div class="sub">${x.req?'📝 '+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div><div style="display:flex;gap:6px"><button class="btn primary" data-pe="${x.id}">수정</button></div></div>`).join('')}</div>
+    <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="close">닫기</button></div>`;
+  if(!dlg.open) dlg.showModal(); }
 function active(d){ return items(d).filter(x=>!isCxl(x)); }   // 현황판·중복 계산용 (취소 제외)
 // 손님 나감(2026-10-25 사용자: 앞 손님이 나가서 다음 예약을 그 테이블로 옮겼는데 "중복"으로 떠서 보기 힘듦) — x.outT='HH:MM' 나간 시각
 const nowHM=()=>{ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
@@ -922,7 +931,7 @@ function renderBoard(){
       <div class="ftabs" style="display:flex;gap:6px">${FLOORS.map(x=>`<button data-floor="${esc(x.key)}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div>
       <span class="spacer"></span>
       ${canEditLayout()?'<button class="btn sm" data-led="start" title="테이블 추가·삭제·위치 바꾸기">배치 수정</button>':''}
-      <div class="legend"><span class="lg-use">도착 ${cnt.use}</span><span class="lg-res">예약시간 ${cnt.res}</span><span class="lg-soon">2시간 내 예정 ${cnt.soon}</span><span class="lg-tight">⏰ 임박(2시간 간격) ${Object.keys(TIGHT.table).length}</span></div></div>
+      <div class="legend"><span class="lg-use">도착 ${cnt.use}</span><button type="button" class="lg-cxl" data-cxllist="1" title="이 날 취소·노쇼 예약만 보기">취소 ${items(ui.date).filter(isCxlAny).length}</button><span class="lg-res">예약시간 ${cnt.res}</span><span class="lg-soon">2시간 내 예정 ${cnt.soon}</span><span class="lg-tight">⏰ 임박(2시간 간격) ${Object.keys(TIGHT.table).length}</span></div></div>
     <div class="timebox"><button class="btn sm tstep" data-act="t-" aria-label="30분 앞으로">‹</button>
       <span class="tnow">${fromMin(T)}</span>
       <button class="btn sm tstep" data-act="t+" aria-label="30분 뒤로">›</button>
@@ -1343,6 +1352,7 @@ document.getElementById('boardPanel').addEventListener('click',e=>{
   const b=e.target.closest('button');
   if(b&&b.dataset.floor){ ui.floor=b.dataset.floor; renderBoard(); return; }
   if(b&&b.dataset.pick){ pickDialog(b.dataset.pick); return; }
+  if(b&&b.dataset.cxllist){ cxlDialog(); return; }
   if(!b && e.target.closest('[data-dupfirst]')){   // 줄의 빈 곳 → 가장 이른 중복 자리로
     let best=null; Object.keys(CONF.table).forEach(t=>{ const m=Math.min(...[...CONF.table[t].values()].map(x=>toMin(x.time))); if(!best||m<best.m) best={t,m}; });
     if(best) goDup(best.t); return; }
