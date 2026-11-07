@@ -105,6 +105,12 @@ async def main():
     r=await pg.evaluate("(()=>{const m=[...document.querySelectorAll('.cc .nm i.mgr')];const o=[...document.querySelectorAll('.cc .nm i:not(.mgr)')];return [m.length, m.every(i=>i.dataset.n.includes('매니저')), m[0]?getComputedStyle(m[0]).fontWeight:'', o[0]?getComputedStyle(o[0]).fontWeight:'']})()")
     chk('휴무 달력 매니저 이름만 굵게', r[0]>0 and r[1] and int(r[2])>int(r[3]), r)
     await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(250)
+    # 정해진 요일만 나오는 직원(고정휴무 2일 이상)은 고정휴무 날 달력에 안 씀
+    await pg.evaluate("put('staff','wk',{id:'wk',name:'주말맨',type:'regular',pos:'주차',off:[1,2,3,4,5],active:true})")
+    await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(200); await pg.click('[data-a="view"][data-v="cal"]'); await pg.wait_for_timeout(300)
+    chk('주말만 나오는 직원은 평일 고정휴무로 안 써짐', '주말맨' not in await pg.inner_text('.hgrid'))
+    chk('고정휴무 1일인 직원은 그대로 써짐', '홍주' in await pg.inner_text('.hgrid'))
+    await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(250)
     # 빈자리
     await pg.click('[data-a="view"][data-v="cards"]'); await pg.wait_for_timeout(300)
     await pg.click('.dcard.today .ch [data-a="add"]'); await pg.wait_for_timeout(250)

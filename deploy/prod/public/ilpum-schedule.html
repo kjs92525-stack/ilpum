@@ -1119,7 +1119,8 @@ function vCal(){
   const head=[0,1,2,3,4,5,6].map(wd=>`<button class="hc ${wd===0?'sun':wd===6?'sat':''}" ${ed?`data-a="calwd" data-wd="${wd}" title="${DOW[wd]}요일 고정휴무 고치기"`:'disabled'}><b>${DOW[wd]}</b></button>`).join('');
   let cells=''; for(let i=0;i<first.getDay();i++) cells+='<div class="cc out"></div>';
   for(let day=1;day<=last;day++){ const d=new Date(y,m,day), key=ds(d), S=calStates(D,d);
-    const names=regs.filter(s=>S[s.id]&&S[s.id]!=='work').sort((p,q)=>(S[q.id]==='fixed')-(S[p.id]==='fixed')).map(s=>{ const L=calLbl(S[s.id],(D.dc[key+'|'+s.id]||{}).cn); return `<i class="${S[s.id]}${L?' wide':''}${/매니저/.test(s.name)?' mgr':''}" data-n="${esc(s.name)}">${esc(s.name)}${L}</i>`; }).join('');
+    // 정해진 요일만 나오는 직원(고정휴무 2일 이상: 주말만·평일만)은 고정휴무 날엔 달력에 안 씀 (2026-11-08 사용자: 영우·우지현·박규하). 그날 따로 쉬는 건 그대로 보임
+    const names=regs.filter(s=>S[s.id]&&S[s.id]!=='work'&&!(S[s.id]==='fixed'&&(s.off||[]).length>=2)).sort((p,q)=>(S[q.id]==='fixed')-(S[p.id]==='fixed')).map(s=>{ const L=calLbl(S[s.id],(D.dc[key+'|'+s.id]||{}).cn); return `<i class="${S[s.id]}${L?' wide':''}${/매니저/.test(s.name)?' mgr':''}" data-n="${esc(s.name)}">${esc(s.name)}${L}</i>`; }).join('');
     cells+=`<button class="cc ${key===todayStr?'today':''}" ${ed?`data-a="calday" data-k="${key}"`:'disabled'}><span class="n ${d.getDay()===0?'sun':d.getDay()===6?'sat':''}">${day}</span><span class="nm">${names}</span></button>`; }
   return `<div class="vh"><div><h1>${y}년 ${m+1}월 휴무 달력</h1><div class="sub">쉬는 사람 · (월) 월차 · (오전)(오후) 반차${ed?' · 날짜를 눌러 그날만, 요일을 눌러 고정휴무를 고쳐요':''}</div></div>
     <div class="row"><button class="btn ic" data-a="calm" data-n="-1" aria-label="지난달">‹</button><button class="btn" data-a="calm" data-n="0">이번 달</button><button class="btn ic" data-a="calm" data-n="1" aria-label="다음 달">›</button></div>
