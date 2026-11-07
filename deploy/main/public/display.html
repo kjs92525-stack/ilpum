@@ -294,9 +294,11 @@ let lastSig='';
 function render(){
   const g=document.getElementById('grid'); const nowM=new Date().getHours()*60+new Date().getMinutes();
   const near=NEAR&&OFF===0;
-  const list=ITEMS.filter(x=>x&&!x.deleted&&!isCxl(x)&&String(x.name||'').trim()&&(!near||Math.abs(toMin(x.time)-nowM)<=NEAR_MIN)).sort((a,b)=>toMin(a.time)-toMin(b.time)||String(a.name).localeCompare(String(b.name)));
+  // 도착한 예약은 안 보임(2026-11-07 사용자: 공간만 차지)
+  const live=ITEMS.filter(x=>x&&!x.deleted&&!isCxl(x)&&String(x.name||'').trim()), arrived=live.filter(x=>x.done).length;
+  const list=live.filter(x=>!x.done&&(!near||Math.abs(toMin(x.time)-nowM)<=NEAR_MIN)).sort((a,b)=>toMin(a.time)-toMin(b.time)||String(a.name).localeCompare(String(b.name)));
   document.getElementById('cnt').textContent=list.length?`${list.length}팀 · ${list.reduce((a,x)=>a+people(x.pp),0)}명`:'';
-  if(!list.length){ lastSig=''; g.style.gridTemplateRows=''; g.innerHTML=`<div class="empty"><b>${near?'지금 앞뒤 2시간 안에는 예약이 없어요':OFF===0?'오늘 예약이 아직 없어요':'이 날은 예약이 없어요'}</b><span>${OFF===0?'예약이 들어오면 바로 여기에 표시돼요':''}</span></div>`; return; }
+  if(!list.length){ lastSig=''; g.style.gridTemplateRows=''; g.innerHTML=`<div class="empty"><b>${arrived&&OFF===0&&!near?'남은 예약이 없어요 (모두 도착)':near?'지금 앞뒤 2시간 안에는 예약이 없어요':OFF===0?'오늘 예약이 아직 없어요':'이 날은 예약이 없어요'}</b><span>${OFF===0?'예약이 들어오면 바로 여기에 표시돼요':''}</span></div>`; return; }
   // 아무것도 안 바뀌었으면(30초마다 시계 확인 때) 화면을 다시 만들지 않음 — 약한 PC 부담 줄이기
   const nowM2=nowM, sig=list.map(x=>x.id+'|'+x.time+'|'+(x.tables||[]).join()+'|'+(x.name||'')+'|'+(x.pp||'')+'|'+(x.done?1:0)+'|'+(OFF===0&&!x.done&&toMin(x.time)-nowM2<=30&&toMin(x.time)-nowM2>=-15?'s':'')+(OFF===0&&(x.done||nowM2-toMin(x.time)>90)?'p':'')).join('/')+`#${innerWidth}x${innerHeight}#${THEME}#${LITE}#${OFF}`;
   if(sig===lastSig&&g.children.length) return; lastSig=sig;

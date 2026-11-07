@@ -5,7 +5,7 @@ NEW='bdqcrbnbuoujozlpttbe.supabase.co'; HQ='0134d989-757a-4b60-9cb3-93245de2cac8
 TODAY=datetime.date.today().isoformat()
 def it(i,n,tm,tb,pp): return {"id":"i%d"%i,"name":n,"time":tm,"tables":tb,"pp":pp,"tnote":"","req":"","done":False}
 ITEMS=[it(1,"점심손님","12:00",["1"],"2"),it(2,"이른손님","15:30",["2"],"2"),it(3,"사시반","16:00",["3"],"4"),it(4,"여섯시","18:00",["4"],"4"),
-       it(5,"일곱시","19:30",["5"],"3"),it(6,"여덟시","20:00",["6"],"2"),it(7,"늦은손님","20:30",["7"],"2")]
+       it(5,"일곱시","19:30",["5"],"3"),it(6,"여덟시","20:00",["6"],"2"),it(7,"늦은손님","20:30",["7"],"2"),dict(it(8,"도착함","18:30",["8"],"2"),done=True)]
 async def handler(r):
   u=r.request.url
   if 'localhost' in u: return await r.continue_()
@@ -32,6 +32,7 @@ async def main():
     names=lambda: pg.evaluate("[...document.querySelectorAll('.row .nm')].map(e=>e.firstChild.textContent)")
     all_=await names(); fs0=await pg.evaluate("parseInt(getComputedStyle(document.getElementById('grid')).getPropertyValue('--fs'))")
     chk('처음엔 오늘 전부(7팀)', len(all_)==7, all_)
+    chk('도착한 예약은 안 보임', '도착함' not in all_)
     await pg.evaluate("showCtl()"); await pg.click('#ctlNear'); await pg.wait_for_timeout(400)
     nn=await names(); fs1=await pg.evaluate("parseInt(getComputedStyle(document.getElementById('grid')).getPropertyValue('--fs'))")
     chk('앞뒤 2시간(16:00~20:00)만', nn==['사시반','여섯시','일곱시','여덟시'], nn)
