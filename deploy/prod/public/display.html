@@ -241,7 +241,8 @@ const SUPABASE_URL='https://bdqcrbnbuoujozlpttbe.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcWNyYm5idW91am96bHB0dGJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTU4NDQsImV4cCI6MjEwNjE5MTg0NH0.L8Yuj46Zjg0XNoWeRr-_9xZWKiyHH3-AyC4_3i5p_X8';
 const CONF_KEY='ilpum-fr-conf';
 const Q=new URLSearchParams(location.search);
-const MASK=Q.get('mask')==='1';
+// 이름 가운데 글자 가리기(2026-11-07 사용자: 손님들이 보는 화면이라 기본으로 가림, 홍*동) — ?mask=0 이면 전체 이름
+const MASK=Q.get('mask')!=='0';
 // 디자인: ?theme=aurora|chalk|warm|gold (모니터에서 T 키로 돌려 보기 — 이 기기에 기억)
 const THEMES=['warm','aurora','chalk','gold','paper'];
 let THEME=(()=>{ const q=Q.get('theme'); if(THEMES.includes(q)) return q; try{ const v=localStorage.getItem('ilpum-disp-theme'); if(THEMES.includes(v)) return v; }catch(e){} return 'warm'; })();
