@@ -47,7 +47,7 @@ footer .sp{flex:1}
 .login b{font:700 24px/1.4 var(--serif);color:var(--navy);display:block;margin-bottom:8px}
 .login a{color:var(--navy2);font-weight:700}
 
-/* ===== 테마 5종 (?theme=warm | aurora | chalk | gold | paper(신문), 키보드 T 로 바꾸기). 위쪽 기본 스타일은 공통 뼈대 ===== */
+/* ===== 테마 4종 (?theme=warm | aurora | chalk | gold, 키보드 T 로 바꾸기). 위쪽 기본 스타일은 공통 뼈대 ===== */
 #fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 header,main,footer{position:relative;z-index:1}
 .row.in{animation:rowIn .7s cubic-bezier(.2,.8,.2,1) both}
@@ -194,31 +194,44 @@ body.lite[data-theme=chalk]{background:#1d2b24}
 body.lite .row.soon{box-shadow:none!important}
 body.lite[data-theme=warm] .row.soon{background:#fff0dd}
 
-/* 5) 신문 — 크림색 종이 + 검은 명조, 두 줄 괘선, 빨강·파랑 포인트 (2026-11-07 사용자: '알파 데스크' 사진처럼 가시성 좋게). 움직임 없음 */
-body[data-theme=paper]{--bg:#f3ebdd;--pink:#1b1813;--pred:#b3261e;--pblue:#2f5aa6;--prule:#2a2620;background:var(--bg);color:var(--pink)}
-body[data-theme=paper] header{background:transparent;color:var(--pink);margin:0 3vw;padding:2.2vh 0 1.4vh;border-bottom:4px double var(--prule)}
-body[data-theme=paper] header .eb{color:var(--pred);font:600 clamp(12px,1.2vw,22px)/1 var(--sans);letter-spacing:.04em}
-body[data-theme=paper] header .eb::before{content:'';display:inline-block;width:.6em;height:.6em;border-radius:50%;background:var(--pred);margin-right:.5em;vertical-align:.05em}
-body[data-theme=paper] header h1{font:900 clamp(30px,4vw,74px)/1.08 var(--serif);color:var(--pink);letter-spacing:-.01em}
-body[data-theme=paper] header .day{font:500 clamp(15px,1.6vw,28px)/1.3 var(--serif);color:#4a443b}
-body[data-theme=paper] header .clock{font:900 clamp(30px,4vw,72px)/1 var(--serif);color:var(--pink)}
-body[data-theme=paper] main{padding-left:3vw;padding-right:3vw}
-body[data-theme=paper] .row{background:none;border:0;border-bottom:1px solid rgba(42,38,32,.55);border-radius:0;box-shadow:none;padding-left:calc(var(--fs)*.1)}
-body[data-theme=paper] .row .tm{font:700 calc(var(--fs)*.66)/1 var(--serif);color:#4a443b}
-body[data-theme=paper] .row .nm{font:900 calc(var(--fs)*1.02)/1.15 var(--serif);color:var(--pink)}
-body[data-theme=paper] .row .nm small{font:500 calc(var(--fs)*.5)/1 var(--serif);color:#6b6357}
-body[data-theme=paper] .row .tb{font:900 calc(var(--fs)*.92)/1 var(--serif);background:var(--pink);color:#f3ebdd;border-radius:calc(var(--fs)*.08)}
-body[data-theme=paper] .row .tb.room{background:none;color:var(--pred);border:3px solid var(--pred)}
-body[data-theme=paper] .row .tb.none{background:none;color:#9a9182;border:1px dashed #9a9182}
-body[data-theme=paper] .row.soon{border-bottom:2px solid var(--pred);box-shadow:none}
-body[data-theme=paper] .row.soon .tm{color:var(--pred)}
-body[data-theme=paper] .row.soon::before{background:var(--pred);width:calc(var(--fs)*.16);height:calc(var(--fs)*.16);border-radius:50%;top:calc(50% - var(--fs)*.08);left:calc(var(--fs)*-.24)}
-body[data-theme=paper] .row.in{animation:none}
-body[data-theme=paper] footer{margin:0 3vw;padding-left:0;padding-right:0;border-top:1px solid var(--prule);color:#6b6357}
-body[data-theme=paper] footer .guide{font:700 clamp(15px,1.5vw,28px)/1.3 var(--serif);color:var(--pink)}
-body[data-theme=paper] footer .guide i{background:var(--pink);border-radius:2px}
-body[data-theme=paper] .empty b{font:900 clamp(28px,3.2vw,56px)/1.3 var(--serif);color:var(--pink)}
-body[data-theme=paper] #st.ok{color:var(--pblue)}
+
+/* Hallmark · redesign(polish) · scope: 손님용 현황판 4테마 · tone: utilitarian-warm(멀리서 읽히는 안내판)
+ * pre-emit critique: P4 H5 E4 S4 R5 V4 (2026-11-07 사용자: hallmark 스킬로 기존 디자인 다듬기)
+ * 바꾼 것: ① 영어 눈썹 글자(ILPUMJIP · RESERVATION) 숨김 — 손님에게 정보가 없음 ② '곧 도착' 줄의 왼쪽 굵은 띠·반짝이·번쩍이는 테두리 → 줄 전체 얇은 테두리 + 시간 글자색
+ * ③ 글자 그라데이션 제목(오로라·골드) → 단색 ④ 오로라 번호표 보라→분홍 그라데이션·빛번짐 → 단색 ⑤ 골드 빛줄기 제거, 순검정 → 살짝 따뜻한 검정, 줄 그림자 → 밝기 차이
+ * ⑥ 튀어오르는(overshoot) 움직임 → 부드럽게 멈춤 ⑦ 가린 이름의 * 는 흐리게 ⑧ 기기에서 '움직임 줄이기'를 켜면 가볍게 모드와 같게 */
+:root{--ease-out:cubic-bezier(.16,1,.3,1);--dur-in:.6s}
+header .eb{display:none}
+header h1{margin-top:0}
+.row .nm .mk{font-style:normal;opacity:.45;font-weight:400;letter-spacing:.02em}
+.row.soon::before{display:none}
+.row.in{animation-timing-function:var(--ease-out)}
+/* 온기 */
+body[data-theme=warm] .row{box-shadow:0 1px 0 rgba(80,50,20,.06)}
+body[data-theme=warm] .row.soon{background:#fff3e4;border-color:#c98a5e;animation:none}
+body[data-theme=warm] .row.soon .tm{color:#8e4a2c;font-weight:700}
+body[data-theme=warm] .row.in .tb{animation:stampIn var(--dur-in) var(--ease-out) both}
+@keyframes stampIn{from{transform:scale(1.35) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+/* 오로라 */
+body[data-theme=aurora] #fx .blob{opacity:.26}
+body[data-theme=aurora] header h1{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#f4f2ff;animation:none}
+body[data-theme=aurora] .row{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12);box-shadow:none}
+body[data-theme=aurora] .row .tb{background:#6d4fe0;box-shadow:none}
+body[data-theme=aurora] .row .tb.room{background:#0f9488;box-shadow:none}
+body[data-theme=aurora] .row.soon{border-color:#ffd666;box-shadow:inset 0 0 0 1px #ffd666;animation:none}
+body[data-theme=aurora] .row.soon .tm{color:#ffd666}
+body[data-theme=aurora] footer .guide i{background:#6d4fe0}
+/* 칠판 */
+body[data-theme=chalk] .row.soon .tm{color:#ffe066;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:.2em}
+/* 골드 */
+body[data-theme=gold]{background:radial-gradient(ellipse at 50% -10%,#1f1a11 0%,#100e0b 55%,#0b0a08 100%)}
+body[data-theme=gold] #fx .sheen{display:none}
+body[data-theme=gold] header h1{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#e3cd8c;animation:none}
+body[data-theme=gold] .row{background:#18150f;border-color:rgba(184,150,46,.22);box-shadow:none}
+body[data-theme=gold] .row .tb{box-shadow:none}
+body[data-theme=gold] .row.soon{border-color:#c9ae62;box-shadow:inset 0 0 0 1px #c9ae62;animation:none}
+body[data-theme=gold] .row.soon .tm{color:#e3cd8c}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}#fx{display:none}}
 </style>
 </head>
 <body>
@@ -244,7 +257,7 @@ const Q=new URLSearchParams(location.search);
 // 이름 가운데 글자 가리기(2026-11-07 사용자: 손님들이 보는 화면이라 기본으로 가림, 홍*동) — ?mask=0 이면 전체 이름
 const MASK=Q.get('mask')!=='0';
 // 디자인: ?theme=aurora|chalk|warm|gold (모니터에서 T 키로 돌려 보기 — 이 기기에 기억)
-const THEMES=['warm','aurora','chalk','gold','paper'];
+const THEMES=['warm','aurora','chalk','gold'];
 let THEME=(()=>{ const q=Q.get('theme'); if(THEMES.includes(q)) return q; try{ const v=localStorage.getItem('ilpum-disp-theme'); if(THEMES.includes(v)) return v; }catch(e){} return 'warm'; })();
 function applyTheme(){ document.body.dataset.theme=THEME; const fx=document.getElementById('fx'); let h='';
   if(THEME==='gold'){ h='<div class="sheen"></div>'; for(let i=0;i<14;i++) h+=`<i class="gdot" style="left:${(Math.random()*100).toFixed(1)}%;--dx:${(Math.random()*8-4).toFixed(1)}vw;animation-duration:${(16+Math.random()*18).toFixed(1)}s;animation-delay:${(-Math.random()*34).toFixed(1)}s;width:${(2+Math.random()*3).toFixed(1)}px;height:${(2+Math.random()*3).toFixed(1)}px"></i>`; }
@@ -318,6 +331,8 @@ function tableLabel(ts){
   return {t:parts.join(' '), k: nums.length?'':'room'};
 }
 const maskName=n=>{ n=String(n||''); if(!MASK||n.length<2) return n; return n.length===2? n[0]+'*' : n[0]+'*'.repeat(n.length-2)+n[n.length-1]; };
+// 화면용: 가린 * 는 흐리게(.mk). 글자 내용은 maskName 과 같음
+const nameHTML=n=>{ const m=maskName(n); return `<span class="nmt">${[...m].map(c=>c==='*'&&MASK?'<i class="mk">*</i>':esc(c)).join('')}</span>`; };
 let lastSig='';
 function render(){
   const g=document.getElementById('grid'); const nowM=new Date().getHours()*60+new Date().getMinutes();
@@ -332,7 +347,7 @@ function render(){
   if(sig===lastSig&&g.children.length) return; lastSig=sig;
   let k=0; g.innerHTML=list.map(x=>{ const m=toMin(x.time), tb=tableLabel(x.tables); const key=x.id+'|'+x.time+'|'+(x.tables||[]).join(); const nw=!SEEN.has(key); SEEN.add(key); const dl=nw?` style="animation-delay:${Math.min(k++*70,1800)}ms"`:'';
     const isToday=OFF===0; const soon=isToday&&!x.done && m-nowM<=30 && m-nowM>=-15, past=isToday&&(x.done || nowM-m>90);
-    return `<div class="row${soon?' soon':''}${past?' past':''}${nw?' in':''}"${dl}><span class="tm">${esc(tmLabel(x.time))}</span><span class="nm">${esc(maskName(x.name))}<small>${people(x.pp)?people(x.pp)+'명':''}</small></span><span class="tb ${tb.k}">${esc(tb.t)}</span></div>`; }).join('');
+    return `<div class="row${soon?' soon':''}${past?' past':''}${nw?' in':''}"${dl}><span class="tm">${esc(tmLabel(x.time))}</span><span class="nm">${nameHTML(x.name)}<small>${people(x.pp)?people(x.pp)+'명':''}</small></span><span class="tb ${tb.k}">${esc(tb.t)}</span></div>`; }).join('');
   fit(list.length);
 }
 // 스크롤 없이 한 화면에: 열 수와 글자 크기를 바꿔 가며 가장 크게 들어가는 조합을 고름
