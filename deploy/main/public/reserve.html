@@ -409,7 +409,7 @@ html.th-navy .grp{border-left-color:#3f4675}
     <label class="btn" style="cursor:pointer" title="구글 시트를 엑셀(.xlsx)로 받아서 불러오기">시트 가져오기<input type="file" id="importIn" accept=".xlsx" hidden></label>
     <button class="btn" id="dedupeBtn" title="저장된 모든 날짜에서 같은 예약이 중복돼 있으면 정리해요">중복 정리</button>
     <span class="trashwrap"><button class="btn" id="trashBtn" title="지운 예약을 다시 볼 수 있어요">휴지통</button><button class="battg" id="battBtn" type="button"><span class="bbody"><span class="bfill"></span></span><span class="blbl">배터리</span></button></span>
-    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1107-1600</small>
+    <span class="sync" id="sync">연결 중…</span><small class="buildv" title="화면 버전 — 이 날짜·시각보다 예전이면 새로고침(Ctrl+Shift+R)" style="margin-left:6px;font-size:10px;color:var(--sub)">판 1107-1609</small>
   </div>
 
 </header>
@@ -611,7 +611,8 @@ const nowMin=()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes(); };
 const todayStr=()=>ds(new Date());
 
 /* ---------- 상태 ---------- */
-const ui={ date:todayStr(), filter:'all', q:'', sort:(()=>{ try{ return localStorage.getItem('ilpum-res-sort')==='table'?'table':'time'; }catch(e){ return 'time'; } })(), floor:'1', t:Math.max(600,Math.min(1320, Math.round(nowMin()/30)*30)), view:'list' };
+const ui={ date:todayStr(), filter:'all', q:'', sort:'time',   // 테이블순 없앰(2026-11-08 사용자: 무조건 시간순으로만 봄)
+   floor:'1', t:Math.max(600,Math.min(1320, Math.round(nowMin()/30)*30)), view:'list' };
 const days={};   // date → {items:[], rev}
 function dayDoc(d){ if(!days[d]){ let c=null; try{ c=JSON.parse(localStorage.getItem('ilpum-res-'+SID+'-'+d)||'null'); }catch(e){} days[d]=(c&&Array.isArray(c.items))? {items:c.items.filter(x=>x&&typeof x==='object'),rev:+c.rev||0} : {items:[],rev:0}; } return days[d]; }   // 저장된 임시 기록이 깨져 있어도(items 없음 등) 화면이 멈추지 않게 바로잡음
 function items(d){ return dayDoc(d).items.filter(x=>!x.deleted); }
@@ -811,7 +812,7 @@ function renderList(){
   const cxl=all.filter(isCxl), live=all.filter(x=>!isCxl(x));
   const done=live.filter(x=>x.done), left=live.filter(x=>!x.done);
   const q=ui.q.trim();
-  let list = ui.filter==='left'? left : ui.filter==='done'? done : all;
+  let list = ui.filter==='left'? left : ui.filter==='done'? done : ui.filter==='cxl'? all.filter(isCxlAny) : all;   // 취소: 취소·노쇼만(2026-11-08)
   if(q) list=list.filter(x=>[x.name,x.phone,x.req,(x.tables||[]).map(tLabel).join(' ')].join(' ').includes(q));
   const isToday=ui.date===todayStr(); const nm=nowMin();
   const tkey=x=>{ const t=(x.tables||[])[0]; if(t==null) return 99999; return /^\d+$/.test(t)?+t:/^R(\d+)/.test(t)?1000+(+RegExp.$1):5000; };
@@ -851,8 +852,8 @@ function renderList(){
       <div class="seg" role="group" aria-label="보기">
         <button data-f="all" aria-pressed="${ui.filter==='all'}">전체</button>
         <button data-f="left" aria-pressed="${ui.filter==='left'}">남은 예약</button>
-        <button data-f="done" aria-pressed="${ui.filter==='done'}">도착</button></div>
-      <div class="seg" role="group" aria-label="정렬" title="손님 몰릴 때는 테이블순이 찾기 쉬워요"><button data-sort="time" aria-pressed="${ui.sort!=='table'}">시간순</button><button data-sort="table" aria-pressed="${ui.sort==='table'}">테이블순</button></div>
+        <button data-f="done" aria-pressed="${ui.filter==='done'}">도착</button>
+        <button data-f="cxl" aria-pressed="${ui.filter==='cxl'}" title="취소·노쇼 예약만">취소${all.some(isCxlAny)?` ${all.filter(isCxlAny).length}`:''}</button></div>
     </div>
     ${html || `<div class="empty"><strong>${all.length?'조건에 맞는 예약이 없어요':'예약이 없어요'}</strong>${all.length?'':'위 입력 줄에 쓰고 Enter를 누르면 추가돼요.'}</div>`}`;
   paintSeatStat();
@@ -1333,7 +1334,6 @@ document.getElementById('listPanel').addEventListener('click',e=>{
   if(b.dataset.del){ const it=dayDoc(ui.date).items.find(x=>x.id===b.dataset.del); if(!it) return;
     confirmBox(`${it.name} ${it.time} 예약을 삭제할까요?`,'삭제',()=>{ it.deleted=true; saveItem(ui.date,it); toast('삭제했어요'); }); return; }
   if(b.dataset.f){ ui.filter=b.dataset.f; renderList(); return; }
-  if(b.dataset.sort){ ui.sort=b.dataset.sort; try{ localStorage.setItem('ilpum-res-sort',ui.sort); }catch(e){} renderList(); return; }
   if(b.dataset.edit){ const it=items(ui.date).find(x=>x.id===b.dataset.edit); if(it){ openForm({...it,origDate:ui.date}); } }
 });
 document.getElementById('listPanel').addEventListener('focusout',e=>{
