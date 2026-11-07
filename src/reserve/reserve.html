@@ -261,7 +261,7 @@ body.resizing iframe{pointer-events:none}
 .qpres{margin-top:4px;font-size:12.5px;line-height:1.5}
 .sugw{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}.sugchip{border:1.5px solid var(--brand,#1f6f4a);background:var(--panel);color:var(--ink);border-radius:99px;padding:1px 9px;font-weight:800;font-size:12.5px;cursor:pointer}.sugchip small{font-weight:600;color:var(--sub)}
 .res.auto{background:rgba(3,199,90,.16)!important;box-shadow:inset 6px 0 0 #03C75A,0 0 0 2px #03C75A!important;border-radius:8px}
-.badge.autob{background:#03C75A;color:#fff;margin-left:4px;font-size:12px;padding:1px 7px}.btn.pctbtn{color:#E5484D!important;border-color:#E5484D!important;font-weight:800}.btn.fpct{margin-left:8px;padding:2px 10px;vertical-align:middle}.btn.pctbtn.on{background:#E5484D!important;color:#fff!important}.btn.autook{background:#03C75A!important;border-color:#03C75A!important;color:#fff!important;font-weight:800}
+.badge.autob{background:#03C75A;color:#fff;margin-left:4px;font-size:12px;padding:1px 7px}.btn.pctbtn{color:#E5484D!important;border-color:#E5484D!important;font-weight:800}.btn.pctbtn.on{background:#E5484D!important;color:#fff!important}.btn.autook{background:#03C75A!important;border-color:#03C75A!important;color:#fff!important;font-weight:800}
 .cell .pctb{position:absolute;top:3px;left:4px;font-size:10.5px;font-weight:800;background:#E5484D;color:#fff;border-radius:4px;padding:0 4px;line-height:1.35;z-index:1}
 .cell.st-use .pctb{top:20px}.cell.st-dup .pctb{top:22px}
 .fpos .cell .pctb{top:auto;bottom:2px;left:50%;transform:translateX(-50%);font-size:clamp(9px,.62em,12px)}.fpos.round .cell .pctb{bottom:6%}
@@ -1111,7 +1111,7 @@ function pickDialog(t){
       <div><div class="l1"><span class="t">${esc(x.time)}</span><span class="n">${esc(x.name)}</span>${x.pp?`<b>${esc(x.pp)}명</b>`:''}
         ${tablesText(x.tables).map(z=>`<span class="tbl">${esc(z)}</span>`).join('')}${x.done?'<span class="badge done">도착</span>':''}${x.outT?`<span class="badge outb">나감 ${esc(x.outT)}</span>`:''}${dupIds.has(x.id)?'<span class="badge warn">겹침</span>':tightIds.has(x.id)?'<span class="badge warn" style="background:var(--tight-bg);color:var(--tight)">임박</span>':''}</div>
         <div class="sub">${x.req?(hasDep(x)?'<span class="depchip">💰 예약금</span>':'📝 ')+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div>
-      <div style="display:flex;gap:6px">${x.outT?`<button class="btn" data-pin="${x.id}" data-pt="${esc(t)}" title="나감 표시 지우기">나감 취소</button>`:(x.done||dupIds.has(x.id))&&list.some(y=>y!==x&&(toMin(y.time)??0)>(toMin(x.time)??0))?`<button class="btn" data-pout="${x.id}" data-pt="${esc(t)}" title="이 손님이 나가서 테이블이 비었어요">나감</button>`:''}<button class="btn primary" data-pe="${x.id}">수정</button></div></div>`).join('')}</div>
+      <div style="display:flex;gap:6px">${x.outT?`<button class="btn" data-pin="${x.id}" data-pt="${esc(t)}" title="나감 표시 지우기">나감 취소</button>`:(x.done||dupIds.has(x.id))&&list.some(y=>y!==x&&(toMin(y.time)??0)>(toMin(x.time)??0))?`<button class="btn" data-pout="${x.id}" data-pt="${esc(t)}" title="이 손님이 나가서 테이블이 비었어요">나감</button>`:''}${(STORES.find(z=>z.id===SID)||{}).is_hq?`<button class="btn pctbtn${hasPct(x)?' on':''}" data-ppct="${x.id}" data-pt="${esc(t)}" title="10% 쿠폰 손님이면 누르세요 (요청사항에 10%를 넣고 빼요, 바로 저장)">10%</button>`:''}<button class="btn primary" data-pe="${x.id}">수정</button></div></div>`).join('')}</div>
     <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="add" data-add-t="${esc(t)}">＋ 이 테이블에 예약 추가</button><button class="btn" data-d="close">닫기</button></div>`;
   if(!dlg.open) dlg.showModal();
 }
@@ -1129,7 +1129,7 @@ function drawForm(){
         <input type="text" id="fTables" value="${esc([tablesInput(draft.tables),draft.tnote||''].filter(Boolean).join(' '))}" placeholder="33 34 · r1,2 · 네이버 취소" autocomplete="off" autocorrect="off" spellcheck="false">
         <span class="hint" id="fTPrev">${tPrev(draft.tables,draft.tnote)}</span></label>
       ${clash.length?`<div class="full warnline">겹치는 예약: ${esc(clash.join(', '))}</div>`:''}
-      <label class="full">요청사항${(STORES.find(z=>z.id===SID)||{}).is_hq?`<span role="button" tabindex="0" class="btn sm pctbtn fpct${hasPct(draft)?' on':''}" data-fpct="1" title="10% 쿠폰 손님이면 누르세요 (요청사항에 10%를 넣고 빼요)">10%</span>`:''}<textarea id="fReq" autocomplete="off" spellcheck="false" rows="2" placeholder="예: 초1+아기2, 예약금 5만원(입완)">${esc(draft.req)}</textarea></label>
+      <label class="full">요청사항<textarea id="fReq" autocomplete="off" spellcheck="false" rows="2" placeholder="예: 초1+아기2, 예약금 5만원(입완)">${esc(draft.req)}</textarea></label>
     </div>
     <div class="dfoot">
       ${draft.isNew?'':'<button class="btn danger" data-d="del">삭제</button>'}
@@ -1153,6 +1153,8 @@ dlg.addEventListener('click',e=>{
     return; }
   const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
   if(d.pout||d.pin){ const it=dayDoc(ui.date).items.find(x=>x.id===(d.pout||d.pin)); if(it){ if(d.pout){ it.outT=nowHM(); it.done=true; toast(`${it.name} 나감 ${it.outT} — 중복 표시를 뺐어요`); } else { delete it.outT; toast('나감 표시를 지웠어요'); } saveItem(ui.date,it); pickDialog(d.pt); } return; }
+  // 테이블 창 10% 버튼(2026-11-07 사용자: 수정 창 말고 테이블 눌렀을 때 뜨는 창에) — 목록의 10% 버튼과 같게 바로 저장
+  if(d.ppct){ const it=dayDoc(ui.date).items.find(x=>x.id===d.ppct); if(it){ if(hasPct(it)){ it.req=String(it.req||'').replace(/(^|[^0-9])10\s*[%％]/g,'$1').replace(/\s+/g,' ').trim(); toast('10% 뺐어요'); } else { it.req=((it.req||'')+' 10%').trim(); toast('요청사항에 10% 넣었어요'); } saveItem(ui.date,it); pickDialog(d.pt); } return; }
   if(d.pe){ const it=items(ui.date).find(x=>x.id===d.pe); if(it){ dlg.close(); openForm({...it,origDate:ui.date}); } return; }
   if(d.restore){ const x=dayDoc(ui.date).items.find(y=>y.id===d.restore); if(x){ x.deleted=false; x.u=Date.now(); saveItem(ui.date,x); toast(`${x.name||'예약'}을(를) 복원했어요`); trashDialog(); } return; }
   if(d.tb){ readForm(); const i=draft.tables.indexOf(d.tb); if(i>=0) draft.tables.splice(i,1); else draft.tables.push(d.tb); drawForm(); return; }
@@ -1697,11 +1699,6 @@ function printDay(from,to,fitOne){
 document.getElementById('xlsxBtn').onclick=exportDialog;
 document.getElementById('printBtn').onclick=printDialog;
 dlg.addEventListener('click',e=>{
-  // 수정 창 10% 버튼(2026-11-07 사용자: 버튼만 눌러도 자동 입력) — 요청사항 칸에 10% 넣기/빼기, 저장은 '저장' 버튼으로 (label 안이라 button 대신 span)
-  const pb=e.target.closest('[data-fpct]');
-  if(pb){ const b=pb; e.preventDefault(); const ta=document.getElementById('fReq'); if(!ta) return; const v=ta.value, on=hasPct({req:v});
-    ta.value=on? v.replace(/(^|[^0-9])10\s*[%％]/g,'$1').replace(/[ \t]+/g,' ').trim() : (v.trim()+' 10%').trim();
-    b.classList.toggle('on',!on); return; }
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.pr){ const [f,t]=b.dataset.pr.split(',').map(Number);
     dlg.querySelectorAll('[data-pr]').forEach(x=>x.setAttribute('aria-pressed', x===b));
