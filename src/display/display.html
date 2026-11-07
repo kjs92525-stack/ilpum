@@ -304,7 +304,8 @@ async function fx(path,opt,retry=true){
 function setSt(t,k){ const e=document.getElementById('st'); e.textContent=t; e.className=k||''; }
 
 /* ---------- 표시 ---------- */
-const isCxl=x=>/취소/.test(x.tnote||'');
+// 취소·노쇼는 안 보임(2026-11-07 사용자: 노쇼나 취소라고 써도 지워지게) — 테이블 칸·요청사항·이름 어디에 써도. '취소 불가/취소시' 같은 안내 문구는 제외
+const isCxl=x=>/취소|노쇼/.test(x.tnote||'')||/노쇼|취소(?!\s*(불가|시|하면|하실|할\s*경우|규정|수수료|안내))/.test((x.req||'')+' '+(x.name||''));
 const toMin=t=>{ const m=String(t||'').match(/(\d{1,2}):(\d{2})/); return m? +m[1]*60+ +m[2] : 9999; };
 const people=pp=>String(pp||'').split(/[+,]/).reduce((a,x)=>a+(parseInt(x,10)||0),0);
 // 칠판처럼 12시간 표기(6:00), 오전 11시대는 11:30 그대로

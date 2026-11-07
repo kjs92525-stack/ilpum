@@ -5,7 +5,7 @@ NEW='bdqcrbnbuoujozlpttbe.supabase.co'; HQ='0134d989-757a-4b60-9cb3-93245de2cac8
 TODAY=datetime.date.today().isoformat()
 def it(i,n,tm,tb,pp): return {"id":"i%d"%i,"name":n,"time":tm,"tables":tb,"pp":pp,"tnote":"","req":"","done":False}
 ITEMS=[it(1,"점심손님","12:00",["1"],"2"),it(2,"이른손님","15:30",["2"],"2"),it(3,"사시반","16:00",["3"],"4"),it(4,"여섯시","18:00",["4"],"4"),
-       it(5,"일곱시","19:30",["5"],"3"),it(6,"여덟시","20:00",["6"],"2"),it(7,"늦은손님","20:30",["7"],"2"),dict(it(8,"도착함","18:30",["8"],"2"),done=True)]
+       it(5,"일곱시","19:30",["5"],"3"),it(6,"여덟시","20:00",["6"],"2"),it(7,"늦은손님","20:30",["7"],"2"),dict(it(8,"도착함","18:30",["8"],"2"),done=True),dict(it(9,"노쇼손님","17:00",["9"],"2"),req="노쇼"),dict(it(10,"취소손","19:00",["10"],"2"),req="전화 취소함"),it(11,"이름에취소","17:30",["11"],"2"),dict(it(12,"안내","17:45",["12"],"2"),req="예약금 취소 불가"),dict(it(13,"노쇼테","18:10",[],"2"),tnote="노쇼")]
 async def handler(r):
   u=r.request.url
   if 'localhost' in u: return await r.continue_()
@@ -31,18 +31,19 @@ async def main():
     await pg.goto('http://localhost:8765/display.html'); await pg.wait_for_timeout(2000)
     names=lambda: pg.evaluate("[...document.querySelectorAll('.row .nm')].map(e=>e.firstChild.textContent)")
     all_=await names(); fs0=await pg.evaluate("parseInt(getComputedStyle(document.getElementById('grid')).getPropertyValue('--fs'))")
-    chk('처음엔 오늘 전부(7팀)', len(all_)==7, all_)
+    chk('처음엔 오늘 전부(7팀+취소 불가 안내 1팀)', len(all_)==8, all_)
+    chk('노쇼·취소 써진 예약은 안 보임, 취소 불가 안내는 보임', not any(n in all_ for n in ['노*님','취*손','이***소','노*테']) and '안*' in all_, all_)
     chk('도착한 예약은 안 보임', '도*함' not in all_)
     chk('이름 가운데 글자 가림(점**님)', '점**님' in all_ and '점심손님' not in all_, all_)
     await pg.evaluate("showCtl()"); await pg.click('#ctlNear'); await pg.wait_for_timeout(400)
     nn=await names(); fs1=await pg.evaluate("parseInt(getComputedStyle(document.getElementById('grid')).getPropertyValue('--fs'))")
-    chk('앞뒤 2시간(16:00~20:00)만', nn==['사*반','여*시','일*시','여*시'], nn)
+    chk('앞뒤 2시간(16:00~20:00)만', nn==['사*반','안*','여*시','일*시','여*시'], nn)
     chk(f'글자가 더 커짐 {fs0}→{fs1}px', fs1>fs0)
     chk('제목·버튼 표시', '앞뒤 2시간' in await pg.inner_text('#title') and '✓' in await pg.inner_text('#ctlNear'))
     await pg.reload(); await pg.wait_for_timeout(2000)
-    chk('다시 열어도 기억', len(await names())==4)
+    chk('다시 열어도 기억', len(await names())==5)
     await pg.keyboard.press('n'); await pg.wait_for_timeout(300)
-    chk('N 키로 끄면 전부', len(await names())==7)
+    chk('N 키로 끄면 전부', len(await names())==8)
     await pg.evaluate("showCtl()"); await pg.click('#ctlFull'); await pg.wait_for_timeout(500)
     chk('전체화면 버튼 → 전체화면', await pg.evaluate("!!document.fullscreenElement") and '끄기' in await pg.inner_text('#ctlFull'))
     await pg.evaluate("showCtl()"); await pg.click('#ctlFull'); await pg.wait_for_timeout(500)
