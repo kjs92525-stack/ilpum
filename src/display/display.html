@@ -47,7 +47,7 @@ footer .sp{flex:1}
 .login b{font:700 24px/1.4 var(--serif);color:var(--navy);display:block;margin-bottom:8px}
 .login a{color:var(--navy2);font-weight:700}
 
-/* ===== 테마 4종 (?theme=warm | aurora | chalk | gold, 키보드 T 로 바꾸기). 위쪽 기본 스타일은 공통 뼈대 ===== */
+/* ===== 테마 5종 (?theme=warm | aurora | chalk | gold | paper(신문), 키보드 T 로 바꾸기). 위쪽 기본 스타일은 공통 뼈대 ===== */
 #fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 header,main,footer{position:relative;z-index:1}
 .row.in{animation:rowIn .7s cubic-bezier(.2,.8,.2,1) both}
@@ -193,6 +193,32 @@ body.lite .row{box-shadow:none!important}
 body.lite[data-theme=chalk]{background:#1d2b24}
 body.lite .row.soon{box-shadow:none!important}
 body.lite[data-theme=warm] .row.soon{background:#fff0dd}
+
+/* 5) 신문 — 크림색 종이 + 검은 명조, 두 줄 괘선, 빨강·파랑 포인트 (2026-11-07 사용자: '알파 데스크' 사진처럼 가시성 좋게). 움직임 없음 */
+body[data-theme=paper]{--bg:#f3ebdd;--pink:#1b1813;--pred:#b3261e;--pblue:#2f5aa6;--prule:#2a2620;background:var(--bg);color:var(--pink)}
+body[data-theme=paper] header{background:transparent;color:var(--pink);margin:0 3vw;padding:2.2vh 0 1.4vh;border-bottom:4px double var(--prule)}
+body[data-theme=paper] header .eb{color:var(--pred);font:600 clamp(12px,1.2vw,22px)/1 var(--sans);letter-spacing:.04em}
+body[data-theme=paper] header .eb::before{content:'';display:inline-block;width:.6em;height:.6em;border-radius:50%;background:var(--pred);margin-right:.5em;vertical-align:.05em}
+body[data-theme=paper] header h1{font:900 clamp(30px,4vw,74px)/1.08 var(--serif);color:var(--pink);letter-spacing:-.01em}
+body[data-theme=paper] header .day{font:500 clamp(15px,1.6vw,28px)/1.3 var(--serif);color:#4a443b}
+body[data-theme=paper] header .clock{font:900 clamp(30px,4vw,72px)/1 var(--serif);color:var(--pink)}
+body[data-theme=paper] main{padding-left:3vw;padding-right:3vw}
+body[data-theme=paper] .row{background:none;border:0;border-bottom:1px solid rgba(42,38,32,.55);border-radius:0;box-shadow:none;padding-left:calc(var(--fs)*.1)}
+body[data-theme=paper] .row .tm{font:700 calc(var(--fs)*.66)/1 var(--serif);color:#4a443b}
+body[data-theme=paper] .row .nm{font:900 calc(var(--fs)*1.02)/1.15 var(--serif);color:var(--pink)}
+body[data-theme=paper] .row .nm small{font:500 calc(var(--fs)*.5)/1 var(--serif);color:#6b6357}
+body[data-theme=paper] .row .tb{font:900 calc(var(--fs)*.92)/1 var(--serif);background:var(--pink);color:#f3ebdd;border-radius:calc(var(--fs)*.08)}
+body[data-theme=paper] .row .tb.room{background:none;color:var(--pred);border:3px solid var(--pred)}
+body[data-theme=paper] .row .tb.none{background:none;color:#9a9182;border:1px dashed #9a9182}
+body[data-theme=paper] .row.soon{border-bottom:2px solid var(--pred);box-shadow:none}
+body[data-theme=paper] .row.soon .tm{color:var(--pred)}
+body[data-theme=paper] .row.soon::before{background:var(--pred);width:calc(var(--fs)*.16);height:calc(var(--fs)*.16);border-radius:50%;top:calc(50% - var(--fs)*.08);left:calc(var(--fs)*-.24)}
+body[data-theme=paper] .row.in{animation:none}
+body[data-theme=paper] footer{margin:0 3vw;padding-left:0;padding-right:0;border-top:1px solid var(--prule);color:#6b6357}
+body[data-theme=paper] footer .guide{font:700 clamp(15px,1.5vw,28px)/1.3 var(--serif);color:var(--pink)}
+body[data-theme=paper] footer .guide i{background:var(--pink);border-radius:2px}
+body[data-theme=paper] .empty b{font:900 clamp(28px,3.2vw,56px)/1.3 var(--serif);color:var(--pink)}
+body[data-theme=paper] #st.ok{color:var(--pblue)}
 </style>
 </head>
 <body>
@@ -217,7 +243,7 @@ const CONF_KEY='ilpum-fr-conf';
 const Q=new URLSearchParams(location.search);
 const MASK=Q.get('mask')==='1';
 // 디자인: ?theme=aurora|chalk|warm|gold (모니터에서 T 키로 돌려 보기 — 이 기기에 기억)
-const THEMES=['warm','aurora','chalk','gold'];
+const THEMES=['warm','aurora','chalk','gold','paper'];
 let THEME=(()=>{ const q=Q.get('theme'); if(THEMES.includes(q)) return q; try{ const v=localStorage.getItem('ilpum-disp-theme'); if(THEMES.includes(v)) return v; }catch(e){} return 'warm'; })();
 function applyTheme(){ document.body.dataset.theme=THEME; const fx=document.getElementById('fx'); let h='';
   if(THEME==='gold'){ h='<div class="sheen"></div>'; for(let i=0;i<14;i++) h+=`<i class="gdot" style="left:${(Math.random()*100).toFixed(1)}%;--dx:${(Math.random()*8-4).toFixed(1)}vw;animation-duration:${(16+Math.random()*18).toFixed(1)}s;animation-delay:${(-Math.random()*34).toFixed(1)}s;width:${(2+Math.random()*3).toFixed(1)}px;height:${(2+Math.random()*3).toFixed(1)}px"></i>`; }

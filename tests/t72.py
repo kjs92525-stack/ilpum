@@ -70,9 +70,9 @@ async def main():
         th0=await pg.evaluate("document.body.dataset.theme"); await pg.click('#ctlTheme'); await pg.wait_for_timeout(300)
         chk('디자인 버튼 → 테마 바뀜', await pg.evaluate("document.body.dataset.theme")!=th0)
         names=[]
-        for _ in range(4):
+        for _ in range(5):
           names.append(await pg.evaluate("document.body.dataset.theme")); await pg.click('#ctlTheme'); await pg.wait_for_timeout(250)
-        chk('디자인 4종(온기·오로라·칠판·골드), 파란 흰바탕(classic) 없음', sorted(set(names))==sorted(['warm','aurora','chalk','gold']) and 'classic' not in names, str(names))
+        chk('디자인 5종(온기·오로라·칠판·골드·신문), 파란 흰바탕(classic) 없음', sorted(set(names))==sorted(['warm','aurora','chalk','gold','paper']) and 'classic' not in names, str(names))
         # 가벼운 모드: 켜면 움직임·흐림이 꺼지고, 꺼도 화면 내용은 그대로
         await pg.click('#ctlLite'); await pg.wait_for_timeout(300)
         lt=await pg.evaluate("[document.body.classList.contains('lite'), getComputedStyle(document.querySelector('.row')).animationName, document.querySelectorAll('.row').length]")
