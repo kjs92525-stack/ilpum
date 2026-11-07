@@ -408,6 +408,7 @@ document.addEventListener('click',async e=>{
     case 'jump': $('#'+d.to)?.scrollIntoView({behavior:'smooth'}); break;
     case 'paytog': sessionStorage.setItem('fr-pay',canPay()?'0':'1'); render(); break;
     case 'print': window.print(); break;
+    case 'pmode': openPrint(); break;
     case 'edit': if(!canEdit()){ if(d.sid&&role()==='staff') return; toast('보기 전용이에요'); return; }
       if(d.spot) dSpot(d.spot); else if(d.sid) dStaffDay(d.sid,d.k); break;
     case 'add': dAdd(d.pos,d.k); break;

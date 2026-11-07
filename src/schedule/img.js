@@ -148,3 +148,52 @@ async function imgAct(a){
   else if(a==='copy'){ try{ await navigator.clipboard.write([new ClipboardItem({'image/png':IMGS.blob})]); toast('사진을 복사했어요 · 카톡에 붙여넣기(Ctrl+V)'); }catch(e){ toast('이 화면에서는 복사가 막혀 있어요. 사진을 길게 눌러 저장하세요'); } }
   else { try{ const a2=document.createElement('a'); a2.href=IMGS.url; a2.download=IMGS.name; document.body.appendChild(a2); a2.click(); a2.remove(); toast('사진을 저장했어요 · 안 되면 사진을 길게 눌러 저장하세요'); }catch(e){ toast('사진을 길게 눌러 저장하세요'); } }
 }
+
+/* ================= 인쇄 모드 (2026-11-08 사용자: 사진 공유는 그대로, '크게' 모드처럼 A4 가로로 인쇄) =================
+   화면에 보이는 기간(오늘부터 7일 / 한 달)을 A4 가로 한 장에 1·2·3일씩. 사진과 같은 기준: 이름만(메모 숫자·금액 없음) */
+const PM_KEY='ilpum-print-n';
+function pmN(){ try{ const v=+localStorage.getItem(PM_KEY); return [1,2,3].includes(v)?v:2; }catch(e){ return 2; } }
+function pmOff(){ try{ return localStorage.getItem('ilpum-print-off')!=='0'; }catch(e){ return true; } }
+function cardRange(){ const mode=APP.cardMode||'month', a=APP.anchor;
+  if(mode==='month') return [new Date(a.getFullYear(),a.getMonth(),1), new Date(a.getFullYear(),a.getMonth()+1,0)];
+  const s=new Date(a.getFullYear(),a.getMonth(),a.getDate()); return [s,addDays(s,6)]; }
+function pmDay(d,rules,showOff){
+  const D=APP.D, st=D.store, R=resolve(D,d,{rules,quiet:true}), wd=d.getDay();
+  const rows=D.positions.map(p=>({p,items:R.list.filter(x=>x.pos===p.name).map(x=>imgItem(x,st))})).filter(r=>r.items.length);
+  const offs=showOff?R.offs.filter(offShow).map(o=>esc(o.name)+(o.reason!=='고정휴무'&&o.reason!=='주간휴무'?`<small>(${esc(o.reason)})</small>`:'')):[];
+  const work=R.list.filter(x=>!x.vac).length, vac=R.list.filter(x=>x.vac).length;
+  return `<div class="pmday"><div class="pmh"><b class="${wd===0?'sun':wd===6?'sat':''}">${d.getMonth()+1}월 ${d.getDate()}일 <span>(${DOW[wd]})</span></b><em>근무 ${work}명${vac?` · 빈자리 ${vac}`:''}</em></div>
+    <div class="pmrows">${rows.length?rows.map(r=>`<div class="pmr" style="--pc:${esc(r.p.color)}"><div class="pml">${esc(r.p.name)}<small>${r.items.length}명</small></div><div class="pmn">${r.items.map(i=>`<span class="pmc${i.b?' sp':''}${i.c==='#9A9A9A'?' vac':''}">${esc(i.t)}${i.s?`<i>${esc(i.s)}</i>`:''}</span>`).join('')}</div></div>`).join(''):'<div class="pm0">근무자가 없어요</div>'}</div>
+    ${offs.length?`<div class="pmoff"><b>쉬는 사람</b>${offs.map(o=>`<span>${o}</span>`).join('')}</div>`:''}</div>`;
+}
+function pmRender(){
+  const el=document.getElementById('pm'); if(!el) return; const D=APP.D, n=pmN(), off=pmOff(), [s,e]=cardRange(), rules=rulesSorted(D);
+  const days=[]; for(let d=new Date(s); d<=e; d=addDays(d,1)) days.push(new Date(d));
+  let pages=''; for(let i=0;i<days.length;i+=n){ const grp=days.slice(i,i+n);
+    pages+=`<section class="pmpage n${n}"><header><b>${esc(D.store.name)} 근무표</b><span>${md(ds(grp[0]))}${grp.length>1?' ~ '+md(ds(grp[grp.length-1])):''}</span></header><div class="pmgrid">${grp.map(d=>pmDay(d,rules,off)).join('')}</div></section>`; }
+  el.querySelector('.pmpages').innerHTML=pages;
+  el.querySelectorAll('[data-pmn]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.pmn===n));
+  el.querySelector('#pmOffCk').checked=off;
+  el.querySelector('.pmcnt').textContent=`${days.length}일 · ${Math.ceil(days.length/n)}장`;
+  pmFit();
+}
+// 종이에 맞춰 글자 크기: 내용이 적으면 크게(최대 1.6배), 넘치면 줄임(최소 0.5배)
+function pmFit(){ document.querySelectorAll('#pm .pmpage').forEach(pg=>{ const g=pg.querySelector('.pmgrid'); let f=1.6; pg.style.setProperty('--k',f);
+  for(let i=0;i<22&&g.scrollHeight>g.clientHeight+1;i++){ f-=.05; pg.style.setProperty('--k',f.toFixed(2)); } }); }
+function openPrint(){
+  let el=document.getElementById('pm');
+  if(!el){ el=document.createElement('div'); el.id='pm'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','인쇄 모드');
+    el.innerHTML=`<div class="pmbar"><b>인쇄 모드 · A4 가로</b><span class="pmcnt"></span><span class="sp"></span>
+      <div class="seg" role="group" aria-label="한 장에 며칠"><span class="pmlb">한 장에</span><button data-pmn="1">1일</button><button data-pmn="2">2일</button><button data-pmn="3">3일</button></div>
+      <label class="ck"><input type="checkbox" id="pmOffCk"> 쉬는 사람</label>
+      <button class="btn pri" data-pmgo="1">인쇄하기</button><button class="btn" data-pmx="1">닫기</button></div><div class="pmpages"></div>`;
+    document.body.appendChild(el);
+    el.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+      if(b.dataset.pmn){ try{ localStorage.setItem(PM_KEY,b.dataset.pmn); }catch(x){} pmRender(); }
+      else if(b.dataset.pmgo) window.print();
+      else if(b.dataset.pmx) closePrint(); });
+    el.querySelector('#pmOffCk').addEventListener('change',e=>{ try{ localStorage.setItem('ilpum-print-off',e.target.checked?'1':'0'); }catch(x){} pmRender(); });
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.body.classList.contains('pm-on')) closePrint(); }); }
+  document.body.classList.add('pm-on'); pmRender();
+}
+function closePrint(){ document.body.classList.remove('pm-on'); }
