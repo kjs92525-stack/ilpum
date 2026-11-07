@@ -479,36 +479,6 @@ button.cc:hover,.hrow button.hc:hover{background:var(--amber-soft)}
 @media (prefers-reduced-motion:reduce){.hcal.q .cc .nm i.hit{animation:none}}
 .cc .nm i.mgr{font-weight:900}   /* 휴무 달력: 매니저 이름 조금 굵게 (2026-11-08 사용자) */
 
-/* ---------- 인쇄 모드: 하루치 A4 가로 (2026-11-08) — 잉크 아끼기(배경 없음·검은 글자·가는 선), 왼쪽 잘림 방지(여백 12mm + 안쪽 여유) ---------- */
-#pm{display:none}
-body.pm-on #pm{display:block;position:fixed;inset:0;z-index:90;background:#e9e6e1;overflow:auto}
-.pmbar{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
-.pmbar>b{font-size:16px} .pmbar .sp{flex:1}
-.pmpages{display:flex;flex-direction:column;align-items:center;padding:18px 12px 40px}
-@page pmA4{size:A4 landscape;margin:12mm}
-.pmpage{page:pmA4;--k:1;--fs:calc(26pt * var(--k));width:269mm;height:182mm;box-sizing:border-box;padding:0 2mm;background:#fff;color:#000;display:flex;flex-direction:column;box-shadow:0 2px 10px rgba(0,0,0,.15);outline:12mm solid #fff;margin:12mm 0;font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
-.pmpage header{display:flex;justify-content:space-between;align-items:baseline;gap:6mm;padding-bottom:2.5mm;border-bottom:.6mm solid #000;margin-bottom:1mm}
-.pmpage header b{font-size:30pt;font-weight:800;letter-spacing:-.02em} .pmpage header b span{font-size:.6em;font-weight:700;margin-left:2mm}
-.pmpage header em{font-style:normal;font-size:12pt;font-weight:600}
-.pmgrid{flex:1;min-height:0;overflow:hidden}
-.pmr{display:grid;grid-template-columns:calc(var(--fs) * 3.9) minmax(0,1fr);border-bottom:.3mm solid #000;break-inside:avoid}
-.pmr:last-child{border-bottom:0}
-.pml{padding:2.4mm 2mm 2.4mm 0;font-size:calc(var(--fs) * .78);font-weight:800;display:flex;flex-direction:column;justify-content:center;line-height:1.15;border-right:.3mm solid #000;margin-right:4mm}
-.pml small{font-size:.66em;font-weight:600}
-.pmn{display:flex;flex-wrap:wrap;align-items:center;gap:1.2mm calc(var(--fs) * .8);padding:2.4mm 0;font-size:var(--fs);font-weight:800;line-height:1.25;color:#000}
-.pmc{white-space:nowrap;color:#000} .pmc i{font-style:normal;font-size:.55em;font-weight:700;margin-left:.15em;color:#000}
-.pmc.sp{text-decoration:underline;text-decoration-thickness:.35mm;text-underline-offset:.18em}   /* 당일알바: 색 대신 밑줄(흑백에서도 구분) */
-.pm0{padding:8mm 0;font-size:18pt}
-.pmoff .pml{font-size:calc(var(--fs) * .62)} .pmoff .pmn{font-size:calc(var(--fs) * .62);font-weight:600} .pmoff small{font-size:.8em}
-@media (max-width:860px){ .pmpages{align-items:flex-start} }
-@media print{
-  body.pm-on>*:not(#pm){display:none!important}
-  body.pm-on #pm{position:static;overflow:visible;background:#fff}
-  body.pm-on .pmbar{display:none}
-  body.pm-on .pmpages{display:block;padding:0}
-  body.pm-on .pmpage{box-shadow:none;outline:0;margin:0}
-}
-
 </style>
 </head>
 <body>
@@ -1047,7 +1017,7 @@ function vCards(){
     ${hiddenN>0||APP.showEmpty?`<button class="btn" data-a="empty">${APP.showEmpty?'빈 포지션 숨기기':`빈 포지션 ${hiddenN}개 보기`}</button>`:''}
     ${ed?'<button class="btn" data-a="posmgr">포지션 관리</button>':''}
     ${ed&&hasWeekly?`<button class="btn" data-a="weekly" data-k="${ds(ws)}">매주 변동 입력</button>`:''}
-    ${payToggle()}${EMBED&&window.parent!==window?'<button class="btn" data-a="tores">예약 보기 ›</button>':''}<button class="btn" data-a="pmode" title="하루치를 A4 가로로 인쇄">하루 인쇄</button></div>
+    ${payToggle()}${EMBED&&window.parent!==window?'<button class="btn" data-a="tores">예약 보기 ›</button>':''}<button class="btn" data-a="print">인쇄</button></div>
     <div class="cards ${cardBig()?'big':''}">${cards}</div>
     <div class="legend"><span><span class="chip">이름</span> 기본</span><span><span class="chip g-add">이름</span> 추가 출근</span><span><span class="chip g-chg">이름</span> 포지션 변경</span><span><span class="chip t-spot">이름</span> 단기·당일</span><span><span class="chip t-weekly">이름</span> 매주 변동</span><span><span class="chip">이름<i class="pmb">오후</i></span><span class="chip">이름<i class="tm soft">11시</i></span> 출근 시간</span></div>`;
 }
@@ -1520,44 +1490,6 @@ async function imgAct(a){
   else { try{ const a2=document.createElement('a'); a2.href=IMGS.url; a2.download=IMGS.name; document.body.appendChild(a2); a2.click(); a2.remove(); toast('사진을 저장했어요 · 안 되면 사진을 길게 눌러 저장하세요'); }catch(e){ toast('사진을 길게 눌러 저장하세요'); } }
 }
 
-/* ================= 인쇄 모드 (2026-11-08 사용자) =================
-   하루치를 A4 가로 한 장에, 스케줄 '크게' 화면처럼 포지션 줄마다 이름을 가로로. 잉크 아끼기: 배경색 없이 검은 글자·가는 선.
-   흑백 인쇄에서도 잘 보이게 이름은 전부 검정(당일알바도). 사진과 같은 기준: 이름만(메모 숫자·금액 없음) */
-function pmOff(){ try{ return localStorage.getItem('ilpum-print-off')!=='0'; }catch(e){ return true; } }
-function pmRender(){
-  const el=document.getElementById('pm'); if(!el) return; const D=APP.D, st=D.store, key=APP.pmDay||todayStr, d=pd(key), wd=d.getDay();
-  const R=resolve(D,d,{rules:rulesSorted(D),quiet:true});
-  const rows=D.positions.map(p=>({p,items:R.list.filter(x=>x.pos===p.name).map(x=>imgItem(x,st))})).filter(r=>r.items.length);
-  const offs=pmOff()?R.offs.filter(offShow).map(o=>esc(o.name)+(o.reason!=='고정휴무'&&o.reason!=='주간휴무'?`<small>(${esc(o.reason)})</small>`:'')):[];
-  const work=R.list.filter(x=>!x.vac).length, vac=R.list.filter(x=>x.vac).length;
-  el.querySelector('.pmpages').innerHTML=`<section class="pmpage"><header><b>${d.getMonth()+1}월 ${d.getDate()}일 <span>${DOW[wd]}요일</span></b><em>${esc(st.name)} 근무표 · 근무 ${work}명${vac?` · 빈자리 ${vac}`:''}</em></header>
-    <div class="pmgrid">${rows.length?rows.map(r=>`<div class="pmr"><div class="pml">${esc(r.p.name)}<small>${r.items.length}명</small></div><div class="pmn">${r.items.map(i=>`<span class="pmc${i.b?' sp':''}">${esc(i.t)}${i.s?`<i>${esc(i.s)}</i>`:''}</span>`).join('')}</div></div>`).join(''):'<div class="pm0">근무자가 없어요</div>'}
-    ${offs.length?`<div class="pmr pmoff"><div class="pml">쉬는 사람</div><div class="pmn">${offs.map(o=>`<span>${o}</span>`).join('')}</div></div>`:''}</div></section>`;
-  el.querySelector('#pmDate').value=key; el.querySelector('#pmOffCk').checked=pmOff();
-  pmFit();
-}
-// 종이에 맞춰 글자 크기: 내용이 적으면 크게(최대 1.5배), 넘치면 줄임(최소 0.45배)
-function pmFit(){ document.querySelectorAll('#pm .pmpage').forEach(pg=>{ const g=pg.querySelector('.pmgrid'); let f=1.5; pg.style.setProperty('--k',f);
-  for(let i=0;i<24&&g.scrollHeight>g.clientHeight+1;i++){ f-=.045; pg.style.setProperty('--k',f.toFixed(3)); } }); }
-function openPrint(key){
-  let el=document.getElementById('pm');
-  if(!el){ el=document.createElement('div'); el.id='pm'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','인쇄 모드');
-    el.innerHTML=`<div class="pmbar"><b>하루 인쇄 · A4 가로</b><span class="sp"></span>
-      <button class="btn ic" data-pmd="-1" aria-label="전날">‹</button><input type="date" id="pmDate" class="cgo" aria-label="인쇄할 날짜"><button class="btn ic" data-pmd="1" aria-label="다음 날">›</button>
-      <label class="ck"><input type="checkbox" id="pmOffCk"> 쉬는 사람</label>
-      <button class="btn pri" data-pmgo="1">인쇄하기</button><button class="btn" data-pmx="1">닫기</button></div><div class="pmpages"></div>`;
-    document.body.appendChild(el);
-    el.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
-      if(b.dataset.pmd){ APP.pmDay=ds(addDays(pd(APP.pmDay||todayStr),+b.dataset.pmd)); pmRender(); }
-      else if(b.dataset.pmgo) window.print();
-      else if(b.dataset.pmx) closePrint(); });
-    el.querySelector('#pmDate').addEventListener('change',e=>{ if(e.target.value){ APP.pmDay=e.target.value; pmRender(); } });
-    el.querySelector('#pmOffCk').addEventListener('change',e=>{ try{ localStorage.setItem('ilpum-print-off',e.target.checked?'1':'0'); }catch(x){} pmRender(); });
-    document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.body.classList.contains('pm-on')) closePrint(); }); }
-  APP.pmDay=key||todayStr; document.body.classList.add('pm-on'); pmRender();
-}
-function closePrint(){ document.body.classList.remove('pm-on'); }
-
 /* ================= 오른쪽 서랍 ================= */
 function openDrawer(title,sub,body,foot,wide){
   $('#dTitle').textContent=title; $('#dSub').innerHTML=sub||''; $('#dBody').innerHTML=body; $('#dFoot').innerHTML=foot||'';
@@ -1968,7 +1900,6 @@ document.addEventListener('click',async e=>{
     case 'jump': $('#'+d.to)?.scrollIntoView({behavior:'smooth'}); break;
     case 'paytog': sessionStorage.setItem('fr-pay',canPay()?'0':'1'); render(); break;
     case 'print': window.print(); break;
-    case 'pmode': openPrint(); break;
     case 'edit': if(!canEdit()){ if(d.sid&&role()==='staff') return; toast('보기 전용이에요'); return; }
       if(d.spot) dSpot(d.spot); else if(d.sid) dStaffDay(d.sid,d.k); break;
     case 'add': dAdd(d.pos,d.k); break;
