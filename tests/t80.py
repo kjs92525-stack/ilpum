@@ -43,6 +43,11 @@ async def main():
     chk('취소·노쇼 예약만 목록(시간순)', '노쇼손님' in tx and '취소손님' in tx and '홍길동' not in tx and '안내손님' not in tx and tx.index('노쇼손님')<tx.index('취소손님'), tx)
     await pg.click('.pick [data-pe="i2"]'); await pg.wait_for_timeout(300)
     chk('수정 누르면 수정 창', await pg.input_value('#fName')=='취소손님')
+    # 같은 테이블에 지금 손님(쿠폰 없음) + 다음 손님(10%) → 칸에는 지금 손님 것만
+    r=await pg.evaluate("""(()=>{ const A={id:'a',name:'지금손님',time:'12:00',pp:'2',req:'',tables:['1']}, B={id:'b',name:'다음손님',time:'14:00',pp:'2',req:'10%',tables:['1']};
+      const h1=cellHtml('1',{'1':[{it:A,st:'use'},{it:B,st:'res'}]}), h2=cellHtml('1',{'1':[{it:B,st:'res'},{it:A,st:'use'}]});
+      return [h1.includes('pctb'), h2.includes('pctb')]; })()""")
+    chk('다음 손님 10%가 지금 손님 칸에 안 뜸(다음 손님이 보일 땐 뜸)', r==[False,True], r)
     chk('오류 없음', not errs, errs); await b.close()
   print('전체 OK' if ok else '실패 있음')
 asyncio.run(main())

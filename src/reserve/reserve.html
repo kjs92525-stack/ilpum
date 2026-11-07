@@ -229,6 +229,7 @@ body.resizing iframe{pointer-events:none}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;font-weight:600}
 .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:2px solid currentColor}
 .legend .lg-cxl{font:inherit;color:var(--warn);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.legend .lg-cxl::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:2px solid currentColor;background:repeating-linear-gradient(45deg,currentColor 0 2px,transparent 2px 4px)}.legend .lg-cxl:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.dn .pctn{color:#E5484D;font-size:.85em;font-weight:800}
 .lg-use{color:var(--use)} .lg-res{color:var(--res)} .lg-soon{color:var(--soon)}
 .lg-tight{color:var(--tight);font-weight:700} .lg-past{color:var(--past)}
 .floor{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;flex:1}
@@ -867,15 +868,15 @@ function cellHtml(t,map){
   if(dup.length>1){
     dup.sort((a,b)=>toMin(a.time)-toMin(b.time));
     const depD=dup.some(hasDep);
-    const pctD=dup.some(hasPct);
     return `<div class="cell st-dup${depD?' dep':''}" data-cell="${t}" data-pick="${t}" title=""${esc(dup.map(x=>x.name+' '+x.time+' '+x.pp+'명').join(' / '))}">
-      ${depD?'<span class="depb">💰 예약금</span>':''}<span class="dupb">⚠ 중복</span>${pctD?'<span class="pctb">10%</span>':''}<span class="no">${esc(tLabel(t))}</span>
-      ${dup.slice(0,3).map(x=>`<span class="dn">${esc(x.name)} <small>${esc(x.time)}·${esc(x.pp)}명</small></span>`).join('')}${dup.length>3?`<small>외 ${dup.length-3}건</small>`:''}</div>`;
+      ${depD?'<span class="depb">💰 예약금</span>':''}<span class="dupb">⚠ 중복</span><span class="no">${esc(tLabel(t))}</span>
+      ${dup.slice(0,3).map(x=>`<span class="dn">${esc(x.name)} <small>${esc(x.time)}·${esc(x.pp)}명</small>${hasPct(x)?' <b class="pctn">10%</b>':''}</span>`).join('')}${dup.length>3?`<small>외 ${dup.length-3}건</small>`:''}</div>`;
   }
   const tight = TIGHT.table[t]? [...TIGHT.table[t].values()] : [];
   const tightNote = tight.length? `<span class="tightb">⏰ 다음팀 ${esc(tight.filter(x=>x.id!==it.id).map(x=>x.time).join('·'))}</span>` : '';
-  const dep=list.some(l=>hasDep(l.it));
-  const pct=list.some(l=>hasPct(l.it));
+  // 10%·예약금 표시는 지금 칸에 보이는 예약(it) 것만 (2026-11-08 사용자: 다음 손님이 10% 쿠폰인데 지금 손님에게도 10%가 떠 보임)
+  const dep=hasDep(it);
+  const pct=hasPct(it);
   return `<div class="cell st-${top.st} ${seatCls(t)}${dep?' dep':''}" data-cell="${t}" data-pick="${t}" title=""${esc(it.name)} ${esc(it.time)} ${esc(it.pp)}명${it.req?' · '+esc(it.req):''}${tight.length?' · 2시간 뒤 다음팀 있음':''}">
     ${list.length>1?`<span class="more">+${list.length-1}</span>`:''}
     ${pct?'<span class="pctb" title="10% 할인 이벤트">10%</span>':''}${top.st==='use'?'<span class="arr">✓ 도착</span>':''}<span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}<span class="cn">${esc(it.name)}</span><span class="ci">${esc(it.pp)}명·${esc(it.time)}</span>${dep?'<span class="depb">💰 예약금</span>':''}${it.req&&!dep?'<span class="memo">📝 메모</span>':''}${tightNote}</div>`;
