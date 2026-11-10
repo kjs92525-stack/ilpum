@@ -50,7 +50,7 @@ function dwTone(color,ink=false){
   if(h<265) return ink?'#5c718b':'#eaf0f7';
   return ink?'#886879':'#f3eaf0';
 }
-function dwCellTheme(s,r,c){ const t=(s.styles||{})[r+','+c]||{}; return {bg:dwTone(t.bg)||(r===0?'#edf2ee':r%2?'#ffffff':'#fafbf9'),fg:t.fg?dwTone(t.fg,true):r===0?'#3d5747':'#26362d',bold:r===0||!!t.bold,align:t.align||'left'}; }
+function dwCellTheme(s,r,c){ const t=(s.styles||{})[r+','+c]||{},pos=r>0&&c===0?({홀:'#f8f1dd',주방:'#e9f1e9',주차:'#f3eaf0'}[dwNormalize(s.rows[r]?.[c])]):null; return {bg:pos||dwTone(t.bg)||(r===0?'#edf2ee':r%2?'#ffffff':'#fafbf9'),fg:t.fg?dwTone(t.fg,true):r===0?'#3d5747':'#26362d',bold:r===0||!!t.bold,align:t.align||'left'}; }
 function dwStyle(s,r,c){ const t=dwCellTheme(s,r,c); return `background:${t.bg};color:${t.fg};font-weight:${t.bold?700:600};text-align:${t.align}`; }
 function vDaily(){
   if(!navAllowed('daily')) return '';
@@ -62,13 +62,13 @@ function vDaily(){
   if(!s) return '<div class="vh"><h1>일용직근무자</h1></div><div class="card empty">등록된 일용직 원장이 없어요.</div>';
   dwFind();
   const hitRows=new Set(DW.hits.filter(h=>h.key===DW.sheet).map(h=>h.r));
-  return `<div class="vh dw-heading"><div><h1>일용직근무자</h1><div class="sub">월별 근무 기록 · 칸을 한 번 누르면 바로 수정할 수 있어요</div></div><span class="sp"></span>${payToggle()}</div>
+  return `<div class="vh dw-heading"><div><h1>일용직근무자</h1><div class="sub">월별 근무 기록 · 칸을 두 번 누르면 수정할 수 있어요</div></div><span class="sp"></span>${payToggle()}</div>
     <div class="card dw-tools">${dwSearchBox()}<div class="dw-months" role="group" aria-label="월 선택">${sheets.map(k=>`<button type="button" data-dw-month="${esc(k)}" aria-pressed="${k===DW.sheet}" ${DW.busy?'disabled':''}>${esc(APP.D.pay[k].name)}</button>`).join('')}</div></div>
     <div class="card dw-toolbar">
     <button class="btn" data-dw="all">전체 선택</button><button class="btn" data-dw="clear">선택 해제</button><button class="btn" data-dw="add" ${DW.busy?'disabled':''}>+ 행 추가</button>
     <span class="sp"></span><span id="dw-status" role="status">${DW.busy?'저장 중…':DW.drafts.has(dwKey())?'수정됨 · 저장해 주세요':'저장됨'}</span>
     <button class="btn" data-dw="save" ${DW.busy?'disabled':''}>저장</button><button class="btn pri" data-dw="pdf" ${DW.busy||!dwRange()?'disabled':''}>선택 범위 PDF</button></div>
-    <p class="help dw-help">클릭해서 바로 수정 · Tab 오른쪽 / Enter 아래쪽 · Shift와 함께 누르면 반대로 이동 · Alt+Enter 줄바꿈. 드래그 또는 Shift+클릭으로 PDF 범위를 선택하세요. 수정 후 ‘저장’을 누르세요.</p>
+    <p class="help dw-help">한 번 클릭은 선택 · 더블클릭은 수정 · Tab 오른쪽 / Enter 아래쪽 · Shift와 함께 누르면 반대로 이동 · Alt+Enter 줄바꿈. 드래그 또는 Shift+클릭으로 PDF 범위를 선택하세요. 수정 후 ‘저장’을 누르세요.</p>
     <div class="dw-selection" id="dw-range" aria-live="polite">${dwRangeText()}</div>
     <div class="dw-scroll" tabindex="0" role="region" aria-label="일용직근무자 표"><table class="dw-grid" role="grid" aria-label="${esc(s.name)} 일용직근무자"><colgroup><col style="width:44px">${s.widths.map(w=>`<col style="width:${Math.max(76,Math.round(w*.92))}px">`).join('')}</colgroup>
     <thead><tr><th></th>${s.widths.map((_,c)=>`<th>${dwCol(c)}</th>`).join('')}</tr></thead><tbody>${s.rows.map((row,r)=>`<tr class="${hitRows.has(r)?'dw-search-hit':''} ${DW.target?.key===DW.sheet&&DW.target?.r===r?'dw-search-current':''}"><th>${r+1}</th>${s.widths.map((_,c)=>`<td data-dwr="${r}" data-dwc="${c}" style="${dwStyle(s,r,c)}" aria-selected="${dwContains(r,c)}" class="${dwContains(r,c)?'dw-selected':''} ${[2,3,7].includes(c)?'dw-compact':''}">${dwCellText(row,r,c,hitRows.has(r))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
@@ -99,7 +99,7 @@ function dwEdit(td,initial){
   const height=Math.max(28,td.clientHeight-10);
   td.textContent=''; td.append(input); input.style.height=height+'px'; input.focus({preventScroll:true}); if(initial==null) input.select();
   let done=false;
-  const finish=cancel=>{ if(done) return; done=true; const v=cancel?old:input.value; if(v!==old){ dwDraft().rows[r][c]=v; dwDirty(); } input.remove(); td.textContent=v; };
+  const finish=cancel=>{ if(done) return; done=true; const v=cancel?old:input.value; if(v!==old){ dwDraft().rows[r][c]=v; dwDirty(); } input.remove(); td.textContent=v; td.setAttribute('style',dwStyle(dwSheet(),r,c)); };
   input.addEventListener('blur',()=>finish(false));
   input.addEventListener('keydown',e=>{
     e.stopPropagation(); if(e.isComposing||e.keyCode===229) return; // 한글 조합 확정 Enter는 이동하지 않음
@@ -183,7 +183,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('dblclick',e=>{ const td=e.target.closest('.dw-grid td'); if(td) dwEdit(td); });
 document.addEventListener('pointerdown',e=>{
   const td=e.target.closest('.dw-grid td'); if(!td||e.target.closest('.dw-editor')||e.button!==0||DW.busy) return;
-  e.preventDefault(); const p={r:+td.dataset.dwr,c:+td.dataset.dwc}; if(!e.shiftKey||!DW.a) DW.a=p; DW.b=p; DW.drag={id:e.pointerId,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,moved:false,shift:e.shiftKey}; $('.dw-scroll').focus({preventScroll:true}); dwPaint(); requestAnimationFrame(dwDragFrame);
+  e.preventDefault(); const p={r:+td.dataset.dwr,c:+td.dataset.dwc}; if(!e.shiftKey||!DW.a) DW.a=p; DW.b=p; DW.drag={id:e.pointerId,x:e.clientX,y:e.clientY}; $('.dw-scroll').focus({preventScroll:true}); dwPaint(); requestAnimationFrame(dwDragFrame);
 });
 function dwDragFrame(){
   const d=DW.drag,box=$('.dw-scroll'); if(!d||!box) return;
@@ -193,8 +193,8 @@ function dwDragFrame(){
   if(td){ const p={r:+td.dataset.dwr,c:+td.dataset.dwc}; if(p.r!==DW.b.r||p.c!==DW.b.c){ DW.b=p; dwPaint(); } }
   requestAnimationFrame(dwDragFrame);
 }
-document.addEventListener('pointermove',e=>{ if(DW.drag&&DW.drag.id===e.pointerId){ const d=DW.drag; d.x=e.clientX; d.y=e.clientY; if(Math.hypot(d.x-d.startX,d.y-d.startY)>5) d.moved=true; } });
-document.addEventListener('pointerup',e=>{ const d=DW.drag; DW.drag=null; if(!d||d.id!==e.pointerId||d.moved||d.shift) return; const td=e.target.closest('.dw-grid td'); if(td) dwEdit(td); });
+document.addEventListener('pointermove',e=>{ if(DW.drag&&DW.drag.id===e.pointerId){ DW.drag.x=e.clientX; DW.drag.y=e.clientY; } });
+document.addEventListener('pointerup',()=>DW.drag=null);
 document.addEventListener('pointercancel',()=>DW.drag=null);
 window.addEventListener('blur',()=>DW.drag=null);
 document.addEventListener('keydown',e=>{

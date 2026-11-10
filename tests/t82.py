@@ -14,7 +14,7 @@ SHEET = {'name': '11월', 'widths': [90, 130, 170, 110, 100, 100, 220, 160, 250]
          'rows': [['근무형태', '성함', '주민번호', '신고가능여부', '신고금액', '근무일', '계좌번호', '연락처', '비고(근무일자 등)'],
                   ['홀', '테스트가', '000000-0000000', '가능', '120,000', '2', '테스트은행 001', '010-0000-0000', '줄바꿈\n원문 <>&'],
                   ['주방', '선택제외', '', '불가능', '', '', '현찰', '', '메모']],
-         'styles': {'1,1': {'bg': '#FFFF00', 'bold': True}}}
+         'styles': {'1,0': {'bg': '#FFFF00', 'bold': True}, '1,1': {'bg': '#FFFF00', 'bold': True}}}
 ROWS = [{'kind': 'pay', 'id': 'daily:2026-11', 'data': copy.deepcopy(SHEET)},
         {'kind': 'pay', 'id': 'daily:2026-10', 'data': {**copy.deepcopy(SHEET), 'name': '10월'}}]
 ROWS[1]['data']['rows'][2][1] = '지난달직원'
@@ -95,8 +95,10 @@ async def main():
             assert await td.evaluate('(e)=>getComputedStyle(e).whiteSpace') == 'nowrap'
             assert await td.evaluate('(e)=>parseFloat(getComputedStyle(e).fontSize)') < 15
         cell = pg.locator('.dw-grid td[data-dwr="1"][data-dwc="4"]')
-        # 한 번 클릭해 입력 → Tab 오른쪽, Enter 아래쪽. Shift로 반대 이동.
+        # 한 번 클릭은 선택만, 더블클릭으로 입력. Tab 오른쪽, Enter 아래쪽.
         await cell.click()
+        assert await pg.locator('.dw-editor').count() == 0
+        await cell.dblclick()
         assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'E2 수정'
         await pg.locator('.dw-editor').fill('150,000')
         await pg.locator('.dw-editor').dispatch_event('keydown', {'key': 'Enter', 'isComposing': True, 'keyCode': 229})
@@ -119,12 +121,21 @@ async def main():
         await pg.locator('.dw-scroll').press('Enter')
         assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'E3 수정'
         await pg.locator('.dw-editor').press('Escape')
-        await pg.locator('.dw-grid td[data-dwr="1"][data-dwc="8"]').click()
+        await pg.locator('.dw-grid td[data-dwr="1"][data-dwc="8"]').dblclick()
         await pg.locator('.dw-editor').press('Tab')
         assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'A3 수정'
         await pg.locator('.dw-editor').press('Shift+Tab')
         assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'I2 수정'
         await pg.locator('.dw-editor').press('Escape')
+        # 원본에 홀 색상이 남아 있어도 현재 입력값으로 즉시 색상을 결정.
+        role_cell = pg.locator('.dw-grid td[data-dwr="1"][data-dwc="0"]')
+        hall_color = await role_cell.evaluate('(e)=>getComputedStyle(e).backgroundColor')
+        await role_cell.dblclick()
+        await pg.locator('.dw-editor').fill('주방')
+        await pg.locator('.dw-editor').press('Tab')
+        kitchen_color = await role_cell.evaluate('(e)=>getComputedStyle(e).backgroundColor')
+        assert kitchen_color == 'rgb(233, 241, 233)' and kitchen_color != hall_color
+        assert await pg.evaluate("dwCellTheme(dwSheet(),1,0).bg") == '#e9f1e9'
         await pg.locator('[data-dw=save]').click()
         await pg.wait_for_function('!DW.busy')
         assert WRITES[-1]['kind'] == 'pay' and WRITES[-1]['id'] == 'daily:2026-11'
@@ -133,6 +144,12 @@ async def main():
         await pg.reload()
         await pg.locator('.dw-grid').wait_for()
         assert await cell.inner_text() == '150,000'
+        assert await role_cell.inner_text() == '주방'
+        assert await role_cell.evaluate('(e)=>getComputedStyle(e).backgroundColor') == kitchen_color
+        await role_cell.dblclick()
+        await pg.locator('.dw-editor').fill('홀')
+        await pg.locator('.dw-editor').press('Tab')
+        assert await role_cell.evaluate('(e)=>getComputedStyle(e).backgroundColor') == hall_color
         # 저장 실패·월 전환 후에도 수정 내용 보존.
         FAIL = True
         await cell.dblclick()
