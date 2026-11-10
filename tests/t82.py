@@ -42,6 +42,10 @@ async def handler(route):
         if FAIL:
             return await j({'message': 'permission denied'}, 403)
         body = json.loads(req.post_data)
+        if isinstance(body, dict):
+            if any(r['id'] == body['id'] for r in ROWS):
+                return await j({'message': 'duplicate key 23505'}, 409)
+            body = [body]
         WRITES.extend(body)
         for new in body:
             ROWS = [r for r in ROWS if r['id'] != new['id']] + [new]
@@ -221,4 +225,5 @@ async def main():
         print('전체 OK: 일용직 원문·권한·저장/실패·드래그·선택 PDF·페이지 나눔·모바일')
 
 
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())
