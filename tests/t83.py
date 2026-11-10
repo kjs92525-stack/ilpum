@@ -65,9 +65,11 @@ async def main():
         await pg.keyboard.press('Control+v')
         await pg.wait_for_function('dwSheet().rows.length===4 && dwSheet().widths.length===10')
         assert await pg.evaluate('dwSheet().rows[3].slice(8)') == ['丙', '丁']
-        # 12월 복사. 실패해도 원래 월·수정 내용 보존, 재시도 가능.
+        # 선택한 사람만 복사한 뒤 빈 12월 생성. 실패해도 원래 월·수정 내용 보존, 재시도 가능.
+        await cell(1, 1).click()
+        await pg.locator('[data-dw=copypeople]').click()
         await pg.locator('[data-dw-newmonth="12"]').click()
-        await pg.select_option('#dw-new-mode', 'copy')
+        assert await pg.locator('#dw-new-mode').count() == 0
         fixture.FAIL = True
         await pg.locator('[data-dw=createmonth]').click()
         await pg.wait_for_function('!DW.busy')
@@ -77,7 +79,11 @@ async def main():
         fixture.FAIL = False
         await pg.locator('[data-dw=createmonth]').click()
         await pg.wait_for_function("DW.sheet==='daily:2026-12' && !DW.busy")
-        assert await pg.evaluate('dwSheet().rows[3].slice(8)') == ['丙', '丁']
+        assert await pg.evaluate('dwSheet().rows.length') == 2
+        await pg.locator('[data-dw=pastepeople]').click()
+        assert await pg.evaluate('dwSheet().rows[1].slice(0,8)') == ['홀','테스트가','000000-0000000','가능','','','테스트은행 001','010-0000-0000']
+        assert await pg.evaluate('dwSheet().rows[1][8]') == ''
+        assert await pg.evaluate('dwSheet().rows.length') == 2
         assert await pg.locator('[data-dw-month="daily:2026-12"]').get_attribute('aria-pressed') == 'true'
         assert await pg.evaluate("DW.drafts.get(APP.sid+'|daily:2026-11').rows[1][8]") == special
         # 복사본은 원본과 독립. 이미 있는 월은 덮어쓰지 않음.
