@@ -1,6 +1,6 @@
 /* ================= 앱 상태 ================= */
 const QS=new URLSearchParams(location.search);
-const VIEWS=['cards','cal','week','day','staff','rules','me','hq','set','acct'];
+const VIEWS=['cards','cal','week','day','staff','daily','rules','me','hq','set','acct'];
 const EMBED=QS.get('embed')==='1';                       // 통합관리 화면 안에 들어갈 때: 자기 왼쪽 메뉴는 숨김
 if(EMBED) document.documentElement.classList.add('embed');
 const APP={be:null,user:null,stores:[],sid:null,st:null,D:null,view:VIEWS.includes(QS.get('view'))?QS.get('view'):'cards',cardMode:'week7',anchor:new Date(),day:todayStr,sum:null,me:null,pf:'',q:''};
@@ -145,8 +145,9 @@ async function summaryFor(sid,silent){
 }
 
 /* ================= 화면 틀 ================= */
-const NAV=[['cards','▦','스케줄'],['cal','▥','휴무 달력'],['week','▤','주간 표'],['staff','◉','직원'],['rules','⟷','기간 설정'],['me','☺','내 스케줄'],['hq','◆','본사 현황'],['acct','⚿','계정 · 권한'],['set','⚙','설정']];
+const NAV=[['cards','▦','스케줄'],['cal','▥','휴무 달력'],['week','▤','주간 표'],['staff','◉','직원'],['daily','▤','일용직근무자'],['rules','⟷','기간 설정'],['me','☺','내 스케줄'],['hq','◆','본사 현황'],['acct','⚿','계정 · 권한'],['set','⚙','설정']];
 function navAllowed(v){ if(v==='day') return false;   // 하루 타임라인은 없앰(2026-11-06 사용자: 보기 불편)
+  if(v==='daily') return canEdit()&&payAllowed();
   if(v==='hq') return isHQ(); if(v==='acct') return APP.be===Remote&&(isHQ()||role()==='owner'); if(!canEdit()) return v==='me'||((v==='cards'||v==='week'||v==='cal')&&APP.D.store.vis==='week'); return true; }
 function renderShell(){
   const st=APP.st, r=role();
@@ -162,10 +163,11 @@ function renderShell(){
 function afterShell(){ if(APP.sync) setSync(APP.sync[0],APP.sync[1]); }
 const roleName=r=>({hq:'본사 · 본점 관리',owner:'점주',manager:'매니저',staff:'직원',order:'발주 전용',open:'바로 저장'}[r]||'보기 전용');
 function render(){
+  if(APP.view==='daily'&&document.querySelector('.dw-editor')) return; // 실시간 갱신 중에도 입력 유지
   if(!APP.st) return; afterShell(); if(canEdit()) fixSpotNames();
   if(!navAllowed(APP.view)) APP.view=canEdit()?'cards':'me';
   $$('#nav button,#mbar button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===APP.view?'page':'false'));
-  const V={cards:vCards,cal:vCal,week:vWeek,month:vMonth,day:vDay,staff:vStaff,rules:vRules,me:vMe,hq:vHQ,set:vSet,acct:vAcct}[APP.view]||vCards;
+  const V={cards:vCards,cal:vCal,week:vWeek,month:vMonth,day:vDay,staff:vStaff,daily:vDaily,rules:vRules,me:vMe,hq:vHQ,set:vSet,acct:vAcct}[APP.view]||vCards;
   $('#main').innerHTML=V(); if(APP.view==='cal') calHi();
   if(EMBED&&window.parent!==window){ try{ window.parent.postMessage({type:'fr-state',view:APP.view,hq:isHQ(),edit:canEdit(),role:role()},'*'); }catch(e){} }
   if(APP.view==='hq'&&!APP.sum) loadSum();
