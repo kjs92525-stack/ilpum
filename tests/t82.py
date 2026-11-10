@@ -17,9 +17,11 @@ SHEET = {'name': '11월', 'widths': [90, 130, 170, 110, 100, 100, 220, 160, 250]
          'styles': {'1,1': {'bg': '#FFFF00', 'bold': True}}}
 ROWS = [{'kind': 'pay', 'id': 'daily:2026-11', 'data': copy.deepcopy(SHEET)},
         {'kind': 'pay', 'id': 'daily:2026-10', 'data': {**copy.deepcopy(SHEET), 'name': '10월'}}]
+ROWS[1]['data']['rows'][2][1] = '지난달직원'
 FAIL = False
 PAY = True
 WRITES = []
+READS = []
 
 
 async def handler(route):
@@ -35,6 +37,7 @@ async def handler(route):
         return await j([{'id': BON, 'name': '일품집 본점', 'is_hq': True, 'role': 'hq', 'can_pay': PAY}])
     if '/rest/v1/sch_items' in req.url:
         if req.method == 'GET':
+            READS.append(req.url)
             return await j([] if 'updated_at=gt' in req.url or not PAY else [{**r, 'updated_at': '2026-11-01T00:00:00Z', 'deleted': False} for r in ROWS])
         if FAIL:
             return await j({'message': 'permission denied'}, 403)
@@ -63,11 +66,34 @@ async def main():
         assert await pg.locator('.dw-grid').count() == 0
         await pg.locator('[data-a=paytog]').click()
         await pg.locator('.dw-grid').wait_for()
-        assert await pg.locator('#dw-month').input_value() == 'daily:2026-11'
+        assert await pg.locator('[data-dw-month="daily:2026-11"]').get_attribute('aria-pressed') == 'true'
         assert await pg.locator('.dw-grid td[data-dwr="1"][data-dwc="8"]').inner_text() == SHEET['rows'][1][8]
         assert await pg.locator('.dw-grid td[data-dwr="1"][data-dwc="1"]').evaluate('(e)=>getComputedStyle(e).backgroundColor') == 'rgb(248, 241, 221)'
         nav = await pg.locator('#nav button').evaluate_all('(bs)=>bs.map(b=>b.dataset.v)')
         assert nav.index('staff') < nav.index('daily') < nav.index('rules')
+        # 월 전체 검색은 추가 서버 조회 없이 다른 월로 이동하고 해당 행을 강조.
+        reads_before = len(READS)
+        await pg.locator('#dw-search').fill('지난달직원')
+        await pg.wait_for_function("DW.sheet==='daily:2026-10' && DW.hits.length===1")
+        assert await pg.locator('.dw-search-current mark').inner_text() == '지난달직원'
+        assert await pg.locator('[data-dw-month="daily:2026-10"]').get_attribute('aria-pressed') == 'true'
+        await pg.locator('#dw-search').fill('테스트가')
+        await pg.wait_for_function("DW.hits.length===2 && DW.sheet==='daily:2026-11'")
+        await pg.locator('.dw-result').filter(has_text='10월').click()
+        assert await pg.evaluate('DW.sheet') == 'daily:2026-10'
+        assert await pg.locator('.dw-search-current mark').inner_text() == '테스트가'
+        await pg.locator('#dw-search').fill('없는직원')
+        await pg.locator('.dw-noresult').wait_for()
+        assert await pg.locator('.dw-search-hit').count() == 0
+        await pg.locator('#dw-search').fill('')
+        await pg.wait_for_function("DW.hits.length===0 && DW.search===''")
+        await pg.locator('.dw-results').wait_for(state='hidden')
+        await pg.locator('[data-dw-month="daily:2026-11"]').click()
+        assert len(READS) == reads_before, '검색·월 이동에서 추가 조회 발생'
+        for col in [2, 3, 7]:
+            td = pg.locator(f'.dw-grid td[data-dwr="1"][data-dwc="{col}"]')
+            assert await td.evaluate('(e)=>getComputedStyle(e).whiteSpace') == 'nowrap'
+            assert await td.evaluate('(e)=>parseFloat(getComputedStyle(e).fontSize)') < 15
         cell = pg.locator('.dw-grid td[data-dwr="1"][data-dwc="4"]')
         # 한 번 클릭해 입력 → Tab 오른쪽, Enter 아래쪽. Shift로 반대 이동.
         await cell.click()
@@ -115,8 +141,8 @@ async def main():
         await pg.locator('[data-dw=save]').click()
         await pg.wait_for_function('!DW.busy')
         assert '수정됨' in await pg.locator('#dw-status').inner_text()
-        await pg.select_option('#dw-month', 'daily:2026-10')
-        await pg.select_option('#dw-month', 'daily:2026-11')
+        await pg.locator('[data-dw-month="daily:2026-10"]').click()
+        await pg.locator('[data-dw-month="daily:2026-11"]').click()
         assert await cell.inner_text() == '160,000'
         FAIL = False
         # 실제 마우스로 B2:E2만 선택. PDF에 그리는 문자도 검증.
