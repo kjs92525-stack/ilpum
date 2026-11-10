@@ -550,3 +550,24 @@ body.pm-on #pm{display:block;position:fixed;inset:0;z-index:90;background:#e9e6e
 .dw-grid th{font-size:14px;font-weight:800;color:#293e30;background:#dce6dc}
 .dw-grid th[role=button]{cursor:pointer;touch-action:manipulation}
 .dw-grid th[role=button]:hover,.dw-grid th[role=button]:focus-visible{background:#b8d1bd;outline:2px solid #345d43;outline-offset:-2px}
+
+/* 버튼은 기능별로 묶고 저장·PDF는 항상 같은 묶음 안에 배치 */
+.dw-heading{flex-wrap:wrap;gap:12px}
+.dw-heading>div:first-child{flex:1 1 260px}
+.dw-heading>.sp{display:none}
+.dw-toolbar{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:16px}
+.dw-tool-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.dw-tool-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dw-toolbar .btn{min-height:40px;white-space:nowrap;margin:0}
+.dw-view-group{margin-left:auto}
+.dw-tool-bottom{border-top:1px solid #dce5dc;padding-top:12px}
+.dw-save-group{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-left:auto}
+.dw-toolbar #dw-status{flex:0 0 auto;min-width:0;width:150px;font-size:13px;text-align:right;margin-right:4px}
+@media(max-width:700px){
+ .dw-toolbar{padding:12px}
+ .dw-tool-group{gap:6px}
+ .dw-view-group{margin-left:0}
+ .dw-save-group{width:100%;margin-left:0;padding-top:4px}
+ .dw-toolbar #dw-status{flex:1;min-width:90px;width:auto;text-align:left}
+ .dw-toolbar .btn{padding:9px 10px;font-size:12px}
+}

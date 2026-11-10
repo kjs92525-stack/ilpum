@@ -562,6 +562,27 @@ body.pm-on #pm{display:block;position:fixed;inset:0;z-index:90;background:#e9e6e
 .dw-grid th[role=button]{cursor:pointer;touch-action:manipulation}
 .dw-grid th[role=button]:hover,.dw-grid th[role=button]:focus-visible{background:#b8d1bd;outline:2px solid #345d43;outline-offset:-2px}
 
+/* 버튼은 기능별로 묶고 저장·PDF는 항상 같은 묶음 안에 배치 */
+.dw-heading{flex-wrap:wrap;gap:12px}
+.dw-heading>div:first-child{flex:1 1 260px}
+.dw-heading>.sp{display:none}
+.dw-toolbar{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:16px}
+.dw-tool-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.dw-tool-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dw-toolbar .btn{min-height:40px;white-space:nowrap;margin:0}
+.dw-view-group{margin-left:auto}
+.dw-tool-bottom{border-top:1px solid #dce5dc;padding-top:12px}
+.dw-save-group{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-left:auto}
+.dw-toolbar #dw-status{flex:0 0 auto;min-width:0;width:150px;font-size:13px;text-align:right;margin-right:4px}
+@media(max-width:700px){
+ .dw-toolbar{padding:12px}
+ .dw-tool-group{gap:6px}
+ .dw-view-group{margin-left:0}
+ .dw-save-group{width:100%;margin-left:0;padding-top:4px}
+ .dw-toolbar #dw-status{flex:1;min-width:90px;width:auto;text-align:left}
+ .dw-toolbar .btn{padding:9px 10px;font-size:12px}
+}
+
 </style>
 </head>
 <body>
@@ -1720,10 +1741,9 @@ function vDaily(){
   return `<div class="vh dw-heading"><div><h1>일용직근무자</h1><div class="sub">월별 근무 기록 · 칸을 두 번 누르면 수정할 수 있어요</div></div><span class="sp"></span>${payToggle()}<button class="btn" data-dw="menu" aria-pressed="${DW.menuHidden}">${DW.menuHidden?'왼쪽 메뉴 보이기':'왼쪽 메뉴 숨기기'}</button></div>
     ${dwMonthTools()}
     <div class="card dw-toolbar">
-    <button class="btn" data-dw="all">전체 선택</button><button class="btn" data-dw="clear">선택 해제</button><button class="btn" data-dw="copy" ${DW.busy||!dwRange()?'disabled':''}>선택 범위 복사</button><button class="btn" data-dw="add" ${DW.busy?'disabled':''}>+ 행 추가</button>
-    <button class="btn" data-dw="copypeople" ${DW.busy||!dwRange()?'disabled':''}>선택한 사람 복사</button><button class="btn" data-dw="pastepeople" ${DW.busy||!DW.people||DW.people.sid!==APP.sid?'disabled':''}>복사한 사람 추가${DW.people?.sid===APP.sid?' ('+DW.people.rows.length+'명)':''}</button><button class="btn" data-dw="amount" aria-pressed="${DW.hideAmount}">${DW.hideAmount?'신고금액 보이기':'신고금액 숨기기'}</button>
-    <span class="sp"></span><span id="dw-status" role="status">${DW.busy?'저장 중…':DW.drafts.has(dwKey())?'수정됨 · 저장해 주세요':'저장됨'}</span>
-    <button class="btn" data-dw="save" ${DW.busy?'disabled':''}>저장</button><button class="btn pri" data-dw="pdf" ${DW.busy||!dwRange()?'disabled':''}>선택 범위 PDF</button></div>
+    <div class="dw-tool-row"><div class="dw-tool-group" role="group" aria-label="범위 선택과 편집"><button class="btn" data-dw="all">전체 선택</button><button class="btn" data-dw="clear">선택 해제</button><button class="btn" data-dw="copy" ${DW.busy||!dwRange()?'disabled':''}>선택 범위 복사</button><button class="btn" data-dw="add" ${DW.busy?'disabled':''}>+ 행 추가</button></div><div class="dw-tool-group dw-view-group"><button class="btn" data-dw="amount" aria-pressed="${DW.hideAmount}">${DW.hideAmount?'신고금액 보이기':'신고금액 숨기기'}</button></div></div>
+    <div class="dw-tool-row dw-tool-bottom"><div class="dw-tool-group" role="group" aria-label="사람 복사"><button class="btn" data-dw="copypeople" ${DW.busy||!dwRange()?'disabled':''}>선택한 사람 복사</button><button class="btn" data-dw="pastepeople" ${DW.busy||!DW.people||DW.people.sid!==APP.sid?'disabled':''}>복사한 사람 추가${DW.people?.sid===APP.sid?' ('+DW.people.rows.length+'명)':''}</button></div><div class="dw-save-group"><span id="dw-status" role="status">${DW.busy?'저장 중…':DW.drafts.has(dwKey())?'수정됨 · 저장해 주세요':'저장됨'}</span>
+    <button class="btn" data-dw="save" ${DW.busy?'disabled':''}>저장</button><button class="btn pri" data-dw="pdf" ${DW.busy||!dwRange()?'disabled':''}>선택 범위 PDF</button></div></div></div>
     <p class="help dw-help">드래그 선택 후 Ctrl+C 복사 / Ctrl+V 붙여넣기 · 버튼으로도 복사 가능 · 더블클릭 수정 · Tab 오른쪽 / Enter 아래쪽 · Alt+Enter 줄바꿈. 사람 복사는 기본정보만 가져와요. PDF는 신고 불가능한 행과 숨긴 신고금액 열을 제외해요. 수정 후 ‘저장’을 누르세요.</p>
     <div class="dw-selection" id="dw-range" aria-live="polite">${dwRangeText()}</div>
     <div class="dw-scroll" tabindex="0" role="region" aria-label="일용직근무자 표"><table class="dw-grid" role="grid" aria-label="${esc(s.name)} 일용직근무자"><colgroup><col style="width:44px">${visible.map(c=>`<col style="width:${Math.max(76,Math.round(s.widths[c]*.92))}px">`).join('')}</colgroup>
