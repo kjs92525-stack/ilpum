@@ -1720,7 +1720,7 @@ function dwTone(color,ink=false){
   if(h<265) return ink?'#5c718b':'#eaf0f7';
   return ink?'#886879':'#f3eaf0';
 }
-function dwCellTheme(s,r,c){ const t=(s.styles||{})[r+','+c]||{},pos=r>0&&c===0?({홀:'#f2cd62',주방:'#83c99a',주차:'#c09bdb'}[dwNormalize(s.rows[r]?.[c])]):null; return {bg:pos||dwTone(t.bg)||(r===0?'#edf2ee':r%2?'#ffffff':'#fafbf9'),fg:t.fg?dwTone(t.fg,true):r===0?'#3d5747':'#26362d',bold:true,align:t.align||'left'}; }
+function dwCellTheme(s,r,c){ const t=(s.styles||{})[r+','+c]||{},pos=r>0&&c===0?({홀:'#f2cd62',주방:'#83c99a',주차:'#c09bdb'}[dwNormalize(s.rows[r]?.[c])]):null; return {bg:pos||dwTone(t.bg)||(r===0?'#edf2ee':r%2?'#ffffff':'#fafbf9'),fg:t.fg?dwTone(t.fg,true):r===0?'#3d5747':'#26362d',bold:true,align:pos?'center':t.align||'left'}; }
 function dwStyle(s,r,c){ const t=dwCellTheme(s,r,c); return `background:${t.bg};color:${t.fg};font-weight:${t.bold?800:700};text-align:${t.align}`; }
 function dwMonthTools(){
   const years=[...new Set([...dwSheets().map(k=>+k.slice(6,10)),DW.year-1,DW.year,DW.year+1])].sort((a,b)=>a-b);

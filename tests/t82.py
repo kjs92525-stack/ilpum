@@ -137,6 +137,8 @@ async def main():
         await role_cell.dblclick()
         await pg.locator('.dw-editor').fill('주방')
         await pg.locator('.dw-editor').press('Tab')
+        assert await role_cell.evaluate('(e)=>getComputedStyle(e).textAlign') == 'center'
+        assert await pg.evaluate('dwCellTheme(dwSheet(),1,0).align') == 'center'
         kitchen_color = await role_cell.evaluate('(e)=>getComputedStyle(e).backgroundColor')
         assert kitchen_color == 'rgb(131, 201, 154)' and kitchen_color != hall_color
         assert await pg.evaluate("dwCellTheme(dwSheet(),1,0).bg") == '#83c99a'
