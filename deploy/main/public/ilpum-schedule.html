@@ -535,7 +535,7 @@ body.pm-on #pm{display:block;position:fixed;inset:0;z-index:90;background:#e9e6e
 .dw-grid td{position:relative;user-select:none;touch-action:none;cursor:cell}
 .dw-grid td.dw-selected{box-shadow:inset 0 0 0 1.5px #83a38b}
 .dw-grid td.dw-selected:after{content:'';position:absolute;inset:0;background:#6f947815;pointer-events:none}
-.dw-editor{position:relative;z-index:1;width:100%;min-height:58px;border:1.5px solid #83a38b;border-radius:6px;resize:vertical;font:inherit;padding:6px;background:#fff;color:#34413c;outline:0;box-shadow:0 0 0 3px #83a38b12;user-select:text;touch-action:auto}
+.dw-editor{position:relative;z-index:1;width:100%;min-height:28px;border:1.5px solid #83a38b;border-radius:6px;resize:vertical;font:inherit;padding:6px;background:#fff;color:#34413c;outline:0;box-shadow:0 0 0 3px #83a38b12;user-select:text;touch-action:auto}
 @media(max-width:700px){.dw-toolbar{gap:8px;padding:14px}.dw-toolbar .sp{display:none}.dw-scroll{max-height:65dvh;border-radius:12px}.dw-toolbar .btn{font-size:12px;padding:9px 11px}.dw-grid th,.dw-grid td{padding:5px 6px}.dw-help{font-size:11px}}
 
 </style>
@@ -1621,12 +1621,12 @@ function vDaily(){
   if(!canPay()) return `<div class="vh"><h1>일용직근무자</h1>${payToggle()}</div><div class="card empty"><b>개인정보가 포함된 원장이에요</b>위의 ‘금액 보기’를 눌러 열어주세요.</div>`;
   const s=dwSheet();
   if(!s) return '<div class="vh"><h1>일용직근무자</h1></div><div class="card empty">등록된 일용직 원장이 없어요.</div>';
-  return `<div class="vh dw-heading"><div><h1>일용직근무자</h1><div class="sub">월별 근무 기록 · 칸을 두 번 누르면 수정할 수 있어요</div></div><span class="sp"></span>${payToggle()}</div>
+  return `<div class="vh dw-heading"><div><h1>일용직근무자</h1><div class="sub">월별 근무 기록 · 칸을 한 번 누르면 바로 수정할 수 있어요</div></div><span class="sp"></span>${payToggle()}</div>
     <div class="card dw-toolbar"><label>월 <select id="dw-month" ${DW.busy?'disabled':''}>${sheets.map(k=>`<option value="${esc(k)}" ${k===DW.sheet?'selected':''}>${esc(APP.D.pay[k].name)}</option>`).join('')}</select></label>
     <button class="btn" data-dw="all">전체 선택</button><button class="btn" data-dw="clear">선택 해제</button><button class="btn" data-dw="add" ${DW.busy?'disabled':''}>+ 행 추가</button>
     <span class="sp"></span><span id="dw-status" role="status">${DW.busy?'저장 중…':DW.drafts.has(dwKey())?'수정됨 · 저장해 주세요':'저장됨'}</span>
     <button class="btn" data-dw="save" ${DW.busy?'disabled':''}>저장</button><button class="btn pri" data-dw="pdf" ${DW.busy||!dwRange()?'disabled':''}>선택 범위 PDF</button></div>
-    <p class="help dw-help">시작 칸에서 끝 칸까지 드래그하세요. Shift+클릭으로 범위를 늘릴 수 있어요. 수정 후 ‘저장’을 누르세요. PDF에는 선택한 칸만 들어가요.</p>
+    <p class="help dw-help">클릭해서 바로 수정 · Tab 오른쪽 / Enter 아래쪽 · Shift와 함께 누르면 반대로 이동 · Alt+Enter 줄바꿈. 드래그 또는 Shift+클릭으로 PDF 범위를 선택하세요. 수정 후 ‘저장’을 누르세요.</p>
     <div class="dw-selection" id="dw-range" aria-live="polite">${dwRangeText()}</div>
     <div class="dw-scroll" tabindex="0" role="region" aria-label="일용직근무자 표"><table class="dw-grid" role="grid" aria-label="${esc(s.name)} 일용직근무자"><colgroup><col style="width:44px">${s.widths.map(w=>`<col style="width:${Math.max(76,Math.round(w*.92))}px">`).join('')}</colgroup>
     <thead><tr><th></th>${s.widths.map((_,c)=>`<th>${dwCol(c)}</th>`).join('')}</tr></thead><tbody>${s.rows.map((row,r)=>`<tr><th>${r+1}</th>${s.widths.map((_,c)=>`<td data-dwr="${r}" data-dwc="${c}" style="${dwStyle(s,r,c)}" aria-selected="${dwContains(r,c)}" class="${dwContains(r,c)?'dw-selected':''}">${esc(row[c]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
@@ -1638,15 +1638,33 @@ function dwPaint(){
   const btn=$('[data-dw="pdf"]'); if(btn) btn.disabled=DW.busy||!dwRange();
 }
 function dwDirty(){ const el=$('#dw-status'); if(el) el.textContent='수정됨 · 저장해 주세요'; }
+function dwFocusCell(r,c,edit=false){
+  DW.a=DW.b={r,c}; dwPaint();
+  const td=$(`.dw-grid td[data-dwr="${r}"][data-dwc="${c}"]`);
+  td?.scrollIntoView({block:'nearest',inline:'nearest'});
+  if(edit) dwEdit(td); else $('.dw-scroll')?.focus({preventScroll:true});
+}
+function dwStep(r,c,key,reverse,edit){
+  const s=dwSheet(),last=s.widths.length-1,dir=reverse?-1:1;
+  if(key==='Tab'){ c+=dir; if(c>last){ if(r<s.rows.length-1){ r++; c=0; } else c=last; } if(c<0){ if(r>0){ r--; c=last; } else c=0; } }
+  else r=Math.max(0,Math.min(s.rows.length-1,r+dir));
+  dwFocusCell(r,c,edit);
+}
 function dwEdit(td,initial){
-  if(DW.busy||!canPay()||!navAllowed('daily')||$('.dw-editor')) return;
+  if(!td||DW.busy||!canPay()||!navAllowed('daily')||$('.dw-editor')) return;
   const r=+td.dataset.dwr,c=+td.dataset.dwc,old=dwSheet().rows[r][c]||'';
   const input=document.createElement('textarea'); input.className='dw-editor'; input.value=initial??old; input.setAttribute('aria-label',`${dwCol(c)}${r+1} 수정`);
-  td.textContent=''; td.append(input); input.focus(); if(initial==null) input.select();
+  const height=Math.max(28,td.clientHeight-10);
+  td.textContent=''; td.append(input); input.style.height=height+'px'; input.focus({preventScroll:true}); if(initial==null) input.select();
   let done=false;
   const finish=cancel=>{ if(done) return; done=true; const v=cancel?old:input.value; if(v!==old){ dwDraft().rows[r][c]=v; dwDirty(); } input.remove(); td.textContent=v; };
   input.addEventListener('blur',()=>finish(false));
-  input.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Escape'){ e.preventDefault(); finish(true); $('.dw-scroll')?.focus(); } else if((e.key==='Enter'&&!e.shiftKey)||e.key==='Tab'){ e.preventDefault(); finish(false); $('.dw-scroll')?.focus(); } });
+  input.addEventListener('keydown',e=>{
+    e.stopPropagation(); if(e.isComposing||e.keyCode===229) return; // 한글 조합 확정 Enter는 이동하지 않음
+    if(e.key==='Escape'){ e.preventDefault(); finish(true); $('.dw-scroll')?.focus({preventScroll:true}); }
+    else if((e.key==='Enter'&&!e.altKey)||e.key==='Tab'){ e.preventDefault(); finish(false); dwStep(r,c,e.key,e.shiftKey,true); }
+    else if(e.key==='Enter'&&e.altKey){ e.preventDefault(); input.setRangeText('\n',input.selectionStart,input.selectionEnd,'end'); }
+  });
 }
 async function dwSave(){
   if(DW.busy||!canPay()||!navAllowed('daily')) return false;
@@ -1719,7 +1737,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('dblclick',e=>{ const td=e.target.closest('.dw-grid td'); if(td) dwEdit(td); });
 document.addEventListener('pointerdown',e=>{
   const td=e.target.closest('.dw-grid td'); if(!td||e.target.closest('.dw-editor')||e.button!==0||DW.busy) return;
-  e.preventDefault(); const p={r:+td.dataset.dwr,c:+td.dataset.dwc}; if(!e.shiftKey||!DW.a) DW.a=p; DW.b=p; DW.drag={id:e.pointerId,x:e.clientX,y:e.clientY}; $('.dw-scroll').focus({preventScroll:true}); dwPaint(); requestAnimationFrame(dwDragFrame);
+  e.preventDefault(); const p={r:+td.dataset.dwr,c:+td.dataset.dwc}; if(!e.shiftKey||!DW.a) DW.a=p; DW.b=p; DW.drag={id:e.pointerId,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,moved:false,shift:e.shiftKey}; $('.dw-scroll').focus({preventScroll:true}); dwPaint(); requestAnimationFrame(dwDragFrame);
 });
 function dwDragFrame(){
   const d=DW.drag,box=$('.dw-scroll'); if(!d||!box) return;
@@ -1729,8 +1747,9 @@ function dwDragFrame(){
   if(td){ const p={r:+td.dataset.dwr,c:+td.dataset.dwc}; if(p.r!==DW.b.r||p.c!==DW.b.c){ DW.b=p; dwPaint(); } }
   requestAnimationFrame(dwDragFrame);
 }
-document.addEventListener('pointermove',e=>{ if(DW.drag&&DW.drag.id===e.pointerId){ DW.drag.x=e.clientX; DW.drag.y=e.clientY; } });
-for(const type of ['pointerup','pointercancel']) document.addEventListener(type,()=>DW.drag=null);
+document.addEventListener('pointermove',e=>{ if(DW.drag&&DW.drag.id===e.pointerId){ const d=DW.drag; d.x=e.clientX; d.y=e.clientY; if(Math.hypot(d.x-d.startX,d.y-d.startY)>5) d.moved=true; } });
+document.addEventListener('pointerup',e=>{ const d=DW.drag; DW.drag=null; if(!d||d.id!==e.pointerId||d.moved||d.shift) return; const td=e.target.closest('.dw-grid td'); if(td) dwEdit(td); });
+document.addEventListener('pointercancel',()=>DW.drag=null);
 window.addEventListener('blur',()=>DW.drag=null);
 document.addEventListener('keydown',e=>{
   if(!e.target.matches('.dw-scroll')||DW.busy||!canPay()) return;
@@ -1738,7 +1757,8 @@ document.addEventListener('keydown',e=>{
   if(!DW.b) return;
   const s=dwSheet(),arrows={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
   if(arrows[e.key]){ e.preventDefault(); const [r,c]=arrows[e.key]; DW.b={r:Math.max(0,Math.min(s.rows.length-1,DW.b.r+r)),c:Math.max(0,Math.min(s.widths.length-1,DW.b.c+c))}; if(!e.shiftKey) DW.a=DW.b; dwPaint(); $(`.dw-grid td[data-dwr="${DW.b.r}"][data-dwc="${DW.b.c}"]`)?.scrollIntoView({block:'nearest',inline:'nearest'}); }
-  else if(e.key==='Enter'||e.key==='F2'||(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey)){ e.preventDefault(); dwEdit($(`.dw-grid td[data-dwr="${DW.b.r}"][data-dwc="${DW.b.c}"]`),e.key.length===1?e.key:undefined); }
+  else if(e.key==='Tab'||e.key==='Enter'){ e.preventDefault(); dwStep(DW.b.r,DW.b.c,e.key,e.shiftKey,true); }
+  else if(e.key==='F2'||(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey)){ e.preventDefault(); dwEdit($(`.dw-grid td[data-dwr="${DW.b.r}"][data-dwc="${DW.b.c}"]`),e.key.length===1?e.key:undefined); }
   else if(e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); const q=dwRange(),d=dwDraft(); for(let r=q.r0;r<=q.r1;r++) for(let c=q.c0;c<=q.c1;c++) d.rows[r][c]=''; render(); }
 });
 document.addEventListener('paste',e=>{

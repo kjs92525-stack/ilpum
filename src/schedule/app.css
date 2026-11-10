@@ -524,5 +524,5 @@ body.pm-on #pm{display:block;position:fixed;inset:0;z-index:90;background:#e9e6e
 .dw-grid td{position:relative;user-select:none;touch-action:none;cursor:cell}
 .dw-grid td.dw-selected{box-shadow:inset 0 0 0 1.5px #83a38b}
 .dw-grid td.dw-selected:after{content:'';position:absolute;inset:0;background:#6f947815;pointer-events:none}
-.dw-editor{position:relative;z-index:1;width:100%;min-height:58px;border:1.5px solid #83a38b;border-radius:6px;resize:vertical;font:inherit;padding:6px;background:#fff;color:#34413c;outline:0;box-shadow:0 0 0 3px #83a38b12;user-select:text;touch-action:auto}
+.dw-editor{position:relative;z-index:1;width:100%;min-height:28px;border:1.5px solid #83a38b;border-radius:6px;resize:vertical;font:inherit;padding:6px;background:#fff;color:#34413c;outline:0;box-shadow:0 0 0 3px #83a38b12;user-select:text;touch-action:auto}
 @media(max-width:700px){.dw-toolbar{gap:8px;padding:14px}.dw-toolbar .sp{display:none}.dw-scroll{max-height:65dvh;border-radius:12px}.dw-toolbar .btn{font-size:12px;padding:9px 11px}.dw-grid th,.dw-grid td{padding:5px 6px}.dw-help{font-size:11px}}

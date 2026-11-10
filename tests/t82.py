@@ -69,9 +69,36 @@ async def main():
         nav = await pg.locator('#nav button').evaluate_all('(bs)=>bs.map(b=>b.dataset.v)')
         assert nav.index('staff') < nav.index('daily') < nav.index('rules')
         cell = pg.locator('.dw-grid td[data-dwr="1"][data-dwc="4"]')
-        await cell.dblclick()
+        # 한 번 클릭해 입력 → Tab 오른쪽, Enter 아래쪽. Shift로 반대 이동.
+        await cell.click()
+        assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'E2 수정'
         await pg.locator('.dw-editor').fill('150,000')
+        await pg.locator('.dw-editor').dispatch_event('keydown', {'key': 'Enter', 'isComposing': True, 'keyCode': 229})
+        assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'E2 수정'
+        await pg.locator('.dw-editor').press('Tab')
+        assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'F2 수정'
+        assert await cell.inner_text() == '150,000'
         await pg.locator('.dw-editor').press('Enter')
+        assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'F3 수정'
+        await pg.locator('.dw-editor').press('Shift+Enter')
+        assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'F2 수정'
+        await pg.locator('.dw-editor').press('Shift+Tab')
+        assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'E2 수정'
+        await pg.locator('.dw-editor').press('End')
+        await pg.locator('.dw-editor').press('Alt+Enter')
+        assert '\n' in await pg.locator('.dw-editor').input_value()
+        await pg.locator('.dw-editor').press('Escape')
+        assert await cell.inner_text() == '150,000'
+        # 편집 밖에서도 Enter 이동, 마지막 열 Tab은 다음 행 첫 열로 이동.
+        await pg.locator('.dw-scroll').press('Enter')
+        assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'E3 수정'
+        await pg.locator('.dw-editor').press('Escape')
+        await pg.locator('.dw-grid td[data-dwr="1"][data-dwc="8"]').click()
+        await pg.locator('.dw-editor').press('Tab')
+        assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'A3 수정'
+        await pg.locator('.dw-editor').press('Shift+Tab')
+        assert await pg.locator('.dw-editor').get_attribute('aria-label') == 'I2 수정'
+        await pg.locator('.dw-editor').press('Escape')
         await pg.locator('[data-dw=save]').click()
         await pg.wait_for_function('!DW.busy')
         assert WRITES[-1]['kind'] == 'pay' and WRITES[-1]['id'] == 'daily:2026-11'
