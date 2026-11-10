@@ -21,6 +21,19 @@ async def main():
         pg.on('download',lambda d:downloads.append(d))
         await pg.goto('http://localhost:8765/ilpum-schedule.html?view=daily')
         await pg.locator('.dw-grid').wait_for()
+        # 머리글 전체 선택과 키보드 선택, 왼쪽 메뉴 숨김/복원.
+        await pg.locator('[data-dw-row="1"]').click()
+        assert await pg.locator('.dw-selected').count()==9
+        assert await pg.evaluate('dwRange()')=={'r0':1,'r1':1,'c0':0,'c1':8}
+        await pg.locator('[data-dw-col="2"]').click()
+        assert await pg.locator('.dw-selected').count()==3
+        await pg.locator('[data-dw-row="2"]').press('Enter')
+        assert await pg.evaluate('dwRange().r0')==2
+        await pg.locator('[data-dw=menu]').click()
+        assert not await pg.locator('.side').is_visible()
+        await pg.locator('[data-dw=menu]').click()
+        assert await pg.locator('.side').is_visible()
+        assert await pg.locator('[data-dwr="1"][data-dwc="1"]').evaluate('(e)=>getComputedStyle(e).fontSize')=='17px'
         await pg.evaluate("()=>{window.pdfTexts=[];const old=CanvasRenderingContext2D.prototype.fillText;CanvasRenderingContext2D.prototype.fillText=function(t,...a){pdfTexts.push(t);return old.call(this,t,...a)}}")
         await pg.locator('[data-dw=all]').click()
         async with pg.expect_download():

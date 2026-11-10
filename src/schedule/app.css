@@ -536,3 +536,17 @@ body.pm-on #pm{display:block;position:fixed;inset:0;z-index:90;background:#e9e6e
 .dw-yearbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px}.dw-yearbar label{display:flex;align-items:center;gap:8px;font-size:12px;color:#687c6b}.dw-yearbar select{padding:7px 12px;border:1px solid #dfe7dc;border-radius:9px;background:#f7faf4;color:#3b5643;font:inherit;font-weight:700}.dw-yearbar .btn{border-color:#dfe7dc;color:#617769;border-radius:9px}.dw-months .dw-month-empty{border-style:dashed;background:#fff;color:#98a392}.dw-monthform{display:grid;gap:15px}.dw-monthform label{display:grid;gap:7px;font-size:13px;font-weight:600;color:#526b59}.dw-monthform input,.dw-monthform select{padding:10px 12px;border:1px solid #dfe7dc;border-radius:9px;background:#fff;color:#293e31;font:inherit}.dw-monthform #dw-new-error{color:#a45b4f;font-size:13px}
 /* 편집 확정 때 상태 문구가 길어져도 저장 버튼 위치가 움직이지 않게 고정 */
 .dw-toolbar #dw-status{display:inline-block;flex:0 0 150px;min-width:150px}
+
+/* 일용직 원장: 모니터에서도 선명한 글자·선택 머리글 */
+.dw-menu-hidden:not(.embed) .app{grid-template-columns:minmax(0,1fr)}
+.dw-menu-hidden:not(.embed) .side{display:none}
+.dw-heading .sub,.dw-help,.dw-toolbar #dw-status,.dw-searchbar>span,.dw-result span,.dw-noresult{color:#35493c;font-size:14px;font-weight:700}
+.dw-heading .btn,.dw-toolbar .btn,.dw-yearbar .btn,.dw-yearbar label,.dw-searchbar label,.dw-months button,.dw-months .dw-month-empty{color:#263d2d;font-weight:800}
+.dw-toolbar .btn.pri,.dw-months button[aria-pressed=true]{background:#345d43;color:#fff;border-color:#345d43}
+.dw-selection{color:#294331;font-size:13px;font-weight:800}
+.dw-grid{font-size:17px;color:#17271e}
+.dw-grid td{font-weight:800!important;padding:7px 8px}
+.dw-grid td.dw-compact,.dw-grid tbody tr:first-child td.dw-compact{font-size:15px;letter-spacing:-.3px}
+.dw-grid th{font-size:14px;font-weight:800;color:#293e30;background:#dce6dc}
+.dw-grid th[role=button]{cursor:pointer;touch-action:manipulation}
+.dw-grid th[role=button]:hover,.dw-grid th[role=button]:focus-visible{background:#b8d1bd;outline:2px solid #345d43;outline-offset:-2px}

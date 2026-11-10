@@ -326,6 +326,7 @@ window.addEventListener('message',e=>{
   if(m.type==='fr-refresh'){ refreshBadges(); return; }
   if(m.type==='fr-open'&&ROUTES[m.id]&&allowed(m.id)){ go(m.id); return; }
   if(!frames.sch||e.source!==frames.sch.contentWindow) return;
+  if(m.type==='fr-daily-menu'){ setNav(!m.hidden); return; }
   if(m.type==='fr-state'){
     info={hq:!!m.hq,edit:!!m.edit,role:m.role||'',seen:true}; applyInfo();
     if(['cards','cal','week','day','daily','rules','me','staff','hq','set','acct'].includes(m.view)&&ROUTES[cur]&&ROUTES[cur].frame==='sch'&&cur!==m.view){ go(m.view,{fromFrame:true}); }

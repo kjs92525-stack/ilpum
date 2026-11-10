@@ -39,7 +39,7 @@ async def main():
         await pg.keyboard.press('Control+v')
         await pg.wait_for_function("dwSheet().rows[2][1]==='테스트가'")
         assert await cell(2, 2).inner_text() == '000000-0000000'
-        assert await cell(2, 0).evaluate('(e)=>getComputedStyle(e).backgroundColor') == 'rgb(248, 241, 221)'
+        assert await cell(2, 0).evaluate('(e)=>getComputedStyle(e).backgroundColor') == 'rgb(242, 205, 98)'
         # 버튼으로 줄바꿈·따옴표가 포함된 셀을 복사하고 원문 그대로 붙여넣기.
         await pg.locator('[data-dw-month="daily:2026-11"]').click()
         await cell(1, 8).dblclick()

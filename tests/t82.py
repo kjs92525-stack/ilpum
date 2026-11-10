@@ -97,7 +97,7 @@ async def main():
         for col in [2, 3, 7]:
             td = pg.locator(f'.dw-grid td[data-dwr="1"][data-dwc="{col}"]')
             assert await td.evaluate('(e)=>getComputedStyle(e).whiteSpace') == 'nowrap'
-            assert await td.evaluate('(e)=>parseFloat(getComputedStyle(e).fontSize)') < 15
+            assert await td.evaluate('(e)=>parseFloat(getComputedStyle(e).fontSize)') == 15
         cell = pg.locator('.dw-grid td[data-dwr="1"][data-dwc="4"]')
         # 한 번 클릭은 선택만, 더블클릭으로 입력. Tab 오른쪽, Enter 아래쪽.
         await cell.click()
@@ -138,8 +138,8 @@ async def main():
         await pg.locator('.dw-editor').fill('주방')
         await pg.locator('.dw-editor').press('Tab')
         kitchen_color = await role_cell.evaluate('(e)=>getComputedStyle(e).backgroundColor')
-        assert kitchen_color == 'rgb(233, 241, 233)' and kitchen_color != hall_color
-        assert await pg.evaluate("dwCellTheme(dwSheet(),1,0).bg") == '#e9f1e9'
+        assert kitchen_color == 'rgb(131, 201, 154)' and kitchen_color != hall_color
+        assert await pg.evaluate("dwCellTheme(dwSheet(),1,0).bg") == '#83c99a'
         await pg.locator('[data-dw=save]').click()
         await pg.wait_for_function('!DW.busy')
         assert WRITES[-1]['kind'] == 'pay' and WRITES[-1]['id'] == 'daily:2026-11'
