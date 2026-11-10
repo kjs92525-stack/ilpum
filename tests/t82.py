@@ -65,7 +65,7 @@ async def main():
         await pg.locator('.dw-grid').wait_for()
         assert await pg.locator('#dw-month').input_value() == 'daily:2026-11'
         assert await pg.locator('.dw-grid td[data-dwr="1"][data-dwc="8"]').inner_text() == SHEET['rows'][1][8]
-        assert await pg.locator('.dw-grid td[data-dwr="1"][data-dwc="1"]').evaluate('(e)=>getComputedStyle(e).backgroundColor') == 'rgb(255, 255, 0)'
+        assert await pg.locator('.dw-grid td[data-dwr="1"][data-dwc="1"]').evaluate('(e)=>getComputedStyle(e).backgroundColor') == 'rgb(248, 241, 221)'
         nav = await pg.locator('#nav button').evaluate_all('(bs)=>bs.map(b=>b.dataset.v)')
         assert nav.index('staff') < nav.index('daily') < nav.index('rules')
         cell = pg.locator('.dw-grid td[data-dwr="1"][data-dwc="4"]')
