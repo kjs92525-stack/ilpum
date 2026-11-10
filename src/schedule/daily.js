@@ -20,8 +20,8 @@ function dwTone(color,ink=false){
   if(h<265) return ink?'#5c718b':'#eaf0f7';
   return ink?'#886879':'#f3eaf0';
 }
-function dwCellTheme(s,r,c){ const t=(s.styles||{})[r+','+c]||{}; return {bg:dwTone(t.bg)||(r===0?'#edf2ee':r%2?'#ffffff':'#fafbf9'),fg:t.fg?dwTone(t.fg,true):r===0?'#52675b':'#34413c',bold:r===0||!!t.bold,align:t.align||'left'}; }
-function dwStyle(s,r,c){ const t=dwCellTheme(s,r,c); return `background:${t.bg};color:${t.fg};font-weight:${t.bold?600:400};text-align:${t.align}`; }
+function dwCellTheme(s,r,c){ const t=(s.styles||{})[r+','+c]||{}; return {bg:dwTone(t.bg)||(r===0?'#edf2ee':r%2?'#ffffff':'#fafbf9'),fg:t.fg?dwTone(t.fg,true):r===0?'#3d5747':'#26362d',bold:r===0||!!t.bold,align:t.align||'left'}; }
+function dwStyle(s,r,c){ const t=dwCellTheme(s,r,c); return `background:${t.bg};color:${t.fg};font-weight:${t.bold?700:600};text-align:${t.align}`; }
 function vDaily(){
   if(!navAllowed('daily')) return '';
   const sheets=dwSheets();
@@ -37,7 +37,7 @@ function vDaily(){
     <button class="btn" data-dw="save" ${DW.busy?'disabled':''}>저장</button><button class="btn pri" data-dw="pdf" ${DW.busy||!dwRange()?'disabled':''}>선택 범위 PDF</button></div>
     <p class="help dw-help">시작 칸에서 끝 칸까지 드래그하세요. Shift+클릭으로 범위를 늘릴 수 있어요. 수정 후 ‘저장’을 누르세요. PDF에는 선택한 칸만 들어가요.</p>
     <div class="dw-selection" id="dw-range" aria-live="polite">${dwRangeText()}</div>
-    <div class="dw-scroll" tabindex="0" role="region" aria-label="일용직근무자 표"><table class="dw-grid" role="grid" aria-label="${esc(s.name)} 일용직근무자"><colgroup><col style="width:44px">${s.widths.map(w=>`<col style="width:${w}px">`).join('')}</colgroup>
+    <div class="dw-scroll" tabindex="0" role="region" aria-label="일용직근무자 표"><table class="dw-grid" role="grid" aria-label="${esc(s.name)} 일용직근무자"><colgroup><col style="width:44px">${s.widths.map(w=>`<col style="width:${Math.max(76,Math.round(w*.92))}px">`).join('')}</colgroup>
     <thead><tr><th></th>${s.widths.map((_,c)=>`<th>${dwCol(c)}</th>`).join('')}</tr></thead><tbody>${s.rows.map((row,r)=>`<tr><th>${r+1}</th>${s.widths.map((_,c)=>`<td data-dwr="${r}" data-dwc="${c}" style="${dwStyle(s,r,c)}" aria-selected="${dwContains(r,c)}" class="${dwContains(r,c)?'dw-selected':''}">${esc(row[c]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function dwContains(r,c){ const q=dwRange(); return !!q&&r>=q.r0&&r<=q.r1&&c>=q.c0&&c<=q.c1; }
@@ -88,19 +88,19 @@ function dwPdfBlob(pages,pageW,pageH){
 }
 async function dwMakePdf(s,q,store){
   await loadFonts();
-  const widths=s.widths.slice(q.c0,q.c1+1),sum=widths.reduce((a,b)=>a+b,0),land=sum>780;
-  const W=land?1684:1190,H=land?1190:1684,margin=44,scale=Math.min(1.65,(W-2*margin)/sum),cw=widths.map(w=>w*scale),font=Math.max(12,14*scale),lh=font*1.45,pad=9;
+  const widths=s.widths.slice(q.c0,q.c1+1).map(w=>Math.max(76,Math.round(w*.92))),sum=widths.reduce((a,b)=>a+b,0),land=sum>780;
+  const W=land?1684:1190,H=land?1190:1684,margin=44,scale=Math.min(1.65,(W-2*margin)/sum),cw=widths.map(w=>w*scale),font=Math.max(14,16*scale),lh=font*1.3,pad=5;
   const pages=[]; let canvas,g,y;
   function newPage(){ canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H; g=canvas.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,W,H); g.font=`700 24px ${IMG_FONT}`; g.fillStyle='#344b3f'; g.fillText(`일용직근무자 · ${s.name}`,margin,45); g.font=`14px ${IMG_FONT}`; g.fillStyle='#7b8980'; g.fillText(`${store} · ${dwCol(q.c0)}${q.r0+1}:${dwCol(q.c1)}${q.r1+1}`,margin,72); y=95; }
   async function endPage(){ g.font=`12px ${IMG_FONT}`; g.fillStyle='#666'; g.fillText(String(pages.length+1),W-margin-16,H-20); const blob=await new Promise(ok=>canvas.toBlob(ok,'image/jpeg',.97)); if(!blob) throw new Error('PDF 이미지 생성 실패'); pages.push({w:W,h:H,bytes:new Uint8Array(await blob.arrayBuffer())}); }
   newPage();
   for(let r=q.r0;r<=q.r1;r++){
-    const cells=cw.map((w,i)=>{ const c=q.c0+i,t=dwCellTheme(s,r,c); g.font=`${t.bold?600:400} ${font}px ${IMG_FONT}`; return {t,lines:dwWrap(g,s.rows[r][c]||'',w-pad*2)}; });
+    const cells=cw.map((w,i)=>{ const c=q.c0+i,t=dwCellTheme(s,r,c); g.font=`${t.bold?700:600} ${font}px ${IMG_FONT}`; return {t,lines:dwWrap(g,s.rows[r][c]||'',w-pad*2)}; });
     const count=Math.max(...cells.map(c=>c.lines.length)); let offset=0;
     while(offset<count){
       if(y+lh+pad*2>H-margin){ await endPage(); newPage(); }
       const n=Math.min(count-offset,Math.floor((H-margin-y-pad*2)/lh)),height=n*lh+pad*2; let x=margin;
-      cells.forEach(({t,lines},i)=>{ const w=cw[i]; g.fillStyle=t.bg; g.fillRect(x,y,w,height); g.strokeStyle='#dde5df'; g.lineWidth=.8; g.strokeRect(x,y,w,height); g.fillStyle=t.fg; g.font=`${t.bold?600:400} ${font}px ${IMG_FONT}`;
+      cells.forEach(({t,lines},i)=>{ const w=cw[i]; g.fillStyle=t.bg; g.fillRect(x,y,w,height); g.strokeStyle='#dde5df'; g.lineWidth=.8; g.strokeRect(x,y,w,height); g.fillStyle=t.fg; g.font=`${t.bold?700:600} ${font}px ${IMG_FONT}`;
         lines.slice(offset,offset+n).forEach((line,j)=>{ const tw=g.measureText(line).width,tx=t.align==='center'?x+(w-tw)/2:t.align==='right'?x+w-pad-tw:x+pad; g.fillText(line,tx,y+pad+font+j*lh); }); x+=w; });
       offset+=n; y+=height;
     }
