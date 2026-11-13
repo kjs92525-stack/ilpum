@@ -3,7 +3,7 @@
 import os,json
 here=os.path.dirname(os.path.abspath(__file__)); dist=os.path.join(here,'..','..','dist')
 rd=lambda n: open(os.path.join(here,n),encoding='utf-8').read()
-js=rd('core.js')+'\n'+rd('app.js')+'\n'+rd('img.js')+'\n'+rd('events.js')
+js=rd('core.js')+'\n'+rd('app.js')+'\n'+rd('img.js')+'\n'+rd('daily.js')+'\n'+rd('events.js')
 k=json.load(open(os.path.join(here,'..','..','keys.json')))     # 공개(anon) 키는 저장소에 안 올림 -> 빌드 때 채움
 out=rd('shell.html').replace('/*CSS*/',rd('app.css')).replace('/*JS*/',js).replace('/*OLDKEY*/',k['old']).replace('/*NEWKEY*/',k['new'])
 os.makedirs(dist,exist_ok=True)

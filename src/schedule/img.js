@@ -13,7 +13,9 @@ function flow(g,items,x,y,maxW,fs,lh,gap){
 }
 function paintFlow(g,f){ f.ops.forEach(o=>{ g.font=`${o.it.b?800:600} ${o.fs}px ${IMG_FONT}`; g.fillStyle=o.it.c||'#111'; g.fillText(o.it.t,o.x,o.y+o.fs*.9);
   if(o.it.s){ g.font=`600 ${o.sf}px ${IMG_FONT}`; g.fillStyle=o.it.sc||'#8A6A3A'; g.fillText(o.it.s,o.x+o.w1+2,o.y+o.fs*.9); } }); }
-function imgItem(x,st,color){ return {t:x.name,s:shLbl(x.sh,st),c:x.type==='spot'?'#B8621B':(color||'#111'),b:x.type==='spot'}; }
+// 사진에는 이름만: 이름 칸에 같이 적힌 "6.5"·"12시출" 은 빼고 그림(2026-11-06)
+const imgName=n=>{ try{ const q=quickParse(n); return q.found&&q.rest.length>=2?q.rest:n; }catch(e){ return n; } };
+function imgItem(x,st,color){ return {t:imgName(x.name),s:shLbl(x.sh,st)||(x.type==='spot'?'종일':''),c:x.vac?'#9A9A9A':x.type==='spot'?'#B8621B':(color||'#111'),b:x.type==='spot'&&!x.vac}; }
 async function loadFonts(){ try{ if(document.fonts){ await Promise.race([Promise.all([document.fonts.load(`600 20px ${IMG_FONT}`),document.fonts.load(`800 20px ${IMG_FONT}`)]),new Promise(r=>setTimeout(r,1200))]); } }catch(e){} }
 
 /* ---------- 하루 ---------- */
@@ -21,19 +23,20 @@ function drawDay(key){
   const D=APP.D, st=D.store, R=resolve(D,pd(key)), d=pd(key); const W=720, P=30, sc=2;
   const rows=D.positions.map(p=>({p,items:R.list.filter(x=>x.pos===p.name).map(x=>imgItem(x,st))})).filter(r=>r.items.length);
   const g0=scratch(), labelW=128, fs=32, lh=46, pad=16;
-  const laid=rows.map(r=>({r,f:flow(g0,r.items,0,0,W-2*P-labelW-26,fs,lh,24)}));
+  const nameW=W-2*P-labelW-26-16;   // 줄 높이 계산과 그릴 때 같은 폭(2026-11-06: 달라서 그릴 때만 한 줄 더 넘어가 아래 칸과 겹쳤음)
+  const laid=rows.map(r=>({r,f:flow(g0,r.items,0,0,nameW,fs,lh,24)}));
   const bodyH=rows.length?laid.reduce((a,l)=>a+l.f.h+pad*2,0):120, top=P+134, H=top+bodyH+P+8;
   const {c,g}=mkCanvas(W,H,sc); g.textBaseline='alphabetic';
   g.font=`600 20px ${IMG_FONT}`; g.fillStyle='#777'; g.fillText('일품집 근무표',P,P+18); g.textAlign='right'; g.fillText(`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`,W-P,P+18); g.textAlign='left';
   g.font=`800 54px ${IMG_FONT}`; g.fillStyle='#111'; g.fillText(`${d.getMonth()+1}월 ${d.getDate()}일 (${DOW[d.getDay()]})`,P,P+78);
-  g.font=`600 22px ${IMG_FONT}`; g.fillStyle='#777'; g.fillText(`${st.name} · 근무 ${R.list.length}명`,P,P+110);
+  g.font=`600 22px ${IMG_FONT}`; g.fillStyle='#777'; g.fillText(`${st.name} · 근무 ${R.list.filter(x=>!x.vac).length}명${R.list.some(x=>x.vac)?` · 빈자리 ${R.list.filter(x=>x.vac).length}`:''}`,P,P+110);
   rr(g,P,top,W-2*P,bodyH,14); g.lineWidth=3; g.strokeStyle='#555'; g.stroke();
   if(!rows.length){ g.font=`600 28px ${IMG_FONT}`; g.fillStyle='#888'; g.textAlign='center'; g.fillText('근무자가 없어요',W/2,top+70); g.textAlign='left'; }
   let y=top; laid.forEach((l,i)=>{ const h=l.f.h+pad*2;
     g.save(); rr(g,P,top,W-2*P,bodyH,14); g.clip(); g.fillStyle=l.r.p.color; g.fillRect(P,y,10,h); g.restore();
     if(i){ g.save(); g.setLineDash([7,6]); g.strokeStyle='#bbb'; g.lineWidth=2; g.beginPath(); g.moveTo(P+14,y); g.lineTo(W-P-14,y); g.stroke(); g.restore(); }
     g.font=`800 28px ${IMG_FONT}`; g.fillStyle=l.r.p.color; g.fillText(l.r.p.name,P+26,y+pad+fs*.9);
-    const f=flow(g,l.r.items,P+26+labelW,y+pad,W-2*P-labelW-26-16,fs,lh,24); paintFlow(g,f); y+=h; });
+    const f=flow(g,l.r.items,P+26+labelW,y+pad,nameW,fs,lh,24); paintFlow(g,f); y+=h; });
   return c;
 }
 
@@ -45,7 +48,7 @@ function drawWeek(wk){
   const pos=D.positions.filter(p=>days.some(x=>x.R.list.some(z=>z.pos===p.name)));
   const cellF=(list,cw)=>flow(g0,list.map(x=>imgItem(x,st,null)),0,0,cw-14,fs,lh,10);
   const rowsH=pos.map(p=>Math.max(...days.map(x=>cellF(x.R.list.filter(z=>z.pos===p.name),CW).h))+14);
-  const offF=days.map(x=>flow(g0,x.R.offs.filter(o=>!o.missing).map(o=>({t:o.name,c:'#777'})),0,0,CW-14,16,22,8)); const offH=Math.max(...offF.map(f=>f.h),22)+14;
+  const offF=days.map(x=>flow(g0,x.R.offs.filter(offShow).map(o=>({t:o.name,c:'#777'})),0,0,CW-14,16,22,8)); const offH=Math.max(...offF.map(f=>f.h),22)+14;
   const top=P+84, hh=58, H=top+hh+rowsH.reduce((a,b)=>a+b,0)+offH+P;
   const {c,g}=mkCanvas(W,H,sc); const we=addDays(ws,6);
   g.font=`800 40px ${IMG_FONT}`; g.fillStyle='#111'; g.fillText(`${ws.getMonth()+1}/${ws.getDate()}(${DOW[ws.getDay()]}) ~ ${we.getMonth()+1}/${we.getDate()}(${DOW[we.getDay()]})`,P,P+40);
@@ -57,7 +60,7 @@ function drawWeek(wk){
   let y=top+hh; pos.forEach((p,r)=>{ const h=rowsH[r]; g.fillStyle=p.color; g.fillRect(P,y,7,h); g.font=`800 20px ${IMG_FONT}`; g.fillText(p.name,P+18,y+34);
     days.forEach((x,i)=>{ const f=flow(g,x.R.list.filter(z=>z.pos===p.name).map(z=>imgItem(z,st,null)),X(i)+8,y+8,CW-14,fs,lh,10); paintFlow(g,f); }); y+=h; });
   g.fillStyle='#F7F5F2'; g.fillRect(P,y,PC+CW*7,offH); g.font=`800 18px ${IMG_FONT}`; g.fillStyle='#777'; g.fillText('휴무',P+18,y+30);
-  days.forEach((x,i)=>{ const f=flow(g,x.R.offs.filter(o=>!o.missing).map(o=>({t:o.name,c:'#777'})),X(i)+8,y+8,CW-14,16,22,8); paintFlow(g,f); });
+  days.forEach((x,i)=>{ const f=flow(g,x.R.offs.filter(offShow).map(o=>({t:o.name,c:'#777'})),X(i)+8,y+8,CW-14,16,22,8); paintFlow(g,f); });
   // 격자
   g.strokeStyle='#bbb'; g.lineWidth=1.5; g.strokeRect(P,top,PC+CW*7,H-top-P); g.beginPath();
   for(let i=0;i<=7;i++){ g.moveTo(P+PC+i*CW,top); g.lineTo(P+PC+i*CW,H-P); } g.moveTo(P,top+hh); g.lineTo(P+PC+CW*7,top+hh);
@@ -72,7 +75,7 @@ function drawMonth(ym){
   const g0=scratch(); const fs=16, lh=22; const cells=[]; const used=new Set();
   for(let day=1;day<=last;day++){ const d=new Date(y,m,day); const R=resolve(D,d,{rules,quiet:true});
     const list=R.list.slice().sort((a,b)=>order.indexOf(a.pos)-order.indexOf(b.pos)); list.forEach(x=>used.add(x.pos));
-    const items=list.map(x=>imgItem(x,st,posColor(x.pos))); const offs=R.offs.filter(o=>!o.missing).map(o=>({t:o.name,c:'#888'}));
+    const items=list.map(x=>imgItem(x,st,posColor(x.pos))); const offs=R.offs.filter(offShow).map(o=>({t:o.name,c:'#888'}));
     const f=flow(g0,items,0,0,CW-14,fs,lh,9), of=offs.length?flow(g0,[{t:'휴',c:'#aaa'},...offs],0,0,CW-14,14,19,7):null;
     cells.push({day,d,items,offs,f,of,h:34+f.h+(of?of.h+6:0)+8}); }
   const weeks=[]; let row=Array(lead).fill(null); cells.forEach(c=>{ row.push(c); if(row.length===7){ weeks.push(row); row=[]; } }); if(row.length){ while(row.length<7) row.push(null); weeks.push(row); }
@@ -145,3 +148,41 @@ async function imgAct(a){
   else if(a==='copy'){ try{ await navigator.clipboard.write([new ClipboardItem({'image/png':IMGS.blob})]); toast('사진을 복사했어요 · 카톡에 붙여넣기(Ctrl+V)'); }catch(e){ toast('이 화면에서는 복사가 막혀 있어요. 사진을 길게 눌러 저장하세요'); } }
   else { try{ const a2=document.createElement('a'); a2.href=IMGS.url; a2.download=IMGS.name; document.body.appendChild(a2); a2.click(); a2.remove(); toast('사진을 저장했어요 · 안 되면 사진을 길게 눌러 저장하세요'); }catch(e){ toast('사진을 길게 눌러 저장하세요'); } }
 }
+
+/* ================= 인쇄 모드 (2026-11-08 사용자) =================
+   하루치를 A4 가로 한 장에, 스케줄 '크게' 화면처럼 포지션 줄마다 이름을 가로로. 화면처럼 포지션 색(흑백 버전은 사용자 '이상하다'로 되돌림).
+   잉크는 아끼게 큰 배경색 없이 색 띠·글자만. 당일알바는 진한 갈색(흑백 인쇄에서도 검게 나옴). 사진과 같은 기준: 이름만(메모 숫자·금액 없음) */
+function pmOff(){ try{ return localStorage.getItem('ilpum-print-off')!=='0'; }catch(e){ return true; } }
+function pmRender(){
+  const el=document.getElementById('pm'); if(!el) return; const D=APP.D, st=D.store, key=APP.pmDay||todayStr, d=pd(key), wd=d.getDay();
+  const R=resolve(D,d,{rules:rulesSorted(D),quiet:true});
+  const rows=D.positions.map(p=>({p,items:R.list.filter(x=>x.pos===p.name).map(x=>imgItem(x,st))})).filter(r=>r.items.length);
+  const offs=pmOff()?R.offs.filter(offShow).map(o=>esc(o.name)+(o.reason!=='고정휴무'&&o.reason!=='주간휴무'?`<small>(${esc(o.reason)})</small>`:'')):[];
+  const work=R.list.filter(x=>!x.vac).length, vac=R.list.filter(x=>x.vac).length;
+  el.querySelector('.pmpages').innerHTML=`<section class="pmpage"><header><b class="${wd===0?'sun':wd===6?'sat':''}">${d.getMonth()+1}월 ${d.getDate()}일 <span>${DOW[wd]}요일</span></b><em>${esc(st.name)} 근무표 · 근무 ${work}명${vac?` · 빈자리 ${vac}`:''}</em></header>
+    <div class="pmgrid">${rows.length?rows.map(r=>`<div class="pmr" style="--pc:${esc(r.p.color)}"><div class="pml">${esc(r.p.name)}<small>${r.items.length}명</small></div><div class="pmn">${r.items.map(i=>`<span class="pmc${i.b?' sp':''}">${esc(i.t)}${i.s?`<i>${esc(i.s)}</i>`:''}</span>`).join('')}</div></div>`).join(''):'<div class="pm0">근무자가 없어요</div>'}
+    ${offs.length?`<div class="pmr pmoff"><div class="pml">쉬는 사람</div><div class="pmn">${offs.map(o=>`<span>${o}</span>`).join('')}</div></div>`:''}</div></section>`;
+  el.querySelector('#pmDate').value=key; el.querySelector('#pmOffCk').checked=pmOff();
+  pmFit();
+}
+// 종이에 맞춰 글자 크기: 내용이 적으면 크게(최대 1.5배), 넘치면 줄임(최소 0.45배)
+function pmFit(){ document.querySelectorAll('#pm .pmpage').forEach(pg=>{ const g=pg.querySelector('.pmgrid'); let f=1.5; pg.style.setProperty('--k',f);
+  for(let i=0;i<24&&g.scrollHeight>g.clientHeight+1;i++){ f-=.045; pg.style.setProperty('--k',f.toFixed(3)); } }); }
+function openPrint(key){
+  let el=document.getElementById('pm');
+  if(!el){ el=document.createElement('div'); el.id='pm'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','인쇄 모드');
+    el.innerHTML=`<div class="pmbar"><b>하루 인쇄 · A4 가로</b><span class="sp"></span>
+      <button class="btn ic" data-pmd="-1" aria-label="전날">‹</button><input type="date" id="pmDate" class="cgo" aria-label="인쇄할 날짜"><button class="btn ic" data-pmd="1" aria-label="다음 날">›</button>
+      <label class="ck"><input type="checkbox" id="pmOffCk"> 쉬는 사람</label>
+      <button class="btn pri" data-pmgo="1">인쇄하기</button><button class="btn" data-pmx="1">닫기</button></div><div class="pmpages"></div>`;
+    document.body.appendChild(el);
+    el.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+      if(b.dataset.pmd){ APP.pmDay=ds(addDays(pd(APP.pmDay||todayStr),+b.dataset.pmd)); pmRender(); }
+      else if(b.dataset.pmgo) window.print();
+      else if(b.dataset.pmx) closePrint(); });
+    el.querySelector('#pmDate').addEventListener('change',e=>{ if(e.target.value){ APP.pmDay=e.target.value; pmRender(); } });
+    el.querySelector('#pmOffCk').addEventListener('change',e=>{ try{ localStorage.setItem('ilpum-print-off',e.target.checked?'1':'0'); }catch(x){} pmRender(); });
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.body.classList.contains('pm-on')) closePrint(); }); }
+  APP.pmDay=key||todayStr; document.body.classList.add('pm-on'); pmRender();
+}
+function closePrint(){ document.body.classList.remove('pm-on'); }

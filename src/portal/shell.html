@@ -225,7 +225,8 @@ const ic=n=>`<svg class="i" viewBox="0 0 24 24">${ICON[n]}</svg>`;
 const ROUTES={
   dash:{t:'오늘 현황'}, res:{t:'예약 관리',frame:'res'},
   staff:{t:'직원 관리',frame:'sch',view:'staff'},
-  cards:{t:'근무 스케줄',frame:'sch',view:'cards'}, week:{t:'근무 스케줄 · 주간표',frame:'sch',view:'week'}, day:{t:'근무 스케줄 · 하루',frame:'sch',view:'day'},
+  daily:{t:'근무 스케줄 · 일용직근무자',frame:'sch',view:'daily'},
+  cards:{t:'근무 스케줄',frame:'sch',view:'cards'}, week:{t:'근무 스케줄 · 주간표',frame:'sch',view:'week'}, cal:{t:'근무 스케줄 · 휴무 달력',frame:'sch',view:'cal'}, day:{t:'근무 스케줄 · 하루',frame:'sch',view:'day'},
   rules:{t:'근무 스케줄 · 기간 설정',frame:'sch',view:'rules'}, me:{t:'근무 스케줄 · 내 스케줄',frame:'sch',view:'me'},
   pay:{t:'급여 관리',frame:'pay'}, hq:{t:'매장 관리',frame:'sch',view:'hq'}, acct:{t:'계정 · 권한',frame:'sch',view:'acct'}, set:{t:'설정',frame:'sch',view:'set'},
   ord:{t:'발주 관리',frame:'ord'}, notice:{t:'공지사항',frame:'notice'}, board:{t:'게시판 · 본사와 1:1 상담',frame:'board'}
@@ -235,7 +236,7 @@ const MENU=[
   {id:'notice',label:'공지사항',icon:'bell'},
   {id:'dash',label:'오늘 현황',icon:'grid'},
   {id:'res',label:'예약 관리',icon:'cal'},
-  {id:'sch',label:'근무 스케줄',icon:'clock',sub:[['cards','스케줄'],['week','주간표'],['day','하루'],['rules','기간 설정'],['me','내 스케줄']]},
+  {id:'sch',label:'근무 스케줄',icon:'clock',sub:[['cards','스케줄'],['cal','휴무 달력'],['week','주간표'],['daily','일용직근무자'],['rules','기간 설정'],['me','내 스케줄']]},
   {id:'staff',label:'직원 관리',icon:'user',needEdit:true},
   {id:'pay',label:'급여 관리',icon:'card',payOnly:true},
   {id:'board',label:'게시판',icon:'chat',boardOnly:true},
@@ -244,10 +245,10 @@ const MENU=[
   {id:'set',label:'설정',icon:'gear',needEdit:true},
   {id:'ord',label:'발주 관리',icon:'cart'}
 ];
-const GROUP_OF={cards:'sch',week:'sch',day:'sch',rules:'sch',me:'sch'};
+const GROUP_OF={cards:'sch',week:'sch',day:'sch',daily:'sch',rules:'sch',me:'sch'};
 function buildMenu(){
   $('#menu').innerHTML=MENU.map(m=>m.sub
-    ?`<button class="mi" data-g="${m.id}" ${m.hqOnly?'data-hqonly="1"':''} aria-expanded="false">${ic(m.icon)}<span>${m.label}</span><span class="car">${ic('car')}</span></button><div class="subm" id="sub-${m.id}">${m.sub.map(s=>`<button class="si" data-go="${s[0]}">${s[1]}</button>`).join('')}</div>`
+    ?`<button class="mi" data-g="${m.id}" ${m.hqOnly?'data-hqonly="1"':''} aria-expanded="false">${ic(m.icon)}<span>${m.label}</span><span class="car">${ic('car')}</span></button><div class="subm" id="sub-${m.id}">${m.sub.map(s=>`<button class="si" data-go="${s[0]}" ${s[0]==='daily'?'data-payonly="1"':''}>${s[1]}</button>`).join('')}</div>`
     :`<button class="mi" data-go="${m.id}" data-m="${m.id}" ${m.hqOnly?'data-hqonly="1"':''} ${m.payOnly?'data-payonly="1"':''} ${m.boardOnly?'data-boardonly="1"':''} ${m.needEdit?'data-edit="1"':''} ${m.needHq?'data-hq="1"':''} ${m.needAcct?'data-acct="1"':''}>${ic(m.icon)}<span>${m.label}</span></button>`).join('');
 }
 
@@ -256,7 +257,7 @@ function buildMenu(){
 // 본사 계정: 모든 기능 / 가맹점 계정: 자기 매장의 근무표만 (예약·급여·발주 메뉴는 숨김)
 let ME={mode:'none',hq:false,store:null,token:'',email:''};
 // 급여 메뉴는 금액을 볼 수 있는 계정(본사=본점 / 점주 / 허용된 매니저)에게만 보여요
-const allowed=id=>ME.orderOnly?id==='ord':!(ME.mode==='in'&&((id==='pay'&&!ME.canPay)||(id==='board'&&!ME.board)||(id==='acct'&&!ME.acct)));
+const allowed=id=>ME.orderOnly?id==='ord':!(ME.mode==='in'&&((['pay','daily'].includes(id)&&!ME.canPay)||(id==='board'&&!ME.board)||(id==='acct'&&!ME.acct)));
 function readConf(){ try{ return JSON.parse(localStorage.getItem('ilpum-fr-conf'))||{}; }catch(e){ return {}; } }
 function readSes(){ const c=readConf(); if(c.ses) return c.ses; try{ const t=sessionStorage.getItem('fr-ses'); if(t) return JSON.parse(t); }catch(e){} return null; }
 async function refreshSes(ses){
@@ -325,9 +326,10 @@ window.addEventListener('message',e=>{
   if(m.type==='fr-refresh'){ refreshBadges(); return; }
   if(m.type==='fr-open'&&ROUTES[m.id]&&allowed(m.id)){ go(m.id); return; }
   if(!frames.sch||e.source!==frames.sch.contentWindow) return;
+  if(m.type==='fr-daily-menu'){ setNav(!m.hidden); return; }
   if(m.type==='fr-state'){
     info={hq:!!m.hq,edit:!!m.edit,role:m.role||'',seen:true}; applyInfo();
-    if(['cards','week','day','rules','me','staff','hq','set','acct'].includes(m.view)&&ROUTES[cur]&&ROUTES[cur].frame==='sch'&&cur!==m.view){ go(m.view,{fromFrame:true}); }
+    if(['cards','cal','week','day','daily','rules','me','staff','hq','set','acct'].includes(m.view)&&ROUTES[cur]&&ROUTES[cur].frame==='sch'&&cur!==m.view){ go(m.view,{fromFrame:true}); }
   }
 });
 function applyInfo(){ $$('#menu [data-acct]').forEach(b=>b.hidden=!(info.hq||info.role==='owner')||(ME&&ME.mode==='in'&&!ME.acct)); $$('#menu [data-hq]').forEach(b=>b.hidden=!info.hq); $$('#menu [data-edit]').forEach(b=>b.hidden=!info.edit); }

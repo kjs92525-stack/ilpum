@@ -64,7 +64,10 @@ function dStaffDay(sid,key){
     `<button class="btn pri grow" data-a="dcsave" data-sid="${sid}" data-k="${key}">이 날 저장</button>${Object.keys(dc).length||(D.pay||{})['dc:'+key+'|'+sid]?`<button class="btn" data-a="dcclear" data-sid="${sid}" data-k="${key}">원래대로</button>`:''}`);
 }
 function saveStaffDay(sid,key){
-  const D=APP.D; const t=readTime('c'); if(!t.ok){ updHints('c'); return toast(t.msg); } const pr=readPay('c'); if(!pr.ok) return toast(pr.msg);
+  const D=APP.D; const t=readTime('c'); if(!t.ok){ updHints('c'); return toast(t.msg); }
+  // 메모에 "12시출"·"오후" 라고만 적어도 출근 시간으로 (2026-11-06)
+  { const q=quickParse($('#cMemo').value); if(q.sh) t.sh=q.sh; }   // 적은 글씨가 버튼보다 우선
+  const pr=readPay('c'); if(!pr.ok) return toast(pr.msg);
   const b=findItem(D,key,sid,{noDc:sid}); const want=$('#stK').value; const o={};
   if(want==='work'){ if(!b) o.st='extra'; } else if(want==='off'){ if(b) o.st='off'; } else o.st=want;
   if(t.sh&&!shSame(t.sh,b?b.sh:null)) o.sh=t.sh;
@@ -79,7 +82,7 @@ function saveStaffDay(sid,key){
 function dSpot(id){
   const D=APP.D, x=D.spot[id]; if(!x) return; const cp=canPay();
   openDrawer(x.name,`${mdw(x.date)} · 단기·당일`,
-    `<div class="sect"><div class="lb"><span>이름</span></div><input type="text" id="spName" value="${esc(x.name)}"></div>
+    `<div class="sect"><div class="lb"><span>이름</span>${x.vac?'<span class="bt">빈자리 — 들어갈 사람 이름을 넣으세요</span>':''}</div><input type="text" id="spName" value="${x.vac?'':esc(x.name)}" placeholder="${x.vac?'예: 박알바 (비우면 ??? 그대로)':''}"></div>
     <div class="sect"><div class="lb"><span>포지션</span></div><select id="spPos">${D.positions.map(p=>`<option ${x.pos===p.name?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
     <div class="sect"><div class="lb"><span>이름 옆 표기</span><span class="bt">메모와 별개 · 급여엔 안 쓰임</span></div><div class="row"><input type="text" id="spNote" class="grow" maxlength="12" value="${esc(x.note||'')}" placeholder="예: 당일지급"><button type="button" class="btn sm" data-a="notefill" data-t="spNote" data-v="당일지급">당일지급</button></div></div>
     ${timeW('s',x.sh||null,null)}${cp?payW('s',(D.pay||{})['spot:'+id]||null,'','안 정함'):''}
@@ -87,17 +90,122 @@ function dSpot(id){
     `<button class="btn pri grow" data-a="spotsave" data-id="${id}">저장</button><button class="btn bad" data-a="spotdel" data-id="${id}">이 날 빼기</button>`);
 }
 
+/* ---------- 당일알바 일당 자동 (2026-11-06 사용자: 오후 6.5·종일 13 처럼 적었던 사람은 다음에 넣을 때 자동으로) ----------
+   지난 단기·당일 기록에서 같은 이름의 "숫자만 적힌 메모"(만원)를 근무 형태(종일·오후·오전)별로 가장 최근 것을 찾아요.
+   메모는 화면에만 보이고 카톡 사진·인쇄에는 안 나가요. */
+const kindOfSh=sh=>!sh||sh.k==='full'?'full':sh.k==='pm'?'pm':sh.k==='am'?'am':null;
+// 숫자만(6.5) 또는 6.5+0.5 같은 더하기 식 — 적은 그대로 돌려줌(2026-11-06 사용자: 6.5+0.5 도 그대로 보이게)
+const memoMan=m=>{ const x=String(m||'').trim().match(/^(\d{1,3}(?:\.\d+)?(?:\s*\+\s*\d{1,3}(?:\.\d+)?)*)\s*(만|만원)?$/); return x?x[1].replace(/\s+/g,''):null; };
+function spotRates(name){
+  const out={}, at={}; name=String(name||'').trim(); if(!name) return out;
+  Object.values(APP.D.spot||{}).forEach(x=>{ if(!x||x.name!==name) return; const v=memoMan(x.memo), k=kindOfSh(x.sh); if(!v||!k) return; if(!at[k]||x.date>at[k]){ at[k]=x.date; out[k]=v; } });
+  return out;
+}
+function spotAuto(){
+  const nm=$('#aName'), mm=$('#aMemo'), hint=$('#aAuto'); if(!nm||!mm) return;
+  const q=applyQuick(nm.value,($('#aNote')||{}).value,'',null);
+  const r=spotRates(q.name), k=kindOfSh(q.sh||readTime('a').sh), L={full:'종일',pm:'오후',am:'오전'};
+  const has=Object.keys(r).length; if(hint) hint.textContent=[q.lbl?'알아서 읽음: '+q.lbl:'',has?'지난 일당: '+Object.keys(r).map(x=>L[x]+' '+r[x]).join(' · ')+(k&&r[k]&&!q.man?` → 메모에 ${r[k]} 자동`:''):''].filter(Boolean).join(' / ');
+  if(q.man) return;
+  if(mm.value&&mm.dataset.auto!=='1') return;                // 직접 적은 메모는 건드리지 않음
+  const v=k&&r[k]?r[k]:''; mm.value=v; mm.dataset.auto=v?'1':'';
+}
+
+/* ---------- 이름·표기·메모 칸의 "12시출", "6.5" 자동 인식 (2026-11-06 사용자: 버튼 누르기 불편 → 적으면 알아서)
+   이름 칸에 "박알바 12시출 6.5" 처럼 적으면 → 이름은 박알바, 출근 12시, 메모에 6.5(일당 만원). 이름에서는 빼서 카톡 사진에 안 나감.
+   1~9시는 저녁(5시출 = 17시). 오후·종일·오전 글자도 읽음. */
+function quickParse(txt){
+  let s=String(txt||''), sh=null, man=null, st=null, en=null, m;
+  const T=(h,mi)=>parseT(h+':'+String(mi||0).padStart(2,'0'),false);
+  const HM='(\\d{1,2})\\s*(?::\\s*(\\d{2})|시\\s*(?:(\\d{1,2})\\s*분|(반))?)?';
+  const mi=a=>a[2]!=null?+a[2]:a[3]!=null?+a[3]:a[4]?30:0;
+  if((m=s.match(new RegExp(HM+'\\s*(?:출근|출)')))){ st=T(m[1],mi(m)); s=s.replace(m[0],' '); }
+  if((m=s.match(new RegExp(HM+'\\s*(?:퇴근|퇴)')))){ const h=+m[1]; en=parseT(h+':'+String(mi(m)).padStart(2,'0'),true); s=s.replace(m[0],' '); }
+  if(!st&&!en&&(m=s.match(/(\d{1,2})(?::(\d{2}))?\s*~\s*(\d{1,2})(?::(\d{2}))?/))){ st=T(m[1],m[2]); en=parseT(m[3]+':'+(m[4]||'00'),true); s=s.replace(m[0],' '); }
+  if(st) sh={k:'t',s:st,e:en&&en!==APP.D.store.close?en:''}; else if(en) sh={k:'t',s:APP.D.store.open||'11:00',e:en};
+  // 오후·오전·종일: 따로 쓴 말이거나 2자 이상 이름 바로 뒤에 붙은 것만 ("이종일"·"김오후" 같은 이름은 그대로)
+  [['오후','pm'],['오전','am'],['종일','full']].forEach(([w,k])=>{ const re=new RegExp('(^|[^가-힣]|[가-힣]{2})'+w+'(?![가-힣])');
+    if((m=s.match(re))){ if(!sh) sh={k}; s=s.replace(re,'$1 '); } });
+  if((m=s.match(/(?:^|[^\d.])(\d{1,2}(?:\.\d+)?(?:\s*\+\s*\d{1,2}(?:\.\d+)?)*)\s*(?:만원|만)?(?![\d.:시])/))){ man=m[1].replace(/\s+/g,''); s=s.replace(m[0],m[0].replace(m[1],' ').replace(/만원|만/,'')); }
+  const rest=s.replace(/[()\[\]]/g,' ').replace(/\s+/g,' ').trim();
+  return {rest,sh,man,found:!!(sh||man)};
+}
+const qpLbl=q=>[q.sh?(q.sh.k==='t'?tLbl(q.sh.s)+' 출근'+(q.sh.e?' ~ '+tLbl(q.sh.e):''):{pm:'오후',am:'오전',full:'종일'}[q.sh.k]):'',q.man?'일당 '+q.man+'만':''].filter(Boolean).join(' · ');
+// 이름·표기·메모를 한꺼번에 읽어서 {name, note, memo, sh} 로. (2026-11-06 사용자) 적은 글씨가 출근 시간 버튼보다 우선 — 오후 체크 + "7시출" = 19시~22시
+function applyQuick(nameV,noteV,memoV,pickSh){
+  const qn=quickParse(nameV), qt=quickParse(noteV), qm=quickParse(memoV);
+  const sh=qn.sh||qt.sh||qm.sh||pickSh||null; const man=qn.man||qt.man||qm.man||null;
+  let memo=String(memoV||'').trim(); if(man&&!qm.man) memo=memo?man+' '+memo:man;
+  return {name:qn.rest||String(nameV||'').trim(),note:qt.found?qt.rest:String(noteV||'').trim(),memo,sh,man,lbl:qpLbl({sh:qn.sh||qt.sh||qm.sh,man})};
+}
+
+/* ---------- 휴무 달력 고치기 (2026-11-06) ---------- */
+let CALD=null;
+function dCalDay(key){
+  const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular'), S=calStates(D,pd(key));
+  if(!CALD||CALD.key!==key){ const N={}; regs.forEach(s=>{ const c=(D.dc[key+'|'+s.id]||{}).cn; if(c) N[s.id]=c; }); CALD={key,orig:{...S},map:{...S},origN:{...N},note:N}; }
+  const lbl=v=>({work:'근무',fixed:'고정휴무',off:'휴무',annual:'월차',am:'오전 쉼',pmoff:'오후 쉼',poff:'휴무지급'}[v]);
+  openDrawer('휴무 달력',`${mdw(key)} · 쉬는 사람을 고르세요`,
+    `<div class="sect"><div class="lb"><span>글로 적기</span><span class="bt">예: 홍주, 애현(월), 김지수(오전), 홍주(병원)</span></div>
+      <div class="row" style="flex-wrap:nowrap"><input type="text" id="calTxt" class="grow" placeholder="이름, 이름(월), 이름(오전)" autocomplete="off"><button class="btn" data-a="caltxt">적용</button></div>
+      <div class="hint">(월) = 월차 · (오전) = 오전 쉬고 오후 출근 · (오후) = 오전만 근무 · 그냥 이름 = 그날 휴무 · 다른 말을 괄호에 쓰면 휴무 + 메모(달력에 그대로 보임)<br>고정휴무가 있는 사람이 같은 주 다른 날 휴무를 쓰거나 반차를 두 번 쓰면 그 주 고정휴무 날은 출근이 돼요 (11/7부터)</div></div>
+    <div class="sect"><div class="lb"><span>직원</span><span class="bt">누를 때마다 근무 → 휴무 → 월차 → 오전 쉼 → 오후 쉼</span></div>
+      <div class="calpick">${regs.map(s=>{ const v=CALD.map[s.id]||'work'; return `<div class="cpw"><button class="cp ${v}" data-a="calst" data-sid="${s.id}" ${v==='fixed'?'title="고정휴무 — 누르면 그날만 출근"':''}><b>${esc(s.name)}</b><span>${lbl(v)}</span></button>${v!=='work'||CALD.note[s.id]?`<input type="text" class="cpn" data-calnote="${s.id}" value="${esc(CALD.note[s.id]||'')}" placeholder="메모" maxlength="12">`:''}</div>`; }).join('')}</div></div>`,
+    `<button class="btn pri grow" data-a="calsave">저장</button>`);
+}
+function calApplyText(txt){
+  const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular'); const miss=[];
+  String(txt||'').split(/[,，\/\n]+|\s{2,}/).map(x=>x.trim()).filter(Boolean).forEach(tok=>{
+    const m=tok.match(/^([가-힣0-9]+)\s*(?:\(([^)]*)\)?)?/); if(!m) return; const nm=m[1], tag=m[2]||'';
+    let s=regs.find(z=>z.name===nm); if(!s){ const c=regs.filter(z=>z.name.endsWith(nm)||nm.endsWith(z.name)); if(c.length===1) s=c[0]; }
+    if(!s){ miss.push(nm); return; }
+    const parts=tag.split(/[·,\s]+/).filter(Boolean), st=parts.find(x=>/^(오후|오전|오|월|월차)$/.test(x)), note=parts.filter(x=>x!==st).join(' ');
+    CALD.map[s.id]=st==='오후'?'pmoff':st==='오전'||st==='오'?'am':st?'annual':'off'; if(note) CALD.note[s.id]=note.slice(0,12); });
+  return miss;
+}
+function calSave(){
+  const D=APP.D, key=CALD.key; let n=0;
+  Object.keys(CALD.note).concat(Object.keys(CALD.origN)).forEach(sid=>{ if((CALD.note[sid]||'')===(CALD.origN[sid]||'')||CALD.map[sid]!==CALD.orig[sid]) return;   // 상태는 그대로, 메모만 바뀜
+    const o=Object.assign({},D.dc[key+'|'+sid]||{}); if(CALD.note[sid]) o.cn=CALD.note[sid]; else delete o.cn; put('dc',key+'|'+sid,Object.keys(o).length?o:null); n++; });
+  Object.keys(CALD.map).forEach(sid=>{ const v=CALD.map[sid], o0=CALD.orig[sid]; if(v===o0) return;
+    const s=D.staff[sid]; if(!s) return; const baseWork=!(s.off||[]).includes(pd(key).getDay());
+    const o=Object.assign({},D.dc[key+'|'+sid]||{});
+    if((o0==='am'||o0==='pmoff')&&o.sh&&(o.sh.k==='pm'||o.sh.k==='am')) delete o.sh; if(o0==='am'||o0==='pmoff') delete o.half;
+    if(v==='work'||v==='fixed'){ if(baseWork||v==='fixed') delete o.st; else o.st='extra'; }
+    else if(v==='off') o.st='off';
+    else if(v==='annual') o.st='annual';
+    else if(v==='am'||v==='pmoff'){ o.sh={k:v==='am'?'pm':'am'}; o.half=v==='am'?'am':'pm'; if(baseWork) delete o.st; else o.st='extra'; }   // 반차: 오전 쉼=오후 출근, 오후 쉼=오전 근무
+    if(v==='work'&&!CALD.note[sid]) delete o.cn; else if(CALD.note[sid]) o.cn=CALD.note[sid]; else delete o.cn;
+    put('dc',key+'|'+sid,Object.keys(o).length?o:null); n++; });
+  CALD=null; closeDrawer(); render(); toast(n?`${n}명 바꿨어요`:'바뀐 게 없어요');
+}
+function dCalWd(wd){
+  const D=APP.D, regs=staffList(D).filter(s=>s.type==='regular');
+  openDrawer(`${DOW[wd]}요일 고정휴무`,'매주 이 요일에 쉬는 직원 · 다음 달에도 그대로',
+    `<div class="pick">${regs.map(s=>`<label><input type="checkbox" data-calwd="${s.id}" ${(s.off||[]).includes(wd)?'checked':''}> ${esc(s.name)} <small class="muted">${esc(s.pos)}</small></label>`).join('')}</div>
+    <div class="sect" style="margin-top:14px"><div class="lb"><span>${DOW[wd]}요일 휴무지급</span><span class="bt">쉬지만 돈은 나가는 사람 — 달력엔 쉬는 사람으로, 스케줄엔 휴무지급으로</span></div>
+    <div class="pick">${regs.map(s=>`<label><input type="checkbox" data-calpw="${s.id}" ${(s.poff||[]).includes(wd)?'checked':''}> ${esc(s.name)}</label>`).join('')}</div></div>`,
+    `<button class="btn pri grow" data-a="calwdsave" data-wd="${wd}">저장</button>`);
+}
+
+// 쉬는 날인 고정 근무 직원을 그날 넣으면 휴무지급으로(2026-11-06 사용자: 달력에 쉬는 걸로 적혔는데 출근하면 일급 주고 휴무지급). 매주 변동·단기는 예전처럼 추가 출근
+const offAdd=s=>s&&s.type==='regular'?'paidoff':'extra';
+
 /* ---------- 사람 넣기 ---------- */
 function dAdd(pos,key){
   const D=APP.D, R=resolve(D,pd(key)); const on=new Set(R.list.map(x=>x.sid).filter(Boolean)); const cand=staffList(D).filter(s=>!on.has(s.id)); const cp=canPay();
   openDrawer('사람 넣기',mdw(key),
     `<div class="sect"><div class="lb"><span>포지션</span></div><select id="aPos">${D.positions.map(p=>`<option ${p.name===pos?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
     ${timeW('a',null,null)}${cp?payW('a',null,'','안 정함'):''}
-    <div class="sect"><div class="lb"><span>쉬는 직원 불러오기</span><span class="bt">${cand.length}명</span></div>
+    <div class="sect"><div class="lb"><span>쉬는 직원 불러오기</span><span class="bt">${cand.length}명 · 고정 근무 직원은 휴무지급으로 들어가요(일급은 위 금액 칸에)</span></div>
       ${cand.length?`<div class="pick">${cand.map(s=>`<label><input type="checkbox" data-add="${s.id}"> ${esc(s.name)} <small class="muted">${esc(s.pos)}</small></label>`).join('')}</div>
       <button class="btn" data-a="addstaff" data-k="${key}">고른 직원 출근시키기</button>`:'<span class="muted" style="font-size:13px">모두 출근해요</span>'}</div>
+    <div class="sect"><div class="lb"><span>필요 인원 (빈자리)</span><span class="bt">아직 사람이 안 정해진 자리 — 나중에 눌러서 이름을 넣어요</span></div>
+      <div class="row"><button class="btn" data-a="addvac" data-k="${key}" data-v="full">+ 종일 ???</button><button class="btn" data-a="addvac" data-k="${key}" data-v="pm">+ 오후 ???</button></div></div>
     <div class="sect"><div class="lb"><span>새 단기·당일 알바</span></div>
-      <div class="row"><input type="text" id="aName" class="grow" placeholder="이름 (예: 박알바)"><input type="text" id="aMemo" class="grow" placeholder="메모 (선택)"></div>
+      <div class="row"><input type="text" id="aName" class="grow" placeholder="이름 (예: 박알바)" list="aNames" autocomplete="off"><input type="text" id="aMemo" class="grow" placeholder="메모 · 일당 (예: 6.5)"></div>
+      <datalist id="aNames">${[...new Set(Object.values(D.spot||{}).filter(x=>x&&x.name).sort((a,b)=>b.date.localeCompare(a.date)).map(x=>x.name))].slice(0,80).map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+      <div class="hint" id="aAuto"></div>
       <div class="row"><input type="text" id="aNote" class="grow" maxlength="12" placeholder="이름 옆 표기 (예: 당일지급)"><button type="button" class="btn sm" data-a="notefill" data-t="aNote" data-v="당일지급">당일지급</button></div>
       <div class="row"><span class="muted" style="font-size:13px">마지막 날</span><input type="date" id="aTo" value="${key}" min="${key}"><span class="hint">며칠 연속이면 바꾸세요</span></div>
       <button class="btn pri" data-a="addspot" data-k="${key}">알바 넣기</button></div>`,'');
@@ -107,7 +215,7 @@ function dAdd(pos,key){
 let WD=null;
 function dWeekly(wk){
   const D=APP.D, ws=pd(wk); const list=staffList(D).filter(s=>s.type==='weekly');
-  if(!WD||WD.wk!==wk){ WD={wk,mode:(WD&&WD.mode)||'st',map:{}}; list.forEach(s=>{ const en=(D.aw[wk]||{})[s.id]; WD.map[s.id]=en?JSON.parse(JSON.stringify({off:en.off||[],pm:en.pm||[],t:en.t||{},saved:true})):{off:[],pm:[],t:{},saved:false}; }); }
+  if(!WD||WD.wk!==wk){ WD={wk,mode:(WD&&WD.mode)||'st',map:{}}; list.forEach(s=>{ const en=(D.aw[wk]||{})[s.id]; WD.map[s.id]=en?JSON.parse(JSON.stringify({off:en.off||[],pm:en.pm||[],t:en.t||{},saved:true})):{off:[0,1,2,3,4,5,6],pm:[],t:{},saved:false}; }); }   // (2026-11-06 사용자) 입력 안 한 사람은 쉬는 날 — 한 명만 넣어도 나머지가 근무로 들어가지 않게
   const cell=(sid,i)=>{ const m=WD.map[sid]; const st=m.off.includes(i)?'off':m.pm.includes(i)?'pm':'on'; const tt=m.t[i];
     if(WD.mode==='time'){ if(st==='off') return '<span class="tag bad" style="width:100%;justify-content:center;padding:7px 0">휴무</span>';
       return `<input type="text" data-wt="${sid}" data-i="${i}" value="${tt?esc(tLbl(tt.s)):''}" placeholder="${st==='pm'?'오후':'기본'}" style="width:100%;text-align:center;padding:6px 2px">`; }
@@ -116,9 +224,9 @@ function dWeekly(wk){
   openDrawer('매주 변동 입력',`${mdw(wk)} ~ ${mdw(ds(addDays(ws,6)))} · 매주 스케줄이 바뀌는 사람`,
     `<div class="row"><button class="btn sm" data-a="wnav" data-n="-7">‹ 지난주</button><button class="btn sm" data-a="wnav" data-n="7">다음 주 ›</button><span class="grow"></span>
       <div class="seg"><button data-a="wmode" data-v="st" aria-pressed="${WD.mode!=='time'}">근무·휴무·오후</button><button data-a="wmode" data-v="time" aria-pressed="${WD.mode==='time'}">출근 시간</button></div></div>
-    <p class="hint" style="margin:0">${WD.mode==='time'?'칸에 출근 시간을 적으세요 (예: 11, 5, 5시반). 비우면 요일 패턴대로.':'칸을 누를 때마다 근무 → 휴무 → 오후로 바뀌어요.'}</p>
+    <p class="hint" style="margin:0">${WD.mode==='time'?'칸에 출근 시간을 적으세요 (예: 11, 5, 5시반). 비우면 요일 패턴대로.':'출근하는 날만 누르세요 — 누를 때마다 휴무 → 근무 → 오후. 손대지 않은 사람은 그 주 쉬어요. 하루만 넣을 땐 스케줄 카드의 이름(쉬는 사람)을 눌러도 돼요.'}</p>
     ${list.length?`<div class="scroll"><table class="t"><thead><tr><th>이름</th>${WD_MON.map((w,i)=>`<th style="text-align:center">${DOW[w]}<br><span class="muted" style="font-weight:500">${addDays(ws,i).getDate()}</span></th>`).join('')}</tr></thead><tbody>
-    ${list.map(s=>`<tr><td style="white-space:nowrap"><b>${esc(s.name)}</b>${WD.map[s.id].saved?'':'<br><span class="tag warn">미입력</span>'}</td>${[0,1,2,3,4,5,6].map(i=>`<td style="padding:4px 2px;min-width:52px">${cell(s.id,i)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
+    ${list.map(s=>`<tr><td style="white-space:nowrap"><b>${esc(s.name)}</b>${WD.map[s.id].saved||WD.map[s.id].dirty?'':'<br><span class="muted" style="font-size:12px">쉼</span>'}</td>${[0,1,2,3,4,5,6].map(i=>`<td style="padding:4px 2px;min-width:52px">${cell(s.id,i)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
       :'<div class="empty">‘매주 변동’ 직원이 없어요. 직원 화면에서 종류를 바꾸세요.</div>'}`,
     `<button class="btn" data-a="wcopy">지난주와 같게</button><span class="grow"></span><button class="btn pri" data-a="wsave">이번 주 저장</button>`,true);
 }
@@ -215,7 +323,8 @@ function dPositions(delIdx){
       <input type="text" value="${esc(p.name)}" data-a="pmf" data-i="${i}" data-f="name" aria-label="포지션 이름">
       <div class="row" style="flex-wrap:nowrap;gap:4px"><span class="muted" style="font-size:12px;white-space:nowrap">${n}명</span>
         <button class="btn sm" data-a="pmmv" data-i="${i}" data-n="-1" aria-label="위로" ${i===0?'disabled':''}>↑</button><button class="btn sm" data-a="pmmv" data-i="${i}" data-n="1" aria-label="아래로" ${i===D.positions.length-1?'disabled':''}>↓</button>
-        <button class="btn sm bad" data-a="pmdel" data-i="${i}">삭제</button></div></div>`; }).join('');
+        <button class="btn sm bad" data-a="pmdel" data-i="${i}">삭제</button></div>
+      <select data-a="pmto" data-i="${i}" style="grid-column:2/-1;font-size:13px;padding:5px 8px" aria-label="위치 옮기기"><option value="">위치 옮기기…</option>${i>0?'<option value="top">맨 위로</option>':''}${D.positions.map((q,j)=>j!==i&&j!==i-1?`<option value="${j}">‘${esc(q.name)}’ 바로 아래로</option>`:'').join('')}</select></div>`; }).join('');
   let panel='';
   if(del!=null&&D.positions[del]){ const p=D.positions[del], users=posUsers(p.name), others=D.positions.filter((_,i)=>i!==del);
     panel=`<div class="why" style="border:1px solid var(--bad)"><b>‘${esc(p.name)}’ 포지션을 삭제할까요?</b><br>${users.length?`여기 있는 ${users.length}명(${esc(users.slice(0,6).map(s=>s.name).join(', '))}${users.length>6?' 외':''})은 다른 포지션으로 옮겨요.`:'이 포지션에는 기본으로 배정된 사람이 없어요.'}
@@ -229,7 +338,7 @@ function dPositions(delIdx){
 }
 function addPos(){ const name=($('#npN').value||'').trim(), color=$('#npC').value||'#6B7A8F'; if(!name) return toast('포지션 이름을 넣어주세요');
   const D=APP.D; if(D.positions.some(p=>p.name===name)) return toast('이미 있는 이름이에요');
-  put('cfg','positions',[...D.positions.map(p=>({...p})),{name,color,req:[0,0,0,0,0,0,0]}]); APP.showEmpty=true; render(); dPositions(); toast(`‘${name}’ 포지션을 추가했어요`); }
+  put('cfg','positions',[...D.positions.map(p=>({...p})),{name,color,req:[0,0,0,0,0,0,0]}]); render(); dPositions(); toast(`‘${name}’ 포지션을 추가했어요`); }
 function delPos(i){ const D=APP.D; const p=D.positions[i]; if(!p) return; if(D.positions.length<=1) return toast('포지션은 하나 이상 있어야 해요');
   const users=posUsers(p.name); const sel=$('#pmTo'); const to=sel?sel.value:(D.positions.find((_,j)=>j!==i)||{}).name;
   Object.values(D.staff).forEach(s=>{ if(s.pos===p.name) put('staff',s.id,{...s,pos:to}); });
@@ -281,41 +390,57 @@ document.addEventListener('click',async e=>{
     case 'wk': APP.anchor=d.n==='0'?new Date():addDays(weekStart(APP.anchor),7*+d.n); render(); break;
     case 'cnav': { const a=APP.anchor; if(d.n==='0') APP.anchor=new Date(); else if((APP.cardMode||'month')==='month') APP.anchor=new Date(a.getFullYear(),a.getMonth()+(+d.n),1); else APP.anchor=addDays(a,7*(+d.n)); render(); break; }
     case 'cmode': APP.cardMode=d.v; APP.anchor=new Date(); render(); break;
+    case 'calm': { const a=APP.calAnchor||new Date(); APP.calAnchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }
+    case 'calday': CALD=null; dCalDay(d.k); break;
+    case 'calst': { const order=['work','off','annual','am','pmoff']; const cur=CALD.map[d.sid]||'work'; CALD.map[d.sid]=cur==='fixed'?'work':order[(order.indexOf(cur)+1)%order.length]; dCalDay(CALD.key); break; }
+    case 'caltxt': { const miss=calApplyText($('#calTxt').value); dCalDay(CALD.key); if(miss.length) toast('못 찾은 이름: '+miss.join(', ')); break; }
+    case 'calsave': calSave(); break;
+    case 'calwd': dCalWd(+d.wd); break;
+    case 'calwdsave': { const wd=+d.wd; let n=0; $$('[data-calwd]').forEach(c=>{ const s=D.staff[c.dataset.calwd]; if(!s) return; const has=(s.off||[]).includes(wd);
+        if(c.checked!==has){ const off=c.checked?[...(s.off||[]),wd].sort():(s.off||[]).filter(x=>x!==wd); put('staff',s.id,{...s,off}); n++; } });
+      $$('[data-calpw]').forEach(c=>{ const s=D.staff[c.dataset.calpw]; if(!s) return; const has=(s.poff||[]).includes(wd);
+        if(c.checked!==has){ const poff=c.checked?[...(s.poff||[]),wd].sort():(s.poff||[]).filter(x=>x!==wd); const ns={...D.staff[s.id],poff}; if(c.checked) ns.poffFrom=todayStr; put('staff',s.id,ns); n++; } });
+      closeDrawer(); render(); toast(n?`${n}명 바꿨어요`:'바뀐 게 없어요'); break; }
+    case 'clook': try{ localStorage.setItem('ilpum-card-look',d.v); }catch(e){} render(); break;
     case 'mon': { const a=APP.anchor; APP.anchor=d.n==='0'?new Date():new Date(a.getFullYear(),a.getMonth()+(+d.n),1); render(); break; }
     case 'dayn': APP.day=d.n==='0'?todayStr:ds(addDays(pd(APP.day),+d.n)); render(); break;
-    case 'gday': APP.day=d.k; APP.view='day'; render(); break;
     case 'gweek': APP.anchor=pd(d.k); APP.view='week'; render(); break;
     case 'jump': $('#'+d.to)?.scrollIntoView({behavior:'smooth'}); break;
     case 'paytog': sessionStorage.setItem('fr-pay',canPay()?'0':'1'); render(); break;
     case 'print': window.print(); break;
+    case 'pmode': openPrint(); break;
     case 'edit': if(!canEdit()){ if(d.sid&&role()==='staff') return; toast('보기 전용이에요'); return; }
       if(d.spot) dSpot(d.spot); else if(d.sid) dStaffDay(d.sid,d.k); break;
     case 'add': dAdd(d.pos,d.k); break;
-    case 'shk': setShk(d.p,d.v); break;
+    case 'shk': setShk(d.p,d.v); if(d.p==='a') spotAuto(); break;
     case 'qt': $('#'+d.p+'S').value=d.v+'시'; updHints(d.p); break;
     case 'stk': $('#stK').value=d.v; $$('[data-a="stk"]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===d.v)); break;
     case 'dcsave': saveStaffDay(d.sid,d.k); break;
     case 'dcclear': put('dc',d.k+'|'+d.sid,null); if((D.pay||{})['dc:'+d.k+'|'+d.sid]) putPay('dc:'+d.k+'|'+d.sid,null); closeDrawer(); render(); toast('원래대로 되돌렸어요'); break;
-    case 'spotsave': { const x={...D.spot[d.id]}; x.name=$('#spName').value.trim()||x.name; x.pos=$('#spPos').value; x.memo=$('#spMemo').value.trim(); { const nt=($('#spNote').value||'').trim().slice(0,12); if(nt) x.note=nt; else delete x.note; }
-      const t=readTime('s'); if(!t.ok) return toast(t.msg); const pr=readPay('s'); if(!pr.ok) return toast(pr.msg);
+    case 'spotsave': { const x={...D.spot[d.id]}; const t=readTime('s'); if(!t.ok) return toast(t.msg); const pr=readPay('s'); if(!pr.ok) return toast(pr.msg);
+      const Q=applyQuick($('#spName').value,$('#spNote').value,$('#spMemo').value,t.sh); t.sh=Q.sh||t.sh;
+      if(x.vac&&Q.name&&!/^\?+$/.test(Q.name)) delete x.vac;   // 빈자리에 이름을 넣으면 보통 단기 알바로
+      x.name=Q.name||x.name; x.pos=$('#spPos').value; x.memo=Q.memo; { const nt=(Q.note||'').slice(0,12); if(nt) x.note=nt; else delete x.note; }
       if(t.sh&&t.sh.k!=='full') x.sh=t.sh; else delete x.sh; put('spot',d.id,x); if(!pr.skip) putPay('spot:'+d.id,pr.pay); closeDrawer(); render(); toast('저장했어요'); break; }
     case 'notefill': { const el=$('#'+d.t); if(el) el.value=(el.value===d.v?'':d.v); break; }
     case 'spotdel': put('spot',d.id,null); if((D.pay||{})['spot:'+d.id]) putPay('spot:'+d.id,null); closeDrawer(); render(); toast('뺐어요'); break;
     case 'addstaff': { const ids=$$('[data-add]').filter(x=>x.checked).map(x=>x.dataset.add); if(!ids.length) return toast('출근시킬 직원을 고르세요');
       const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg); const pos=$('#aPos').value;
-      ids.forEach(sid=>{ const k=d.k+'|'+sid; const o=Object.assign({},D.dc[k]||{}); o.st='extra'; if(pos!==D.staff[sid].pos) o.pos=pos; else delete o.pos; if(t.sh&&t.sh.k!=='full') o.sh=t.sh; put('dc',k,o); if(!pr.skip&&pr.pay) putPay('dc:'+k,pr.pay); });
+      ids.forEach(sid=>{ const k=d.k+'|'+sid; const o=Object.assign({},D.dc[k]||{}); o.st=offAdd(D.staff[sid]); if(pos!==D.staff[sid].pos) o.pos=pos; else delete o.pos; if(t.sh&&t.sh.k!=='full') o.sh=t.sh; put('dc',k,o); if(!pr.skip&&pr.pay) putPay('dc:'+k,pr.pay); });
       closeDrawer(); render(); toast(`${ids.length}명 출근시켰어요`); break; }
-    case 'addspot': { const name=$('#aName').value.trim(); if(!name){ $('#aName').focus(); return toast('알바 이름을 넣으세요'); }
-      const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg);
+    case 'addvac': { const id=uid(); const x={id,date:d.k,name:'???',pos:$('#aPos').value,vac:true}; if(d.v==='pm') x.sh={k:'pm'}; put('spot',id,x); closeDrawer(); render(); toast(`빈자리(${d.v==='pm'?'오후':'종일'} ???)를 넣었어요`); break; }
+    case 'addspot': { const t=readTime('a'); if(!t.ok) return toast(t.msg); const pr=readPay('a'); if(!pr.ok) return toast(pr.msg);
+      const Q=applyQuick($('#aName').value,$('#aNote').value,$('#aMemo').value,t.sh); const name=Q.name; if(!name){ $('#aName').focus(); return toast('알바 이름을 넣으세요'); }
+      $('#aNote').value=Q.note; $('#aMemo').value=Q.memo; t.sh=Q.sh||t.sh;   // 적은 글씨가 버튼보다 우선
       const to=$('#aTo').value||d.k; const dates=ruleDates(d.k,to<d.k?d.k:to,[]).slice(0,62);
       dates.forEach(dt=>{ const id=uid(); const x={id,date:dt,name,pos:$('#aPos').value,memo:$('#aMemo').value.trim()}; { const nt=($('#aNote').value||'').trim().slice(0,12); if(nt) x.note=nt; } if(t.sh&&t.sh.k!=='full') x.sh=t.sh; put('spot',id,x); if(!pr.skip&&pr.pay) putPay('spot:'+id,pr.pay); });
-      closeDrawer(); render(); toast(dates.length>1?`${name} ${dates.length}일 넣었어요`:`${name} 넣었어요`); break; }
+      closeDrawer(); render(); toast((dates.length>1?`${name} ${dates.length}일 넣었어요`:`${name} 넣었어요`)+(Q.lbl?` · ${Q.lbl}`:'')); break; }
     case 'weekly': dWeekly(d.k2||weekKey(pd(d.k))); break;
-    case 'wcell': { const m=WD.map[d.sid], i=+d.i; if(m.off.includes(i)){ m.off=m.off.filter(x=>x!==i); m.pm.push(i); } else if(m.pm.includes(i)){ m.pm=m.pm.filter(x=>x!==i); } else { m.off.push(i); delete m.t[i]; } dWeekly(WD.wk); break; }
+    case 'wcell': { const m=WD.map[d.sid], i=+d.i; m.dirty=true; if(m.off.includes(i)){ m.off=m.off.filter(x=>x!==i); } else if(m.pm.includes(i)){ m.pm=m.pm.filter(x=>x!==i); m.off.push(i); delete m.t[i]; } else { m.pm.push(i); } dWeekly(WD.wk); break; }
     case 'wmode': WD.mode=d.v; dWeekly(WD.wk); break;
     case 'wnav': dWeekly(ds(addDays(pd(WD.wk),+d.n))); break;
-    case 'wcopy': { const prev=D.aw[ds(addDays(pd(WD.wk),-7))]; if(!prev) return toast('지난주 입력이 없어요'); Object.keys(WD.map).forEach(sid=>{ if(prev[sid]) Object.assign(WD.map[sid],JSON.parse(JSON.stringify({off:prev[sid].off||[],pm:prev[sid].pm||[],t:prev[sid].t||{}}))); }); dWeekly(WD.wk); toast('지난주를 불러왔어요 · 저장해야 반영돼요'); break; }
-    case 'wsave': { const out=Object.assign({},D.aw[WD.wk]||{}); Object.keys(WD.map).forEach(sid=>{ const m=WD.map[sid]; out[sid]={off:[...m.off].sort(),pm:[...m.pm].sort()}; if(Object.keys(m.t).length) out[sid].t=m.t; m.saved=true; });
+    case 'wcopy': { const prev=D.aw[ds(addDays(pd(WD.wk),-7))]; if(!prev) return toast('지난주 입력이 없어요'); Object.keys(WD.map).forEach(sid=>{ if(prev[sid]) Object.assign(WD.map[sid],JSON.parse(JSON.stringify({off:prev[sid].off||[],pm:prev[sid].pm||[],t:prev[sid].t||{}})),{dirty:true}); }); dWeekly(WD.wk); toast('지난주를 불러왔어요 · 저장해야 반영돼요'); break; }
+    case 'wsave': { const out=Object.assign({},D.aw[WD.wk]||{}); Object.keys(WD.map).forEach(sid=>{ const m=WD.map[sid]; if(!m.saved&&!m.dirty) return; out[sid]={off:[...m.off].sort(),pm:[...m.pm].sort()}; if(Object.keys(m.t).length) out[sid].t=m.t; m.saved=true; });
       put('aw',WD.wk,out); dWeekly(WD.wk); render(); toast('이번 주 입력을 저장했어요'); break; }
     case 'staff': dStaff(d.sid); break;
     case 'staffnew': dStaff(null); break;
@@ -426,7 +551,10 @@ document.addEventListener('input',e=>{ const t=e.target, id=t.id||''; if(id==='s
   const m=id.match(/^([a-z])(S|E|Pv)$/); if(m) updHints(m[1]);
   if(id==='rQ'){ const q=t.value.trim(); $$('#rPick label').forEach(l=>l.hidden=!!q&&!l.dataset.rn.includes(q)); }
   if(t.closest&&t.closest('#dBody')&&$('#rPrev')) rulePrev();
-  if(id==='staffQ'&&!e.isComposing) staffSearch(t);   // 한글 조합 중에 화면을 다시 그리면 ㅇㅣㅈㅐ 처럼 낱글자로 풀려요 → 조합이 끝난 뒤에만
+  if(id==='staffQ'&&!e.isComposing) staffSearch(t);
+  if(id==='calQ'){ APP.calQ=t.value; calHi(); }
+  if(id==='aName'||id==='aS'||id==='aE') spotAuto();
+  if(id==='aMemo') t.dataset.auto='';   // 한글 조합 중에 화면을 다시 그리면 ㅇㅣㅈㅐ 처럼 낱글자로 풀려요 → 조합이 끝난 뒤에만
 });
 function staffSearch(t){ APP.q=t.value; const pos=t.selectionStart; render(); const n=$('#staffQ'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(er){} } }
 document.addEventListener('compositionend',e=>{ if(e.target&&e.target.id==='staffQ') staffSearch(e.target); });
@@ -435,11 +563,16 @@ document.addEventListener('change',e=>{ const t=e.target, d=t.dataset, D=APP.D; 
   const m=id.match(/^([a-z])(Pk|Pc)$/); if(m) updHints(m[1]);
   if(t.closest&&t.closest('#dBody')&&$('#rPrev')) rulePrev();
   if(d.pat!==undefined){ const i=$(`[data-patt="${d.pat}"]`); i.hidden=t.value!=='t'; i.placeholder=t.value==='t'?'예: 11 또는 11~9':''; if(t.value==='t') i.focus(); }
-  if(d.wt&&WD){ const mm=WD.map[d.wt], i=+d.i; const v=t.value.trim(); if(!v) delete mm.t[i]; else { const s=parseT(v,false); if(!s){ toast('시간을 알아보지 못했어요'); t.value=''; return; } mm.t[i]={s}; mm.pm=mm.pm.filter(x=>x!==i); t.value=tLbl(s); } }
+  if(d.wt&&WD){ const mm=WD.map[d.wt], i=+d.i; mm.dirty=true; const v=t.value.trim(); if(!v) delete mm.t[i]; else { const s=parseT(v,false); if(!s){ toast('시간을 알아보지 못했어요'); t.value=''; return; } mm.t[i]={s}; mm.pm=mm.pm.filter(x=>x!==i); t.value=tLbl(s); } }
   if(d.a==='mepick'){ APP.me=t.value; render(); }
+  if(d.calnote&&CALD){ CALD.note[d.calnote]=t.value.trim().slice(0,12); }
+  if(d.a==='cgo'&&t.value){ APP.anchor=pd(t.value); render(); }   // 원하는 날짜로 바로 가기(2026-11-06)
   if(d.a==='stf'){ const st={...D.store}; const f=d.f; let v=t.type==='checkbox'?t.checked:t.value;
     if(['open','close','pmStart','amStart'].includes(f)){ const p=parseT(v,f!=='open'); if(!p){ toast('시간을 확인하세요 (예: 11:00)'); t.value=st[f]; return; } v=p; t.value=p; }
     if(['fullH','pmH','amH','target'].includes(f)) v=+v||0; st[f]=v; put('cfg','store',st); if(f==='name') renderShell(),render(); toast('저장했어요'); }
+  if(d.a==='pmto'&&t.value!==''){ const pos=D.positions.map(p=>({...p})); const i=+d.i; const [it]=pos.splice(i,1);   // (2026-11-06) "○○ 바로 아래로" 한 번에 옮기기
+    if(t.value==='top') pos.unshift(it); else { const tgt=D.positions[+t.value].name; const k=pos.findIndex(p=>p.name===tgt); pos.splice(k+1,0,it); }
+    put('cfg','positions',pos); render(); dPositions(); toast(`‘${it.name}’ 위치를 옮겼어요`); return; }
   if(d.a==='pmf'){ const pos=D.positions.map(p=>({...p,req:[...(p.req||[0,0,0,0,0,0,0])]})); const p=pos[+d.i]; if(!p) return;
     if(d.f==='name'){ const v=t.value.trim(); if(!v||pos.some((x,j)=>j!==+d.i&&x.name===v)){ toast('이름이 비었거나 이미 있어요'); t.value=p.name; return; } if(v===p.name) return; const old=p.name; p.name=v; renamePos(old,v); }
     else p.color=t.value;
@@ -494,8 +627,8 @@ function dropTo(src,tk,pos){
   const s=D.staff[src.sid]; if(!s) return;
   if(findItem(D,tk,src.sid)) return toast(`${s.name}님은 ${mdw(tk)}에 이미 근무해요`);
   const from=findItem(D,src.k,src.sid); const k=tk+'|'+src.sid; const o=Object.assign({},D.dc[k]||{});
-  o.st='extra'; if(pos!==s.pos) o.pos=pos; else delete o.pos; if(from&&from.shSrc==='day'&&from.sh) o.sh=from.sh;
-  put('dc',k,o); toast(`${s.name} → ${mdw(tk)} ${pos}에 복사했어요`); render(); }
+  o.st=offAdd(s); if(pos!==s.pos) o.pos=pos; else delete o.pos; if(from&&from.shSrc==='day'&&from.sh) o.sh=from.sh;
+  put('dc',k,o); toast(`${s.name} → ${mdw(tk)} ${pos}에 복사했어요${o.st==='paidoff'?' (휴무지급)':''}`); render(); }
 const chipAt=t=>t&&t.closest?t.closest('.board .chip[data-k], .cards .chip[data-k]'):null;
 document.addEventListener('pointerdown',ev=>{ if(!canEdit()||ev.pointerType!=='mouse'||ev.button!==0) return; const c=chipAt(ev.target); if(c) dragBegin(c,ev.clientX,ev.clientY,false); });
 document.addEventListener('pointermove',ev=>{ if(!DR||DR.touch||ev.pointerType!=='mouse') return; if(!DR.on){ if(Math.hypot(ev.clientX-DR.x0,ev.clientY-DR.y0)<6) return; dragStart(); } dragMove(ev.clientX,ev.clientY); });

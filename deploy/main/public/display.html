@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><!-- 홈 화면에 추가해서 열면 주소창 없이 (2026-11-07) -->
 <meta name="robots" content="noindex">
 <title>오늘의 예약</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
@@ -192,6 +193,45 @@ body.lite .row{box-shadow:none!important}
 body.lite[data-theme=chalk]{background:#1d2b24}
 body.lite .row.soon{box-shadow:none!important}
 body.lite[data-theme=warm] .row.soon{background:#fff0dd}
+
+
+/* Hallmark · redesign(polish) · scope: 손님용 현황판 4테마 · tone: utilitarian-warm(멀리서 읽히는 안내판)
+ * pre-emit critique: P4 H5 E4 S4 R5 V4 (2026-11-07 사용자: hallmark 스킬로 기존 디자인 다듬기)
+ * 바꾼 것: ① 영어 눈썹 글자(ILPUMJIP · RESERVATION) 숨김 — 손님에게 정보가 없음 ② '곧 도착' 줄의 왼쪽 굵은 띠·반짝이·번쩍이는 테두리 → 줄 전체 얇은 테두리 + 시간 글자색
+ * ③ 글자 그라데이션 제목(오로라·골드) → 단색 ④ 오로라 번호표 보라→분홍 그라데이션·빛번짐 → 단색 ⑤ 골드 빛줄기 제거, 순검정 → 살짝 따뜻한 검정, 줄 그림자 → 밝기 차이
+ * ⑥ 튀어오르는(overshoot) 움직임 → 부드럽게 멈춤 ⑦ 가린 이름의 * 는 흐리게 ⑧ 기기에서 '움직임 줄이기'를 켜면 가볍게 모드와 같게 */
+:root{--ease-out:cubic-bezier(.16,1,.3,1);--dur-in:.6s}
+header .eb{display:none}
+header h1{margin-top:0}
+.row .nm .mk{font-style:normal;opacity:.45;font-weight:400;letter-spacing:.02em}
+.row.soon::before{display:none}
+.row.in{animation-timing-function:var(--ease-out)}
+/* 온기 */
+body[data-theme=warm] .row{box-shadow:0 1px 0 rgba(80,50,20,.06)}
+body[data-theme=warm] .row.soon{background:#fff3e4;border-color:#c98a5e;animation:none}
+body[data-theme=warm] .row.soon .tm{color:#8e4a2c;font-weight:700}
+body[data-theme=warm] .row.in .tb{animation:stampIn var(--dur-in) var(--ease-out) both}
+@keyframes stampIn{from{transform:scale(1.35) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+/* 오로라 */
+body[data-theme=aurora] #fx .blob{opacity:.26}
+body[data-theme=aurora] header h1{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#f4f2ff;animation:none}
+body[data-theme=aurora] .row{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12);box-shadow:none}
+body[data-theme=aurora] .row .tb{background:#6d4fe0;box-shadow:none}
+body[data-theme=aurora] .row .tb.room{background:#0f9488;box-shadow:none}
+body[data-theme=aurora] .row.soon{border-color:#ffd666;box-shadow:inset 0 0 0 1px #ffd666;animation:none}
+body[data-theme=aurora] .row.soon .tm{color:#ffd666}
+body[data-theme=aurora] footer .guide i{background:#6d4fe0}
+/* 칠판 */
+body[data-theme=chalk] .row.soon .tm{color:#ffe066;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:.2em}
+/* 골드 */
+body[data-theme=gold]{background:radial-gradient(ellipse at 50% -10%,#1f1a11 0%,#100e0b 55%,#0b0a08 100%)}
+body[data-theme=gold] #fx .sheen{display:none}
+body[data-theme=gold] header h1{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#e3cd8c;animation:none}
+body[data-theme=gold] .row{background:#18150f;border-color:rgba(184,150,46,.22);box-shadow:none}
+body[data-theme=gold] .row .tb{box-shadow:none}
+body[data-theme=gold] .row.soon{border-color:#c9ae62;box-shadow:inset 0 0 0 1px #c9ae62;animation:none}
+body[data-theme=gold] .row.soon .tm{color:#e3cd8c}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}#fx{display:none}}
 </style>
 </head>
 <body>
@@ -206,7 +246,7 @@ body.lite[data-theme=warm] .row.soon{background:#fff0dd}
   <div class="guide">성함을 찾으시고 <i></i>테이블 번호로 앉아 주세요</div>
   <div class="sp"></div><span id="cnt"></span><span id="st">연결 중…</span>
 </footer>
-<div id="ctl" aria-label="화면 조작"><button id="ctlPrev" title="전날 (← 키)">‹</button><button id="ctlDay" title="오늘로 (Home 키)">오늘</button><button id="ctlNext" title="다음 날 (→ 키)">›</button><span class="sep"></span><button id="ctlTheme" title="디자인 바꾸기 (T 키)">디자인</button><button id="ctlLite" title="화면이 버벅이면 켜세요 (L 키): 움직이는 효과를 끄고 가볍게">가볍게</button></div>
+<div id="ctl" aria-label="화면 조작"><button id="ctlPrev" title="전날 (← 키)">‹</button><button id="ctlDay" title="오늘로 (Home 키)">오늘</button><button id="ctlNext" title="다음 날 (→ 키)">›</button><span class="sep"></span><button id="ctlTheme" title="디자인 바꾸기 (T 키)">디자인</button><button id="ctlLite" title="화면이 버벅이면 켜세요 (L 키): 움직이는 효과를 끄고 가볍게">가볍게</button><button id="ctlNear" title="누를 때마다 전체 → 앞뒤 2시간 → 앞뒤 1시간 (N 키)">앞뒤 시간</button><button id="ctlFull" title="주소창 없이 화면 가득 (F 키)">전체화면</button></div>
 <script>
 /* 예약 화면(reserve.html)과 같은 서버·같은 로그인 토큰을 씀. 이 화면은 읽기만 함(예약을 고치지 않음).
    사용량: 실시간 연결(웹소켓)로 바뀐 날짜의 내용을 서버가 직접 보내 줘서 다시 받을 필요가 없음. 10분마다 rev(숫자 하나)만 확인. */
@@ -214,7 +254,8 @@ const SUPABASE_URL='https://bdqcrbnbuoujozlpttbe.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcWNyYm5idW91am96bHB0dGJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MTU4NDQsImV4cCI6MjEwNjE5MTg0NH0.L8Yuj46Zjg0XNoWeRr-_9xZWKiyHH3-AyC4_3i5p_X8';
 const CONF_KEY='ilpum-fr-conf';
 const Q=new URLSearchParams(location.search);
-const MASK=Q.get('mask')==='1';
+// 이름 가운데 글자 가리기(2026-11-07 사용자: 손님들이 보는 화면이라 기본으로 가림, 홍*동) — ?mask=0 이면 전체 이름
+const MASK=Q.get('mask')!=='0';
 // 디자인: ?theme=aurora|chalk|warm|gold (모니터에서 T 키로 돌려 보기 — 이 기기에 기억)
 const THEMES=['warm','aurora','chalk','gold'];
 let THEME=(()=>{ const q=Q.get('theme'); if(THEMES.includes(q)) return q; try{ const v=localStorage.getItem('ilpum-disp-theme'); if(THEMES.includes(v)) return v; }catch(e){} return 'warm'; })();
@@ -235,11 +276,27 @@ function autoLite(){ if(LITE||Q.get('lite')==='0'){ return; try{ if(localStorage
 function nextTheme(){ THEME=THEMES[(THEMES.indexOf(THEME)+1)%THEMES.length]; try{ localStorage.setItem('ilpum-disp-theme',THEME); }catch(x){} applyTheme(); lastSig=''; render(); }
 function showCtl(){ lastTouch=Date.now(); const c=document.getElementById('ctl'); c.classList.add('on'); clearTimeout(ctlTimer); ctlTimer=setTimeout(()=>c.classList.remove('on'),5000); }
 document.addEventListener('keydown',e=>{ showCtl(); const k=e.key;
-  if(k==='t'||k==='T') nextTheme(); else if(k==='ArrowLeft') goDay(OFF-1); else if(k==='ArrowRight') goDay(OFF+1); else if(k==='Home'||k==='h'||k==='H') goDay(0); else if(k==='l'||k==='L') setLite(!LITE,true); });
+  if(k==='t'||k==='T') nextTheme(); else if(k==='ArrowLeft') goDay(OFF-1); else if(k==='ArrowRight') goDay(OFF+1); else if(k==='Home'||k==='h'||k==='H') goDay(0); else if(k==='l'||k==='L') setLite(!LITE,true); else if(k==='n'||k==='N') nextNear(); else if(k==='f'||k==='F') toggleFull(); });
 ['pointermove','pointerdown','touchstart'].forEach(ev=>document.addEventListener(ev,showCtl,{passive:true}));
 document.getElementById('ctlPrev').onclick=()=>goDay(OFF-1); document.getElementById('ctlNext').onclick=()=>goDay(OFF+1);
-document.getElementById('ctlDay').onclick=()=>goDay(0); document.getElementById('ctlTheme').onclick=nextTheme; document.getElementById('ctlLite').onclick=()=>setLite(!LITE,true);                 // ?mask=1 이면 가운데 글자를 *로 (홍*원)
-let SID='', STORE=null, ITEMS=[], REV=null, DAY='', OFF=0, TITLE='';   // OFF: 오늘에서 며칠 떨어진 날을 보는지 (0=오늘)
+document.getElementById('ctlDay').onclick=()=>goDay(0); document.getElementById('ctlTheme').onclick=nextTheme; document.getElementById('ctlLite').onclick=()=>setLite(!LITE,true); document.getElementById('ctlNear').onclick=nextNear; document.getElementById('ctlFull').onclick=toggleFull;
+// 전체화면(2026-11-07 사용자: 태블릿에서 주소창이 보여서) — 브라우저 규칙상 버튼을 눌러야만 켜짐. 아이폰 사파리는 지원 안 함(홈 화면에 추가로 대신)
+function isFull(){ return !!(document.fullscreenElement||document.webkitFullscreenElement); }
+function toggleFull(){ const el=document.documentElement;
+  try{ if(isFull()){ (document.exitFullscreen||document.webkitExitFullscreen).call(document); return; }
+    const f=el.requestFullscreen||el.webkitRequestFullscreen; if(!f){ alert('이 기기 브라우저는 전체화면을 지원하지 않아요. 브라우저 메뉴의 "홈 화면에 추가"로 열면 주소창 없이 보여요.'); return; }
+    const r=f.call(el); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{ const b=document.getElementById('ctlFull'); if(b) b.textContent=isFull()?'전체화면 끄기':'전체화면'; setTimeout(()=>{ lastSig=''; render(); },300); }));                 // ?mask=1 이면 가운데 글자를 *로 (홍*원)
+let SID='', STORE=null, ITEMS=[], REV=null, DAY='', OFF=0, TITLE='';
+// 앞뒤 2시간만 보기(2026-11-07 사용자: 모니터 대신 태블릿이라 작음) — 오늘 화면에서 지금 시각 ±2시간 예약만 → 적은 팀이라 글씨가 커짐.
+// ?near=1(켜기)/0(끄기) 또는 막대의 '앞뒤 2시간' 버튼·N 키, 이 기기에 기억(ilpum-disp-near)
+// 앞뒤 1시간 추가(2026-11-08 사용자: 예약 많을 땐 2시간도 촘촘) — NEAR = 분(0 끔 / 120 / 60). 버튼·N 키: 끔 → 2시간 → 1시간 → 끔. ?near=1(2시간)·60·120·0
+const NEAR_STEPS=[0,120,60];
+const nearOf=v=>v==='1'?120:v==='60'?60:v==='120'?120:0;
+let NEAR=(()=>{ const q=new URLSearchParams(location.search).get('near'); if(q!=null&&q!=='') return nearOf(q); try{ return nearOf(localStorage.getItem('ilpum-disp-near')); }catch(e){ return 0; } })();
+const nearLbl=()=>NEAR?`앞뒤 ${NEAR/60}시간 ✓`:'앞뒤 시간';
+function nextNear(){ setNear(NEAR_STEPS[(NEAR_STEPS.indexOf(NEAR)+1)%NEAR_STEPS.length]); }
+function setNear(v){ NEAR=NEAR_STEPS.includes(+v)?+v:(v===true?120:0); try{ localStorage.setItem('ilpum-disp-near',String(NEAR)); }catch(e){} const b=document.getElementById('ctlNear'); if(b) b.textContent=nearLbl(); lastSig=''; setTitle(); render(); }   // OFF: 오늘에서 며칠 떨어진 날을 보는지 (0=오늘)
 const pad=n=>String(n).padStart(2,'0');
 const ds=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const today=()=>ds(new Date());
@@ -264,7 +321,8 @@ async function fx(path,opt,retry=true){
 function setSt(t,k){ const e=document.getElementById('st'); e.textContent=t; e.className=k||''; }
 
 /* ---------- 표시 ---------- */
-const isCxl=x=>/취소/.test(x.tnote||'');
+// 취소·노쇼는 안 보임(2026-11-07 사용자: 노쇼나 취소라고 써도 지워지게) — 테이블 칸·요청사항·이름 어디에 써도. '취소 불가/취소시' 같은 안내 문구는 제외
+const isCxl=x=>/취소|노쇼/.test(x.tnote||'')||/노쇼|취소(?!\s*(불가|시|하면|하실|할\s*경우|규정|수수료|안내))/.test((x.req||'')+' '+(x.name||''));
 const toMin=t=>{ const m=String(t||'').match(/(\d{1,2}):(\d{2})/); return m? +m[1]*60+ +m[2] : 9999; };
 const people=pp=>String(pp||'').split(/[+,]/).reduce((a,x)=>a+(parseInt(x,10)||0),0);
 // 칠판처럼 12시간 표기(6:00), 오전 11시대는 11:30 그대로
@@ -277,18 +335,23 @@ function tableLabel(ts){
   return {t:parts.join(' '), k: nums.length?'':'room'};
 }
 const maskName=n=>{ n=String(n||''); if(!MASK||n.length<2) return n; return n.length===2? n[0]+'*' : n[0]+'*'.repeat(n.length-2)+n[n.length-1]; };
+// 화면용: 가린 * 는 흐리게(.mk). 글자 내용은 maskName 과 같음
+const nameHTML=n=>{ const m=maskName(n); return `<span class="nmt">${[...m].map(c=>c==='*'&&MASK?'<i class="mk">*</i>':esc(c)).join('')}</span>`; };
 let lastSig='';
 function render(){
   const g=document.getElementById('grid'); const nowM=new Date().getHours()*60+new Date().getMinutes();
-  const list=ITEMS.filter(x=>x&&!x.deleted&&!isCxl(x)&&String(x.name||'').trim()).sort((a,b)=>toMin(a.time)-toMin(b.time)||String(a.name).localeCompare(String(b.name)));
+  const near=NEAR&&OFF===0;
+  // 도착한 예약은 안 보임(2026-11-07 사용자: 공간만 차지)
+  const live=ITEMS.filter(x=>x&&!x.deleted&&!isCxl(x)&&String(x.name||'').trim()), arrived=live.filter(x=>x.done).length;
+  const list=live.filter(x=>!x.done&&(!near||Math.abs(toMin(x.time)-nowM)<=NEAR)).sort((a,b)=>toMin(a.time)-toMin(b.time)||String(a.name).localeCompare(String(b.name)));
   document.getElementById('cnt').textContent=list.length?`${list.length}팀 · ${list.reduce((a,x)=>a+people(x.pp),0)}명`:'';
-  if(!list.length){ lastSig=''; g.style.gridTemplateRows=''; g.innerHTML=`<div class="empty"><b>${OFF===0?'오늘 예약이 아직 없어요':'이 날은 예약이 없어요'}</b><span>${OFF===0?'예약이 들어오면 바로 여기에 표시돼요':''}</span></div>`; return; }
+  if(!list.length){ lastSig=''; g.style.gridTemplateRows=''; g.innerHTML=`<div class="empty"><b>${arrived&&OFF===0&&!near?'남은 예약이 없어요 (모두 도착)':near?`지금 앞뒤 ${NEAR/60}시간 안에는 예약이 없어요`:OFF===0?'오늘 예약이 아직 없어요':'이 날은 예약이 없어요'}</b><span>${OFF===0?'예약이 들어오면 바로 여기에 표시돼요':''}</span></div>`; return; }
   // 아무것도 안 바뀌었으면(30초마다 시계 확인 때) 화면을 다시 만들지 않음 — 약한 PC 부담 줄이기
   const nowM2=nowM, sig=list.map(x=>x.id+'|'+x.time+'|'+(x.tables||[]).join()+'|'+(x.name||'')+'|'+(x.pp||'')+'|'+(x.done?1:0)+'|'+(OFF===0&&!x.done&&toMin(x.time)-nowM2<=30&&toMin(x.time)-nowM2>=-15?'s':'')+(OFF===0&&(x.done||nowM2-toMin(x.time)>90)?'p':'')).join('/')+`#${innerWidth}x${innerHeight}#${THEME}#${LITE}#${OFF}`;
   if(sig===lastSig&&g.children.length) return; lastSig=sig;
   let k=0; g.innerHTML=list.map(x=>{ const m=toMin(x.time), tb=tableLabel(x.tables); const key=x.id+'|'+x.time+'|'+(x.tables||[]).join(); const nw=!SEEN.has(key); SEEN.add(key); const dl=nw?` style="animation-delay:${Math.min(k++*70,1800)}ms"`:'';
     const isToday=OFF===0; const soon=isToday&&!x.done && m-nowM<=30 && m-nowM>=-15, past=isToday&&(x.done || nowM-m>90);
-    return `<div class="row${soon?' soon':''}${past?' past':''}${nw?' in':''}"${dl}><span class="tm">${esc(tmLabel(x.time))}</span><span class="nm">${esc(maskName(x.name))}<small>${people(x.pp)?people(x.pp)+'명':''}</small></span><span class="tb ${tb.k}">${esc(tb.t)}</span></div>`; }).join('');
+    return `<div class="row${soon?' soon':''}${past?' past':''}${nw?' in':''}"${dl}><span class="tm">${esc(tmLabel(x.time))}</span><span class="nm">${nameHTML(x.name)}<small>${people(x.pp)?people(x.pp)+'명':''}</small></span><span class="tb ${tb.k}">${esc(tb.t)}</span></div>`; }).join('');
   fit(list.length);
 }
 // 스크롤 없이 한 화면에: 열 수와 글자 크기를 바꿔 가며 가장 크게 들어가는 조합을 고름
@@ -310,7 +373,7 @@ function tick(){ const d=new Date(); document.getElementById('clock').innerHTML=
   document.getElementById('day').textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]})`;
   if(SID){ const nd=dayOf(OFF); if(nd!==DAY){ DAY=nd; ITEMS=[]; REV=null; SEEN=new Set(); render(); nextAt=0; load(); } }       // 자정이 지나면 (오늘을 보고 있으면) 다음 날로
   if(OFF!==0&&Date.now()-lastTouch>3*60*1000) goDay(0); }                                                                                       // 다른 날을 3분 동안 그대로 두면 오늘로 돌아옴
-function setTitle(){ const t=document.getElementById('title'); if(!TITLE) return; const d=new Date(DAY+'T00:00'); t.textContent=OFF===0?`${TITLE} · 오늘의 예약`:`${TITLE} · ${d.getMonth()+1}월 ${d.getDate()}일(${WD[d.getDay()]}) 예약`;
+function setTitle(){ const t=document.getElementById('title'); if(!TITLE) return; const d=new Date(DAY+'T00:00'); t.textContent=OFF===0?(NEAR?`${TITLE} 예약`:`${TITLE} · 오늘의 예약`):`${TITLE} · ${d.getMonth()+1}월 ${d.getDate()}일(${WD[d.getDay()]}) 예약`;
   const dy=document.getElementById('day'); dy.textContent=`${new Date().getMonth()+1}월 ${new Date().getDate()}일 (${WD[new Date().getDay()]})`; }
 function goDay(off){ OFF=off; DAY=dayOf(OFF); ITEMS=[]; REV=null; SEEN=new Set(); nextAt=0; setTitle(); render(); load(); try{ document.getElementById('ctlDay').textContent=OFF===0?'오늘':`${OFF>0?'+':''}${OFF}일`; }catch(e){} }
 
@@ -350,7 +413,7 @@ function rtConnect(){
 function needLogin(msg){ setSt(msg,'err');
   document.getElementById('main').innerHTML=`<div class="login"><b>${esc(msg)}</b>이 모니터(컴퓨터)에서 <a href="index.html">통합관리</a>에 한 번 로그인하면<br>그다음부터는 이 화면이 자동으로 열려요.</div>`; }
 (async function boot(){
-  document.body.classList.toggle('lite',LITE); const lb=document.getElementById('ctlLite'); if(lb) lb.textContent=LITE?'가볍게 ✓':'가볍게';
+  document.body.classList.toggle('lite',LITE); const lb=document.getElementById('ctlLite'); if(lb) lb.textContent=LITE?'가볍게 ✓':'가볍게'; { const nb=document.getElementById('ctlNear'); if(nb) nb.textContent=nearLbl(); }
   applyTheme(); tick(); autoLite();
   if(!readSes()) return needLogin('로그인이 필요해요');
   try{

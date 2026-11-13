@@ -43,7 +43,7 @@ header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1p
 .datelabel .dw.sun{color:var(--warn)} .datelabel .dw.sat{color:#3C5A86}
 .trashwrap{position:relative;display:inline-block}
 /* 새 예약(확정 대기) 안내: 검색칸 바로 밑에 깜빡이는 알림만 (누르는 것 없음, 확정 알림이 오면 저절로 꺼짐) */
-.nwait{position:absolute;top:calc(100% + 3px);left:0;z-index:30;display:inline-flex;align-items:center;gap:6px;border:1.5px solid #03C75A;background:#DDF6E7;color:#05632F;border-radius:8px;padding:4px 11px;font-size:13.5px;font-weight:800;white-space:nowrap;pointer-events:none;animation:nwb 1.3s ease-in-out infinite}
+.nwait{position:absolute;top:calc(100% + 3px);left:0;z-index:30;display:inline-flex;align-items:center;gap:6px;border:1.5px solid #03C75A;background:#DDF6E7;color:#05632F;border-radius:8px;padding:4px 11px;font-size:13.5px;font-weight:800;white-space:nowrap;cursor:pointer;font-family:inherit;animation:nwb 1.3s ease-in-out infinite}
 .nwait i{width:9px;height:9px;border-radius:50%;background:#03C75A}
 @keyframes nwb{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(3,199,90,.5)}50%{opacity:.65;box-shadow:0 0 0 5px rgba(3,199,90,0)}} .nwait[hidden]{display:none}
 .battg{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--ink,#222)}
@@ -228,6 +228,8 @@ body.resizing iframe{pointer-events:none}
 .twin{font-size:12.5px;color:var(--sub)}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;font-weight:600}
 .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:2px solid currentColor}
+.legend .lg-cxl{font:inherit;color:var(--warn);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.legend .lg-cxl::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:2px solid currentColor;background:repeating-linear-gradient(45deg,currentColor 0 2px,transparent 2px 4px)}.legend .lg-cxl:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.dn .pctn{color:#E5484D;font-size:.85em;font-weight:800}
 .lg-use{color:var(--use)} .lg-res{color:var(--res)} .lg-soon{color:var(--soon)}
 .lg-tight{color:var(--tight);font-weight:700} .lg-past{color:var(--past)}
 .floor{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;flex:1}
@@ -401,7 +403,7 @@ html.th-navy .grp{border-left-color:#3f4675}
     <button class="btn today" id="todayBtn">오늘 예약</button>
     <div class="gsearch"><input type="search" id="gq" placeholder="전체 예약 검색 (이름·전화번호·테이블)" autocomplete="off" aria-label="예약 검색">
       <div class="gres" id="gres" hidden></div>
-      <div class="nwait" id="nWait" hidden role="status"><i></i>새 예약이 있어요 · 스마트플레이스에서 확정 대기 중</div></div>
+      <button type="button" class="nwait" id="nWait" hidden title="확인했으면 누르세요 — 다음 확정 대기 알림이 오면 다시 떠요"><i></i>새 예약이 있어요 · 스마트플레이스에서 확정 대기 중 <b style="margin-left:2px;opacity:.7">✕</b></button></div>
     <span class="spacer"></span>
     <button class="btn" id="printBtn">인쇄</button>
     <button class="btn" id="xlsxBtn">엑셀 내보내기</button>
@@ -610,7 +612,8 @@ const nowMin=()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes(); };
 const todayStr=()=>ds(new Date());
 
 /* ---------- 상태 ---------- */
-const ui={ date:todayStr(), filter:'all', q:'', sort:(()=>{ try{ return localStorage.getItem('ilpum-res-sort')==='table'?'table':'time'; }catch(e){ return 'time'; } })(), floor:'1', t:Math.max(600,Math.min(1320, Math.round(nowMin()/30)*30)), view:'list' };
+const ui={ date:todayStr(), filter:'all', q:'', sort:'time',   // 테이블순 없앰(2026-11-08 사용자: 무조건 시간순으로만 봄)
+   floor:'1', t:Math.max(600,Math.min(1320, Math.round(nowMin()/30)*30)), view:'list' };
 const days={};   // date → {items:[], rev}
 function dayDoc(d){ if(!days[d]){ let c=null; try{ c=JSON.parse(localStorage.getItem('ilpum-res-'+SID+'-'+d)||'null'); }catch(e){} days[d]=(c&&Array.isArray(c.items))? {items:c.items.filter(x=>x&&typeof x==='object'),rev:+c.rev||0} : {items:[],rev:0}; } return days[d]; }   // 저장된 임시 기록이 깨져 있어도(items 없음 등) 화면이 멈추지 않게 바로잡음
 function items(d){ return dayDoc(d).items.filter(x=>!x.deleted); }
@@ -622,6 +625,14 @@ const isCxl=x=>/취소/.test(x.tnote||'');
 // 받았다는 표시는 '입완'(입금 완료) 또는 '확인필'
 const hasPct=x=>/(^|[^0-9])10\s*[%％]/.test(String((x&&x.req)||''));
 const hasDep=x=>{ const t=String((x&&x.req)||''); return /입완|확인필/.test(t)&&/예약금(?!\s*[xX×✕]|\s*(?:없|무|안|미))/.test(t); };
+// 취소·노쇼 예약만 보기(2026-11-08 사용자: 도착 옆에) — 테이블 칸에 취소/노쇼, 또는 요청사항에 노쇼·취소('취소 불가' 같은 안내 문구 빼고)
+const isCxlAny=x=>!x.deleted&&(isCxl(x)||/노쇼/.test(x.tnote||'')||/노쇼|취소(?!\s*(불가|시|하면|하실|할\s*경우|규정|수수료|안내))/.test(x.req||''));
+function cxlDialog(){ const list=items(ui.date).filter(isCxlAny).sort((a,b)=>(toMin(a.time)??0)-(toMin(b.time)??0));
+  dlgBody.innerHTML=`<h3>취소·노쇼 예약 ${list.length}건</h3>${list.length?`<div class="hint" style="margin-bottom:8px">이 날 취소·노쇼로 적힌 예약이에요. 되살리려면 수정에서 테이블 칸의 '취소'를 지우세요.</div>`:`<div class="hint" style="margin-bottom:8px">이 날 취소·노쇼 예약이 없어요.</div>`}
+    <div class="pick">${list.map(x=>`<div class="pk1"><div><div class="l1"><span class="t">${esc(x.time)}</span><span class="n">${esc(x.name)}</span>${x.pp?`<b>${esc(x.pp)}명</b>`:''}${x.tnote?`<span class="badge warn">${esc(x.tnote)}</span>`:''}</div>
+      <div class="sub">${x.req?'📝 '+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div><div style="display:flex;gap:6px"><button class="btn primary" data-pe="${x.id}">수정</button></div></div>`).join('')}</div>
+    <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="close">닫기</button></div>`;
+  if(!dlg.open) dlg.showModal(); }
 function active(d){ return items(d).filter(x=>!isCxl(x)); }   // 현황판·중복 계산용 (취소 제외)
 // 손님 나감(2026-10-25 사용자: 앞 손님이 나가서 다음 예약을 그 테이블로 옮겼는데 "중복"으로 떠서 보기 힘듦) — x.outT='HH:MM' 나간 시각
 const nowHM=()=>{ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
@@ -802,7 +813,7 @@ function renderList(){
   const cxl=all.filter(isCxl), live=all.filter(x=>!isCxl(x));
   const done=live.filter(x=>x.done), left=live.filter(x=>!x.done);
   const q=ui.q.trim();
-  let list = ui.filter==='left'? left : ui.filter==='done'? done : all;
+  let list = ui.filter==='left'? left : ui.filter==='done'? done : ui.filter==='cxl'? all.filter(isCxlAny) : all;   // 취소: 취소·노쇼만(2026-11-08)
   if(q) list=list.filter(x=>[x.name,x.phone,x.req,(x.tables||[]).map(tLabel).join(' ')].join(' ').includes(q));
   const isToday=ui.date===todayStr(); const nm=nowMin();
   const tkey=x=>{ const t=(x.tables||[])[0]; if(t==null) return 99999; return /^\d+$/.test(t)?+t:/^R(\d+)/.test(t)?1000+(+RegExp.$1):5000; };
@@ -842,8 +853,8 @@ function renderList(){
       <div class="seg" role="group" aria-label="보기">
         <button data-f="all" aria-pressed="${ui.filter==='all'}">전체</button>
         <button data-f="left" aria-pressed="${ui.filter==='left'}">남은 예약</button>
-        <button data-f="done" aria-pressed="${ui.filter==='done'}">도착</button></div>
-      <div class="seg" role="group" aria-label="정렬" title="손님 몰릴 때는 테이블순이 찾기 쉬워요"><button data-sort="time" aria-pressed="${ui.sort!=='table'}">시간순</button><button data-sort="table" aria-pressed="${ui.sort==='table'}">테이블순</button></div>
+        <button data-f="done" aria-pressed="${ui.filter==='done'}">도착</button>
+        <button data-f="cxl" aria-pressed="${ui.filter==='cxl'}" title="취소·노쇼 예약만">취소${all.some(isCxlAny)?` ${all.filter(isCxlAny).length}`:''}</button></div>
     </div>
     ${html || `<div class="empty"><strong>${all.length?'조건에 맞는 예약이 없어요':'예약이 없어요'}</strong>${all.length?'':'위 입력 줄에 쓰고 Enter를 누르면 추가돼요.'}</div>`}`;
   paintSeatStat();
@@ -857,15 +868,15 @@ function cellHtml(t,map){
   if(dup.length>1){
     dup.sort((a,b)=>toMin(a.time)-toMin(b.time));
     const depD=dup.some(hasDep);
-    const pctD=dup.some(hasPct);
     return `<div class="cell st-dup${depD?' dep':''}" data-cell="${t}" data-pick="${t}" title=""${esc(dup.map(x=>x.name+' '+x.time+' '+x.pp+'명').join(' / '))}">
-      ${depD?'<span class="depb">💰 예약금</span>':''}<span class="dupb">⚠ 중복</span>${pctD?'<span class="pctb">10%</span>':''}<span class="no">${esc(tLabel(t))}</span>
-      ${dup.slice(0,3).map(x=>`<span class="dn">${esc(x.name)} <small>${esc(x.time)}·${esc(x.pp)}명</small></span>`).join('')}${dup.length>3?`<small>외 ${dup.length-3}건</small>`:''}</div>`;
+      ${depD?'<span class="depb">💰 예약금</span>':''}<span class="dupb">⚠ 중복</span><span class="no">${esc(tLabel(t))}</span>
+      ${dup.slice(0,3).map(x=>`<span class="dn">${esc(x.name)} <small>${esc(x.time)}·${esc(x.pp)}명</small>${hasPct(x)?' <b class="pctn">10%</b>':''}</span>`).join('')}${dup.length>3?`<small>외 ${dup.length-3}건</small>`:''}</div>`;
   }
   const tight = TIGHT.table[t]? [...TIGHT.table[t].values()] : [];
   const tightNote = tight.length? `<span class="tightb">⏰ 다음팀 ${esc(tight.filter(x=>x.id!==it.id).map(x=>x.time).join('·'))}</span>` : '';
-  const dep=list.some(l=>hasDep(l.it));
-  const pct=list.some(l=>hasPct(l.it));
+  // 10%·예약금 표시는 지금 칸에 보이는 예약(it) 것만 (2026-11-08 사용자: 다음 손님이 10% 쿠폰인데 지금 손님에게도 10%가 떠 보임)
+  const dep=hasDep(it);
+  const pct=hasPct(it);
   return `<div class="cell st-${top.st} ${seatCls(t)}${dep?' dep':''}" data-cell="${t}" data-pick="${t}" title=""${esc(it.name)} ${esc(it.time)} ${esc(it.pp)}명${it.req?' · '+esc(it.req):''}${tight.length?' · 2시간 뒤 다음팀 있음':''}">
     ${list.length>1?`<span class="more">+${list.length-1}</span>`:''}
     ${pct?'<span class="pctb" title="10% 할인 이벤트">10%</span>':''}${top.st==='use'?'<span class="arr">✓ 도착</span>':''}<span class="no">${esc(tLabel(t))}</span>${seatBadge(t)}<span class="cn">${esc(it.name)}</span><span class="ci">${esc(it.pp)}명·${esc(it.time)}</span>${dep?'<span class="depb">💰 예약금</span>':''}${it.req&&!dep?'<span class="memo">📝 메모</span>':''}${tightNote}</div>`;
@@ -922,7 +933,7 @@ function renderBoard(){
       <div class="ftabs" style="display:flex;gap:6px">${FLOORS.map(x=>`<button data-floor="${esc(x.key)}" aria-pressed="${x.key===ui.floor}">${esc(x.name)}</button>`).join('')}</div>
       <span class="spacer"></span>
       ${canEditLayout()?'<button class="btn sm" data-led="start" title="테이블 추가·삭제·위치 바꾸기">배치 수정</button>':''}
-      <div class="legend"><span class="lg-use">도착 ${cnt.use}</span><span class="lg-res">예약시간 ${cnt.res}</span><span class="lg-soon">2시간 내 예정 ${cnt.soon}</span><span class="lg-tight">⏰ 임박(2시간 간격) ${Object.keys(TIGHT.table).length}</span></div></div>
+      <div class="legend"><span class="lg-use">도착 ${cnt.use}</span><button type="button" class="lg-cxl" data-cxllist="1" title="이 날 취소·노쇼 예약만 보기">취소 ${items(ui.date).filter(isCxlAny).length}</button><span class="lg-res">예약시간 ${cnt.res}</span><span class="lg-soon">2시간 내 예정 ${cnt.soon}</span><span class="lg-tight">⏰ 임박(2시간 간격) ${Object.keys(TIGHT.table).length}</span></div></div>
     <div class="timebox"><button class="btn sm tstep" data-act="t-" aria-label="30분 앞으로">‹</button>
       <span class="tnow">${fromMin(T)}</span>
       <button class="btn sm tstep" data-act="t+" aria-label="30분 뒤로">›</button>
@@ -1111,7 +1122,7 @@ function pickDialog(t){
       <div><div class="l1"><span class="t">${esc(x.time)}</span><span class="n">${esc(x.name)}</span>${x.pp?`<b>${esc(x.pp)}명</b>`:''}
         ${tablesText(x.tables).map(z=>`<span class="tbl">${esc(z)}</span>`).join('')}${x.done?'<span class="badge done">도착</span>':''}${x.outT?`<span class="badge outb">나감 ${esc(x.outT)}</span>`:''}${dupIds.has(x.id)?'<span class="badge warn">겹침</span>':tightIds.has(x.id)?'<span class="badge warn" style="background:var(--tight-bg);color:var(--tight)">임박</span>':''}</div>
         <div class="sub">${x.req?(hasDep(x)?'<span class="depchip">💰 예약금</span>':'📝 ')+esc(x.req)+' · ':''}${esc(x.phone||'')}</div></div>
-      <div style="display:flex;gap:6px">${x.outT?`<button class="btn" data-pin="${x.id}" data-pt="${esc(t)}" title="나감 표시 지우기">나감 취소</button>`:(x.done||dupIds.has(x.id))&&list.some(y=>y!==x&&(toMin(y.time)??0)>(toMin(x.time)??0))?`<button class="btn" data-pout="${x.id}" data-pt="${esc(t)}" title="이 손님이 나가서 테이블이 비었어요">나감</button>`:''}<button class="btn primary" data-pe="${x.id}">수정</button></div></div>`).join('')}</div>
+      <div style="display:flex;gap:6px">${x.outT?`<button class="btn" data-pin="${x.id}" data-pt="${esc(t)}" title="나감 표시 지우기">나감 취소</button>`:(x.done||dupIds.has(x.id))&&list.some(y=>y!==x&&(toMin(y.time)??0)>(toMin(x.time)??0))?`<button class="btn" data-pout="${x.id}" data-pt="${esc(t)}" title="이 손님이 나가서 테이블이 비었어요">나감</button>`:''}${(STORES.find(z=>z.id===SID)||{}).is_hq?`<button class="btn pctbtn${hasPct(x)?' on':''}" data-ppct="${x.id}" data-pt="${esc(t)}" title="10% 쿠폰 손님이면 누르세요 (요청사항에 10%를 넣고 빼요, 바로 저장)">10%</button>`:''}<button class="btn primary" data-pe="${x.id}">수정</button></div></div>`).join('')}</div>
     <div class="dfoot"><span class="spacer"></span><button class="btn" data-d="add" data-add-t="${esc(t)}">＋ 이 테이블에 예약 추가</button><button class="btn" data-d="close">닫기</button></div>`;
   if(!dlg.open) dlg.showModal();
 }
@@ -1153,6 +1164,8 @@ dlg.addEventListener('click',e=>{
     return; }
   const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
   if(d.pout||d.pin){ const it=dayDoc(ui.date).items.find(x=>x.id===(d.pout||d.pin)); if(it){ if(d.pout){ it.outT=nowHM(); it.done=true; toast(`${it.name} 나감 ${it.outT} — 중복 표시를 뺐어요`); } else { delete it.outT; toast('나감 표시를 지웠어요'); } saveItem(ui.date,it); pickDialog(d.pt); } return; }
+  // 테이블 창 10% 버튼(2026-11-07 사용자: 수정 창 말고 테이블 눌렀을 때 뜨는 창에) — 목록의 10% 버튼과 같게 바로 저장
+  if(d.ppct){ const it=dayDoc(ui.date).items.find(x=>x.id===d.ppct); if(it){ if(hasPct(it)){ it.req=String(it.req||'').replace(/(^|[^0-9])10\s*[%％]/g,'$1').replace(/\s+/g,' ').trim(); toast('10% 뺐어요'); } else { it.req=((it.req||'')+' 10%').trim(); toast('요청사항에 10% 넣었어요'); } saveItem(ui.date,it); pickDialog(d.pt); } return; }
   if(d.pe){ const it=items(ui.date).find(x=>x.id===d.pe); if(it){ dlg.close(); openForm({...it,origDate:ui.date}); } return; }
   if(d.restore){ const x=dayDoc(ui.date).items.find(y=>y.id===d.restore); if(x){ x.deleted=false; x.u=Date.now(); saveItem(ui.date,x); toast(`${x.name||'예약'}을(를) 복원했어요`); trashDialog(); } return; }
   if(d.tb){ readForm(); const i=draft.tables.indexOf(d.tb); if(i>=0) draft.tables.splice(i,1); else draft.tables.push(d.tb); drawForm(); return; }
@@ -1322,7 +1335,6 @@ document.getElementById('listPanel').addEventListener('click',e=>{
   if(b.dataset.del){ const it=dayDoc(ui.date).items.find(x=>x.id===b.dataset.del); if(!it) return;
     confirmBox(`${it.name} ${it.time} 예약을 삭제할까요?`,'삭제',()=>{ it.deleted=true; saveItem(ui.date,it); toast('삭제했어요'); }); return; }
   if(b.dataset.f){ ui.filter=b.dataset.f; renderList(); return; }
-  if(b.dataset.sort){ ui.sort=b.dataset.sort; try{ localStorage.setItem('ilpum-res-sort',ui.sort); }catch(e){} renderList(); return; }
   if(b.dataset.edit){ const it=items(ui.date).find(x=>x.id===b.dataset.edit); if(it){ openForm({...it,origDate:ui.date}); } }
 });
 document.getElementById('listPanel').addEventListener('focusout',e=>{
@@ -1341,6 +1353,7 @@ document.getElementById('boardPanel').addEventListener('click',e=>{
   const b=e.target.closest('button');
   if(b&&b.dataset.floor){ ui.floor=b.dataset.floor; renderBoard(); return; }
   if(b&&b.dataset.pick){ pickDialog(b.dataset.pick); return; }
+  if(b&&b.dataset.cxllist){ cxlDialog(); return; }
   if(!b && e.target.closest('[data-dupfirst]')){   // 줄의 빈 곳 → 가장 이른 중복 자리로
     let best=null; Object.keys(CONF.table).forEach(t=>{ const m=Math.min(...[...CONF.table[t].values()].map(x=>toMin(x.time))); if(!best||m<best.m) best={t,m}; });
     if(best) goDup(best.t); return; }
@@ -1469,7 +1482,10 @@ battPaint(); setInterval(()=>{ battPaint(); waitPaint(); },60000);
 /* 네이버 확정 대기 안내 (2026-10-25): 재촉 알림이 오면 서버가 sch_items cfg naver_wait {at,done} 을 씀 → 15분 안에 왔고 확정 알림 뒤가 아니면 머리줄에 작게 */
 let WAIT={};
 function waitPaint(){ const b=document.getElementById('nWait'); if(!b) return;
-  const at=+WAIT.at||0; b.hidden=!(at&&Date.now()-at<15*60000&&at>(+WAIT.done||0)); }
+  const at=+WAIT.at||0; let x=0; try{ x=+localStorage.getItem('ilpum-nwait-x')||0; }catch(e){}
+  b.hidden=!(at&&Date.now()-at<15*60000&&at>(+WAIT.done||0)&&at>x); }
+/* (2026-10-31 사용자: 다시 누를 수 있게) 누르면 닫힘 — 이 기기에서 그 알림 시각까지만, 다음 재촉 알림이 오면 다시 뜸 */
+document.getElementById('nWait').addEventListener('click',()=>{ try{ localStorage.setItem('ilpum-nwait-x',String(+WAIT.at||Date.now())); }catch(e){} waitPaint(); });
 function waitApply(d){ WAIT=d||{}; waitPaint(); }
 async function waitPull(){ if(!REST||!SID) return; try{ const r=await fx(`/rest/v1/sch_items?store_id=eq.${SID}&kind=eq.cfg&id=eq.naver_wait&select=data`); if(!r.ok) return; const a=await r.json(); waitApply(a[0]&&a[0].data); }catch(e){} }
 // 서버 동기화: 가장 늦게 누른 기록이 이김. 요청은 시작할 때·탭 다시 볼 때·실시간 알림 때만
