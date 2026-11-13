@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
-<!-- 판 2026-11-13 주방 구역·동선 -->
+<!-- 판 2026-11-13 분해 보기 -->
 <title>일품집 매장 3D</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -141,6 +141,7 @@ body{margin:0;font-size:14px}
     <button id="f-1">1층 (판매장)</button>
     <button id="f-both">1·2층 같이</button>
     <button id="f-real">실제 높이로 겹쳐</button>
+    <button id="f-ex">분해 보기</button>
     <span class="sep"></span>
     <button id="t-lbl">이름 지우기</button>
     <button id="t-info">설명 접기</button>
@@ -1123,14 +1124,28 @@ stairGuide.add(sgLabel);
 /* 층 보기: '2' 2층만 · '1' 1층만 · 'both' 위아래로 띄워서 · 'real' 실제 높이로 겹쳐서 */
 const showG = (g, v) => { g.visible = v; g.traverse(o => { if (o.isCSS2DObject) o.visible = v; }); };
 let floor = '2';
+/* 분해 보기: 1층 → 1층 벽 → 계단 → 2층 → 2층 벽 → 천장 설비가 위아래로 스르륵 벌어짐 */
+let exT = 0, ex = 0, base1 = 0;
+const exLabels = [['천장 설비 · 덕트 · 조명', 0], ['2층 벽', 0], ['2층 식당 (바닥 · 가구)', 0], ['계단', 0], ['1층 벽', 0], ['1층 판매장 · 주차장', 0]].map(([t]) => {
+  const o = new CSS2DObject(Object.assign(document.createElement('div'), { className:'lbl room exl', textContent:t })); o.visible = false; scene.add(o); return o; });
+function applyEx(){
+  const e = ex * ex * (3 - 2*ex);                       // 부드럽게 출발·도착
+  F1.position.y = base1 - 13*e; W1.position.y = 3.2*e;
+  STAIR.position.y = (floor === '1' ? FH : 0) - 4.5*e;
+  W2.position.y = 4.5*e; ceilGroup.position.y = 9.5*e;
+  const ys = [3.3 + 9.5*e, 1.7 + 4.5*e, .3, -1.7 - 4.5*e, base1 - 13*e + 1.7 + 3.2*e, base1 - 13*e + .3];
+  exLabels.forEach((o, i) => { o.position.set(-W/2 - 2.5, ys[i], D/2 + 1); o.visible = floor === 'ex' && ex > .5; });
+}
 function setFloor(m){
   floor = m;
   showG(F2, m !== '1'); showG(F1, m !== '2');
-  F1.position.y = m === 'both' ? -FH - 6 : m === 'real' ? -FH : 0;
-  STAIR.position.y = m === '1' ? FH : 0;                     // 1층만 볼 땐 계단이 1층 바닥에서 시작
+  base1 = m === 'both' ? -FH - 6 : (m === 'real' || m === 'ex') ? -FH : 0;
+  exT = m === 'ex' ? 1 : 0; if (reduce) ex = exT;
+  applyEx();                                                 // 1층만 볼 땐 계단이 1층 바닥에서 시작
   for (const o of STAIR.children) o.visible = m !== '1' || o.userData.top + FH <= 1.6;   // 1층만 볼 땐 아래쪽(1.6m까지)만
   showG(stairGuide, m === 'both');
-  if (m === 'real') F1.traverse(o => { if (o.isCSS2DObject) o.visible = false; });   // 겹쳐 볼 땐 1층 이름표는 가림
+  if (m === 'ex') F2.traverse(o => { if (o.isCSS2DObject) o.visible = false; });       // 분해 보기에선 층 이름만
+  if (m === 'real' || m === 'ex') F1.traverse(o => { if (o.isCSS2DObject) o.visible = false; });   // 겹쳐 볼 땐 1층 이름표는 가림
   for (const o of below2F) o.visible = m === '2';
   renderer.shadowMap.needsUpdate = true; dirty = 3;
   document.querySelectorAll('[id^="f-"]').forEach(b => b.classList.toggle('on', b.id === 'f-'+m));
@@ -1215,6 +1230,7 @@ const views = {
 let anim = null;
 const FVIEW = {   // 비스듬히·위에서 는 지금 보는 층에 맞춰서
   '1':    { iso:{ p:[-6, 24, 30], t:[2, 0, 0] }, top:{ p:[3, 42, .01], t:[3, 0, 0] } },
+  ex:     { iso:{ p:[-42, 9, 51], t:[0, -4, 0] }, top:{ p:[0, 60, .01], t:[0, -6, 0] } },
   both:   { iso:{ p:[-30, 16, 42], t:[0, -6, 0] }, top:{ p:[0, 60, .01], t:[0, -6, 0] } },
   real:   { iso:{ p:[-32, 14, 36], t:[0, -1.7, 0] }, top:{ p:[0, 50, .01], t:[0, 0, 0] } }
 };
@@ -1227,7 +1243,7 @@ function go(name){
   document.querySelectorAll('[id^="v-"]').forEach(b=>b.classList.toggle('on', b.id==='v-'+name));
 }
 for (const k of Object.keys(views)) document.getElementById('v-'+k).onclick = () => go(k);
-for (const m of ['2', '1', 'both', 'real']) document.getElementById('f-'+m).onclick = () => { setFloor(m); go('iso'); };
+for (const m of ['2', '1', 'both', 'real', 'ex']) document.getElementById('f-'+m).onclick = () => { setFloor(m); go('iso'); };
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let low = false;
@@ -1316,10 +1332,11 @@ document.getElementById('t-lite').onclick = e => {
 try { if (localStorage.getItem('ilpum3d-lite') === '1') document.getElementById('t-lite').click(); } catch (_) {}
 let last = performance.now();
 renderer.setAnimationLoop(now => {
-  const dt = Math.min(.1, (now - last)/1000); last = now;
+  const dtR = Math.min(.5, (now - last)/1000), dt = Math.min(.1, dtR); last = now;
   stepMe(dt);
   camMove(dt);
   applyZoom(dt);
+  if (ex !== exT) { ex += Math.sign(exT - ex) * Math.min(Math.abs(exT - ex), dtR / 1.4); applyEx(); renderer.shadowMap.needsUpdate = true; dirty = Math.max(dirty, 2); }
   if (anim){
     const k = reduce ? 1 : Math.min(1, (now - anim.t0)/900), e = 1 - Math.pow(1-k, 3);
     camera.position.lerpVectors(anim.fp, anim.tp, e);
@@ -1331,7 +1348,7 @@ renderer.setAnimationLoop(now => {
   if (anim || controls.autoRotate) dirty = Math.max(dirty, 1);
   if (!dirty) return;
   dirty--;
-  const cv = F2.visible && camera.position.y < WALL_H - .1;
+  const cv = F2.visible && (ex > .02 || camera.position.y < WALL_H - .1);
   if (cv !== ceilGroup.visible) { ceilGroup.visible = cv; renderer.shadowMap.needsUpdate = true; }
   renderer.render(scene, camera); lr.render(scene, camera); window.__renders = (window.__renders || 0) + 1;
 });
@@ -1355,6 +1372,8 @@ function mergeStatic(group){
   }
   if (lines.length) { const lg = mergeGeometries(lines); if (lg) group.add(new THREE.LineSegments(lg, edgeMat)); }
 }
+const W2 = new THREE.Group(), W1 = new THREE.Group(); F2.add(W2); F1.add(W1);   // 벽만 따로 들어 올리려고 묶음
+for (const w of walls) { if (below2F.includes(w)) continue; if (w.parent === F2) W2.add(w); else if (w.parent === F1) W1.add(w); }
 for (const g of [F2, F1, ceilGroup]) mergeStatic(g);
 setFloor('2');
 window.__ready = true;
