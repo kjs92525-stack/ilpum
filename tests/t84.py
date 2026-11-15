@@ -29,6 +29,15 @@ async def main():
         assert await pg.locator('.dw-selected').count()==3
         await pg.locator('[data-dw-row="2"]').press('Enter')
         assert await pg.evaluate('dwRange().r0')==2
+        # Shift+Space = 행 전체, Ctrl+Space = 열 전체 (스프레드시트처럼)
+        await pg.locator('[data-dwr="1"][data-dwc="2"]').click()
+        await pg.locator('.dw-scroll').press('Shift+ArrowDown')
+        await pg.locator('.dw-scroll').press('Shift+Space')
+        assert await pg.evaluate('dwRange()')=={'r0':1,'r1':2,'c0':0,'c1':8}
+        assert await pg.locator('.dw-editor').count()==0
+        await pg.locator('[data-dwr="1"][data-dwc="3"]').click()
+        await pg.locator('.dw-scroll').press('Control+Space')
+        assert await pg.evaluate('dwRange()')=={'r0':0,'r1':2,'c0':3,'c1':3}
         await pg.locator('[data-dw=menu]').click()
         assert not await pg.locator('.side').is_visible()
         await pg.locator('[data-dw=menu]').click()

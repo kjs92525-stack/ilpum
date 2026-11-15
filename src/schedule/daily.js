@@ -361,6 +361,12 @@ document.addEventListener('keydown',e=>{
   if(!e.target.matches('.dw-scroll')||DW.busy||!canPay()) return;
   if((e.ctrlKey||e.metaKey)&&e.key==='a'){ e.preventDefault(); $('[data-dw="all"]').click(); return; }
   if(!DW.b) return;
+  // 스프레드시트처럼: Shift+Space = 선택한 행 전체, Ctrl+Space = 선택한 열 전체 (2026-11-15 사용자)
+  if(e.key===' '&&(e.shiftKey||e.ctrlKey||e.metaKey)&&!e.altKey&&!e.isComposing){ e.preventDefault(); const s=dwSheet(),cols=dwVisibleCols(s),q=dwRange()||{r0:DW.b.r,r1:DW.b.r,c0:DW.b.c,c1:DW.b.c};
+    if(e.shiftKey&&!(e.ctrlKey||e.metaKey)){ DW.a={r:q.r0,c:cols[0]}; DW.b={r:q.r1,c:cols.at(-1)}; }
+    else if(!e.shiftKey){ DW.a={r:0,c:q.c0}; DW.b={r:s.rows.length-1,c:q.c1}; }
+    else { DW.a={r:0,c:cols[0]}; DW.b={r:s.rows.length-1,c:cols.at(-1)}; }   // Ctrl+Shift+Space = 전체
+    dwPaint(); return; }
   const s=dwSheet(),arrows={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
   if(arrows[e.key]){ e.preventDefault(); const [r,c]=arrows[e.key]; DW.b={r:Math.max(0,Math.min(s.rows.length-1,DW.b.r+r)),c:dwVisibleCols(s)[Math.max(0,Math.min(dwVisibleCols(s).length-1,dwVisibleCols(s).indexOf(DW.b.c)+c))]}; if(!e.shiftKey) DW.a=DW.b; dwPaint(); $(`.dw-grid td[data-dwr="${DW.b.r}"][data-dwc="${DW.b.c}"]`)?.scrollIntoView({block:'nearest',inline:'nearest'}); }
   else if(e.key==='Tab'||e.key==='Enter'){ e.preventDefault(); dwStep(DW.b.r,DW.b.c,e.key,e.shiftKey,true); }
