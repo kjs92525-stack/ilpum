@@ -1972,6 +1972,17 @@ document.addEventListener('keydown',e=>{
   const h=e.target.closest('[data-dw-row],[data-dw-col]');
   if(h&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); dwSelectHeader(h,e.shiftKey); }
 });
+function dwSetMenu(hidden){
+  DW.menuHidden=hidden;
+  if(EMBED) window.parent.postMessage({type:'fr-daily-menu',hidden},location.origin);
+  else document.documentElement.classList.toggle('dw-menu-hidden',hidden);
+  const b=$('[data-dw="menu"]'); if(b){ b.setAttribute('aria-pressed',String(hidden)); b.textContent=hidden?'왼쪽 메뉴 보이기':'왼쪽 메뉴 숨기기'; }
+}
+// 빈 곳을 누르면 왼쪽 메뉴 숨김(2026-11-15 사용자: 보이게 하는 버튼은 있으니). 버튼·입력칸·표 칸·창 위는 제외
+const DW_NOT_BLANK='button,a,input,select,textarea,label,summary,[role="button"],[data-dw],[data-dw-month],[data-dw-hit],[data-dw-year],.dw-grid td,.dw-grid th,.dw-editor,.drawer,#drawer,dialog,.toast,.side,.mbar';
+document.addEventListener('click',e=>{
+  if(APP.view==='daily'&&e.button===0&&e.target.closest('#main')&&!e.target.closest(DW_NOT_BLANK)&&!getSelection().toString()&&(!DW.menuHidden||EMBED)) dwSetMenu(true);
+},true);
 document.addEventListener('click',e=>{
   const header=e.target.closest('[data-dw-row],[data-dw-col]');
   if(header){ dwSelectHeader(header,e.shiftKey); return; }
@@ -1981,12 +1992,7 @@ document.addEventListener('click',e=>{
   if((month||hit)&&canPay()&&navAllowed('daily')&&!DW.busy){ if(month) dwGoSheet(month.dataset.dwMonth); else { const h=DW.hits[+hit.dataset.dwHit]; if(h) dwGoSheet(h.key,h.r); } return; }
   const a=e.target.closest('[data-dw]')?.dataset.dw; if(!a||DW.busy||!canPay()||!navAllowed('daily')) return;
   dwCommitEditor();
-  if(a==='menu'){
-    DW.menuHidden=!DW.menuHidden;
-    if(EMBED) window.parent.postMessage({type:'fr-daily-menu',hidden:DW.menuHidden},location.origin);
-    else document.documentElement.classList.toggle('dw-menu-hidden',DW.menuHidden);
-    render();
-  }
+  if(a==='menu') dwSetMenu(!DW.menuHidden);
   if(a==='copypeople') dwCopyPeople();
   if(a==='pastepeople') dwPastePeople();
   if(a==='amount'){ DW.hideAmount=!DW.hideAmount; DW.a=DW.b=null; render(); }
