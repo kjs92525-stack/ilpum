@@ -1635,14 +1635,32 @@ function openPrint(key){
 function closePrint(){ document.body.classList.remove('pm-on'); }
 
 /* 일용직 원장: 개인정보는 공개 HTML 대신 기존 pay RLS로 보호되는 행에만 보관. */
-const DW={sheet:null,year:null,store:null,a:null,b:null,drag:null,drafts:new Map(),busy:false,search:'',hits:[],target:null,searchTimer:null,hideAmount:false,people:null,menuHidden:false};
+const DW={sheet:null,year:null,store:null,a:null,b:null,drag:null,drafts:new Map(),busy:false,auto:{timer:null,saving:false,fail:0,at:''},search:'',hits:[],target:null,searchTimer:null,hideAmount:false,people:null,menuHidden:false};
 const dwClone=x=>JSON.parse(JSON.stringify(x));
 const dwKey=()=>APP.sid+'|'+DW.sheet;
 const dwSheets=()=>Object.keys(APP.D.pay||{}).filter(k=>k.startsWith('daily:')).sort();
 const dwLabel=key=>`${key.slice(6,10)}년 ${+key.slice(-2)}월`;
 const dwMonthKey=(year,month)=>`daily:${year}-${String(month).padStart(2,'0')}`;
 function dwSheet(){ return DW.drafts.get(dwKey())||APP.D.pay[DW.sheet]; }
-function dwDraft(){ const k=dwKey(); if(!DW.drafts.has(k)) DW.drafts.set(k,dwClone(dwSheet())); return DW.drafts.get(k); }
+function dwDraft(){ const k=dwKey(); if(!DW.drafts.has(k)) DW.drafts.set(k,dwClone(dwSheet())); dwAutoSoon(); return DW.drafts.get(k); }
+/* 자동 저장(2026-11-15 사용자): 고친 뒤 2초 동안 더 고치지 않으면 조용히 저장(화면 다시 그리지 않음 → 선택·입력 그대로).
+   고치는 중(입력 칸 열림)이면 기다림. 실패하면 점점 느리게 다시(5초→10초→…최대 5분, 전송량 규칙). 저장 버튼은 바로 저장 */
+function dwAutoSoon(ms=2000){ clearTimeout(DW.auto.timer); DW.auto.timer=setTimeout(dwAutoRun,ms); }
+function dwStatus(){ const el=$('#dw-status'); if(!el) return; const a=DW.auto;
+  el.textContent=a.saving?'자동 저장 중…':DW.drafts.size?(a.fail?'저장 실패 · 잠시 뒤 다시 저장해요':'수정됨 · 곧 자동 저장'):(a.at?`자동 저장됨 ${a.at}`:'저장됨'); }
+async function dwAutoRun(){
+  const a=DW.auto; if(!DW.drafts.size||!canPay()) return;
+  if(a.saving||DW.busy||$('.dw-editor')||DW.drag){ dwAutoSoon(1500); return; }
+  a.saving=true; dwStatus();
+  try{
+    for(const [key,s] of [...DW.drafts]){ const i=key.indexOf('|'), sid=key.slice(0,i), id=key.slice(i+1), data=dwClone(s), snap=JSON.stringify(s);
+      if(APP.be.putMany) await APP.be.putMany([{sid,kind:'pay',id,data}]); else await APP.be.put(sid,'pay',id,data);
+      if(APP.sid===sid) APP.D.pay[id]=data;
+      if(DW.drafts.get(key)===s&&JSON.stringify(s)===snap) DW.drafts.delete(key); }   // 저장하는 사이 또 고쳤으면 초안 유지 → 다음 차례에 저장
+    a.fail=0; const n=new Date(); a.at=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+  }catch(e){ a.fail++; }
+  finally{ a.saving=false; dwStatus(); if(DW.drafts.size) dwAutoSoon(a.fail?Math.min(300000,5000*2**(a.fail-1)):2000); }
+}
 function dwCol(c){ let s=''; for(c++;c;c=Math.floor((c-1)/26)) s=String.fromCharCode(65+(c-1)%26)+s; return s; }
 function dwRange(){ if(!DW.a||!DW.b) return null; return {r0:Math.min(DW.a.r,DW.b.r),r1:Math.max(DW.a.r,DW.b.r),c0:Math.min(DW.a.c,DW.b.c),c1:Math.max(DW.a.c,DW.b.c)}; }
 function dwRangeText(){ const q=dwRange(); return q?`${dwCol(q.c0)}${q.r0+1}:${dwCol(q.c1)}${q.r1+1}`:'선택 없음'; }
@@ -1676,7 +1694,7 @@ function dwPastePeople(){
     s.rows.push(row);
   }
   DW.a={r:start,c:0}; DW.b={r:s.rows.length-1,c:s.widths.length-1}; render();
-  toast(`${DW.people.rows.length}명을 추가했어요. 근무 내역 입력 후 저장해 주세요.`);
+  toast(`${DW.people.rows.length}명을 추가했어요. 근무 내역을 입력하면 자동 저장돼요.`);
 }
 function dwFind(){
   const query=dwNormalize(DW.search),hits=[];
@@ -1742,7 +1760,7 @@ function vDaily(){
     ${dwMonthTools()}
     <div class="card dw-toolbar">
     <div class="dw-tool-row"><div class="dw-tool-group" role="group" aria-label="범위 선택과 편집"><button class="btn" data-dw="all">전체 선택</button><button class="btn" data-dw="clear">선택 해제</button><button class="btn" data-dw="copy" ${DW.busy||!dwRange()?'disabled':''}>선택 범위 복사</button><button class="btn" data-dw="add" ${DW.busy?'disabled':''}>+ 행 추가</button></div><div class="dw-tool-group dw-view-group"><button class="btn" data-dw="amount" aria-pressed="${DW.hideAmount}">${DW.hideAmount?'신고금액 보이기':'신고금액 숨기기'}</button></div></div>
-    <div class="dw-tool-row dw-tool-bottom"><div class="dw-tool-group" role="group" aria-label="사람 복사"><button class="btn" data-dw="copypeople" ${DW.busy||!dwRange()?'disabled':''}>선택한 사람 복사</button><button class="btn" data-dw="pastepeople" ${DW.busy||!DW.people||DW.people.sid!==APP.sid?'disabled':''}>복사한 사람 추가${DW.people?.sid===APP.sid?' ('+DW.people.rows.length+'명)':''}</button></div><div class="dw-save-group"><span id="dw-status" role="status">${DW.busy?'저장 중…':DW.drafts.has(dwKey())?'수정됨 · 저장해 주세요':'저장됨'}</span>
+    <div class="dw-tool-row dw-tool-bottom"><div class="dw-tool-group" role="group" aria-label="사람 복사"><button class="btn" data-dw="copypeople" ${DW.busy||!dwRange()?'disabled':''}>선택한 사람 복사</button><button class="btn" data-dw="pastepeople" ${DW.busy||!DW.people||DW.people.sid!==APP.sid?'disabled':''}>복사한 사람 추가${DW.people?.sid===APP.sid?' ('+DW.people.rows.length+'명)':''}</button></div><div class="dw-save-group"><span id="dw-status" role="status">${DW.busy?'저장 중…':DW.auto.saving?'자동 저장 중…':DW.drafts.has(dwKey())?(DW.auto.fail?'저장 실패 · 잠시 뒤 다시 저장해요':'수정됨 · 곧 자동 저장'):DW.auto.at?`자동 저장됨 ${DW.auto.at}`:'저장됨'}</span>
     <button class="btn" data-dw="save" ${DW.busy?'disabled':''}>저장</button><button class="btn pri" data-dw="pdf" ${DW.busy||!dwRange()?'disabled':''}>선택 범위 PDF</button></div></div></div>
     <p class="help dw-help">드래그 선택 후 Ctrl+C 복사 / Ctrl+V 붙여넣기 · 버튼으로도 복사 가능 · 더블클릭 수정 · Tab 오른쪽 / Enter 아래쪽 · Alt+Enter 줄바꿈. 사람 복사는 기본정보만 가져와요. PDF는 신고 불가능한 행과 숨긴 신고금액 열을 제외해요. 수정 후 ‘저장’을 누르세요.</p>
     <div class="dw-selection" id="dw-range" aria-live="polite">${dwRangeText()}</div>
@@ -1755,7 +1773,7 @@ function dwPaint(){
   if($('#dw-range')) $('#dw-range').textContent=dwRangeText();
   for(const action of ['pdf','copy','copypeople']){ const btn=$(`[data-dw="${action}"]`); if(btn) btn.disabled=DW.busy||!dwRange(); }
 }
-function dwDirty(){ const el=$('#dw-status'); if(el) el.textContent='수정됨 · 저장해 주세요'; }
+function dwDirty(){ dwAutoSoon(); dwStatus(); }
 function dwCommitEditor(){ $('.dw-editor')?.dwCommit?.(); }
 function dwFocusCell(r,c,edit=false){
   DW.a=DW.b={r,c}; dwPaint();
@@ -1793,6 +1811,7 @@ function dwEdit(td,initial){
 async function dwSave(){
   if(DW.busy||!canPay()||!navAllowed('daily')) return false;
   dwCommitEditor();
+  if(DW.auto.saving){ dwAutoSoon(300); toast('자동 저장 중이에요'); return true; }
   const key=dwKey(),s=DW.drafts.get(key); if(!s) return true;
   const sid=APP.sid,id=DW.sheet,data=dwClone(s); DW.busy=true; render();
   try{
