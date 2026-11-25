@@ -360,8 +360,14 @@ let SCHED=null, SCHED_AT=0;       // 받아 온 근무표(메모리에만) — �
 async function getSchedule(force){
   if(!READY) throw new Error(ST===null?'로그인이 필요해요':'매장을 확인하지 못했어요');
   if(!force&&SCHED&&Date.now()-SCHED_AT<5*60*1000) return SCHED;
-  const rows=await jx(`/rest/v1/sch_items?store_id=eq.${SID}&deleted=eq.false&id=not.like.calc:*&select=kind,id,data`);
-  const items={}; rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data);
+  const items={},pageSize=1000;
+  // REST는 한 번에 최대 1000건. 고정 순서로 끝까지 받아야 뒤쪽 당일알바·메모가 빠지지 않음.
+  // 일용직 원장(daily:*)·별도 화면 자료(site)는 급여 계산에 쓰지 않아 전송에서 제외.
+  for(let offset=0;;offset+=pageSize){
+    const rows=await jx(`/rest/v1/sch_items?store_id=eq.${SID}&deleted=eq.false&id=not.like.calc:*&id=not.like.daily:*&kind=neq.site&select=kind,id,data&order=kind,id&limit=${pageSize}&offset=${offset}`);
+    rows.forEach(r=>(items[r.kind]=items[r.kind]||{})[r.id]=r.data);
+    if(rows.length<pageSize) break;
+  }
   SCHED=Core.buildD(items,ST.name); SCHED_AT=Date.now(); return SCHED;
 }
 
